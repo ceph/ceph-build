@@ -25,8 +25,8 @@ do
     
     if [ -e $basedir/$dist.tgz ]; then
         echo updating $dist base.tgz
-        savelog -l -n  $basedir/$dist.tgz
-        cp $basedir/$dist.tgz.0 $basedir/$dist.tgz
+#        savelog -l -n  $basedir/$dist.tgz
+#        cp $basedir/$dist.tgz.0 $basedir/$dist.tgz
         pbuilder update \
 	    --basetgz $basedir/$dist.tgz \
 	    --distribution $dist
