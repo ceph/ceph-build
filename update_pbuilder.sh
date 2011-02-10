@@ -11,8 +11,9 @@ do
     os="debian"
     [ "$dist" == "maverick" ] && os="ubuntu"
     [ "$dist" == "lucid" ] && os="ubuntu"
+    [ "$dist" == "natty" ] && os="ubuntu"
     
-    if [ $os = "debian" ]; then
+    if [ $os == "debian" ]; then
         mirror="http://http.us.debian.org/debian"
         othermirror=""
     else
