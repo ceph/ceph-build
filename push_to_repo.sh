@@ -32,6 +32,6 @@ do
     for f in $releasedir/$cephvers/*${bpvers}_*.changes
     do
 	echo file $f
-	reprepro -b $repo -C $component --ignore=wrongdistribution include $dist $f
+	reprepro --ask-passphrase -b $repo -C $component --ignore=wrongdistribution include $dist $f
     done
 done
