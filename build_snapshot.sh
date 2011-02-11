@@ -21,6 +21,6 @@ vers=`cat $versionfile`
 
 $bindir/build_dsc.sh $releasedir $vers 1 $dists
 
-sudo $bindir/build_debs.sh $releasedir $pbuilddir $vers
+$bindir/build_debs.sh $releasedir $pbuilddir $vers
 $bindir/sign_debs.sh $releasedir $vers
 
