@@ -15,6 +15,8 @@ dists=$4
 
 echo version $cephver
 
+whoami=`whoami`
+[ "$whoami" != "root" ] && echo "must run as root not $whoami" && exit 1
 
 [ -z "$dists" ] && dists=`cat $releasedir/$cephver/debian_dists`
 dvers=`cat $releasedir/$cephver/debian_version`

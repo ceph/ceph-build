@@ -15,9 +15,6 @@ dists="$*"
 [ -z "$debsubver" ] && debsubver=1
 [ -z "$dists" ] && dists="sid squeeze lenny maverick lucid"
 
-whoami=`whoami`
-[ "$whoami" != "root" ] && echo "must run as root not $whoami" && exit 1
-
 bindir=`dirname $0`
 echo "$bindir" | grep -v -q '^/' && bindir=`pwd`"/$bindir"
 
