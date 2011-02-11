@@ -5,7 +5,10 @@ set -e
 releasedir=$1
 cephver=$2
 debsubver=$3
-dists=$4
+shift
+shift
+shift
+dists="$*"
 
 [ -z "$releasedir" ] && echo specify releasedir && exit 1
 [ -z "$cephver" ] && echo specify version && exit 1
