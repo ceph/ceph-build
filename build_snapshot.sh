@@ -1,5 +1,7 @@
 #!/bin/sh -x
 
+set -e
+
 bindir=`dirname $0`
 releasedir=$1
 pbuilddir=$2
