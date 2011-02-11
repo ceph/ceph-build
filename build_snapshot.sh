@@ -27,9 +27,7 @@ $bindir/sign_debs.sh $releasedir $vers
 
 # probably a better way, but
 rm $versionfile
-nothing() {
-}
 
-trap nothing INT EXIT
+trap true INT EXIT
 
 exit 0
