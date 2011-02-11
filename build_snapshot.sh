@@ -14,7 +14,7 @@ versionfile=`mktemp`
 cleanup() {
     rm $versionfile
 }
-trap cleanup SIGINT EXIT
+trap cleanup INT EXIT
 
 $bindir/release_tarball.sh $releasedir $versionfile dosuffix
 vers=`cat $versionfile`
