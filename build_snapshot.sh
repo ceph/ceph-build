@@ -13,6 +13,7 @@ dists=$3
 versionfile=`mktemp`
 cleanup() {
     rm $versionfile
+    [ -n "$vers" ] && rm -rf $releasedir/$vers
 }
 trap cleanup INT EXIT
 
@@ -24,3 +25,11 @@ $bindir/build_dsc.sh $releasedir $vers 1 $dists
 sudo $bindir/build_debs.sh $releasedir $pbuilddir $vers
 $bindir/sign_debs.sh $releasedir $vers
 
+# probably a better way, but
+rm $versionfile
+nothing() {
+}
+
+trap nothing INT EXIT
+
+exit 0
