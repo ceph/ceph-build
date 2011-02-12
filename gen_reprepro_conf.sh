@@ -1,17 +1,27 @@
 #!/bin/sh
 
-path=$1
-comp=$2
+path="$1"
+comp="$2"
 
-dists=`cat $path/conf/dists`
-components=`cat $path/conf/components`
+if [ -e "$path/conf/dists" ]; then
+    dists=`cat $path/conf/dists`
+else if [ -e "$path/../dists" ]; then
+    dists=`cat $path/../dists`
+else
+    dists="$3"
+fi
 
-if [ -n "$comp" ]; then
-    if grep -v "\b$comp\b" $path/conf/components ; then
-	echo "adding component $comp"
-	components="$components $comp"
-	echo $components > $path/conf/components
+if [ -e "$path/conf/components" ]; then
+    components=`cat $path/conf/components`
+    if [ -n "$comp" ]; then
+	if grep -v "\b$comp\b" $path/conf/components ; then
+	    echo "adding component $comp"
+	    components="$components $comp"
+	    echo $components > $path/conf/components
+	fi
     fi
+else
+    components="$comp"
 fi
 
 echo "dists $dists"
