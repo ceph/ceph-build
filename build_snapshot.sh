@@ -5,7 +5,9 @@ set -e
 bindir=`dirname $0`
 releasedir=$1
 pbuilddir=$2
-dists=$3
+shift
+shift
+dists="$*"
 
 [ -z "$releasedir" ] && exit 1
 [ -z "$pbuilddir" ] && exit 1
