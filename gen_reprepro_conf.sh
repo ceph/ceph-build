@@ -6,8 +6,8 @@ comp="$2"
 if [ -e "$path/conf/dists" ]; then
     dists=`cat $path/conf/dists`
 else
-    if [ -e "$path/../dists" ]; then
-	dists=`cat $path/../dists`
+    if [ -e "$path/../../dists" ]; then
+	dists=`cat $path/../../dists`
     else
 	dists="$3"
     fi
