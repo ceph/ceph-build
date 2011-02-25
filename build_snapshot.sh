@@ -19,7 +19,7 @@ cleanup() {
 }
 trap cleanup INT EXIT
 
-$bindir/release_tarball.sh $releasedir $versionfile dosuffix
+$bindir/release_tarball.sh $releasedir $versionfile
 vers=`cat $versionfile`
 
 $bindir/build_dsc.sh $releasedir $vers 1 $dists

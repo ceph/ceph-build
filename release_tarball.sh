@@ -2,12 +2,8 @@
 
 set -e
 
-vers=`grep AM_INIT_AUTOMAKE configure.ac | head -1 | cut '-d '  -f 2 | sed 's/)//'`
-echo raw vers $vers
-
 releasedir=$1
 versionfile=$2
-suffix=$3
 
 [ -z "$releasedir" ] && echo specify releasedir && exit 1
 
@@ -24,14 +20,10 @@ else
     echo "forcing."
 fi
 
-if [ -z "$suffix" ]; then
-    cephver="$vers"
-else
-    gitver=`git describe | cut -c 2-`
-    cephver="$gitver"
-fi
-
-echo final vers $cephver
+vers=`git describe --abbrev=0`
+echo last version $vers
+cephver=`git describe | cut -c 2-`
+echo current version $cephver
 
 srcdir=`pwd`
 
