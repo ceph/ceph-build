@@ -20,7 +20,7 @@ else
     echo "forcing."
 fi
 
-vers=`git describe --abbrev=0`
+vers=`git describe --abbrev=0 | cut -c 2-`
 echo last version $vers
 cephver=`git describe | cut -c 2-`
 echo current version $cephver
