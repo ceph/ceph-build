@@ -20,8 +20,6 @@ else
     echo "forcing."
 fi
 
-vers=`git describe --abbrev=0 | cut -c 2-`
-echo last version $vers
 cephver=`git describe | cut -c 2-`
 echo current version $cephver
 
@@ -31,7 +29,11 @@ if [ -d "$releasedir/$cephver" ]; then
     echo "$releasedir/$cephver already exists; reuse that release tarball"
 else
     echo building tarball
+    rm ceph-*.tar.gz || true
     make dist
+
+    vers=`ls ceph-*.tar.gz | cut -c 6- | sed 's/.tar.gz//'`
+    echo tarball vers $vers
 
     echo extracting
     mkdir -p $releasedir/$cephver
@@ -39,6 +41,7 @@ else
 
     tar zxf $srcdir/ceph-$vers.tar.gz 
     [ "$vers" != "$cephver" ] && mv ceph-$vers ceph-$cephver
+
     tar zcf ceph_$cephver.orig.tar.gz ceph-$cephver
     cp -a ceph_$cephver.orig.tar.gz ceph-$cephver.tar.gz
 
