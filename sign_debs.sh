@@ -10,7 +10,7 @@ keyid=$3
 [ -z "$cephvers" ] && echo specify version && exit 1
 [ ! -d "$releasedir/$cephvers" ] && echo missing $releasedir/$cephvers && exit 1
 
-[ -z "$keyid" ] && keyid="03C3951A"
+[ -z "$keyid" ] && echo specify keyid && exit 1
 
 echo version $cephvers
 
