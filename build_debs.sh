@@ -4,19 +4,23 @@ set -e
 
 bindir=`dirname $0`
 
+usage() {
+    echo "usage: $0 releasedir pbuilddir ver [dists]"
+}
+
 releasedir=$1
 pbuilddir=$2
 cephver=$3
 dists=$4
 
-[ -z "$releasedir" ] && echo specify release dir && exit 1
-[ -z "$pbuilddir" ] && echo specify pbuilder image dir && exit 1
-[ -z "$cephver" ] && echo specify version && exit 1
+[ -z "$releasedir" ] && echo specify release dir && usage && exit 1
+[ -z "$pbuilddir" ] && echo specify pbuilder image dir && usage && exit 1
+[ -z "$cephver" ] && echo specify version && usage && exit 1
 
 echo version $cephver
 
 whoami=`whoami`
-[ "$whoami" != "root" ] && echo "must run as root not $whoami" && exit 1
+[ "$whoami" != "root" ] && echo "must run as root not $whoami" && usage && exit 1
 
 [ -z "$dists" ] && dists=`cat $releasedir/$cephver/debian_dists`
 dvers=`cat $releasedir/$cephver/debian_version`
@@ -38,7 +42,7 @@ do
 	--distribution $dist \
 	--basetgz $pbuilddir/$dist.tgz \
 	--buildresult $releasedir/$cephver \
-	--debbuildopts -j`grep -c processor /proc/cpuinfo` \
+	--debbuildopts "-j`grep -c processor /proc/cpuinfo` -b" \
 	$releasedir/$cephver/ceph_$bpvers.dsc
     
 done
