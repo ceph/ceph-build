@@ -7,11 +7,15 @@ repo=$2
 cephvers=$3
 component=$4
 
-[ -z "$releasedir" ] && echo specify releasedir && exit 1
-[ -z "$repo" ] && echo specify reprepro dir && exit 1
-[ -z "$cephvers" ] && echo specify version && exit 1
-[ ! -d "$releasedir/$cephvers" ] && echo missing $releasedir/$cephvers && exit 1
-[ -z "$component" ] && echo "must specify repo component" && exit 1
+usage() {
+    echo "usage: $0 releasedir repodir version component"
+}
+
+[ -z "$releasedir" ] && echo specify releasedir && usage && exit 1
+[ -z "$repo" ] && echo specify reprepro dir && usage && exit 1
+[ -z "$cephvers" ] && echo specify version && usage && exit 1
+[ ! -d "$releasedir/$cephvers" ] && echo missing $releasedir/$cephvers && usage && exit 1
+[ -z "$component" ] && echo "must specify repo component" && usage && exit 1
 
 bindir=`dirname $0`
 
