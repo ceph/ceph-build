@@ -1,9 +1,14 @@
 #!/bin/sh -x
 
-basedir=$1
-dists=$2
+usage() {
+    echo "usage: $0 basedir [dists...]"
+}
 
-[ ! -d "$basedir" ] && echo specify dir for pbuilder images && exit 1
+basedir=$1
+shift
+dists=$*
+
+[ ! -d "$basedir" ] && echo specify dir for pbuilder images && usage && exit 1
 [ -z "$dists" ] && dists="sid squeeze lenny maverick lucid"
 
 for dist in $dists

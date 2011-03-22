@@ -2,10 +2,14 @@
 
 set -e
 
+usage() {
+    echo "usage: $0 releasedir [versionfile]"
+}
+
 releasedir=$1
 versionfile=$2
 
-[ -z "$releasedir" ] && echo specify releasedir && exit 1
+[ -z "$releasedir" ] && echo specify releasedir && usage && exit 1
 
 if git diff --quiet ; then
     echo repository is clean
@@ -50,6 +54,9 @@ else
     cd $srcdir
 fi
 
-echo $cephver > $versionfile
+if [ -n "$versionfile" ]; then
+    echo $cephver > $versionfile
+    echo "wrote $cephver to $versionfile"
+fi
 
-echo "done. $cephver (written to $versionfile)"
+echo "done."

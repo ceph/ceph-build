@@ -2,6 +2,10 @@
 
 set -e
 
+usage() {
+    echo "usage: $0 releasedir vers [debsubver] [dists...]"
+}
+
 releasedir=$1
 cephver=$2
 debsubver=$3
@@ -10,8 +14,8 @@ shift
 shift
 dists="$*"
 
-[ -z "$releasedir" ] && echo specify releasedir && exit 1
-[ -z "$cephver" ] && echo specify version && exit 1
+[ -z "$releasedir" ] && echo specify releasedir && usage && exit 1
+[ -z "$cephver" ] && echo specify version && usage && exit 1
 [ -z "$debsubver" ] && debsubver=1
 [ -z "$dists" ] && dists="sid squeeze lenny maverick lucid"
 
