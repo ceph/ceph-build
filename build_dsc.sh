@@ -52,7 +52,7 @@ do
     fi
 
     # hack
-    [ "$dist" = "lenny" ] && sed -i 's/, libgoogle-perftools-dev//' ceph-$cephver/debian/control
+    [ "$dist" = "lenny" ] && sed -i 's/, libgoogle-perftools-dev[^,]*,/,/' ceph-$cephver/debian/control
 
     dpkg-source -b ceph-$cephver
 
