@@ -9,7 +9,7 @@ usage() {
 }
 
 releasedir=$1
-shift
+shift || true
 dists="$*"
 
 [ -z "$releasedir" ] && usage && exit 1
