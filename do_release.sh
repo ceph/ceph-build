@@ -36,7 +36,7 @@ for rem in $rhosts
 do
     ssh root@$rem rm -r /tmp/release \; mkdir -p /tmp/release || true
     scp -rp $releasedir/$vers root@$rem:/tmp/release/$vers
-    xterm -e ssh root@$rem /home/sage/ceph-build/build_debs.sh /tmp/release /home/sage/debian-base $vers &
+    xterm -l -e ssh root@$rem /home/sage/ceph-build/build_debs.sh /tmp/release /home/sage/debian-base $vers &
     pids="$pids $!"
 done
 
