@@ -9,11 +9,12 @@ shift
 dists=$*
 
 [ ! -d "$basedir" ] && echo specify dir for pbuilder images && usage && exit 1
-[ -z "$dists" ] && dists="sid squeeze lenny maverick lucid"
+[ -z "$dists" ] && dists="sid squeeze lenny natty maverick lucid"
 
 for dist in $dists
 do
     os="debian"
+    [ "$dist" = "natty" ] && os="ubuntu"
     [ "$dist" = "maverick" ] && os="ubuntu"
     [ "$dist" = "lucid" ] && os="ubuntu"
     [ "$dist" = "natty" ] && os="ubuntu"
