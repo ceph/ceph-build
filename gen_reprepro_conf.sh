@@ -2,15 +2,13 @@
 
 path="$1"
 comp="$2"
+shift
+shift
 
 if [ -e "$path/conf/dists" ]; then
     dists=`cat $path/conf/dists`
 else
-    if [ -e "$path/../../dists" ]; then
-	dists=`cat $path/../../dists`
-    else
-	dists="$3"
-    fi
+    dists="$*3"
 fi
 
 if [ -e "$path/conf/components" ]; then
