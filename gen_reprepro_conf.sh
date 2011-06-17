@@ -8,7 +8,7 @@ shift
 if [ -e "$path/conf/dists" ]; then
     dists=`cat $path/conf/dists`
 else
-    dists="$*3"
+    dists="$*"
 fi
 
 if [ -e "$path/conf/components" ]; then
