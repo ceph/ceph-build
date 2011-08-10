@@ -74,11 +74,12 @@ EOF
 
     # build Release for this distribution
     echo "building $dest/dists/$dist/Release"
+    date=`date "+%a, %d %b %Y %X UTC" -u`
     cat <<EOF > "$dest/temp"
 Origin: New Dream Network
 Suite: stable
 Codename: $dist
-Date: Fri, 29 Jul 2011 22:52:50 UTC
+Date: $date
 Architectures: $archs
 Components: main
 Description: combined repo
