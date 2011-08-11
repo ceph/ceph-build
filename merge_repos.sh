@@ -101,7 +101,11 @@ EOF
 	echo " "`sha256sum $dest/dists/$dist/$f | cut -c 1-64`" "`stat --format=%s $dest/dists/$dist/$f`" $f" >> "$dest/temp"
     done
     mv "$dest/temp" "$dest/dists/$dist/Release"
+    
+    # sign it
+    gpg --clearsign "$dest/dists/$dist/Release"
+    mv "$dest/dists/$dist/Release.asc" "$dest/dists/$dist/Release.gpg"
 done
 
-# generate full Release 
+
 
