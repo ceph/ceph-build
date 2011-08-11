@@ -103,7 +103,7 @@ EOF
     mv "$dest/temp" "$dest/dists/$dist/Release"
     
     # sign it
-    gpg --clearsign "$dest/dists/$dist/Release"
+    gpg --detach-sign --armor "$dest/dists/$dist/Release"
     mv "$dest/dists/$dist/Release.asc" "$dest/dists/$dist/Release.gpg"
 done
 
