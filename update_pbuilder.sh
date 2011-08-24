@@ -17,7 +17,7 @@ do
     [ "$dist" = "natty" ] && os="ubuntu"
     [ "$dist" = "maverick" ] && os="ubuntu"
     [ "$dist" = "lucid" ] && os="ubuntu"
-    [ "$dist" = "natty" ] && os="ubuntu"
+    [ "$dist" = "oneiric" ] && os="ubuntu"
     
     if [ $os = "debian" ]; then
         mirror="http://http.us.debian.org/debian"
