@@ -6,6 +6,7 @@ dist=$2
 [ "$dist" = "sid" ] && dver="$raw"
 [ "$dist" = "squeeze" ] && dver="$raw~bpo60+1"
 [ "$dist" = "lenny" ] && dver="$raw~bpo50+1"
+[ "$dist" = "oneiric" ] && dver="$raw$dist"
 [ "$dist" = "natty" ] && dver="$raw$dist"
 [ "$dist" = "maverick" ] && dver="$raw$dist"
 [ "$dist" = "lucid" ] && dver="$raw$dist"
