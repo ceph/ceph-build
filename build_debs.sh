@@ -31,10 +31,10 @@ for dist in $dists
 do
     pbuilder --clean
 
-    $bindir/update_pbuilder.sh $pbuilddir $dist
-
     bpvers=`$bindir/gen_debian_version.sh $dvers $dist`
     echo deb vers $bpvers
+
+    $bindir/update_pbuilder.sh $pbuilddir $dist
 
     echo building debs for $dist
     pbuilder build \
