@@ -34,7 +34,9 @@ if [ -d "$releasedir/$cephver" ]; then
 else
     echo building tarball
     rm ceph-*.tar.gz || true
+    rm ceph-*.tar.bz2 || true
     make dist
+    make dist-bzip2
 
     vers=`ls ceph-*.tar.gz | cut -c 6- | sed 's/.tar.gz//'`
     echo tarball vers $vers
