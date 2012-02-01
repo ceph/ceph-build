@@ -17,7 +17,7 @@ srcdir=`pwd`
 
 numproc=`cat /proc/cpuinfo |grep -c processor`
 [ -z "$numproc" ] && numproc=1
-numproc=$(($numproc * 2))
+#numproc=$(($numproc * 2))
 
 cephver=`git describe | cut -c 2-`
 echo current version $cephver
