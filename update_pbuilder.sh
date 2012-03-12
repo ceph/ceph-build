@@ -9,15 +9,16 @@ shift
 dists=$*
 
 [ ! -d "$basedir" ] && echo specify dir for pbuilder images && usage && exit 1
-[ -z "$dists" ] && dists="sid squeeze lenny natty maverick lucid"
+[ -z "$dists" ] && dists="sid wheezy squeeze lenny oneiric precise natty maverick lucid"
 
 for dist in $dists
 do
     os="debian"
+    [ "$dist" = "precise" ] && os="ubuntu"
+    [ "$dist" = "oneiric" ] && os="ubuntu"
     [ "$dist" = "natty" ] && os="ubuntu"
     [ "$dist" = "maverick" ] && os="ubuntu"
     [ "$dist" = "lucid" ] && os="ubuntu"
-    [ "$dist" = "oneiric" ] && os="ubuntu"
     
     if [ $os = "debian" ]; then
         mirror="http://http.us.debian.org/debian"
