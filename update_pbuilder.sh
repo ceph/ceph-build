@@ -9,7 +9,7 @@ shift
 dists=$*
 
 [ ! -d "$basedir" ] && echo specify dir for pbuilder images && usage && exit 1
-[ -z "$dists" ] && dists="sid wheezy squeeze lenny oneiric precise natty maverick lucid"
+[ -z "$dists" ] && dists="sid wheezy squeeze lenny oneiric precise natty"
 
 for dist in $dists
 do
