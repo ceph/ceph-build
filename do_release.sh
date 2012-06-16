@@ -2,6 +2,8 @@
 
 set -e
 
+gpgkey='17ED316D'
+
 bindir=`dirname $0`
 
 usage() {
@@ -14,6 +16,7 @@ dists="$*"
 
 [ -z "$releasedir" ] && usage && exit 1
 
+#rhosts="localhost 192.168.106.235"
 rhosts="localhost lenny32-packager.dreamhost.com"
 
 versionfile=`mktemp`
@@ -30,11 +33,11 @@ $bindir/release_tarball.sh $releasedir $versionfile
 vers=`cat $versionfile`
 
 $bindir/build_dsc.sh $releasedir $vers 1 $dists
-$bindir/sign_debs.sh $releasedir $vers 288995c8 dsc
+$bindir/sign_debs.sh $releasedir $vers $gpgkey dsc
 
 for rem in $rhosts
 do
-    ssh root@$rem rm -r /tmp/release \; mkdir -p /tmp/release || true
+    ssh root@$rem rm -r /tmp/release/\* \; mkdir -p /tmp/release || true
     scp -rp $releasedir/$vers root@$rem:/tmp/release/$vers
     xterm -l -e ssh root@$rem /home/sage/ceph-build/build_debs.sh /tmp/release /home/sage/debian-base $vers &
     pids="$pids $!"
@@ -51,7 +54,7 @@ do
     rsync -auv root@$rem:/tmp/release/$vers/\*.\{changes\,deb\} $releasedir/$vers
 done
 
-$bindir/sign_debs.sh $releasedir $vers 288995c8 changes
+$bindir/sign_debs.sh $releasedir $vers $gpgkey changes
 
 # probably a better way, but
 rm $versionfile
