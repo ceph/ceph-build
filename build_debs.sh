@@ -44,7 +44,6 @@ do
 	--distribution $dist \
 	--basetgz $pbuilddir/$dist.tgz \
 	--buildresult $releasedir/$cephver \
-	--debbuildopts "-j`grep -c processor /proc/cpuinfo` -b" \
 	$releasedir/$cephver/ceph_$bpvers.dsc
     
 done
