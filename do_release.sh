@@ -16,8 +16,9 @@ dists="$*"
 
 [ -z "$releasedir" ] && usage && exit 1
 
-#rhosts="localhost 192.168.106.235"
-rhosts="localhost lenny32-packager.dreamhost.com"
+rhosts="localhost 192.168.106.235"
+#rhosts="flab.ops.newdream.net lenny32-packager.dreamhost.com"
+#rhosts="localhost lenny32-packager.dreamhost.com"
 
 versionfile=`mktemp`
 cleanup() {
