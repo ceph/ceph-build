@@ -36,7 +36,7 @@ do
 
 #[ "$dist" = "sid" ] && dist="wheezy"
 
-    $bindir/update_pbuilder.sh $pbuilddir $dist
+#    $bindir/update_pbuilder.sh $pbuilddir $dist
 
     echo building debs for $dist
     pbuilder build \
