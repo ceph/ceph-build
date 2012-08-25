@@ -34,7 +34,7 @@ do
     bpvers=`$bindir/gen_debian_version.sh $dvers $dist`
     echo deb vers $bpvers
 
-[ "$dist" = "sid" ] && dist="wheezy"
+#[ "$dist" = "sid" ] && dist="wheezy"
 
     $bindir/update_pbuilder.sh $pbuilddir $dist
 
