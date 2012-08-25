@@ -36,7 +36,7 @@ Codename: $dist
 Suite: stable
 Components: $components
 Architectures: i386 amd64 source
-Origin: New Dream Network
+Origin: Inktank
 Description: Ceph distributed file system
 DebIndices: Packages Release . .gz .bz2
 DscIndices: Sources Release .gz .bz2

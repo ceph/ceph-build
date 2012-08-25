@@ -66,7 +66,7 @@ do
 	cat <<EOF > "$f/Release"
 Archive: stable
 Component: main
-Origin: New Dream Network
+Origin: Inktank
 Architecture: $arch
 Description: combined repo
 EOF
@@ -76,7 +76,7 @@ EOF
     echo "building $dest/dists/$dist/Release"
     date=`date "+%a, %d %b %Y %X UTC" -u`
     cat <<EOF > "$dest/temp"
-Origin: New Dream Network
+Origin: Inktank
 Suite: stable
 Codename: $dist
 Date: $date
