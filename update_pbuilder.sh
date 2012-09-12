@@ -1,5 +1,7 @@
 #!/bin/sh -x
 
+set -e
+
 usage() {
     echo "usage: $0 basedir [dists...]"
 }
