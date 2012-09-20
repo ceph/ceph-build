@@ -40,7 +40,11 @@ for rem in $rhosts
 do
     ssh root@$rem rm -r /tmp/release/\* \; mkdir -p /tmp/release || true
     scp -rp $releasedir/$vers root@$rem:/tmp/release/$vers
-    xterm -l -e ssh root@$rem /home/sage/ceph-build/build_debs.sh /tmp/release /home/sage/debian-base $vers &
+    if [ $xterm -eq 1 ]; then
+	xterm -l -e ssh root@$rem /home/sage/ceph-build/build_debs.sh /tmp/release /home/sage/debian-base $vers &
+    else
+	ssh root@$rem /home/sage/ceph-build/build_debs.sh /tmp/release /home/sage/debian-base $vers > build.$rem 2>&1 &
+    fi
     pids="$pids $!"
 done
 
@@ -52,7 +56,7 @@ pids=""
 
 for rem in $rhosts
 do
-    rsync -auv root@$rem:/tmp/release/$vers/\*.\{changes\,deb\} $releasedir/$vers
+   rsync -auv root@$rem:/tmp/release/$vers/\*.\{changes\,deb\} $releasedir/$vers
 done
 
 $bindir/sign_debs.sh $releasedir $vers $gpgkey changes
