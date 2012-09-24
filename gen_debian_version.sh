@@ -8,6 +8,7 @@ dist=$2
 [ "$dist" = "squeeze" ] && dver="$raw~bpo60+1"
 [ "$dist" = "lenny" ] && dver="$raw~bpo50+1"
 [ "$dist" = "precise" ] && dver="$raw$dist"
+[ "$dist" = "quantal" ] && dver="$raw$dist"
 [ "$dist" = "oneiric" ] && dver="$raw$dist"
 [ "$dist" = "natty" ] && dver="$raw$dist"
 [ "$dist" = "maverick" ] && dver="$raw$dist"

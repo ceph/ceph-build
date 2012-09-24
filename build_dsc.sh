@@ -17,7 +17,7 @@ dists="$*"
 [ -z "$releasedir" ] && echo specify releasedir && usage && exit 1
 [ -z "$cephver" ] && echo specify version && usage && exit 1
 [ -z "$debsubver" ] && debsubver=1
-[ -z "$dists" ] && dists="sid wheezy squeeze precise oneiric natty"
+[ -z "$dists" ] && dists="sid wheezy squeeze quantal precise oneiric natty"
 
 bindir=`dirname $0`
 echo "$bindir" | grep -v -q '^/' && bindir=`pwd`"/$bindir"
