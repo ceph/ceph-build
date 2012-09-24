@@ -21,12 +21,8 @@ what=$4
 
 echo version $cephvers key $keyid
 
-# Sign all the RPMs
-rpm_list=`find $releasedir/$cephvers -name "*.rpm" -print`
+# Sign all the RPMs for this release
+rpm_list=`find $releasedir/$cephvers/rpm -name "*.rpm" -print`
 rpm --addsign --define "_gpg_name $keyid" $rpm_list
 
-# Sign the repository
-#for repo in `find $releasedir/$cephvers -type d -name "repodata" -print`
-#do
-#    gpg --detach-sign --armor -u $keyid $repo/repomd.xml
-#done
+echo done
