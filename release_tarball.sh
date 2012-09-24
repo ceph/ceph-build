@@ -49,6 +49,7 @@ else
     [ "$vers" != "$cephver" ] && mv ceph-$vers ceph-$cephver
 
     tar zcf ceph_$cephver.orig.tar.gz ceph-$cephver
+    tar jcf ceph_$cephver.orig.tar.bz2 ceph-$cephver
     cp -a ceph_$cephver.orig.tar.gz ceph-$cephver.tar.gz
 
     # copy debian dir, too
