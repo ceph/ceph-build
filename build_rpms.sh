@@ -10,6 +10,8 @@ releasedir=$1
 cephver=$2
 
 dist=`$bindir/get_rpm_dist.sh`
+[ -z "$dist" ] && echo no dist && exit 1
+
 echo dist $dist
 
 [ -z "$releasedir" ] && echo specify releasedir && usage && exit 1
