@@ -8,32 +8,21 @@ usage() {
 
 releasedir=$1
 cephver=$2
-subver=$3
-shift
-shift
-shift
-dists="$*"
+
+dist=`$bindir/get_rpm_dist.sh`
+echo dist $dist
 
 [ -z "$releasedir" ] && echo specify releasedir && usage && exit 1
 [ -z "$cephver" ] && echo specify version && usage && exit 1
-[ -z "$subver" ] && subver=1
-[ -z "$dists" ] && dists="centos6"
+[ -z "$dists" ] && echo specify distribution name && usage && exit 1
 
 bindir=`dirname $0`
 echo "$bindir" | grep -v -q '^/' && bindir=`pwd`"/$bindir"
 
-rpmver="$cephver-$subver"
-
-echo rpmver $rpmver
-
 cd $releasedir/$cephver || exit 1
 
-# take note  XXX debian version keeping here just in case
-echo $dists > rpm_dists
-echo $rpmver > rpm_version
-
 # Set up build area
-BUILDAREA=./rpmbuild
+BUILDAREA=./rpm/$dist
 mkdir -p ${BUILDAREA}/{SOURCES,SRPMS,SPECS,RPMS,BUILD}
 cp -a ceph-*.tar.bz2 ${BUILDAREA}/SOURCES/.
 

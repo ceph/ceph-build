@@ -16,9 +16,8 @@ dists="$*"
 
 [ -z "$releasedir" ] && usage && exit 1
 
-rhosts="localhost 192.168.106.235"
-#rhosts="flab.ops.newdream.net lenny32-packager.dreamhost.com"
-#rhosts="localhost lenny32-packager.dreamhost.com"
+deb_hosts="localhost 192.168.106.235"
+rpm_hosts="gitbuilder-centos6-amd64.front.sepia.ceph.com"
 
 versionfile=`mktemp`
 cleanup() {
@@ -33,10 +32,11 @@ rm $releasedir/* || true
 $bindir/release_tarball.sh $releasedir $versionfile
 vers=`cat $versionfile`
 
+# debian stuff
 $bindir/build_dsc.sh $releasedir $vers 1 $dists
 $bindir/sign_debs.sh $releasedir $vers $gpgkey dsc
 
-for rem in $rhosts
+for rem in $deb_hosts
 do
     ssh root@$rem rm -r /tmp/release/\* \; mkdir -p /tmp/release || true
     scp -rp $releasedir/$vers root@$rem:/tmp/release/$vers
@@ -48,18 +48,33 @@ do
     pids="$pids $!"
 done
 
+# rpm stuff
+for rem in $rpm_hosts
+do
+    ssh root@$rem rm -r /tmp/release/\* \; mkdir -p /tmp/release || true
+    scp -rp $releasedir/$vers root@$rem:/tmp/release/$vers
+    exit
+    if [ $xterm -eq 1 ]; then
+	xterm -l -e ssh root@$rem ceph-build/build_rpms.sh /tmp/release $vers &
+    else
+	ssh root@$rem ceph-build/build_rpms.sh /tmp/release $vers > build.$rem 2>&1 &
+    fi
+    pids="$pids $!"
+done
+
 for p in $pids
 do
     wait $p
 done
 pids=""
 
-for rem in $rhosts
+for rem in $deb_hosts $rpm_hosts
 do
    rsync -auv root@$rem:/tmp/release/$vers/\*.\{changes\,deb\} $releasedir/$vers
 done
 
 $bindir/sign_debs.sh $releasedir $vers $gpgkey changes
+$bindir/sign_rpms.sh $releasedir $vers $gpgkey
 
 # probably a better way, but
 rm $versionfile
