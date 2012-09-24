@@ -55,6 +55,9 @@ else
     # copy debian dir, too
     cp -a $srcdir/debian debian
     cd $srcdir
+
+    # copy in spec file, too
+    cp ceph.spec $releasedir/$cephver
 fi
 
 if [ -n "$versionfile" ]; then
