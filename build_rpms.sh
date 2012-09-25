@@ -8,18 +8,15 @@ usage() {
 
 releasedir=$1
 cephver=$2
-
-dist=`$bindir/get_rpm_dist.sh`
-[ -z "$dist" ] && echo no dist && exit 1
-
-echo dist $dist
-
 [ -z "$releasedir" ] && echo specify releasedir && usage && exit 1
 [ -z "$cephver" ] && echo specify version && usage && exit 1
-[ -z "$dists" ] && echo specify distribution name && usage && exit 1
 
 bindir=`dirname $0`
 echo "$bindir" | grep -v -q '^/' && bindir=`pwd`"/$bindir"
+
+dist=`$bindir/get_rpm_dist.sh`
+[ -z "$dist" ] && echo no dist && exit 1
+echo dist $dist
 
 cd $releasedir/$cephver || exit 1
 
