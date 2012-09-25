@@ -8,11 +8,11 @@ ID=`$LSB_RELEASE --short --id`
 case $ID in
 CentOS)
 	RELEASE=`$LSB_RELEASE --short --release | cut -d. -f1`
-	DIST=$ID$RELEASE
+	DIST=el$RELEASE
 	;;
 Fedora)
 	RELEASE=`$LSB_RELEASE --short --release`
-	DIST=$ID$RELEASE
+	DIST=fc$RELEASE
 	;;
 *)
 	DIST=unknown
