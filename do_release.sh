@@ -32,36 +32,39 @@ rm $releasedir/* || true
 $bindir/release_tarball.sh $releasedir $versionfile
 vers=`cat $versionfile`
 
-# debian stuff
+# debs
 $bindir/build_dsc.sh $releasedir $vers 1 $dists
 $bindir/sign_debs.sh $releasedir $vers $gpgkey dsc
 
 for rem in $deb_hosts
 do
-    ssh root@$rem rm -r /tmp/release/\* \; mkdir -p /tmp/release || true
+    ssh root@$rem rm -r /tmp/release/\* \; mkdir -p /tmp/release \; rm -r /tmp/ceph-build.\* || true
     scp -rp $releasedir/$vers root@$rem:/tmp/release/$vers
+    ssh root@$rem git clone git://github.com/ceph/ceph-build /tmp/ceph-build.$$
     if [ $xterm -eq 1 ]; then
-	xterm -l -e ssh root@$rem /home/sage/ceph-build/build_debs.sh /tmp/release /home/sage/debian-base $vers &
+	xterm -l -e ssh root@$rem /tmp/ceph-build.$$/build_debs.sh /tmp/release /srv/debian-base $vers &
     else
-	ssh root@$rem /home/sage/ceph-build/build_debs.sh /tmp/release /home/sage/debian-base $vers > build.$rem 2>&1 &
+	ssh root@$rem /tmp/ceph-build.$$/build_debs.sh /tmp/release /srv/debian-base $vers > build.$rem 2>&1 &
     fi
     pids="$pids $!"
 done
 
-# rpm stuff
+# rpms
 for rem in $rpm_hosts
 do
-    ssh root@$rem rm -r /tmp/release/\* \; mkdir -p /tmp/release || true
+    ssh root@$rem rm -r /tmp/release/\* \; mkdir -p /tmp/release \; rm -r /tmp/ceph-build.\* || true
     scp -rp $releasedir/$vers root@$rem:/tmp/release/$vers
+    ssh root@$rem git clone git://github.com/ceph/ceph-build /tmp/ceph-build.$$
     exit
     if [ $xterm -eq 1 ]; then
-	xterm -l -e ssh root@$rem ceph-build/build_rpms.sh /tmp/release $vers &
+	xterm -l -e ssh root@$rem /tmp/ceph-build.$$/build_rpms.sh /tmp/release $vers &
     else
-	ssh root@$rem ceph-build/build_rpms.sh /tmp/release $vers > build.$rem 2>&1 &
+	ssh root@$rem /tmp/ceph-build.$$/build_rpms.sh /tmp/release $vers > build.$rem 2>&1 &
     fi
     pids="$pids $!"
 done
 
+# wait
 for p in $pids
 do
     wait $p
