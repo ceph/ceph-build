@@ -10,7 +10,7 @@ do
     echo rem $rem
     ssh $rem sudo rm -rf /tmp/ceph-build.\* \; sudo mkdir -p /srv/debian-base
     ssh $rem git clone git://github.com/ceph/ceph-build /tmp/ceph-build.$$
-    ssh $rem sudo /tmp/ceph-build.$$/update_pbuilder.sh /srv/debian-base
+    ssh $rem sudo /tmp/ceph-build.$$/update_pbuilder.sh /srv/debian-base > update.$rem 2>&1 &
     pids="$pids $!"
 done
 
@@ -20,3 +20,4 @@ do
     wait $p
 done
 
+echo done.
