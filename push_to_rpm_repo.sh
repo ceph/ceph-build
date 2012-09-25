@@ -6,7 +6,7 @@ releasedir=$1
 repo=$2
 cephvers=$3
 
-keyid=3CF7ABC8
+keyid=17ED316D
 
 usage() {
     echo "usage: $0 releasedir repodir version component"
@@ -33,8 +33,8 @@ do
     # stage the results
     for dir in $releasedir/$cephvers/rpm/$dist/RPMS/*
     do
-        mkdir -p $repo/$cephvers/
-        cp -a $dir  $repo/$cephvers/.
+        mkdir -p $repo/$cephvers/$dist
+        cp -a $dir  $repo/$cephvers/$dist/.
     done
 done
 

@@ -2,6 +2,7 @@
 
 set -e
 
+xterm=${xterm:-0}	# set to 1 to use xterm for remote sessions
 gpgkey='17ED316D'
 
 bindir=`dirname $0`
@@ -55,7 +56,6 @@ do
     ssh $rem sudo rm -r /tmp/release/\* \; sudo mkdir -p /tmp/release \; sudo rm -r /tmp/ceph-build.\* || true
     scp -rp $releasedir/$vers $rem:/tmp/release/$vers
     ssh $rem git clone git://github.com/ceph/ceph-build /tmp/ceph-build.$$
-    exit
     if [ $xterm -eq 1 ]; then
 	xterm -l -e ssh $rem sudo /tmp/ceph-build.$$/build_rpms.sh /tmp/release $vers &
     else

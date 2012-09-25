@@ -20,7 +20,7 @@ repo_host="$3"
 [ -z "$repo_host" ] && repo_host="gitbuilder-centos6-amd64"
 
 #
-RPMBUILD=$release_dir/rpmbuild
+RPMBUILD=$release_dir
 
 #  Spec File
 cat <<EOF > $RPMBUILD/SPECS/ceph-release.spec
