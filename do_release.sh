@@ -16,8 +16,8 @@ dists="$*"
 
 [ -z "$releasedir" ] && usage && exit 1
 
-deb_hosts="localhost 192.168.106.235"
-rpm_hosts="gitbuilder-centos6-amd64.front.sepia.ceph.com"
+deb_hosts=`cat $bindir/deb_hosts`
+rpm_hosts=`cat $bindir/rpm_hosts`
 
 versionfile=`mktemp`
 cleanup() {
