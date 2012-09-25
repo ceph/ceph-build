@@ -6,6 +6,9 @@ usage() {
     echo "usage: $0 releasedir vers [debsubver] [dists...]"
 }
 
+bindir=`dirname $0`
+echo "$bindir" | grep -v -q '^/' && bindir=`pwd`"/$bindir"
+
 releasedir=$1
 cephver=$2
 debsubver=$3
@@ -17,10 +20,7 @@ dists="$*"
 [ -z "$releasedir" ] && echo specify releasedir && usage && exit 1
 [ -z "$cephver" ] && echo specify version && usage && exit 1
 [ -z "$debsubver" ] && debsubver=1
-[ -z "$dists" ] && dists="sid wheezy squeeze quantal precise oneiric natty"
-
-bindir=`dirname $0`
-echo "$bindir" | grep -v -q '^/' && bindir=`pwd`"/$bindir"
+[ -z "$dists" ] && dists=`cat $bindir/deb_dists`
 
 debver="$cephver-$debsubver"
 

@@ -6,12 +6,15 @@ usage() {
     echo "usage: $0 basedir [dists...]"
 }
 
+bindir=`dirname $0`
+echo "$bindir" | grep -v -q '^/' && bindir=`pwd`"/$bindir"
+
 basedir=$1
 shift
 dists=$*
 
 [ ! -d "$basedir" ] && echo specify dir for pbuilder images && usage && exit 1
-[ -z "$dists" ] && dists="sid wheezy squeeze oneiric quantal precise natty"
+[ -z "$dists" ] && dists=`cat deb_dists`
 
 for dist in $dists
 do

@@ -22,7 +22,7 @@ bindir=`dirname $0`
 echo version $cephvers
 echo component $component
 
-[ -z "$dists" ] && dists=`cat $releasedir/$cephvers/debian_dists`
+[ -z "$dists" ] && dists=`cat $releasedir/$cephvers/deb_dists`
 dvers=`cat $releasedir/$cephvers/debian_version`
 echo deb vers $dvers
 echo dists $dists
