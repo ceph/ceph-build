@@ -71,7 +71,7 @@ do
 done
 
 # gather results
-for rem in #$deb_hosts
+for rem in $deb_hosts
 do
    rsync -auv $rem:/tmp/release/$vers/\*.\{changes\,deb\} $releasedir/$vers
 done
