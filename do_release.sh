@@ -38,13 +38,13 @@ $bindir/sign_debs.sh $releasedir $vers $gpgkey dsc
 
 for rem in $deb_hosts
 do
-    ssh root@$rem rm -r /tmp/release/\* \; mkdir -p /tmp/release \; rm -r /tmp/ceph-build.\* || true
-    scp -rp $releasedir/$vers root@$rem:/tmp/release/$vers
-    ssh root@$rem git clone git://github.com/ceph/ceph-build /tmp/ceph-build.$$
+    ssh $rem sudo rm -r /tmp/release/\* \; sudo mkdir -p /tmp/release \; sudo rm -r /tmp/ceph-build.\* || true
+    scp -rp $releasedir/$vers $rem:/tmp/release/$vers
+    ssh $rem git clone git://github.com/ceph/ceph-build /tmp/ceph-build.$$
     if [ $xterm -eq 1 ]; then
-	xterm -l -e ssh root@$rem /tmp/ceph-build.$$/build_debs.sh /tmp/release /srv/debian-base $vers &
+	xterm -l -e ssh $rem sudo /tmp/ceph-build.$$/build_debs.sh /tmp/release /srv/debian-base $vers &
     else
-	ssh root@$rem /tmp/ceph-build.$$/build_debs.sh /tmp/release /srv/debian-base $vers > build.$rem 2>&1 &
+	ssh $rem sudo /tmp/ceph-build.$$/build_debs.sh /tmp/release /srv/debian-base $vers > build.$rem 2>&1 &
     fi
     pids="$pids $!"
 done
@@ -52,14 +52,14 @@ done
 # rpms
 for rem in $rpm_hosts
 do
-    ssh root@$rem rm -r /tmp/release/\* \; mkdir -p /tmp/release \; rm -r /tmp/ceph-build.\* || true
-    scp -rp $releasedir/$vers root@$rem:/tmp/release/$vers
-    ssh root@$rem git clone git://github.com/ceph/ceph-build /tmp/ceph-build.$$
+    ssh $rem sudo rm -r /tmp/release/\* \; sudo mkdir -p /tmp/release \; sudo rm -r /tmp/ceph-build.\* || true
+    scp -rp $releasedir/$vers $rem:/tmp/release/$vers
+    ssh $rem git clone git://github.com/ceph/ceph-build /tmp/ceph-build.$$
     exit
     if [ $xterm -eq 1 ]; then
-	xterm -l -e ssh root@$rem /tmp/ceph-build.$$/build_rpms.sh /tmp/release $vers &
+	xterm -l -e ssh $rem sudo /tmp/ceph-build.$$/build_rpms.sh /tmp/release $vers &
     else
-	ssh root@$rem /tmp/ceph-build.$$/build_rpms.sh /tmp/release $vers > build.$rem 2>&1 &
+	ssh $rem sudo /tmp/ceph-build.$$/build_rpms.sh /tmp/release $vers > build.$rem 2>&1 &
     fi
     pids="$pids $!"
 done
@@ -73,11 +73,11 @@ done
 # gather results
 for rem in #$deb_hosts
 do
-   rsync -auv root@$rem:/tmp/release/$vers/\*.\{changes\,deb\} $releasedir/$vers
+   rsync -auv $rem:/tmp/release/$vers/\*.\{changes\,deb\} $releasedir/$vers
 done
 for rem in $rpm_hosts
 do
-    rsync -auv root@$rem:/tmp/release/$vers/rpm/ $releasedir/$vers/rpm
+    rsync -auv $rem:/tmp/release/$vers/rpm/ $releasedir/$vers/rpm
 done
 
 # sign
