@@ -66,13 +66,18 @@ for p in $pids
 do
     wait $p
 done
-pids=""
 
-for rem in $deb_hosts $rpm_hosts
+# gather results
+for rem in #$deb_hosts
 do
    rsync -auv root@$rem:/tmp/release/$vers/\*.\{changes\,deb\} $releasedir/$vers
 done
+for rem in $rpm_hosts
+do
+    rsync -auv root@$rem:/tmp/release/$vers/rpm/ $releasedir/$vers/rpm
+done
 
+# sign
 $bindir/sign_debs.sh $releasedir $vers $gpgkey changes
 $bindir/sign_rpms.sh $releasedir $vers $gpgkey
 
