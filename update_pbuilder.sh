@@ -14,7 +14,7 @@ shift
 dists=$*
 
 [ ! -d "$basedir" ] && echo specify dir for pbuilder images && usage && exit 1
-[ -z "$dists" ] && dists=`cat deb_dists`
+[ -z "$dists" ] && dists=`cat $bindir/deb_dists`
 
 for dist in $dists
 do

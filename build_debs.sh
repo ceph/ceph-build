@@ -22,7 +22,7 @@ echo version $cephver
 whoami=`whoami`
 [ "$whoami" != "root" ] && echo "must run as root not $whoami" && usage && exit 1
 
-[ -z "$dists" ] && dists=`cat $releasedir/$cephver/deb_dists`
+[ -z "$dists" ] && dists=`cat $releasedir/$cephver/debian_dists`
 dvers=`cat $releasedir/$cephver/debian_version`
 echo deb vers $dvers
 echo dists $dists
