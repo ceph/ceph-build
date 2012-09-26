@@ -29,5 +29,4 @@ cp -a ceph-*.tar.bz2 ${BUILDAREA}/SOURCES/.
 BUILDAREA=`readlink -fn ${BUILDAREA}`   ### rpm wants absolute path
 rpmbuild -bb --define "_topdir ${BUILDAREA}" --define "_unpackaged_files_terminate_build 0" ceph.spec
 
-rm -r ceph-$cephver
 echo done
