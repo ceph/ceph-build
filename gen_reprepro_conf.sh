@@ -40,7 +40,7 @@ Origin: Inktank
 Description: Ceph distributed file system
 DebIndices: Packages Release . .gz .bz2
 DscIndices: Sources Release .gz .bz2
-SignWith: 03C3951A
+SignWith: 17ED316D
 
 EOF
 done
