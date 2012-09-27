@@ -55,6 +55,6 @@ for dist in $dists
 do
     bpvers=`$bindir/gen_debian_version.sh $dvers $dist`
     echo lintian checks for $bpvers
-    lintian --allow-root $releasedir/$cephver/*$bpvers*.deb
+    echo lintian --allow-root $releasedir/$cephver/*$bpvers*.deb
 done
 
