@@ -5,12 +5,13 @@
 #  Needs to be run after all the RPMs are built.
 
 usage() {
-    echo "usage: $0 releasedir keyid [repo-host]"
+    echo "usage: $0 releasedir keyid dist"
 }
 
 release_dir="$1"
 keyid="$2"
-repo_host="$3"
+dist="$3"
+repo_host=""
 
 [ -z "$release_dir" ] && echo specify release directory && exit 1
 #[ -z "$keyid" ] && echo specify keyid && exit 1
@@ -26,11 +27,11 @@ RPMBUILD=$release_dir
 cat <<EOF > $RPMBUILD/SPECS/ceph-release.spec
 Name:           ceph-release       
 Version:        1
-Release:        0
+Release:        0.$dist
 Summary:        Ceph repository configuration
 Group:          System Environment/Base 
 License:        GPLv2
-URL:            http://download.ceph.com/pub/ceph
+URL:            http://ceph.com/$dist
 Source0:        RPM-GPG-KEY-CEPH
 Source1:        ceph.repo	
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
@@ -83,8 +84,7 @@ chmod 644 $RPMBUILD/SOURCES/RPM-GPG-KEY-CEPH
 cat <<EOF > $RPMBUILD/SOURCES/ceph.repo
 [ceph]
 name=Ceph
-baseurl=http://gitbuilder-centos6-amd64.front.sepia.ceph.com/rpms/centos6/\$basearch
-failovermethod=priority
+baseurl=http://ceph.com/rpms/$dist/\$basearch
 enabled=1
 gpgcheck=1
 gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CEPH

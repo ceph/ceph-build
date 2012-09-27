@@ -29,7 +29,7 @@ for dist in `ls -1 $releasedir/$cephvers/rpm`
 do
     echo dist $dist
     # build and sign yum index in release directory
-    $bindir/gen_yum_repo.sh $releasedir/$cephvers/rpm/$dist $keyid
+    $bindir/gen_yum_repo.sh $releasedir/$cephvers/rpm/$dist $keyid $dist
     # stage the results
     for dir in $releasedir/$cephvers/rpm/$dist/RPMS/*
     do
