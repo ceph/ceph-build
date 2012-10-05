@@ -1,28 +1,16 @@
 #!/bin/sh
 
+set -e
+
 path="$1"
-comp="$2"
-shift
-shift
 
-if [ -e "$path/conf/dists" ]; then
-    dists=`cat $path/conf/dists`
-else
-    dists="$*"
+if [ ! -d $path ] ; then
+    mkdir -p $path/conf
 fi
 
-if [ -e "$path/conf/components" ]; then
-    components=`cat $path/conf/components`
-    if [ -n "$comp" ]; then
-	if grep -v "\b$comp\b" $path/conf/components ; then
-	    echo "adding component $comp"
-	    components="$components $comp"
-	    echo $components > $path/conf/components
-	fi
-    fi
-else
-    components="$comp"
-fi
+echo "$bindir" | grep -v -q '^/' && bindir=`pwd`"/$bindir"
+dists=`cat $bindir/deb_dists`
+components="main"
 
 echo "dists $dists"
 echo "components $components"
@@ -40,6 +28,7 @@ Origin: Inktank
 Description: Ceph distributed file system
 DebIndices: Packages Release . .gz .bz2
 DscIndices: Sources Release .gz .bz2
+Contents: .gz .bz2
 SignWith: 17ED316D
 
 EOF
