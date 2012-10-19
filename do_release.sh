@@ -77,7 +77,7 @@ do
 done
 for rem in $rpm_hosts
 do
-    rsync -auv $rem:/tmp/release/$vers/rpm/ $releasedir/$vers/rpm
+    rsync -auv --exclude "BUILD" $rem:/tmp/release/$vers/rpm/ $releasedir/$vers/rpm
 done
 
 # sign
