@@ -2,9 +2,10 @@
 
 set -e
 
+bindir=`dirname $0`
 path="$1"
 
-if [ ! -d $path ] ; then
+if [ ! -d $path -o ! -d $path/conf ] ; then
     mkdir -p $path/conf
 fi
 
