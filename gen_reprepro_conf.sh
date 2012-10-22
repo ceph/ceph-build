@@ -4,6 +4,8 @@ set -e
 
 bindir=`dirname $0`
 path="$1"
+key="$2"
+[ -z "$key" ] && echo "usage: $0 <path> <gpgkeyid>" && exit 1
 
 if [ ! -d $path -o ! -d $path/conf ] ; then
     mkdir -p $path/conf
@@ -30,7 +32,7 @@ Description: Ceph distributed file system
 DebIndices: Packages Release . .gz .bz2
 DscIndices: Sources Release .gz .bz2
 Contents: .gz .bz2
-SignWith: 17ED316D
+SignWith: $key
 
 EOF
 done
