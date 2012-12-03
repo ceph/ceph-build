@@ -14,6 +14,10 @@ Fedora)
 	RELEASE=`$LSB_RELEASE --short --release`
 	DIST=fc$RELEASE
 	;;
+SUSE\ LINUX)
+	RELEASE=`$LSB_RELEASE --short --release`
+	DIST=sles$RELEASE
+	;;
 *)
 	DIST=unknown
 	;;
