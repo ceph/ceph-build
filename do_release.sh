@@ -81,8 +81,12 @@ do
 done
 
 # sign
-$bindir/sign_debs.sh $releasedir $vers $gpgkey changes
-$bindir/sign_rpms.sh $releasedir $vers $gpgkey
+if [ -n "$deb_hosts" ] ; then
+    $bindir/sign_debs.sh $releasedir $vers $gpgkey changes
+fi
+if [ -n "$rpm_hosts" ] ; then
+    $bindir/sign_rpms.sh $releasedir $vers $gpgkey
+fi
 
 # probably a better way, but
 rm $versionfile
