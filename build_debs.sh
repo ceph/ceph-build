@@ -39,16 +39,26 @@ do
 #    $bindir/update_pbuilder.sh $pbuilddir $dist
 
     echo building debs for $dist
-    pbuilder build \
-	--binary-arch \
-	--distribution $dist \
-	--basetgz $pbuilddir/$dist.tgz \
-	--buildresult $releasedir/$cephver \
-	--debbuildopts "-j`grep -c processor /proc/cpuinfo`" \
-	$releasedir/$cephver/ceph_$bpvers.dsc
-    
+    if [ `dpkg-architecture -qDEB_BUILD_ARCH` = "i386" ] ; then
+        #  Binary only architecture dependent and independent
+        pbuilder build \
+            --distribution $dist \
+            --basetgz $pbuilddir/$dist.tgz \
+            --buildresult $releasedir/$cephver \
+            --debbuildopts "-j`grep -c processor /proc/cpuinfo` -b" \
+            $releasedir/$cephver/ceph_$bpvers.dsc
+    else
+        #  Binary only architecture dependent
+        pbuilder build \
+            --binary-arch \
+            --distribution $dist \
+            --basetgz $pbuilddir/$dist.tgz \
+            --buildresult $releasedir/$cephver \
+            --debbuildopts "-j`grep -c processor /proc/cpuinfo`" \
+            $releasedir/$cephver/ceph_$bpvers.dsc
+    fi
+ 
 done
-
 
 # do lintian checks
 for dist in $dists
