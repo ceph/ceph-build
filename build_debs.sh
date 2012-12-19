@@ -17,6 +17,7 @@ dists=$4
 [ -z "$pbuilddir" ] && echo specify pbuilder image dir && usage && exit 1
 [ -z "$cephver" ] && echo specify version && usage && exit 1
 
+start_time=`date`
 echo version $cephver
 
 whoami=`whoami`
@@ -68,3 +69,5 @@ do
     echo lintian --allow-root $releasedir/$cephver/*$bpvers*.deb
 done
 
+echo "Start Time = $start_time"
+echo "  End Time = $(date)" 
