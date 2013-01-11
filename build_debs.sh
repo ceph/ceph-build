@@ -41,12 +41,12 @@ do
 
     echo building debs for $dist
     if [ `dpkg-architecture -qDEB_BUILD_ARCH` = "i386" ] ; then
-        #  Binary only architecture dependent and independent
+        #  Architecture dependent, independent and source
         pbuilder build \
             --distribution $dist \
             --basetgz $pbuilddir/$dist.tgz \
             --buildresult $releasedir/$cephver \
-            --debbuildopts "-j`grep -c processor /proc/cpuinfo` -b" \
+            --debbuildopts "-j`grep -c processor /proc/cpuinfo`" \
             $releasedir/$cephver/ceph_$bpvers.dsc
     else
         #  Binary only architecture dependent
