@@ -15,8 +15,16 @@ Fedora)
 	DIST=fc$RELEASE
 	;;
 SUSE\ LINUX)
+	DESC=`$LSB_RELEASE --short --description`
 	RELEASE=`$LSB_RELEASE --short --release`
-	DIST=sles$RELEASE
+	case $DESC in
+	*openSUSE*)
+            DIST=opensuse$RELEASE
+	    ;;
+	*Enterprise*)
+            DIST=sles$RELEASE
+            ;;
+        esac
 	;;
 *)
 	DIST=unknown
