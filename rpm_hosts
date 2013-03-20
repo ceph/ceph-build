@@ -1,4 +1,4 @@
-centos@gitbuilder-centos6-amd64.front.sepia.ceph.com
+ubuntu@gitbuilder-centos6-amd64.front.sepia.ceph.com
 ubuntu@gitbuilder-fedora17-amd64.front.sepia.ceph.com
 ubuntu@gitbuilder-fedora18-amd64.front.sepia.ceph.com
 ubuntu@gitbuilder-sles-11sp2-amd64.front.sepia.ceph.com
