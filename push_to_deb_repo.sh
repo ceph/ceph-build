@@ -33,7 +33,8 @@ do
     bpvers=`$bindir/gen_debian_version.sh $dvers $dist`
     echo dist $dist
     echo vers $bpvers
-    for f in $releasedir/$cephvers/*${bpvers}_*.changes
+    #for f in $releasedir/$cephvers/*${bpvers}_*.changes
+    for f in `find $releasedir/$cephvers/ -name "*${bpvers}_*.changes"`
     do
 	echo file $f
 	reprepro --ask-passphrase -b $repo -C $component --ignore=undefinedtarget --ignore=wrongdistribution include $dist $f

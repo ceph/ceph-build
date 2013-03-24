@@ -42,6 +42,7 @@ do
     ssh $rem sudo rm -r /tmp/release/\* \; sudo mkdir -p /tmp/release \; sudo rm -r /tmp/ceph-build.\* || true
     scp -rp $releasedir/$vers $rem:/tmp/release/$vers
     ssh $rem git clone git://github.com/ceph/ceph-build /tmp/ceph-build.$$
+    #scp -r ../ceph-build $rem:/tmp/ceph-build.$$
     if [ $xterm -eq 1 ]; then
 	xterm -l -e ssh $rem sudo /tmp/ceph-build.$$/build_debs.sh /tmp/release /srv/debian-base $vers &
     else
@@ -73,7 +74,7 @@ done
 # gather results
 for rem in $deb_hosts
 do
-   rsync -auv $rem:/tmp/release/$vers/\*.\{changes\,deb\} $releasedir/$vers
+   rsync -auv $rem:/tmp/release/$vers/\*.\{changes\,deb\,dsc\,diff.gz\,orig.tar.gz\} $releasedir/$vers/$rem
 done
 for rem in $rpm_hosts
 do
@@ -81,10 +82,13 @@ do
 done
 
 # sign
-if [ -n "$deb_hosts" ] ; then
-    $bindir/sign_debs.sh $releasedir $vers $gpgkey changes
-fi
+for rem in $deb_hosts
+do
+    echo "signing debs in $rem"
+    $bindir/sign_debs.sh $releasedir $vers $gpgkey changes $rem
+done
 if [ -n "$rpm_hosts" ] ; then
+    echo "signing rpms"
     $bindir/sign_rpms.sh $releasedir $vers $gpgkey
 fi
 
