@@ -81,16 +81,12 @@ do
     rsync -auv --exclude "BUILD" $rem:/tmp/release/$vers/rpm/ $releasedir/$vers/rpm
 done
 
-# sign
+# sign debian (rpms are signed later)
 for rem in $deb_hosts
 do
     echo "signing debs in $rem"
     $bindir/sign_debs.sh $releasedir $vers $gpgkey changes $rem
 done
-if [ -n "$rpm_hosts" ] ; then
-    echo "signing rpms"
-    $bindir/sign_rpms.sh $releasedir $vers $gpgkey
-fi
 
 # probably a better way, but
 rm $versionfile
