@@ -32,7 +32,7 @@ else
     pkg_release="0.$dist"
 fi
 
-RPMBUILD=${release_dir}/rpmbuild
+RPMBUILD=${release_dir}/${vers}/rpmbuild
 mkdir -p ${RPMBUILD}/BUILD
 mkdir -p ${RPMBUILD}/BUILDROOT
 mkdir -p ${RPMBUILD}/RPMS
@@ -145,7 +145,6 @@ fi
 
 mkdir -p $repo/$vers/$dist/noarch
 cp -a ${RPMBUILD}/RPMS/noarch/* $repo/$vers/$dist/noarch/.
-
 rm -rf ${RPMBUILD}/RPMS/*
 
 exit 0
