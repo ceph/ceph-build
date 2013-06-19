@@ -28,14 +28,14 @@ mkdir -p $repo
 for dist in `ls -1 $releasedir/$cephvers/rpm`
 do
     echo dist $dist
-    # build and sign yum index in release directory
-    $bindir/gen_yum_repo.sh $releasedir/$cephvers/rpm/$dist $keyid $dist
-    # stage the results
-    for dir in $releasedir/$cephvers/rpm/$dist/RPMS/*
+    # copy binary and source rpms to repo
+    for dir in $releasedir/$cephvers/rpm/$dist/RPMS/* $releasedir/$cephvers/rpm/$dist/SRPMS
     do
         mkdir -p $repo/$cephvers/$dist
         cp -a $dir  $repo/$cephvers/$dist/.
     done
+    # Add a yum or zypper release rpm to repo
+    $bindir/gen_yum_zypper_repo_rpm.sh $releasedir $repo $cephvers $dist
 done
 
 echo done
