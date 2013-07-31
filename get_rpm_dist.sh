@@ -6,6 +6,10 @@ LSB_RELEASE=/usr/bin/lsb_release
 ID=`$LSB_RELEASE --short --id`
 
 case $ID in
+RedHatEnterpriseServer)
+	RELEASE=`$LSB_RELEASE --short --release | cut -d. -f1`
+	DIST=rhel$RELEASE
+	;;
 CentOS)
 	RELEASE=`$LSB_RELEASE --short --release | cut -d. -f1`
 	DIST=el$RELEASE
