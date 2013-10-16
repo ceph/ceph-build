@@ -39,4 +39,8 @@ do
 	echo file $f
 	reprepro --ask-passphrase -b $repo -C $component --ignore=undefinedtarget --ignore=wrongdistribution include $dist $f
     done
+    if [ "$dist" = "precise" ]; then
+	echo 'trying to include libleveldb1 backport into precise build...'
+	reprepro --ask-passphrase -b $repo -C $component --ignore=undefinedtarget --ignore=wrongdistribution includedeb /var/cache/apt/archives/libleveldb1_* || true
+    fi
 done
