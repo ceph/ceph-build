@@ -20,6 +20,7 @@ for dist in $dists
 do
     os="debian"
     [ "$dist" = "raring" ] && os="ubuntu"
+    [ "$dist" = "saucy" ] && os="ubuntu"
     [ "$dist" = "precise" ] && os="ubuntu"
     [ "$dist" = "quantal" ] && os="ubuntu"
     [ "$dist" = "oneiric" ] && os="ubuntu"
