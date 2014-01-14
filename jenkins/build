@@ -26,11 +26,11 @@ echo "*****"
 env
 echo "*****"
 
-if [ ! -d /srv/ceph-build ] ; then
+if [ ! -d ceph-build ] ; then
     echo "Build tools are not installed"
     exit 1
 fi
-bindir=/srv/ceph-build
+bindir=$(pwd)/ceph-build
 
 case $HOST in
 gitbuilder-cdep-deb* | tala* | mira*)
