@@ -15,7 +15,7 @@ echo "  WS=$WORKSPACE"
 echo "  PWD=$(pwd)"
 echo "  BRANCH=$BRANCH"
 
-if [ -x "$BRANCH" ] ; then 
+if [ -x "$BRANCH" ] ; then
     echo "No git branch was supplied"
     exit 1
 fi
@@ -39,7 +39,7 @@ rm -rf release
 #sed -i 's/^%setup.*/%setup -q -n %{name}-%{version}-rc1/' ceph.spec.in
 
 echo "Running configure ..."
-./do_autogen.sh 
+./do_autogen.sh
 if [ $? -ne 0 ] ; then
     echo "autogen failed"
     exit 1
