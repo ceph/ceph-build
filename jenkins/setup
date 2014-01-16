@@ -55,7 +55,7 @@ fi
 
 mkdir -p release
 $bindir/release_tarball.sh release release/version
-if [ $? -ne 0] ; then
+if [ $? -ne 0 ] ; then
     echo "make tarballs failed"
     exit 2
 fi
