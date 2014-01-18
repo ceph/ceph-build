@@ -30,11 +30,11 @@ fi
 
 echo "Building version $(git describe) Branch $Branch"
 
-if [ ! -d /srv/ceph-build ] ; then
+if [ ! -d ceph-build ] ; then
     echo "Build tools are not installed"
     exit 1
 fi
-bindir=/srv/ceph-build
+bindir=$(pwd)/ceph-build
 rm -rf dist
 rm -rf release
 
