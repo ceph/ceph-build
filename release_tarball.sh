@@ -24,7 +24,7 @@ else
     echo "forcing."
 fi
 
-cephver=`git describe | cut -c 2-`
+cephver=`git describe --match "v*" | sed s/^v//`
 echo current version $cephver
 
 srcdir=`pwd`
