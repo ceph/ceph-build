@@ -37,7 +37,7 @@ do
 
 #[ "$dist" = "sid" ] && dist="wheezy"
 
-#    $bindir/update_pbuilder.sh $pbuilddir $dist
+    $bindir/update_pbuilder.sh $pbuilddir $dist
 
     echo building debs for $dist
     if [ `dpkg-architecture -qDEB_BUILD_ARCH` = "i386" ] ; then
