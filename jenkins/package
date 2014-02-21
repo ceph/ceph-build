@@ -3,6 +3,9 @@
 # This is a script that runs inside Jenkins.
 # http://jenkins.ceph.com/job/ceph-package/
 
+set -x
+set -e
+
 #
 for dir in * ; do
    echo $dir
