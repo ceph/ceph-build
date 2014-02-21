@@ -3,6 +3,9 @@
 # This is a script that runs inside Jenkins.
 # http://jenkins.ceph.com/job/ceph-build/
 
+set -x
+set -e
+
 # Jenkins will set $RELEASE as a parameter in the job configuration.
 if $RELEASE ; then
         # This is a formal release. Sign it with the release key.
