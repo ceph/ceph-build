@@ -34,7 +34,7 @@ for dir in $repo/$cephvers/*/*
 do
     echo "indexing $dir"
     if [ -d $dir ] ; then
-        createrepo $dir
+        createrepo --update --checkts $dir
         gpg --batch --yes --detach-sign --armor -u $keyid $dir/repodata/repomd.xml
     fi
 done
