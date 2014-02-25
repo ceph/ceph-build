@@ -1,4 +1,4 @@
-#!/bin/bash -x
+#!/bin/bash
 
 set -e
 
@@ -23,9 +23,17 @@ echo "signing rpms, version $cephvers key $keyid"
 #rpm --addsign --define "_gpg_name $keyid" $rpm
 #use expect wrapper to supply null passphrase
 
+#shopt -s nocasematch
 for rpm in `find ${repodir}/${cephvers} -name "*.rpm"`
 do
-    $bindir/rpm-autosign.exp --define "_gpg_name $keyid" $rpm
+    signature=$(rpm -qi  -p $rpm 2>/dev/null | grep ^Signature)
+    if grep -iq $keyid <<< "$signature" ; then
+        echo "skipping: $rpm"
+    else
+        echo "signing:  $rpm"
+        $bindir/rpm-autosign.exp --define "_gpg_name $keyid" $rpm
+    fi
 done
+#shopt -u nocasematch
 
 echo done

@@ -35,7 +35,7 @@ do
     echo "indexing $dir"
     if [ -d $dir ] ; then
         createrepo $dir
-        gpg --detach-sign --armor -u $keyid $dir/repodata/repomd.xml
+        gpg --batch --yes --detach-sign --armor -u $keyid $dir/repodata/repomd.xml
     fi
 done
 
