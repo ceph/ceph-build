@@ -73,7 +73,9 @@ vers=`cat release/version`
 mkdir -p dist
 # Debian Source Files
 mv release/$vers/*.dsc dist/.
-mv release/$vers/*.diff.gz dist/.
+if [ "$(ls release/$vers/*.diff.gz)" ]; then
+    mv release/$vers/*.diff.gz dist/.
+fi
 mv release/$vers/*.orig.tar.gz dist/.
 # RPM Source Files
 mv release/$vers/ceph.spec dist/.
