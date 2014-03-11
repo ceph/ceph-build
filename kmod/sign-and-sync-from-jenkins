@@ -1,0 +1,91 @@
+#!/bin/bash
+
+# Move the kmod RPMs out of Jenkins' results directory, sign them, index them
+# with createrepo, and push them to ceph.com.
+#
+# Run this script after Jenkins successfully builds the ceph-kmod-rpm job.
+# http://jenkins.ceph.com/job/ceph-kmod-rpm
+
+set -e
+
+REPO=/home/ubuntu/repos/rpm-testing/
+#REPO=/home/ubuntu/repos/rpm-cuttlefish
+#REPO=/home/ubuntu/repos/rpm-dumpling/
+#REPO=/home/ubuntu/repos/rpm-emperor/
+
+# Jenkins parameters.
+JOB=ceph-kmod-rpm
+BUILD=lastSuccessful
+
+ROOT=/home2/jenkins/jobs/${JOB}/configurations/axis-label
+
+#KEYID=${KEYID:-03C3951A}  # default is autobuild keyid
+KEYID=${KEYID:-17ED316D}  # default is release keyid
+
+if gpg --list-keys 2>/dev/null | grep -q ${KEYID} ; then
+    echo "Signing packages and repo with ${KEYID}"
+else
+    echo "Package signing key (${KEYID}) not found"
+    echo "Have you set \$GNUPGHOME ? "
+    exit 3
+fi
+
+if [ ! -d $ROOT ] ; then
+    echo "Unknown root directory $ROOT"
+    exit 1
+fi
+
+
+pushd $ROOT > /dev/null
+# Loop over each label in the $ROOT directory.
+for label in *; do
+
+    # We assume that Jenkins' "label" is the same name that we'll use for the
+    # directory in the RPM repository.
+    if [ ! -d $REPO/$label ]; then
+        echo Label name "$label" not found in staging repository dir $REPO
+        exit 1
+    fi
+    destination=$REPO/$label
+    [ -d $destination/SRPMS ]  || mkdir $destination/SRPMS
+    [ -d $destination/x86_64 ] || mkdir $destination/x86_64
+
+    
+    # $ROOT -> "rhel7"
+    if [ ! -d $label ]; then
+        echo Label $label not found in $(pwd)
+        exit 1
+    fi
+    pushd $label >/dev/null
+
+    # -> "lastSuccessful/archive"
+    if [ ! -d $BUILD/archive ]; then
+        echo Build directory "${BUILD}/archive" not found in $(pwd)
+        exit 1
+    fi
+    cd $BUILD/archive
+
+    # Source RPM
+    SRPM=$(ls results_ceph-kmod/*/*/*.src.rpm)
+    if [ ! -f $SRPM ]; then
+        echo Could not find Source RPM in $(pwd)/results_ceph-kmod
+    else
+        echo Found Source RPM $(basename $SRPM)
+        cp -p $SRPM $destination/SRPMS/
+    fi
+
+    # Binary RPMs
+    for RPM in results_ceph-kmod/*/*/*.x86_64.rpm; do
+        echo Found Binary RPM $(basename $RPM)
+        cp -p $RPM $destination/x86_64/
+    done
+
+    popd > /dev/null # pop $label off stack and go back to $ROOT
+done
+popd > /dev/null # pop $ROOT off stack and go back to cwd
+
+# Sign and index the RPM repository.
+/srv/ceph-build/sign_and_index_rpm_repo.sh repos/ repos/ rpm-testing
+
+# Push the changes to ceph.com.
+/home/ubuntu/sync-push.sh
