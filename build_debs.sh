@@ -37,6 +37,16 @@ do
 
 #[ "$dist" = "sid" ] && dist="wheezy"
 
+    # big fat hack: do not require libbabeltrace for wheezy
+    if [ "$dist" = "wheezy" ]; then
+	echo "doing horribly ugly things to patch the wheezy debian/control file to remove libbabeltrace"
+	mv $releasedir/$cephver/ceph_$cephver.orig.tar.gz $releasedir/$cephver/backup.tgz
+	tar zxvf $releasedir/$cephver/backup.tgz
+	grep -v babeltrace ceph-$cephver/debian/control > ceph-$cephver/debian/control.new
+	mv ceph-$cephver/debian/control.new ceph-$cephver/debian/control
+	tar zcvf $releasedir/$cephver/ceph_$cephver.orig.tar.gz ceph-$cephver
+    fi
+ 
     $bindir/update_pbuilder.sh $pbuilddir $dist
 
     echo building debs for $dist
@@ -59,6 +69,11 @@ do
             $releasedir/$cephver/ceph_$bpvers.dsc
     fi
  
+    if [ "$dist" = "wheezy" ]; then
+	echo "restoring original tarball (end wheezy hack)"
+	mv $releasedir/$cephver/backup.tgz $releasedir/$cephver/ceph_$cephver.orig.tar.gz
+    fi
+
 done
 
 # do lintian checks

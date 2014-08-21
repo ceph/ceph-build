@@ -48,6 +48,13 @@ if [ "$chver" != "$debver" ]; then
     DEBEMAIL="sage@newdream.net" dch -D $dist --force-distribution -b -v "$debver" "autobuilt"
 fi
 
+# remove missing wheezy deps?
+if [ "$dist" = "wheezy" ]; then
+    echo removing libbabeltrace for wheezy
+    grep -v libbabeltrace debian/control > debian/control.new
+    mv debian/control.new debian/control
+fi
+
 # build
 dpkg-buildpackage -j$numproc -k$keyid
 
