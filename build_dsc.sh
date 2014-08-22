@@ -55,8 +55,14 @@ do
 	cd ..
     fi
 
-    # hack
-    [ "$dist" = "lenny" ] && sed -i 's/, libgoogle-perftools-dev[^,]*,/,/' ceph-$cephver/debian/control
+    # per-dist hacks
+    if [ "$dist" = "lenny" ]; then
+	sed -i 's/, libgoogle-perftools-dev[^,]*,/,/' ceph-$cephver/debian/control
+    fi
+    if [ "$dist" = "wheezy" ]; then
+	grep -v babeltrace ceph-$cephver/debian/control > ceph-$cephver/debian/control.new
+	mv ceph-$cephver/debian/control.new ceph-$cephver/debian/control
+    fi
 
     dpkg-source -b ceph-$cephver
 
