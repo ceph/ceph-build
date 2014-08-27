@@ -25,7 +25,7 @@ BUILDAREA=./rpm/$dist
 mkdir -p ${BUILDAREA}/{SOURCES,SRPMS,SPECS,RPMS,BUILD}
 cp -a ceph-*.tar.bz2 ${BUILDAREA}/SOURCES/.
 cp -a ceph.spec ${BUILDAREA}/SPECS/.
-cp -a *.patch ${BUILDAREA}/SOURCES/. || true
+cp -a rpm/*.patch ${BUILDAREA}/SOURCES/. || true
 
 # Build RPMs
 BUILDAREA=`readlink -fn ${BUILDAREA}`   ### rpm wants absolute path
