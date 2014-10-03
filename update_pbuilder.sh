@@ -30,11 +30,11 @@ do
     [ "$dist" = "lucid" ] && os="ubuntu"
     
     if [ $os = "debian" ]; then
-        mirror="http://http.us.debian.org/debian"
+        mirror="http://apt-mirror.sepia.ceph.com/ftp.us.debian.org/debian"
         othermirror=""
     else
         mirror=""
-        othermirror="deb http://archive.ubuntu.com/ubuntu $dist main restricted universe multiverse"
+        othermirror="deb http://apt-mirror.sepia.ceph.com/archive.ubuntu.com/ubuntu $dist main restricted universe multiverse"
     fi
     
     pbuilder --clean
