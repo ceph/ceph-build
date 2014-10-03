@@ -45,7 +45,9 @@ do
 #        cp $basedir/$dist.tgz.0 $basedir/$dist.tgz
         pbuilder update \
 	    --basetgz $basedir/$dist.tgz \
-	    --distribution $dist
+	    --distribution $dist \
+	    --mirror "$mirror" \
+	    --othermirror "$othermirror"
     else
         echo building $dist base.tgz
         pbuilder create \
