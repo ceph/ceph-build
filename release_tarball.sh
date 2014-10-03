@@ -42,7 +42,8 @@ else
     echo tarball vers $vers
 
     echo extracting
-    mkdir -p $releasedir/$cephver
+    mkdir -p $releasedir/$cephver/rpm
+    cp rpm/*.patch $releasedir/$cephver/rpm || true
     cd $releasedir/$cephver
 
     tar zxf $srcdir/ceph-$vers.tar.gz 
