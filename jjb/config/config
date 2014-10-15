@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+
+#
+# This script uses Jenkins Job Builder to generate the configuration for its own
+# job so that it automatically configures all other jobs that have their YAML
+# definitions.
+#
+
+# Create the definitions testing them first
+jenkins-jobs test definitions -o output
+
+# Update Jenkins with the output
+# Note that this needs proper permissions with the right credentials to the
+# correct Jenkins instance
+jenkins-jobs update definitions
