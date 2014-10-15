@@ -9,8 +9,15 @@
 # Install Jenkins-jobs
 virtualenv venv
 . venv/bin/activate
-venv/bin/pip install jenkins-job-builder
-venv/bin/tox -rv -e docs
+
+$PIP_SDIST_INDEX=~/.cache/pip
+
+mkdir -p $PIP_SDIST_INDEX
+
+if ! venv/bin/pip install --find-links="file://$PIP_SDIST_INDEX" --no-index jenkins-job-builder; then
+    venv/bin/pip install --download-directory="$PIP_SDIST_INDEX" jenkins-job-builder
+    venv/bin/pip install --find-links="file://$PIP_SDIST_INDEX" --no-index jenkins-job-builder
+fi
 
 # Create the definitions testing them first
 venv/bin/jenkins-jobs test jjb/config/definitions -o output
