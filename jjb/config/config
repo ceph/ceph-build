@@ -13,6 +13,7 @@ virtualenv venv
 $PIP_SDIST_INDEX="$HOME/.cache/pip"
 
 mkdir -p $PIP_SDIST_INDEX
+mkdir -p "$HOME/.cache/pip"
 
 if ! venv/bin/pip install --find-links="file://$PIP_SDIST_INDEX" --no-index jenkins-job-builder; then
     venv/bin/pip install --download-directory="$PIP_SDIST_INDEX" jenkins-job-builder
