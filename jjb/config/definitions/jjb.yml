@@ -23,4 +23,4 @@
           timeout: 20
 
     builders:
-      - shell: "pwd && bash ceph-build/jjb/config/config"
+      - shell: "bash jjb/config/config"
