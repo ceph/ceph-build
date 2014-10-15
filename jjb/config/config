@@ -6,10 +6,16 @@
 # definitions.
 #
 
+# Install Jenkins-jobs
+virtualenv venv
+. venv/bin/activate
+venv/bin/pip install jenkins-job-builder
+venv/bin/tox -rv -e docs
+
 # Create the definitions testing them first
-jenkins-jobs test definitions -o output
+venv/bin/jenkins-jobs test definitions -o output
 
 # Update Jenkins with the output
 # Note that this needs proper permissions with the right credentials to the
 # correct Jenkins instance
-jenkins-jobs update definitions
+venv/bin/jenkins-jobs update definitions
