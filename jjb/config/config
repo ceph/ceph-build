@@ -10,7 +10,7 @@
 virtualenv venv
 . venv/bin/activate
 
-$PIP_SDIST_INDEX=~/.cache/pip
+$PIP_SDIST_INDEX="$HOME/.cache/pip"
 
 mkdir -p $PIP_SDIST_INDEX
 
