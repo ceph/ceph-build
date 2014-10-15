@@ -30,3 +30,8 @@ Changing Jenkins jobs in Jenkins is **strongly** discouraged.
 
 To learn more about the structure and how to order a project build see the
 `Amauta <https://github.com/alfredodeza/amauta>`_ project documentation.
+
+deprecation
+-----------
+Any script in the top level of this repo is now deprecated and should be moved
+to follow the structure of the Jenkins Job Builder project.
