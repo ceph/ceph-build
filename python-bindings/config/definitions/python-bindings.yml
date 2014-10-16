@@ -1,0 +1,32 @@
+- job:
+    name: python-bindings
+    node: gitbuilder-cdep-deb-cloud-precise-amd64-basic
+    project-type: freestyle
+    defaults: global
+    disabled: false
+    display-name: 'Ceph Python Bindings'
+    concurrent: true
+    quiet-period: 5
+    block-downstream: false
+    block-upstream: false
+    retry-count: 3
+
+    triggers:
+      - pollscm: "H * * * *"
+
+    scm:
+      - git:
+          url: https://github.com/ceph/ceph.git
+          branches:
+            - master
+            - firefly
+            - giant
+            - next
+          browser: githubweb
+          browser-url: http://github.com/ceph/ceph.git
+          timeout: 20
+
+    builders:
+      - shell:
+          !include-raw ensure_python_dependencies.sh
+      - shell: "venv/bin/amauta python-bindings"
