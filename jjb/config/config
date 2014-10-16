@@ -21,12 +21,16 @@ if ! venv/bin/pip install --find-links="file://$PIP_SDIST_INDEX" --no-index jenk
     venv/bin/pip install --find-links="file://$PIP_SDIST_INDEX" --no-index jenkins-job-builder
 fi
 
-# XXX This needs to be done for *every* project defined in the current repo, not only
-# the JJB one.
-# Create the definitions testing them first
-venv/bin/jenkins-jobs test jjb/config/definitions -o /tmp/output
+# Test every definition if available in the current repository and update the jobs
+# if they do define one (they should always define their definitions)
+for dir in `ls .`; do
+    if [[ -d $dir/config ]] && [[ -f $dir/config/definitions ]]; then
+        # Test the definitions first
+        venv/bin/jenkins-jobs test $dir/config/definitions -o /tmp/output
 
-# Update Jenkins with the output
-# Note that this needs proper permissions with the right credentials to the
-# correct Jenkins instance.
-venv/bin/jenkins-jobs update jjb/config/definitions
+        # Update Jenkins with the output if they passed the test phase
+        # Note that this needs proper permissions with the right credentials to the
+        # correct Jenkins instance.
+        venv/bin/jenkins-jobs update $dir/config/definitions
+    fi
+done
