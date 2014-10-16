@@ -12,7 +12,7 @@
     retry-count: 3
 
     triggers:
-      - pollscm: "*/15 * * * *"
+      - pollscm: "*/1 * * * *"
 
     scm:
       - git:
