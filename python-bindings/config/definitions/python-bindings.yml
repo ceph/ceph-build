@@ -36,35 +36,35 @@
           browser-url: http://github.com/ceph/ceph.git
           timeout: 20
 
-   execution-strategy:
-     combination-filter: |
-       (Arch=="x86_64")  || (Arch=="armhf" && (Dist=="quantal"))
+    execution-strategy:
+      combination-filter: |
+        (Arch=="x86_64")  || (Arch=="armhf" && (Dist=="quantal"))
 
-   axes:
-     - axis:
-        type: label-expression
-        name: Arch
-        values:
-         - x86_64
-     - axis:
-        type: label-expression
-        name: Dist
-        values:
-          - squeeze
-          - wheezy
-          - precise
-          - trusty
-          - centos6.3
-          - centos6.4
-          - centos6.5
-          - centos7
-          - rhel6.3
-          - rhel6.4
-          - rhel6.5
-          - fedora20
-          - opensuse12.2
-          - sles11sp2
-          - rhel7
+    axes:
+      - axis:
+          type: label-expression
+          name: Arch
+          values:
+            - x86_64
+      - axis:
+          type: label-expression
+          name: Dist
+          values:
+            - squeeze
+            - wheezy
+            - precise
+            - trusty
+            - centos6.3
+            - centos6.4
+            - centos6.5
+            - centos7
+            - rhel6.3
+            - rhel6.4
+            - rhel6.5
+            - fedora20
+            - opensuse12.2
+            - sles11sp2
+            - rhel7
 
     builders:
       - shell:
