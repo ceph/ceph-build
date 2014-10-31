@@ -27,11 +27,11 @@
       - git:
           url: https://github.com/ceph/ceph.git
           branches:
-            - master
-            - firefly
-            - giant
-            - next
-            #- $BRANCH
+            #- master
+            #- firefly
+            #- giant
+            #- next
+            - $BRANCH
           browser: githubweb
           browser-url: http://github.com/ceph/ceph.git
           timeout: 20
@@ -69,4 +69,6 @@
     builders:
       - shell:
           !include-raw ensure_python_dependencies.sh
-      - shell: "venv/bin/amauta python-bindings"
+      - shell:
+          !include-raw build.sh
+      #- shell: "venv/bin/amauta python-bindings"
