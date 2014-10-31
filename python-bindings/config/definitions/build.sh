@@ -1,0 +1,61 @@
+#!/bin/sh
+
+# This is the script that runs inside Jenkins.
+# http://jenkins.ceph.com/job/python-bindings/
+
+set -x
+set -e
+
+# Jenkins will set $RELEASE as a parameter in the job configuration.
+if $RELEASE ; then
+        # This is a formal release. Sign it with the release key.
+        export GNUPGHOME=/home/jenkins-build/build/gnupg.ceph-release/
+        export KEYID=17ED316D
+else
+        # This is an automatic build. Sign it with the autobuild key.
+        export GNUPGHOME=/home/jenkins-build/build/gnupg.autobuild/
+        export KEYID=03C3951A
+fi
+
+HOST=$(hostname --short)
+echo "Building on ${HOST}"
+echo "  DIST=${DIST}"
+echo "  BPTAG=${BPTAG}"
+echo "  KEYID=${KEYID}"
+echo "  WS=$WORKSPACE"
+echo "  PWD=$(pwd)"
+echo "  BRANCH=$BRANCH"
+
+case $HOST in
+gitbuilder-*-rpm*)
+        pwd
+        rm -rf rpm-repo dist/* build/rpmbuild
+        pwd
+        cd build
+	./scripts/build-rpm.sh --release
+        if [ $? -eq 0 ] ; then
+            mv rpm-repo $WORKSPACE/.
+            cd $WORKSPACE
+            mkdir -p dist
+        fi
+        ;;
+gitbuilder-cdep-deb* | tala* | mira*)
+        pwd
+        rm -rf debian-repo
+        rm -rf dist
+        rm -f *.changes *.dsc *.gz *.diff
+        cd build
+        pwd
+	./scripts/build-debian.sh --release
+        if [ $? -eq 0 ] ; then
+            mv debian-repo $WORKSPACE/.
+            cd $WORKSPACE
+            mkdir -p dist
+            mv *.changes *.dsc *.deb *.tar.gz dist/.
+        fi
+        ;;
+*)
+	echo "Can't determine build host type"
+        exit 4
+        ;;
+esac
