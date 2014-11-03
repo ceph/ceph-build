@@ -96,8 +96,6 @@ gitbuilder-*-rpm*)
         mv *.changes *.dsc *.deb *.tar.gz dist/.
         ;;
 
-
-        ;;
 gitbuilder-cdep-deb* | tala* | mira*)
         pwd
         rm -rf rpm-repo dist/* build/rpmbuild
