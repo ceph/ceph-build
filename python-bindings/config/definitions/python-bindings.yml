@@ -67,8 +67,9 @@
             - rhel7
 
     builders:
-      - shell:
-          !include-raw ensure_python_dependencies.sh
+      # XXX Skipping python dependencies for now
+      #- shell:
+      #    !include-raw ensure_python_dependencies.sh
       - shell:
           !include-raw build.sh
       #- shell: "venv/bin/amauta python-bindings"
