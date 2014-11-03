@@ -67,7 +67,8 @@ gitbuilder-*-rpm*)
         # Build RPM
         mkdir -p rpmbuild/{BUILD,BUILDROOT,RPMS,SOURCES,SPECS,SRPMS}
         BUILDAREA=`readlink -fn ${BUILDAREA}`   ### rpm wants absolute path
-        cp *.spec ${BUILDAREA}/SPECS
+        # XXX make this spec file configurable
+        cp python-ceph.spec ${BUILDAREA}/SPECS
         cp dist/*.tar.bz2 ${BUILDAREA}/SOURCES
         echo "buildarea is: ${BUILDAREA}"
         rpmbuild -ba --define "_topdir ${BUILDAREA}" --define "_unpackaged_files_terminate_build 0" ${BUILDAREA}/SPECS/ceph-deploy.spec
@@ -149,7 +150,7 @@ gitbuilder-cdep-deb* | tala* | mira*)
         fi
 
         # Build Repo
-        PKG=../python-*.changes
+        PKG=../python-ceph.changes
         mkdir -p $REPO/conf
         if [ -e $REPO/conf/distributions ] ; then
             rm -f $REPO/conf/distributions
