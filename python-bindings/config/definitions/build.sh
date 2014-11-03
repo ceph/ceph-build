@@ -31,7 +31,7 @@ gitbuilder-*-rpm*)
         pwd
         rm -rf rpm-repo dist/* build/rpmbuild
         pwd
-        cd build
+        #cd build
 
         # Tag tree and update version number in change log and
         # in setup.py before building.
@@ -115,8 +115,6 @@ gitbuilder-cdep-deb* | tala* | mira*)
         rm -rf debian-repo
         rm -rf dist
         rm -f *.changes *.dsc *.gz *.diff
-        pwd
-        cd src/pybind/ceph
 
         # Tag tree and update version number in change log and
         # in setup.py before building.
