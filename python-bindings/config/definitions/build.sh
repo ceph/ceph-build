@@ -116,6 +116,7 @@ gitbuilder-cdep-deb* | tala* | mira*)
         rm -rf dist
         rm -f *.changes *.dsc *.gz *.diff
         pwd
+        cd src/pybind/ceph
 
         # Tag tree and update version number in change log and
         # in setup.py before building.
@@ -126,6 +127,7 @@ gitbuilder-cdep-deb* | tala* | mira*)
         DIST=el6
         RPM_BUILD=$(lsb_release -s -c)
 
+        cd src/pybind/ceph
         if [ ! -e setup.py ] ; then
             echo "Are we in the right directory"
             exit 1
