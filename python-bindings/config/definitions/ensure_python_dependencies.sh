@@ -1,4 +1,4 @@
-#!/usr/bin/bash
+#!/bin/sh
 
 #
 # This script ensures that a Python virtualenv is installed and available for
