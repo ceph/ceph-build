@@ -1,18 +1,15 @@
 - job:
-    name: ceph-deploy 
+    name: ceph-deploy2
     node: gitbuilder-cdep-deb-cloud-precise-amd64-basic
     project-type: matrix
     defaults: global
     disabled: false
-    display-name: 'Ceph Deploy' 
+    display-name: 'Ceph Deploy 2'
     concurrent: true
     quiet-period: 5
     block-downstream: false
     block-upstream: false
     retry-count: 3
-
-    triggers:
-      - pollscm: "H * * * *"
 
     parameters:
       - string:
@@ -27,10 +24,6 @@
       - git:
           url: https://github.com/ceph/ceph-deploy.git
           branches:
-            #- master
-            #- firefly
-            #- giant
-            #- next
             - $BRANCH
           browser: githubweb
           browser-url: http://github.com/ceph/ceph-deploy.git
