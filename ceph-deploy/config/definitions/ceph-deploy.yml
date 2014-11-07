@@ -61,4 +61,4 @@
 
     builders:
       - shell: "pwd"
-      - shell: "./build/scripts/jenkins-build"
+      - shell: "./scripts/jenkins-build"
