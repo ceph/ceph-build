@@ -1,78 +1,75 @@
----
+- job:
+    name: ceph-deploy 
+    node: gitbuilder-cdep-deb-cloud-precise-amd64-basic
+    project-type: matrix
+    defaults: global
+    disabled: false
+    display-name: 'Ceph Deploy' 
+    concurrent: true
+    quiet-period: 5
+    block-downstream: false
+    block-upstream: false
+    retry-count: 3
 
-- hosts: local
+    triggers:
+      - pollscm: "H * * * *"
 
-  connection: local
+    parameters:
+      - string:
+          name: BRANCH
+          description: "The git branch or tag to build"
 
-  vars:
-    version: 0-dev # a stub, should be passed in the CLI like '--extra-vars "version=1.23.45" '
-    branch: master # a stub, should be passed in the CLI like '--extra-vars "version=1.23.45" '
-    debemail: alfredo.deza@inktank.com
-    debfullname: "Alfredo Deza"
+      - bool:
+          name: RELEASE
+          description: "If checked, it will use the key for releases, otherwise it will use the autosign one."
 
-  tasks:
-     - name: check if ceph-deploy repo exists
-       stat: path='./ceph-deploy'
-       register: 'cdep_repo'
+    scm:
+      - git:
+          url: https://github.com/ceph/ceph-deploy.git
+          branches:
+            #- master
+            #- firefly
+            #- giant
+            #- next
+            - $BRANCH
+          browser: githubweb
+          browser-url: http://github.com/ceph/ceph-deploy.git
+          timeout: 20
 
-     - name: clone the ceph-deploy repository
-       git: repo=git@github.com:ceph/ceph-deploy dest=ceph-deploy
-       when: cdep_repo.stat.exists is defined and cdep_repo.stat.exists == false
+    execution-strategy:
+      combination-filter: |
+        (Arch=="x86_64")  || (Arch=="armhf" && (Dist=="quantal"))
 
-     - name: rename origin to jenkins
-       command: git remote rename origin jenkins chdir=ceph-deploy
-       ignore_errors: yes
+    axes:
+      - axis:
+          type: label-expression
+          name: Arch
+          values:
+            - x86_64
+      - axis:
+          type: label-expression
+          name: Dist
+          values:
+            - squeeze
+            - wheezy
+            - precise
+            - trusty
+            - centos6.3
+            - centos6.4
+            - centos6.5
+            - centos7
+            - rhel6.3
+            - rhel6.4
+            - rhel6.5
+            - fedora20
+            - opensuse12.2
+            - sles11sp2
+            - rhel7
 
-     - name: spit out the remote names
-       command: git remote -v chdir=ceph-deploy
-
-     - name: git checkout master branch
-       command: git checkout master chdir=ceph-deploy
-
-     - name: set the debian version
-       command: dch -v {{ version }} -D stable "New upstream release" chdir=ceph-deploy
-       environment:
-         DEBEMAIL: "{{ debemail }}"
-         DEBFULLNAME: "{{ debfullname }}"
-
-     - name: set the version in the spec file
-       lineinfile: dest=ceph-deploy/ceph-deploy.spec
-                   regexp="Version{{':'}}\s+"
-                   line="Version{{':'}}       {{ version }}"
-                   state=present
-
-     - name: commit the version changes
-       command: git commit -a -m "{{ version }}" chdir=ceph-deploy
-
-     - name: remove local tag
-       command: git tag -d v{{ version }}
-       ignore_errors: yes
-
-     - name: remove remote tag
-       command: git push jenkins :refs/tags/v{{ version }}
-       ignore_errors: yes
-
-       # from script: /srv/ceph-build/tag_release.sh
-       # Contents of tag_release.sh
-     - name: tag and commit the version
-       command: git tag -s "v{{ version }}"  -u 17ED316D -m "v{{ version }}" chdir=ceph-deploy
-       environment:
-         GNUPGHOME: ~/build/gnupg.ceph-release
-         DEBEMAIL: "{{ debemail }}"
-         DEBFULLNAME: "{{ debfullname }}"
-
-
-     - name: push changes to jenkins git repo
-       command: git push jenkins {{ branch }} chdir=ceph-deploy
-
-     - name: push the newly created tag
-       command: git push jenkins v{{ version }} chdir=ceph-deploy
-       environment:
-         GNUPGHOME: ~/build/gnupg.ceph-release
-
-     - name: ensure GPG keys exist for release
-       command: gpg --list-keys
-       register: command_result
-       failed_when: "'17ED316D' not in command_result.stdout"
-       environment:
-         GNUPGHOME: ~/build/gnupg.ceph-release/
+    builders:
+      # XXX Skipping python dependencies for now
+      #- shell:
+      #    !include-raw ensure_python_dependencies.sh
+      - shell:
+          !include-raw build.sh
+      #- shell: "venv/bin/amauta python-bindings"
