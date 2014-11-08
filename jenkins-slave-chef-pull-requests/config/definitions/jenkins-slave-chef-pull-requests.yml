@@ -1,0 +1,47 @@
+- job:
+    name: jenkins-slave-chef-pull-requests
+    node: gitbuilder-cdep-deb-cloud-precise-amd64-basic
+    project-type: freestyle
+    defaults: global
+    disabled: false
+    display-name: 'Jenkins Slave Chef Recipies: Pull Requests'
+    concurrent: true
+    quiet-period: 5
+    block-downstream: false
+    block-upstream: false
+    retry-count: 3
+
+    parameters:
+      - string:
+          name: sha1
+          description: "A pull request ID, like 'origin/pr/72/head'"
+
+    triggers:
+      - pollscm: "*/1 * * * *"
+
+    triggers:
+      - github-pull-request:
+        admin-list:
+        - alfredodeza
+        - ktdreyer
+        org-list:
+        - ceph
+        cron: '* * * * *'
+        trigger-phrase: 'retest this please'
+        only-trigger-phrase: false
+        github-hooks: true
+        permit-all: false
+        auto-close-on-fail: false
+
+    scm:
+      - git:
+          url: https://github.com/ceph/ceph-build.git
+          branches:
+            - ${sha1}
+          refspec: +refs/pull/*:refs/remotes/origin/pr/*
+          browser: githubweb
+          browser-url: http://github.com/ceph/ceph-build.git
+          timeout: 20
+
+    builders:
+      - shell: "rake"
