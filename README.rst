@@ -80,7 +80,7 @@ platform-specific
 -----------------
 Sometimes, the process needs to do something specific depending on the
 distribution, version, release, or architecture. For example installing
-a specific package that is only available on CentOS 5, and not in CentOS 4.
+a specific package that is only available on CentOS 6, and not in CentOS 7.
 
 All steps (setup, build, package, and deploy) can define scripts to be run
 whenever any of the distribution metadata matches.
