@@ -10,8 +10,9 @@ The structure is strict and provides a convention to set the order of execution
 of build scripts.
 
 Job configuration is done via the CLI app `Jenkins Job Builder <http://ci.openstack.org/jenkins-job-builder/>`_
-on the actual directory for its own job (the job has its definition and its
-build process automated).
+on the actual directory for `its own job
+<http://jenkins.ceph.com/job/jenkins-job-builder/>`_ (the job has its
+definition and its build process automated).
 
 The JJB configuration defines the rules needed to generate and update/create
 all other Jenkins Jobs in this repo as long as they define the ``config``
@@ -79,7 +80,7 @@ platform-specific
 -----------------
 Sometimes, the process needs to do something specific depending on the
 distribution, version, release, or architecture. For example installing
-a specific package that is only available on CentOS 5, and not in CentOS 4.
+a specific package that is only available on CentOS 6, and not in CentOS 7.
 
 All steps (setup, build, package, and deploy) can define scripts to be run
 whenever any of the distribution metadata matches.
