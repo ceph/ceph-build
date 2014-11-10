@@ -10,8 +10,9 @@ The structure is strict and provides a convention to set the order of execution
 of build scripts.
 
 Job configuration is done via the CLI app `Jenkins Job Builder <http://ci.openstack.org/jenkins-job-builder/>`_
-on the actual directory for its own job (the job has its definition and its
-build process automated).
+on the actual directory for `its own job
+<http://jenkins.ceph.com/job/jenkins-job-builder/>`_ (the job has its
+definition and its build process automated).
 
 The JJB configuration defines the rules needed to generate and update/create
 all other Jenkins Jobs in this repo as long as they define the ``config``
