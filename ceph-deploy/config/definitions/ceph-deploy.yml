@@ -1,10 +1,10 @@
 - job:
-    name: ceph-deploy2
+    name: ceph-deploy
     node: gitbuilder-cdep-deb-cloud-precise-amd64-basic
     project-type: matrix
     defaults: global
     disabled: false
-    display-name: 'Ceph Deploy 2'
+    display-name: 'ceph-deploy'
     concurrent: true
     quiet-period: 5
     block-downstream: false
