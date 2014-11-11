@@ -116,3 +116,11 @@ versions and combinations::
 
 Because we made ``foo/setup/pre`` a directory, we now define the actual ``pre``
 script (if needed) inside the ``pre`` directory with ``pre`` as the name.
+
+testing changes
+---------------
+When adding new YAML files or testing changes, it's a good idea to do a
+sanity-check before merging the changes to master.
+
+You can install the Jenkins Job Builder package locally (`pip install
+jenkins-job-builder`) and then run `jenkins-jobs test my_configuration.yml`
