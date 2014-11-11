@@ -62,3 +62,9 @@
     builders:
       - shell: "pwd"
       - shell: "./scripts/jenkins-build"
+
+    publishers:
+      - archive:
+          artifacts: '*-repo/**, dist/**'
+            allow-empty: 'true'
+            latest-only: 'false'
