@@ -22,12 +22,12 @@ This script should have all the rules and requirements for generating the
 Jenkins configurations needed from the YAML files to create/update the jenkins
 job.
 
-deprecation
+Deprecation
 -----------
 Any script in the top level of this repo is now deprecated and should be moved
 to follow the structure of the Jenkins Job Builder project.
 
-enforcement
+Enforcement
 -----------
 The rules and structure for the builds are *strictly* enforced. If the
 convention is not followed, the builds will not work.
@@ -76,7 +76,7 @@ and order, execution will follow the order with whatever exists.
 If only the ``setup`` directory is available with a single ``setup`` file, that
 is the only one thing that will get executed.
 
-platform-specific
+Platform-specific
 -----------------
 Sometimes, the process needs to do something specific depending on the
 distribution, version, release, or architecture. For example installing
@@ -117,7 +117,7 @@ versions and combinations::
 Because we made ``foo/setup/pre`` a directory, we now define the actual ``pre``
 script (if needed) inside the ``pre`` directory with ``pre`` as the name.
 
-testing changes
+Testing Changes
 ---------------
 When adding new YAML files or testing changes, it's a good idea to do a
 sanity-check before merging the changes to master.
