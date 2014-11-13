@@ -124,3 +124,32 @@ sanity-check before merging the changes to master.
 
 You can install the Jenkins Job Builder package locally (``pip install
 jenkins-job-builder``) and then run ``jenkins-jobs test my_configuration.yml``
+
+Job Naming Conventions
+----------------------
+Each Jenkins job has two names:
+
+1. The main name for a job. This is the ``name:`` parameter in YAML.
+
+2. The human-friendly "display name" for a job. This is the ``display-name:``
+   parameter in YAML.
+
+For regular jobs, we name the Jenkins job after the git repository name. For
+example, the "ceph-deploy" package is at https://github.com/ceph/ceph-deploy,
+so the job name is "ceph-deploy".
+
+For Pull Request jobs, we use a similar convention for both the internal job
+name and the human readable "display name". For example, if the git repository
+is "ceph-deploy", then we name the Jenkins job ``ceph-deploy-pull-requests``.
+The ``display-name`` is set to ``ceph-deploy: Pull Requests``. In other words,
+to determine a ``display-name`` for a job that handles pull requests, simply
+append ``: Pull Requests`` to the ``name`` value.
+
+In other words, for building pull requests to ceph-deploy, the Jenkins job YAML
+will have the following settings:
+
+* Git repo: https://github.com/ceph/ceph-deploy
+
+* Jenkins job ``name``: ``ceph-deploy-pull-requests``
+
+* Jenkins job ``display-name``: ``ceph-deploy: Pull Requests``
