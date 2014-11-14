@@ -25,7 +25,7 @@ fi
 
 # Test every definition if available in the current repository and update the jobs
 # if they do define one (they should always define their definitions)
-for dir in `ls .`; do
+for dir in `find . -maxdepth 1 -path ./.git -prune -o -type d -print`; do
     definitions_dir="$dir/config/definitions"
     if [ -d "$definitions_dir" ]; then
         echo "found definitions directory: $definitions_dir"
