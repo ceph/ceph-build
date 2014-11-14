@@ -6,6 +6,8 @@
 # definitions.
 #
 
+set -ex
+
 # Create the virtualenv
 virtualenv venv
 . venv/bin/activate
