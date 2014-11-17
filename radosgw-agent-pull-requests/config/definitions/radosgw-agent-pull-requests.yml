@@ -1,0 +1,59 @@
+- job:
+    name: radosgw-agent-pull-requests
+    node: gitbuilder-cdep-deb-cloud-precise-amd64-basic
+    project-type: freestyle
+    defaults: global
+    disabled: false
+    display-name: 'radosgw-agent: Pull Requests'
+    concurrent: false
+    quiet-period: 5
+    block-downstream: false
+    block-upstream: false
+    retry-count: 3
+    properties:
+      - github:
+          url: https://github.com/ceph/radosgw-agent
+    logrotate:
+      daysToKeep: 15
+      numToKeep: 30
+      artifactDaysToKeep: -1
+      artifactNumToKeep: -1
+
+    parameters:
+      - string:
+          name: sha1
+          description: "A pull request ID, like 'origin/pr/72/head'"
+
+    triggers:
+      - pollscm: "*/1 * * * *"
+      - github-pull-request:
+          cron: '* * * * *'
+          admin-list:
+            - alfredodeza
+            - jdurgin
+          org-list:
+            - ceph
+          trigger-phrase: ''
+          only-trigger-phrase: false
+          github-hooks: true
+          permit-all: false
+          auto-close-on-fail: false
+
+    scm:
+      - git:
+          url: https://github.com/ceph/radosgw-agent.git
+          branches:
+            - ${sha1}
+          refspec: +refs/pull/*:refs/remotes/origin/pr/*
+          browser: githubweb
+          browser-url: https://github.com/ceph/radosgw-agent
+          timeout: 20
+          skip-tag: true
+          wipe-workspace: false
+
+    builders:
+      - shell:
+          !include-raw ../../build/build
+
+    publishers:
+      - github-notifier
