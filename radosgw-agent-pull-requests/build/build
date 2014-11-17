@@ -12,9 +12,9 @@ mkdir -p $PIP_SDIST_INDEX
 
 # Install the package by trying with the cache first, otherwise doing a download only, and then
 # trying to install from the cache again.
-if ! venv/bin/pip install --find-links="file://$PIP_SDIST_INDEX" --no-index -r requirements.txt; then
-    venv/bin/pip install --download-directory="$PIP_SDIST_INDEX" -r requirements.txt
-    venv/bin/pip install --find-links="file://$PIP_SDIST_INDEX" --no-index -r requirements.txt
+if ! venv/bin/pip install --find-links="file://$PIP_SDIST_INDEX" --no-index tox; then
+    venv/bin/pip install --download-directory="$PIP_SDIST_INDEX" tox
+    venv/bin/pip install --find-links="file://$PIP_SDIST_INDEX" --no-index tox
 fi
 
 
