@@ -1,0 +1,22 @@
+#!/bin/bash
+
+set -ex
+
+# Create the virtualenv
+virtualenv venv
+. venv/bin/activate
+
+# Define and ensure the PIP cache
+PIP_SDIST_INDEX="$HOME/.cache/pip"
+mkdir -p $PIP_SDIST_INDEX
+
+# Install the package by trying with the cache first, otherwise doing a download only, and then
+# trying to install from the cache again.
+if ! venv/bin/pip install --find-links="file://$PIP_SDIST_INDEX" --no-index -r requirements.txt; then
+    venv/bin/pip install --download-directory="$PIP_SDIST_INDEX" -r requirements.txt
+    venv/bin/pip install --find-links="file://$PIP_SDIST_INDEX" --no-index -r requirements.txt
+fi
+
+
+# create the build with tox
+tox -rv
