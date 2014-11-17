@@ -1,0 +1,31 @@
+#!/bin/bash
+
+set -ex
+
+# Create the virtualenv
+virtualenv venv
+. venv/bin/activate
+
+# Define and ensure the PIP cache
+PIP_SDIST_INDEX="$HOME/.cache/pip"
+mkdir -p $PIP_SDIST_INDEX
+
+# Install the package by trying with the cache first, otherwise doing a download only, and then
+# trying to install from the cache again.
+if ! venv/bin/pip install --find-links="file://$PIP_SDIST_INDEX" --no-index jenkins-job-builder; then
+    venv/bin/pip install --download-directory="$PIP_SDIST_INDEX" jenkins-job-builder
+    venv/bin/pip install --find-links="file://$PIP_SDIST_INDEX" --no-index jenkins-job-builder
+fi
+
+
+# Test every definition if available in the current repository and update the jobs
+# if they do define one (they should always define their definitions)
+for dir in `find . -maxdepth 1 -path ./.git -prune -o -type d -print`; do
+    definitions_dir="$dir/config/definitions"
+    if [ -d "$definitions_dir" ]; then
+        echo "found definitions directory: $definitions_dir"
+
+        # Test the definitions
+        venv/bin/jenkins-jobs test $definitions_dir -o /tmp/output
+    fi
+done
