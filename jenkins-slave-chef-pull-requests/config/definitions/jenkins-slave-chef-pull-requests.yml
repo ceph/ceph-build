@@ -10,6 +10,9 @@
     block-downstream: false
     block-upstream: false
     retry-count: 3
+    properties:
+      - github:
+          url: https://github.com/ceph/jenkins-slave-chef
 
     parameters:
       - string:
