@@ -153,3 +153,60 @@ will have the following settings:
 * Jenkins job ``name``: ``ceph-deploy-pull-requests``
 
 * Jenkins job ``display-name``: ``ceph-deploy: Pull Requests``
+
+Pull Request Jobs
+-----------------
+When configuring a new job that will build pull requests, you must also
+configure GitHub's repository to notify Jenkins of new pull requests.
+
+#. In GitHub's web interface, click the "Settings" button for your repository.
+
+#. Click the "Webhooks & Services" link in the "Options" menu on the left.
+
+#. Under the "Webhooks" section, set the "Payload URL" to
+   ``http://jenkins.ceph.com/ghprbhook/``.
+
+#. Click the "Content type" dropdown and select
+   ``application/x-www-form-urlencoded``.
+
+#. For the question "Which events would you like to trigger this webhook?",
+   select the ``Let me select individual events.`` radio, and check the ``Pull
+   Request`` and ``Issue comment`` boxes.
+
+#. Click the green "Update Webhook" button to save your changes.
+
+On the Jenkins side, you should set up the job's GitHub project URL like so::
+
+  - job:
+      name: jenkins-slave-chef-pull-requests
+
+      ...
+
+      properties:
+        - github:
+            url: https://github.com/ceph/jenkins-slave-chef
+
+This will tell the Jenkins GitHub Pull Requests plugin that it should
+associate the incoming webhooks with this particular job.
+
+You should also use the ``triggers`` setting for the job, like so::
+
+  - job:
+      name: jenkins-slave-chef-pull-requests
+
+      ...
+
+      triggers:
+        - pollscm: "*/1 * * * *"
+        - github-pull-request:
+            cron: '* * * * *'
+            admin-list:
+              - alfredodeza
+              - ktdreyer
+            org-list:
+              - ceph
+            trigger-phrase: 'retest this please'
+            only-trigger-phrase: false
+            github-hooks: true
+            permit-all: false
+            auto-close-on-fail: false
