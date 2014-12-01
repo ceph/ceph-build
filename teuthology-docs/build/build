@@ -21,4 +21,4 @@ fi
 # create the docs build with tox
 tox -rv -e docs
 # publish docs to ceph.com/teuthology/docs
-rsync -auv --delete -e &quot;ssh -i /home/jenkins-build/.ssh/cephdocs_id_rsa -o StrictHostKeyChecking=no&quot; .tox/docs/tmp/html/* cephdocs@ceph.newdream.net:/home/ceph_site/ceph.com/teuthology/docs/
+rsync -auv --delete -e "ssh -i /home/jenkins-build/.ssh/cephdocs_id_rsa -o StrictHostKeyChecking=no" .tox/docs/tmp/html/* cephdocs@ceph.newdream.net:/home/ceph_site/ceph.com/teuthology/docs/

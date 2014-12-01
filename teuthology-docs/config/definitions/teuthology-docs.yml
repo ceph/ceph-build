@@ -1,5 +1,5 @@
 - job:
-    name: teuthology-docs-build 
+    name: teuthology-docs 
     node: gitbuilder-cdep-deb-cloud-precise-amd64-basic
     project-type: freestyle
     defaults: global
