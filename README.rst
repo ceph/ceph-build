@@ -210,3 +210,12 @@ You should also use the ``triggers`` setting for the job, like so::
             github-hooks: true
             permit-all: false
             auto-close-on-fail: false
+
+"Document" Jobs
+---------------
+Some jobs don't actually run code; they simply build a project's documentation
+and upload the docs to ceph.com. One example is the "teuthology-docs-build"
+job.
+
+For these jobs, note that the destination directory must be created on the
+ceph.com web server before the ``rsync`` command will succeed.
