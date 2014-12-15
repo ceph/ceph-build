@@ -12,7 +12,7 @@
     retry-count: 3
     properties:
       - github:
-          url: https://github.com/ceph/ceph
+          url: git@jenkins:ceph/ceph
     logrotate:
       daysToKeep: 15
       numToKeep: 30
