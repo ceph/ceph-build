@@ -1,0 +1,7 @@
+#!/bin/bash
+
+set -ex 
+
+echo make check
+ls -la
+
