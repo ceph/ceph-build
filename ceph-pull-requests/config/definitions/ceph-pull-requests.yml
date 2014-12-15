@@ -31,6 +31,7 @@
           admin-list:
             - alfredodeza
             - ktdreyer
+            - dachary
             - admin
           org-list:
             - ceph
