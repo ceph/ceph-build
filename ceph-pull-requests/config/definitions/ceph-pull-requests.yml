@@ -12,7 +12,7 @@
     retry-count: 3
     properties:
       - github:
-          url: git@jenkins:ceph/ceph
+          url: https://github.com/ceph/ceph
     logrotate:
       daysToKeep: 15
       numToKeep: 30
@@ -43,7 +43,7 @@
 
     scm:
       - git:
-          url: https://github.com/ceph/ceph.git
+          url: git@jenkins:ceph/ceph
           branches:
             - ${sha1}
           refspec: +refs/pull/*:refs/remotes/origin/pr/*
