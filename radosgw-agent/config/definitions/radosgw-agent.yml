@@ -1,0 +1,71 @@
+- job:
+    name: radosgw-agent
+    node: gitbuilder-cdep-deb-cloud-precise-amd64-basic
+    project-type: matrix
+    defaults: global
+    disabled: false
+    display-name: 'radosgw-agent-wip'
+    concurrent: true
+    quiet-period: 5
+    block-downstream: false
+    block-upstream: false
+    retry-count: 3
+
+    parameters:
+      - string:
+          name: BRANCH
+          description: "The git branch or tag to build"
+
+      - bool:
+          name: RELEASE
+          description: "If checked, it will use the key for releases, otherwise it will use the autosign one."
+
+    scm:
+      - git:
+          url: https://github.com/ceph/radosgw-agent.git
+          branches:
+            - $BRANCH
+          browser: githubweb
+          browser-url: http://github.com/ceph/radosgw-agent.git
+          timeout: 20
+
+    execution-strategy:
+      combination-filter: |
+        (Arch=="x86_64")  || (Arch=="armhf" && (Dist=="quantal"))
+
+    axes:
+      - axis:
+          type: label-expression
+          name: Arch
+          values:
+            - x86_64
+      - axis:
+          type: label-expression
+          name: Dist
+          values:
+            - squeeze
+            - wheezy
+            - precise
+            - trusty
+            - centos6.3
+            - centos6.4
+            - centos6.5
+            - centos7
+            - rhel6.3
+            - rhel6.4
+            - rhel6.5
+            - fedora20
+            - opensuse12.2
+            - sles11sp2
+            - rhel7
+
+    builders:
+      - shell: "pwd"
+      - shell:
+          !include-raw ../../build/build
+
+    publishers:
+      - archive:
+          artifacts: '*-repo/**, dist/**'
+          allow-empty: 'true'
+          latest-only: 'false'
