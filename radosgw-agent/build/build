@@ -57,7 +57,8 @@ case $HOST in
         if [ $RC -eq 0 ] ; then
             cd $WORKSPACE
             mkdir -p dist
-            mv *.changes *.dsc *.deb *.tar.gz dist/.
+            mv ../*.changes ../*.dsc ../*.deb ../*.tar.gz dist/.
+
         fi
         ;;
 *)
