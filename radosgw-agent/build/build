@@ -17,7 +17,6 @@ ls -l
 
 case $HOST in
 *rpm*)
-        #cd build
         rm -rf ./dist  # Remove any previous artifacts
         mkdir -p $WORKSPACE/dist/noarch
         mkdir -p $WORKSPACE/dist/SRPMS
@@ -49,12 +48,11 @@ case $HOST in
         fi
         ;;
 *deb* | tala*)
-        #cd build
         DEB_VERSION=$(dpkg-parsechangelog | sed -rne 's,^Version: (.*),\1, p')
         BP_VERSION=${DEB_VERSION}${BPTAG}
         DEBEMAIL="sandon@inktank.com" dch -D $DIST --force-distribution -b -v "$BP_VERSION" "$comment"
-        ( cd $WORKSPACE ; dpkg-source -b ./build )  # squeeze uses current directory for tarball
-        dpkg-buildpackage -b -k17ED316D
+        dpkg-source -b .
+        dpkg-buildpackage -k$KEYID
         RC=$?
         if [ $RC -eq 0 ] ; then
             cd $WORKSPACE
