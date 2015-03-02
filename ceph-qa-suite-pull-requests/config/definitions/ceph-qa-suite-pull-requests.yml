@@ -28,6 +28,10 @@
       - pollscm: "*/1 * * * *"
       - github-pull-request:
           cron: '* * * * *'
+          admin-list:
+            - alfredodeza
+            - ktdreyer
+            - trhoden
           org-list:
             - ceph
           trigger-phrase: ''
