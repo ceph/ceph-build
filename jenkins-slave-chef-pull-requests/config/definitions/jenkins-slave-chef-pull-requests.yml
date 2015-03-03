@@ -20,7 +20,6 @@
           description: "A pull request ID, like 'origin/pr/72/head'"
 
     triggers:
-      - pollscm: "*/1 * * * *"
       - github-pull-request:
           cron: '* * * * *'
           admin-list:
