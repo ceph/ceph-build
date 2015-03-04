@@ -33,6 +33,15 @@
             - trhoden
           org-list:
             - ceph
+          white-list:
+            - jcsp
+            - gregsfortytwo
+            - dmick
+            - GregMeno
+            - dzafman
+            - dillaman
+            - dachary
+            - liewegas
           trigger-phrase: ''
           only-trigger-phrase: false
           github-hooks: true
