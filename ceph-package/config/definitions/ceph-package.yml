@@ -1,0 +1,56 @@
+- job:
+    name: ceph-build
+    defaults: global
+    disabled: false
+    display-name: 'ceph-build'
+    node: package
+    concurrent: false
+    block-downstream: false
+    block-upstream: false
+    logrotate:
+      daysToKeep: -1
+      numToKeep: 20
+      artifactDaysToKeep: -1
+      artifactNumToKeep: -1
+
+    execution-strategy:
+      combination-filter: |
+        (Arch=="x86_64") || (Arch=="i386" && (Distro=="wheezy-pbuild" || Distro=="precise-pbuild"))
+
+    axes:
+      - axis:
+          type: label-expression
+          name: Arch
+          values:
+            - x86_64
+            - i386
+      - axis:
+          type: label-expression
+          name: Distro
+          values:
+            - squeeze-pbuild
+            - wheezy-pbuild
+            - precise-pbuild
+            - trusty-pbuild
+            - centos6.3
+            - centos6.4
+            - centos6.5
+            - centos7
+            - rhel6.3
+            - rhel6.4
+            - rhel6.5
+            - rhel7
+            - fedora20
+
+    builders:
+
+      # "Clean up any prior stuff"
+      - shell: 'rm -rf Arch=* 2>/dev/null; true'
+
+      - copyartifact:
+          project: ceph-build
+          filter: 'dist/**'
+          which-build: last-successful
+
+      - shell:
+          !include-raw ../../build/build
