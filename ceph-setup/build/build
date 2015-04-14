@@ -39,10 +39,24 @@ rm -rf release
 echo "Running submodule update ..."
 git submodule update --init
 
+echo "Running autogen.sh ..."
+./autogen.sh
 echo "Running configure ..."
-# because this is running in a Debian-based distro we need to pass -L
-# to disable lttng
-./do_autogen.sh -L
+./configure \
+  --disable-option-checking \
+  '--prefix=/usr' \
+  '--sbindir=/sbin' \
+  '--localstatedir=/var' \
+  '--sysconfdir=/etc' \
+  '--with-debug' \
+  '--with-nss' \
+  '--with-radosgw' \
+  '--disable-static' \
+  '--without-lttng' \
+  'CFLAGS= -Wno-unused-parameter' \
+  'CXXFLAGS=  -Wno-unused-parameter' \
+  --cache-file=/dev/null \
+  --srcdir=.
 
 if [ $? -ne 0 ] ; then
     echo "autogen failed"
