@@ -1,0 +1,38 @@
+- job:
+    name: ceph-setup
+    description: "This job step checks out the branch and builds the tarballs, diffs, and dsc that are passed to the ceph-build step.\r\n\r\nNotes:\r\nJob needs to run on a releatively recent debian system.  The Restrict where run feature is used to specifiy an appropriate label.\r\nThe clear workspace before checkout box for the git plugin is used."
+    node: gitbuilder-cdep-deb-cloud-precise-amd64-basic
+    disabled: false
+    display-name: 'ceph-setup'
+    concurrent: false
+    logrotate:
+      daysToKeep: -1
+      numToKeep: 25
+      artifactDaysToKeep: -1
+      artifactNumToKeep: -1
+    block-downstream: false
+    block-upstream: false
+    properties:
+      - github:
+          url: https://github.com/ceph/ceph
+
+    parameters:
+      - string:
+          name: BRANCH
+          description: "The git branch (or tag) to build"
+
+    scm:
+      - git:
+          url: git://jenkins.front.sepia.ceph.com/ceph/ceph.git
+          branches:
+            - $BRANCH
+
+    builders:
+      - shell:
+          !include-raw ../../build/build
+
+    publishers:
+      - archive:
+          artifacts: 'dist/**'
+          allow-empty: false
+          latest-only: false
