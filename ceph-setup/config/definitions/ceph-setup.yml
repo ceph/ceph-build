@@ -28,7 +28,6 @@
             - $BRANCH
 
     builders:
-      - shell: "pwd"
       - shell:
           !include-raw ../../build/build
 
