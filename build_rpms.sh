@@ -30,6 +30,6 @@ cp -a rpm/*.patch ${BUILDAREA}/SOURCES/. || true
 # Build RPMs
 BUILDAREA=`readlink -fn ${BUILDAREA}`   ### rpm wants absolute path
 cd ${BUILDAREA}/SPECS
-rpmbuild -ba --define "_topdir ${BUILDAREA}" --define "_unpackaged_files_terminate_build 0" ceph.spec
+rpmbuild -ba --define "_topdir ${BUILDAREA}" ceph.spec
 
 echo done
