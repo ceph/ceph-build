@@ -2,7 +2,7 @@
     name: ceph-package
     defaults: global
     disabled: false
-    display-name: 'ceph-build'
+    display-name: 'ceph-package'
     node: package
     concurrent: false
     block-downstream: false
