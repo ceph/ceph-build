@@ -1,5 +1,5 @@
 - job:
-    name: ceph-build
+    name: ceph-package
     defaults: global
     disabled: false
     display-name: 'ceph-build'
