@@ -1,4 +1,5 @@
 - job:
+    disabled: true
     name: ceph-pull-requests
     node: fedora20
     project-type: freestyle
