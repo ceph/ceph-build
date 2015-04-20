@@ -1,4 +1,5 @@
 - job:
+    disabled: true
     name: ceph-build-pull-requests
     node: gitbuilder-cdep-deb-cloud-precise-amd64-basic
     project-type: freestyle
