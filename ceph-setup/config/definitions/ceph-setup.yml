@@ -26,6 +26,7 @@
           url: git://jenkins.front.sepia.ceph.com/ceph/ceph.git
           branches:
             - $BRANCH
+          skip-tag: true
 
     builders:
       - shell:
