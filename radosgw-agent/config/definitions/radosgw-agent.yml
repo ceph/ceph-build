@@ -4,7 +4,7 @@
     project-type: matrix
     defaults: global
     disabled: false
-    display-name: 'radosgw-agent-wip'
+    display-name: 'radosgw-agent'
     concurrent: true
     quiet-period: 5
     block-downstream: false
