@@ -1,0 +1,50 @@
+- job:
+    name: ceph-release-rpm
+    project-type: matrix
+    defaults: global
+    disabled: false
+    description: Builds the repository configuration package for ceph-release.  RPMS Only
+    concurrent: false
+    block-downstream: false
+    block-upstream: false
+
+    execution-strategy:
+      combination-filter: Arch=="x86_64"
+
+    parameters:
+      - string:
+          name: RELEASE
+          default: firefly
+
+    axes:
+      - axis:
+          type: label-expression
+          name: Arch
+          values:
+            - x86_64
+            - i386
+            - arm7l
+      - axis:
+          type: label-expression
+          name: label_exp
+          values:
+            - centos6.3
+            - centos7
+            - rhel6.3
+            - fedora20
+            - sles11sp2
+            - rhel7
+
+    builders:
+      - shell:
+          !include-raw ../../build/build
+      - copyartifact:
+          project: ceph-release-rpm
+          filter: 'dist/**'
+          which-build: last-successful
+
+    publishers:
+      - archive:
+          artifacts: 'dist/**'
+          allow-empty: false
+          latest-only: false
