@@ -1,0 +1,162 @@
+#!/bin/sh
+
+#export GNUPGHOME=/home/jenkins-build/build/gnupg.autobuild/
+export GNUPGHOME=/home/jenkins-build/build/gnupg.ceph-release/
+export KEYID=17ED316D
+HOST=$(hostname --short)
+echo "Building on ${HOST}"
+echo "  DIST=${DIST}"
+echo "  BPTAG=${BPTAG}"
+echo "  KEYID=${KEYID}"
+echo "  WS=$WORKSPACE"
+echo "  PWD=$(pwd)"
+echo "Building on Host: $(hostname) Date: $(date)"
+
+# Check if we have a key to sign packages with
+if gpg --list-keys 2>/dev/null | grep -q ${KEYID} ; then
+    echo "Signing packages and repo with ${KEYID}"
+else
+    echo "Package signing key (${KEYID}) not found"
+    echo "Have you set \$GNUPGHOME ? "
+    exit 3
+fi
+
+# We expect the ceph build tools to be installed.
+if [ ! -d /srv/ceph-build ] ; then
+    echo "Build tools are not installed"
+    exit 1
+fi
+BINDIR=/srv/ceph-build
+
+# remove any previous builds
+rm -rf dist
+rm -rf RPMBUILD
+
+# What are we building ?
+
+target=$DIST
+if [ "$target" = "centos6.3" ] ; then target=el6 ; fi
+if [ "$target" = "centos7" ] ; then target=el7 ; fi
+if [ "$target" = "fedora18" ] ; then target=fc18 ; fi
+if [ "$target" = "fedora19" ] ; then target=fc19 ; fi
+if [ "$target" = "fedora20" ] ; then target=fc20 ; fi
+if [ "$target" = "rhel6.3" ] ; then target=rhel6 ; fi
+if [ "$target" = "sles11sp2" ] ; then target=sles11 ; fi
+echo "Target directory is: $target"
+
+# setup rpm build area
+mkdir -p RPMBUILD/{BUILD,RPMS,SOURCES,SPECS,SRPMS}
+BUILDAREA=$WORKSPACE/RPMBUILD
+
+# Create and build an RPM for the repository
+cat <<EOF > ${BUILDAREA}/SPECS/ceph-release.spec
+%if 0%{?centos} == 7
+%define dist .el7
+%endif
+
+
+Name:           ceph-release
+Version:        1
+Release:        1%{?dist}
+Summary:        Ceph repository configuration
+Group:          System Environment/Base
+License:        GPLv2
+URL:            http://gitbuilder.ceph.com/$dist
+Source0:        ceph.repo
+#Source0:        RPM-GPG-KEY-CEPH
+#Source1:        ceph.repo
+BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
+BuildArch:	noarch
+
+%description
+This package contains the Ceph repository GPG key as well as configuration
+for yum and up2date.
+
+%prep
+
+%setup -q  -c -T
+install -pm 644 %{SOURCE0} .
+#install -pm 644 %{SOURCE1} .
+
+%build
+
+%install
+rm -rf %{buildroot}
+#install -Dpm 644 %{SOURCE0} \
+#    %{buildroot}/%{_sysconfdir}/pki/rpm-gpg/RPM-GPG-KEY-CEPH
+%if 0%{defined suse_version}
+install -dm 755 %{buildroot}/%{_sysconfdir}/zypp
+install -dm 755 %{buildroot}/%{_sysconfdir}/zypp/repos.d
+install -pm 644 %{SOURCE0} \
+    %{buildroot}/%{_sysconfdir}/zypp/repos.d
+%else
+install -dm 755 %{buildroot}/%{_sysconfdir}/yum.repos.d
+install -pm 644 %{SOURCE0} \
+    %{buildroot}/%{_sysconfdir}/yum.repos.d
+%endif
+
+%clean
+#rm -rf %{buildroot}
+
+%post
+
+%postun
+
+%files
+%defattr(-,root,root,-)
+#%doc GPL
+%if 0%{defined suse_version}
+%config(noreplace) /etc/zypp/repos.d/*
+%else
+%config(noreplace) /etc/yum.repos.d/*
+%endif
+#/etc/pki/rpm-gpg/*
+
+%changelog
+* Mon Jan 12 2015 Travis Rhoden <trhoden@redhat.com> 1-1
+- Make .repo files be %config(noreplace)
+* Tue Mar 10 2013 Gary Lowell <glowell@inktank.com> - 1-0
+- Handle both yum and zypper
+- Use URL to ceph git repo for key
+- remove config attribute from repo file
+* Tue Aug 27 2012 Gary Lowell <glowell@inktank.com> - 1-0
+- Initial Package
+EOF
+#  End of ceph-release.spec file.
+# Install ceph.repo file
+
+ceph_release="$RELEASE"
+
+cat <<EOF > $BUILDAREA/SOURCES/ceph.repo
+[Ceph]
+name=Ceph packages for \$basearch
+baseurl=http://ceph.com/rpm-${ceph_release}/${target}/\$basearch
+enabled=1
+gpgcheck=1
+type=rpm-md
+gpgkey=https://ceph.com/git/?p=ceph.git;a=blob_plain;f=keys/release.asc
+
+[Ceph-noarch]
+name=Ceph noarch packages
+baseurl=http://ceph.com/rpm-${ceph_release}/${target}/noarch
+enabled=1
+gpgcheck=1
+type=rpm-md
+gpgkey=https://ceph.com/git/?p=ceph.git;a=blob_plain;f=keys/release.asc
+
+[ceph-source]
+name=Ceph source packages
+baseurl=http://ceph.com/rpm-${ceph_release}/${target}/SRPMS
+enabled=1
+gpgcheck=1
+type=rpm-md
+gpgkey=https://ceph.com/git/?p=ceph.git;a=blob_plain;f=keys/release.asc
+EOF
+# End of ceph.repo file
+
+rpmbuild -ba --define "_topdir ${BUILDAREA}" --define "_unpackaged_files_terminate_build 0" ${BUILDAREA}/SPECS/ceph-release.spec
+if [ $? -eq 0 ] ; then
+    mkdir -p $WORKSPACE/dist
+    mv $BUILDAREA/RPMS/* $WORKSPACE/dist/.
+    mv $BUILDAREA/SRPMS $WORKSPACE/dist/.
+fi
