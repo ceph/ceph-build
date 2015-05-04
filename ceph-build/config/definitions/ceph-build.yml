@@ -26,7 +26,6 @@
           type: label-expression
           name: Distro
           values:
-            - squeeze-pbuild
             - wheezy-pbuild
             - precise-pbuild
             - trusty-pbuild
