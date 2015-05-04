@@ -67,5 +67,5 @@
     publishers:
       - archive:
           artifacts: '*-repo/**, dist/**'
-          allow-empty: 'true'
-          latest-only: 'false'
+          allow-empty: true
+          latest-only: false
