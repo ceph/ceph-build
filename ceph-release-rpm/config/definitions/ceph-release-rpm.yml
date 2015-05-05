@@ -28,9 +28,9 @@
           type: label-expression
           name: label_exp
           values:
-            - centos6.3
+            - centos6.5
             - centos7
-            - rhel6.3
+            - rhel6.5
             - fedora20
             - sles11sp2
             - rhel7
