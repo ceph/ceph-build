@@ -37,7 +37,6 @@ rm -rf RPMBUILD
 target=$DIST
 if [ "$target" = "centos6.5" ] ; then target=el6 ; fi
 if [ "$target" = "centos7" ] ; then target=el7 ; fi
-if [ "$target" = "fedora20" ] ; then target=fc20 ; fi
 if [ "$target" = "rhel6.5" ] ; then target=rhel6 ; fi
 if [ "$target" = "sles11sp2" ] ; then target=sles11 ; fi
 echo "Target directory is: $target"

@@ -33,7 +33,6 @@
             - centos7
             - rhel6.5
             - rhel7
-            - fedora20
 
     builders:
       - shell: |
