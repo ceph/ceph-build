@@ -1,6 +1,6 @@
 - job:
     name: ceph-deploy
-    node: gitbuilder-cdep-deb-cloud-precise-amd64-basic
+    node: gitbuilder-cdep-deb-trusty-amd64-basic
     project-type: matrix
     defaults: global
     disabled: false
