@@ -1,6 +1,6 @@
 - job:
     name: teuthology-docs 
-    node: gitbuilder-cdep-deb-cloud-precise-amd64-basic
+    node: gitbuilder-cdep-deb-trusty-amd64-basic
     project-type: freestyle
     defaults: global
     disabled: false
