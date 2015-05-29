@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/sh -ex
 
 #export GNUPGHOME=/home/jenkins-build/build/gnupg.autobuild/
 export GNUPGHOME=/home/jenkins-build/build/gnupg.ceph-release/
@@ -65,7 +65,7 @@ fi
 
 mkdir -p release
 $bindir/release_tarball.sh release release/version
-if [ $? -ne 0] ; then
+if [ $? -ne 0 ] ; then
     echo "make tarballs failed"
     exit 2
 fi
@@ -73,7 +73,7 @@ vers=`cat release/version`
 
 (
     cd release/$vers
-    #mv debian ceph-$vers/.
+    mv debian ceph-$vers/.
     dpkg-source -b ceph-$vers
 )
 
