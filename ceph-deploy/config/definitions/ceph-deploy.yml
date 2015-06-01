@@ -55,8 +55,7 @@
             - rhel7
 
     builders:
-      - shell: "pwd"
-      - shell: "./scripts/jenkins-build"
+      - shell: !include-raw ../../build/build
 
     publishers:
       - archive:
