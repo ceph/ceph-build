@@ -26,6 +26,11 @@ echo "  WS=$WORKSPACE"
 echo "  PWD=$(pwd)"
 echo "  BRANCH=$BRANCH"
 
+# FIXME A very naive way to just list the RPM $DIST that we currently support.
+# We should be a bit more lenient to allow any rhel/centos/sles/suse
+rpm_dists="rhel centos6.5 centos7 rhel6.5 rhel7 centos sles11sp2 opensuse12.2"
+deb_dists="precise wheezy squeeze trusty"
+
 case $HOST in
 gitbuilder-*-rpm*)
         rm -rf rpm-repo dist/* build/rpmbuild
