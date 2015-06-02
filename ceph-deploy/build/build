@@ -151,18 +151,18 @@ gitbuilder-cdep-deb* | tala* | mira*)
 
     for DIST in  $DEB_DIST ; do
         cat <<EOF >> $REPO/conf/distributions
-    Codename: $DIST
-    Suite: stable
-    Components: $COMPONENT
-    Architectures: amd64 armhf i386 source
-    Origin: Inktank
-    Description: Ceph distributed file system
-    DebIndices: Packages Release . .gz .bz2
-    DscIndices: Sources Release .gz .bz2
-    Contents: .gz .bz2
-    SignWith: $KEYID
+Codename: $DIST
+Suite: stable
+Components: $COMPONENT
+Architectures: amd64 armhf i386 source
+Origin: Inktank
+Description: Ceph distributed file system
+DebIndices: Packages Release . .gz .bz2
+DscIndices: Sources Release .gz .bz2
+Contents: .gz .bz2
+SignWith: $KEYID
 
-    EOF
+EOF
     done
 
     echo "Adding package to repo, dist: $DEB_BUILD ($PKG)"
