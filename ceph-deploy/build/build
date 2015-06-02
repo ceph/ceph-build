@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 # This is the script that runs inside Jenkins.
 # http://jenkins.ceph.com/job/ceph-deploy/
