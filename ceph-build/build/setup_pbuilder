@@ -18,6 +18,9 @@ basedir="/srv/debian-base"
 # /srv/ceph-build/update_pbuilder.sh Now it lives here because it doesn't make
 # sense to have a file that lives in /srv/ that we then concatenate to get its
 # contents.  what.
+# FIXME: This should be a bit more dynamic. Do not build everything, build what
+# we need. Otherwise we have to edit this all the time and be wasteful creating
+# them when we don't even have them in the matrix build
 dists="wheezy precise squeeze trusty"
 
 
