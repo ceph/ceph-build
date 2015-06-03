@@ -17,12 +17,6 @@ echo "*****"
 env
 echo "*****"
 
-if [ ! -d /srv/ceph-build ] ; then
-    echo "Build tools are not installed"
-    exit 1
-fi
-bindir=/srv/ceph-build
-
 vers=`cat ./dist/version`
 # create a release directory for ceph-build tools
 mkdir -p release
@@ -115,7 +109,7 @@ for dist in $dists
 do
     pbuilder --clean
 
-    bpvers=`$bindir/gen_debian_version.sh $dvers $dist`
+    bpvers=gen_debian_version $dvers $dist
     echo deb vers $bpvers
 
     echo building debs for $dist
@@ -143,7 +137,7 @@ done
 # do lintian checks
 for dist in $dists
 do
-    bpvers=`$bindir/gen_debian_version.sh $dvers $dist`
+    bpvers=gen_debian_version $dvers $dist
     echo lintian checks for $bpvers
     echo lintian --allow-root $releasedir/$cephver/*$bpvers*.deb
 done
