@@ -1,0 +1,157 @@
+# Only do actual work when we are a DEB distro
+if test -f /etc/redhat-release ; then
+    exit 0
+fi
+
+export GNUPGHOME=/home/jenkins-build/build/gnupg.ceph-release/
+export KEYID=17ED316D
+HOST=$(hostname --short)
+echo "Building on $(hostname) Date: $(date)"
+echo "  DIST=${DIST}"
+echo "  BPTAG=${BPTAG}"
+echo "  KEYID=${KEYID}"
+echo "  WS=$WORKSPACE"
+echo "  PWD=$(pwd)"
+echo "  BUILD SOURCE=$COPYARTIFACT_BUILD_NUMBER_CEPH_SETUP"
+echo "*****"
+env
+echo "*****"
+
+vers=`cat ./dist/version`
+# create a release directory for ceph-build tools
+mkdir -p release
+cp -a dist release/${vers}
+echo $DIST > release/${vers}/debian_dists
+echo "${vers}-1" > release/${vers}/debian_version
+
+cd release/$vers
+
+# Dirty Hack:
+baddist=$(echo $DIST | grep -ic -e squeeze -e wheezy || true)
+if [ $baddist -eq 1 ]
+then
+    sed -i 's/ libbabeltrace-ctf-dev, libbabeltrace-dev,//g' ceph_${vers}-1.dsc || true
+    sed -i 's/ liblttng-ust-dev//g' ceph_${vers}-1.dsc || true
+
+fi
+
+# unpack sources
+dpkg-source -x ceph_${vers}-1.dsc
+if [ $baddist -eq 1 ]
+then
+    rm -vf *.orig.tar.gz || true
+    grep -v babeltrace ceph-${vers}/debian/control  | grep -v liblttng > ceph-${vers}/debian/control.new
+    mv -v ceph-${vers}/debian/control.new ceph-${vers}/debian/control
+fi
+(  cd ceph-${vers}
+   DEB_VERSION=$(dpkg-parsechangelog | sed -rne 's,^Version: (.*),\1, p')
+   BP_VERSION=${DEB_VERSION}${BPTAG}
+   DEBEMAIL="gary.lowell@inktank.com" dch -D $DIST --force-distribution -b -v "$BP_VERSION" "$comment"
+)
+dpkg-source -b ceph-${vers}
+
+echo "Building Debian"
+cd "$WORKSPACE"
+# Before, at this point, this script called the below contents that
+# was part of /srv/ceph-buid/build_debs.sh. Now everything is in here, in one
+# place, no need to checkout/clone anything. WYSIWYG::
+#
+#    sudo $bindir/build_debs.sh ./release /srv/debian-base $vers
+
+
+releasedir="./release"
+pbuilddir="/srv/debian-base"
+cephver=$vers
+
+start_time=`date`
+echo version $cephver
+
+whoami=`whoami`
+[ "$whoami" != "root" ] && echo "must run as root not $whoami" && usage && exit 1
+
+# This used to live in a *file* on /src/ceph-build. Now it lives here because
+# it doesn't make sense to have a file that lives in /srv/ that we then
+# concatenate to get its contents.
+# XXX before, the script accepted a $4 argument that was set as `$dists` but
+# not how this script never passed any. This potentially means that we are
+# building for all the dists in every debian host. Jenkins passes a $DIST
+# variable around that could be re-used here.
+dists="sid wheezy squeeze raring quantal precise saucy trusty"
+
+dvers=`cat $releasedir/$cephver/debian_version`
+echo deb vers $dvers
+echo dists $dists
+
+# This function used to live as /srv/gen_debian_version.sh
+gen_debian_version() {
+    raw=$1
+    dist=$2
+
+    [ "$dist" = "sid" ] && dver="$raw"
+    [ "$dist" = "wheezy" ] && dver="$raw~bpo70+1"
+    [ "$dist" = "squeeze" ] && dver="$raw~bpo60+1"
+    [ "$dist" = "lenny" ] && dver="$raw~bpo50+1"
+    [ "$dist" = "trusty" ] && dver="$raw$dist"
+    [ "$dist" = "saucy" ] && dver="$raw$dist"
+    [ "$dist" = "raring" ] && dver="$raw$dist"
+    [ "$dist" = "quantal" ] && dver="$raw$dist"
+    [ "$dist" = "precise" ] && dver="$raw$dist"
+    [ "$dist" = "oneiric" ] && dver="$raw$dist"
+    [ "$dist" = "natty" ] && dver="$raw$dist"
+    [ "$dist" = "maverick" ] && dver="$raw$dist"
+    [ "$dist" = "lucid" ] && dver="$raw$dist"
+    [ "$dist" = "karmic" ] && dver="$raw$dist"
+
+    echo $dver
+}
+
+for dist in $dists
+do
+    pbuilder --clean
+
+    bpvers=gen_debian_version $dvers $dist
+    echo deb vers $bpvers
+
+    echo building debs for $dist
+    if [ `dpkg-architecture -qDEB_BUILD_ARCH` = "i386" ] ; then
+        #  Architecture dependent, independent and source
+        pbuilder build \
+            --distribution $dist \
+            --basetgz $pbuilddir/$dist.tgz \
+            --buildresult $releasedir/$cephver \
+            --debbuildopts "-j`grep -c processor /proc/cpuinfo`" \
+            $releasedir/$cephver/ceph_$bpvers.dsc
+    else
+        #  Binary only architecture dependent
+        pbuilder build \
+            --binary-arch \
+            --distribution $dist \
+            --basetgz $pbuilddir/$dist.tgz \
+            --buildresult $releasedir/$cephver \
+            --debbuildopts "-j`grep -c processor /proc/cpuinfo`" \
+            $releasedir/$cephver/ceph_$bpvers.dsc
+    fi
+
+done
+
+# do lintian checks
+for dist in $dists
+do
+    bpvers=gen_debian_version $dvers $dist
+    echo lintian checks for $bpvers
+    echo lintian --allow-root $releasedir/$cephver/*$bpvers*.deb
+done
+
+echo "Start Time = $start_time"
+echo "  End Time = $(date)"
+
+
+#Collect Artifacts
+mkdir -p dist/debian
+cp -a release/$vers/*.changes dist/debian/.
+cp -a release/$vers/*.deb     dist/debian/.
+cp -a release/$vers/*.dsc     dist/debian/.
+cp -a release/$vers/*.diff.gz dist/debian/.
+cp -a release/$vers/*.tar.gz  dist/debian/.
+
+echo "End Date: $(date)"

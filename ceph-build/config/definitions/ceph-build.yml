@@ -46,7 +46,9 @@
       - shell:
           !include-raw ../../build/build1
       - shell:
-          !include-raw ../../build/build2
+          !include-raw ../../build/setup_pbuilder
+      - shell:
+          !include-raw ../../build/build_deb
 
     publishers:
       - archive:

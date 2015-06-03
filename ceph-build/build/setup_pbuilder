@@ -1,0 +1,62 @@
+#!/bin/sh -x
+# This file will set the tgz images needed for pbuilder on a given host. It has
+# some hard-coded values like `/srv/debian-base` because it gets built every
+# time this file is executed - completely ephemeral.  If a Debian host will use
+# pbuilder, then it will need this. Since it is not idempotent it makes
+# everything a bit slower. ## FIXME ##
+
+set -e
+
+# Only run when we are a Debian or Debian-based distro
+if test -f /etc/redhat-release ; then
+    exit 0
+fi
+
+basedir="/srv/debian-base"
+
+# This used to live in a *file* on /srv/ceph-build as
+# /srv/ceph-build/update_pbuilder.sh Now it lives here because it doesn't make
+# sense to have a file that lives in /srv/ that we then concatenate to get its
+# contents.  what.
+dists="sid wheezy squeeze raring quantal precise saucy trusty"
+
+
+for dist in $dists
+do
+    os="debian"
+    [ "$dist" = "raring" ] && os="ubuntu"
+    [ "$dist" = "saucy" ] && os="ubuntu"
+    [ "$dist" = "trusty" ] && os="ubuntu"
+    [ "$dist" = "precise" ] && os="ubuntu"
+    [ "$dist" = "quantal" ] && os="ubuntu"
+    [ "$dist" = "oneiric" ] && os="ubuntu"
+    [ "$dist" = "natty" ] && os="ubuntu"
+    [ "$dist" = "maverick" ] && os="ubuntu"
+    [ "$dist" = "lucid" ] && os="ubuntu"
+
+    if [ $os = "debian" ]; then
+        mirror="http://apt-mirror.sepia.ceph.com/ftp.us.debian.org/debian"
+        othermirror=""
+    else
+        mirror=""
+        othermirror="deb http://apt-mirror.sepia.ceph.com/archive.ubuntu.com/ubuntu $dist main restricted universe multiverse"
+    fi
+
+    pbuilder --clean
+
+    if [ -e $basedir/$dist.tgz ]; then
+        echo updating $dist base.tgz
+        pbuilder update \
+	    --basetgz $basedir/$dist.tgz \
+	    --distribution $dist \
+	    --mirror "$mirror" \
+	    --othermirror "$othermirror"
+    else
+        echo building $dist base.tgz
+        pbuilder create \
+	    --basetgz $basedir/$dist.tgz \
+	    --distribution $dist \
+	    --mirror "$mirror" \
+	    --othermirror "$othermirror"
+    fi
+done
