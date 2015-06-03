@@ -18,13 +18,12 @@ basedir="/srv/debian-base"
 # /srv/ceph-build/update_pbuilder.sh Now it lives here because it doesn't make
 # sense to have a file that lives in /srv/ that we then concatenate to get its
 # contents.  what.
-dists="sid wheezy squeeze raring quantal precise saucy trusty"
+dists="sid wheezy squeeze quantal precise saucy trusty"
 
 
 for dist in $dists
 do
     os="debian"
-    [ "$dist" = "raring" ] && os="ubuntu"
     [ "$dist" = "saucy" ] && os="ubuntu"
     [ "$dist" = "trusty" ] && os="ubuntu"
     [ "$dist" = "precise" ] && os="ubuntu"

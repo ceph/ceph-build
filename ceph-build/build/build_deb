@@ -76,7 +76,7 @@ whoami=`whoami`
 # not how this script never passed any. This potentially means that we are
 # building for all the dists in every debian host. Jenkins passes a $DIST
 # variable around that could be re-used here.
-dists="sid wheezy squeeze raring quantal precise saucy trusty"
+dists="sid wheezy squeeze quantal precise saucy trusty"
 
 dvers=`cat $releasedir/$cephver/debian_version`
 echo deb vers $dvers
@@ -93,7 +93,6 @@ gen_debian_version() {
     [ "$dist" = "lenny" ] && dver="$raw~bpo50+1"
     [ "$dist" = "trusty" ] && dver="$raw$dist"
     [ "$dist" = "saucy" ] && dver="$raw$dist"
-    [ "$dist" = "raring" ] && dver="$raw$dist"
     [ "$dist" = "quantal" ] && dver="$raw$dist"
     [ "$dist" = "precise" ] && dver="$raw$dist"
     [ "$dist" = "oneiric" ] && dver="$raw$dist"
