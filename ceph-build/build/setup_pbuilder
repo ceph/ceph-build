@@ -14,9 +14,10 @@ fi
 
 basedir="/srv/debian-base"
 
-# This used to live in a *file* on /src/ceph-build. Now it lives here because
-# it doesn't make sense to have a file that lives in /srv/ that we then
-# concatenate to get its contents.  what.
+# This used to live in a *file* on /srv/ceph-build as
+# /srv/ceph-build/update_pbuilder.sh Now it lives here because it doesn't make
+# sense to have a file that lives in /srv/ that we then concatenate to get its
+# contents.  what.
 dists="sid wheezy squeeze raring quantal precise saucy trusty"
 
 
