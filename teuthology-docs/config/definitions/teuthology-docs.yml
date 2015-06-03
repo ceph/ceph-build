@@ -1,6 +1,6 @@
 - job:
-    name: teuthology-docs 
-    node: gitbuilder-cdep-deb-trusty-amd64-basic
+    name: teuthology-docs
+    node: trusty
     project-type: freestyle
     defaults: global
     disabled: false
@@ -14,8 +14,8 @@
       - github:
           url: https://github.com/ceph/teuthology
     logrotate:
-      daysToKeep: -1 
-      numToKeep: -1 
+      daysToKeep: -1
+      numToKeep: -1
       artifactDaysToKeep: -1
       artifactNumToKeep: -1
 
@@ -26,7 +26,7 @@
       - git:
           url: https://github.com/ceph/teuthology.git
           branches:
-            - master 
+            - master
           browser: githubweb
           browser-url: https://github.com/ceph/teuthology.git
           timeout: 20
