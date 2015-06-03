@@ -1,6 +1,6 @@
 - job:
     name: ceph-build-pull-requests
-    node: gitbuilder-cdep-deb-trusty-amd64-basic
+    node: trusty
     project-type: freestyle
     defaults: global
     disabled: false
