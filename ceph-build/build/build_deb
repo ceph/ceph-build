@@ -72,18 +72,9 @@ whoami=`whoami`
 # This used to live in a *file* on /src/ceph-build. Now it lives here because
 # it doesn't make sense to have a file that lives in /srv/ that we then
 # concatenate to get its contents.
-# XXX before, the script accepted a $4 argument that was set as `$dists` but
-# not how this script never passed any. This potentially means that we are
-# building for all the dists in every debian host. Jenkins passes a $DIST
-# variable around that could be re-used here.
-# FIXME: This should be a bit more dynamic. Do not build everything, build what
-# we need. Otherwise we have to edit this all the time and be wasteful creating
-# them when we don't even have them in the matrix build
-dists="wheezy precise squeeze trusty"
 
 dvers=`cat $releasedir/$cephver/debian_version`
 echo deb vers $dvers
-echo dists $dists
 
 # This function used to live as /srv/gen_debian_version.sh
 gen_debian_version() {
@@ -109,42 +100,35 @@ gen_debian_version() {
 
 # FIXME this looks exactly like `setup_pbuilder`, we probably don't need this
 # or we need to refactor.
-for dist in $dists
-do
-    sudo pbuilder --clean
+sudo pbuilder --clean
 
-    bpvers=gen_debian_version $dvers $dist
-    echo deb vers $bpvers
+bpvers=`gen_debian_version $dvers $DIST`
+echo deb vers $bpvers
 
-    echo building debs for $dist
-    if [ `dpkg-architecture -qDEB_BUILD_ARCH` = "i386" ] ; then
-        #  Architecture dependent, independent and source
-        sudo pbuilder build \
-            --distribution $dist \
-            --basetgz $pbuilddir/$dist.tgz \
-            --buildresult $releasedir/$cephver \
-            --debbuildopts "-j`grep -c processor /proc/cpuinfo`" \
-            $releasedir/$cephver/ceph_$bpvers.dsc
-    else
-        #  Binary only architecture dependent
-        sudo pbuilder build \
-            --binary-arch \
-            --distribution $dist \
-            --basetgz $pbuilddir/$dist.tgz \
-            --buildresult $releasedir/$cephver \
-            --debbuildopts "-j`grep -c processor /proc/cpuinfo`" \
-            $releasedir/$cephver/ceph_$bpvers.dsc
-    fi
-
-done
+echo building debs for $DIST
+if [ `dpkg-architecture -qDEB_BUILD_ARCH` = "i386" ] ; then
+    #  Architecture dependent, independent and source
+    sudo pbuilder build \
+        --distribution $DIST \
+        --basetgz $pbuilddir/$DIST.tgz \
+        --buildresult $releasedir/$cephver \
+        --debbuildopts "-j`grep -c processor /proc/cpuinfo`" \
+        $releasedir/$cephver/ceph_$bpvers.dsc
+else
+    #  Binary only architecture dependent
+    sudo pbuilder build \
+        --binary-arch \
+        --distribution $DIST \
+        --basetgz $pbuilddir/$DIST.tgz \
+        --buildresult $releasedir/$cephver \
+        --debbuildopts "-j`grep -c processor /proc/cpuinfo`" \
+        $releasedir/$cephver/ceph_$bpvers.dsc
+fi
 
 # do lintian checks
-for dist in $dists
-do
-    bpvers=gen_debian_version $dvers $dist
-    echo lintian checks for $bpvers
-    echo lintian --allow-root $releasedir/$cephver/*$bpvers*.deb
-done
+bpvers=`gen_debian_version $dvers $DIST`
+echo lintian checks for $bpvers
+echo lintian --allow-root $releasedir/$cephver/*$bpvers*.deb
 
 echo "Start Time = $start_time"
 echo "  End Time = $(date)"
