@@ -46,7 +46,7 @@ fi
 (  cd ceph-${vers}
    DEB_VERSION=$(dpkg-parsechangelog | sed -rne 's,^Version: (.*),\1, p')
    BP_VERSION=${DEB_VERSION}${BPTAG}
-   DEBEMAIL="gary.lowell@inktank.com" dch -D $DIST --force-distribution -b -v "$BP_VERSION" "$comment"
+   dch -D $DIST --force-distribution -b -v "$BP_VERSION" "$comment"
 )
 dpkg-source -b ceph-${vers}
 
