@@ -15,7 +15,7 @@ fi
 basedir="/srv/debian-base"
 
 # Ensure that the basedir directory exists
-mkdir -p "$basedir"
+sudo mkdir -p "$basedir"
 
 # This used to live in a *file* on /srv/ceph-build as
 # /srv/ceph-build/update_pbuilder.sh Now it lives here because it doesn't make
