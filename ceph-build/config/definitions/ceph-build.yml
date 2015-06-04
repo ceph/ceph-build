@@ -44,7 +44,7 @@
           filter: 'dist/**'
           which-build: last-successful
       - shell:
-          !include-raw ../../build/build1
+          !include-raw ../../build/setup
       - shell:
           !include-raw ../../build/setup_pbuilder
       - shell:
