@@ -41,7 +41,7 @@ fi
 
 # unpack the tar.gz that contains the debian dir
 cd dist
-tar xzvf *.orig.tar.gz
+tar xzf *.orig.tar.gz
 cd ceph-*
 pwd
 
