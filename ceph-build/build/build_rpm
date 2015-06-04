@@ -1,4 +1,3 @@
-#export GNUPGHOME=/home/jenkins-build/build/gnupg.autobuild/
 export GNUPGHOME=/home/jenkins-build/build/gnupg.ceph-release/
 export KEYID=17ED316D
 HOST=$(hostname --short)
@@ -26,62 +25,87 @@ cp -a dist release/${vers}
 echo $DIST > release/${vers}/debian_dists
 echo "${vers}-1" > release/${vers}/debian_version
 
-case $HOST in
+echo "Building RPMs"
 
-gitbuilder-cdep-deb* | tala* | mira*)
 
-        cd release/$vers
+# The below contents ported from /srv/ceph-build/build_rpms.sh ::
+#     $bindir/build_rpms.sh ./release $vers
+#
 
-        # Dirty Hack:
-        baddist=$(echo $DIST | grep -ic -e squeeze -e wheezy || true)
-        if [ $baddist -eq 1 ]
-        then
-            sed -i 's/ libbabeltrace-ctf-dev, libbabeltrace-dev,//g' ceph_${vers}-1.dsc || true
-            sed -i 's/ liblttng-ust-dev//g' ceph_${vers}-1.dsc || true
+releasedir="./release"
+cephver=$vers
 
-        fi
 
-        # unpack sources
-        dpkg-source -x ceph_${vers}-1.dsc
-        if [ $baddist -eq 1 ]
-        then
-            rm -vf *.orig.tar.gz || true
-            grep -v babeltrace ceph-${vers}/debian/control  | grep -v liblttng > ceph-${vers}/debian/control.new
-            mv -v ceph-${vers}/debian/control.new ceph-${vers}/debian/control
-        fi
-        (  cd ceph-${vers}
-           #DEB_VERSION=$(dpkg-parsechangelog | sed -rne 's,^Version: (.*),\1, p' | cut -d'-' -f1)
-           DEB_VERSION=$(dpkg-parsechangelog | sed -rne 's,^Version: (.*),\1, p')
-           #BP_VERSION=${DEB_VERSION}-1${BPTAG}
-           BP_VERSION=${DEB_VERSION}${BPTAG}
-           DEBEMAIL="gary.lowell@inktank.com" dch -D $DIST --force-distribution -b -v "$BP_VERSION" "$comment"
-        )
-        dpkg-source -b ceph-${vers}
-        
-        echo "Building Debian"
-        cd "$WORKSPACE"
-        #$bindir/build_dsc.sh ./release $vers 1 $DIST
-        sudo $bindir/build_debs.sh ./release /srv/debian-base $vers
+bindir=`dirname $0`
+echo "$bindir" | grep -v -q '^/' && bindir=`pwd`"/$bindir"
 
-        #Collect Artifacts
-        mkdir -p dist/debian
-        cp -a release/$vers/*.changes dist/debian/.
-        cp -a release/$vers/*.deb     dist/debian/.
-        cp -a release/$vers/*.dsc     dist/debian/.
-        cp -a release/$vers/*.diff.gz dist/debian/.
-        cp -a release/$vers/*.tar.gz  dist/debian/.
+# Contents below ported from /srv/ceph-build/get_rpm_dist.sh
+# dist=`$bindir/get_rpm_dist.sh`
 
+get_rpm_dist() {
+    LSB_RELEASE=/usr/bin/lsb_release
+    [ ! -x $LSB_RELEASE ] && echo unknown && exit
+
+    ID=`$LSB_RELEASE --short --id`
+
+    case $ID in
+    RedHatEnterpriseServer)
+        RELEASE=`$LSB_RELEASE --short --release | cut -d. -f1`
+        DIST=rhel$RELEASE
         ;;
-
-*)
-        echo "Building RPMs"
-        $bindir/build_rpms.sh ./release $vers
-        
-        #Collect Artifacts
-        mkdir -p dist/rpm/${DIST}
-        mv release/${vers}/rpm/*/SRPMS ./dist/rpm/${DIST}/.
-        mv release/${vers}/rpm/*/RPMS/* ./dist/rpm/${DIST}/.
+    CentOS)
+        RELEASE=`$LSB_RELEASE --short --release | cut -d. -f1`
+        DIST=el$RELEASE
         ;;
+    Fedora)
+        RELEASE=`$LSB_RELEASE --short --release`
+        DIST=fc$RELEASE
+        ;;
+    SUSE\ LINUX)
+        DESC=`$LSB_RELEASE --short --description`
+        RELEASE=`$LSB_RELEASE --short --release`
+        case $DESC in
+        *openSUSE*)
+                DIST=opensuse$RELEASE
+            ;;
+        *Enterprise*)
+                DIST=sles$RELEASE
+                ;;
+            esac
+        ;;
+    *)
+        DIST=unknown
+        ;;
+    esac
 
-esac
+    echo $DIST
+}
+
+dist=`get_rpm_dist`
+
+[ -z "$dist" ] && echo no dist && exit 1
+echo dist $dist
+
+cd $releasedir/$cephver || exit 1
+
+# Set up build area
+BUILDAREA=./rpm/$dist
+mkdir -p ${BUILDAREA}/{SOURCES,SRPMS,SPECS,RPMS,BUILD}
+cp -a ceph-*.tar.bz2 ${BUILDAREA}/SOURCES/.
+cp -a ceph.spec ${BUILDAREA}/SPECS/.
+cp -a rpm/*.patch ${BUILDAREA}/SOURCES/. || true
+
+# Build RPMs
+BUILDAREA=`readlink -fn ${BUILDAREA}`   ### rpm wants absolute path
+cd ${BUILDAREA}/SPECS
+rpmbuild -ba --define "_topdir ${BUILDAREA}" ceph.spec
+
+echo done
+
+
+#Collect Artifacts
+mkdir -p dist/rpm/${DIST}
+mv release/${vers}/rpm/*/SRPMS ./dist/rpm/${DIST}/.
+mv release/${vers}/rpm/*/RPMS/* ./dist/rpm/${DIST}/.
+
 echo "End Date: $(date)"
