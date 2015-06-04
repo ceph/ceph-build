@@ -12,11 +12,6 @@ echo "*****"
 env
 echo "*****"
 
-if [ ! -d /srv/ceph-build ] ; then
-    echo "Build tools are not installed"
-    exit 1
-fi
-bindir=/srv/ceph-build
 
 vers=`cat ./dist/version`
 # create a release directory for ceph-build tools
@@ -27,17 +22,12 @@ echo "${vers}-1" > release/${vers}/debian_version
 
 echo "Building RPMs"
 
-
 # The below contents ported from /srv/ceph-build/build_rpms.sh ::
 #     $bindir/build_rpms.sh ./release $vers
 #
 
 releasedir="./release"
 cephver=$vers
-
-
-bindir=`dirname $0`
-echo "$bindir" | grep -v -q '^/' && bindir=`pwd`"/$bindir"
 
 # Contents below ported from /srv/ceph-build/get_rpm_dist.sh
 # dist=`$bindir/get_rpm_dist.sh`
@@ -101,7 +91,6 @@ cd ${BUILDAREA}/SPECS
 rpmbuild -ba --define "_topdir ${BUILDAREA}" ceph.spec
 
 echo done
-
 
 #Collect Artifacts
 mkdir -p dist/rpm/${DIST}
