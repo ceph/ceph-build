@@ -18,47 +18,42 @@ basedir="/srv/debian-base"
 # /srv/ceph-build/update_pbuilder.sh Now it lives here because it doesn't make
 # sense to have a file that lives in /srv/ that we then concatenate to get its
 # contents.  what.
-# FIXME: This should be a bit more dynamic. Do not build everything, build what
-# we need. Otherwise we have to edit this all the time and be wasteful creating
-# them when we don't even have them in the matrix build
-dists="wheezy precise squeeze trusty"
+# By using $DIST we are narrowing down to updating only the distro image we
+# need, unlike before where we updated everything on every server on every
+# build.
 
+os="debian"
+[ "$DIST" = "saucy" ] && os="ubuntu"
+[ "$DIST" = "trusty" ] && os="ubuntu"
+[ "$DIST" = "precise" ] && os="ubuntu"
+[ "$DIST" = "quantal" ] && os="ubuntu"
+[ "$DIST" = "oneiric" ] && os="ubuntu"
+[ "$DIST" = "natty" ] && os="ubuntu"
+[ "$DIST" = "maverick" ] && os="ubuntu"
+[ "$DIST" = "lucid" ] && os="ubuntu"
 
-for dist in $dists
-do
-    os="debian"
-    [ "$dist" = "saucy" ] && os="ubuntu"
-    [ "$dist" = "trusty" ] && os="ubuntu"
-    [ "$dist" = "precise" ] && os="ubuntu"
-    [ "$dist" = "quantal" ] && os="ubuntu"
-    [ "$dist" = "oneiric" ] && os="ubuntu"
-    [ "$dist" = "natty" ] && os="ubuntu"
-    [ "$dist" = "maverick" ] && os="ubuntu"
-    [ "$dist" = "lucid" ] && os="ubuntu"
+if [ $os = "debian" ]; then
+    mirror="http://apt-mirror.sepia.ceph.com/ftp.us.debian.org/debian"
+    othermirror=""
+else
+    mirror=""
+    othermirror="deb http://apt-mirror.sepia.ceph.com/archive.ubuntu.com/ubuntu $DIST main restricted universe multiverse"
+fi
 
-    if [ $os = "debian" ]; then
-        mirror="http://apt-mirror.sepia.ceph.com/ftp.us.debian.org/debian"
-        othermirror=""
-    else
-        mirror=""
-        othermirror="deb http://apt-mirror.sepia.ceph.com/archive.ubuntu.com/ubuntu $dist main restricted universe multiverse"
-    fi
+sudo pbuilder --clean
 
-    sudo pbuilder --clean
-
-    if [ -e $basedir/$dist.tgz ]; then
-        echo updating $dist base.tgz
-        sudo pbuilder update \
-	    --basetgz $basedir/$dist.tgz \
-	    --distribution $dist \
-	    --mirror "$mirror" \
-	    --othermirror "$othermirror"
-    else
-        echo building $dist base.tgz
-        sudo pbuilder create \
-	    --basetgz $basedir/$dist.tgz \
-	    --distribution $dist \
-	    --mirror "$mirror" \
-	    --othermirror "$othermirror"
-    fi
-done
+if [ -e $basedir/$DIST.tgz ]; then
+    echo updating $DIST base.tgz
+    sudo pbuilder update \
+    --basetgz $basedir/$DIST.tgz \
+    --distribution $DIST \
+    --mirror "$mirror" \
+    --othermirror "$othermirror"
+else
+    echo building $DIST base.tgz
+    sudo pbuilder create \
+    --basetgz $basedir/$DIST.tgz \
+    --distribution $DIST \
+    --mirror "$mirror" \
+    --othermirror "$othermirror"
+fi
