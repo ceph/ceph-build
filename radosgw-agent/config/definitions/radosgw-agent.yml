@@ -43,7 +43,6 @@
           type: label-expression
           name: Dist
           values:
-            - squeeze
             - wheezy
             - precise
             - trusty
