@@ -27,6 +27,7 @@
             - $BRANCH
           browser: githubweb
           browser-url: http://github.com/ceph/ceph-deploy.git
+          skip-tag: true
           timeout: 20
 
     execution-strategy:
