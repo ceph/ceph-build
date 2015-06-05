@@ -1,6 +1,6 @@
 - job:
     name: jenkins-slave-chef-pull-requests
-    node: gitbuilder-cdep-deb-cloud-precise-amd64-basic
+    node: trusty
     project-type: freestyle
     defaults: global
     disabled: false

@@ -1,6 +1,6 @@
 - job:
     name: radosgw-agent
-    node: gitbuilder-cdep-deb-cloud-precise-amd64-basic
+    node: trusty
     project-type: matrix
     defaults: global
     disabled: false
