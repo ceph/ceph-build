@@ -24,8 +24,15 @@ echo "  WS=$WORKSPACE"
 echo "  PWD=$(pwd)"
 ls -l
 
-case $HOST in
-*rpm*)
+is_suse() {
+    if hash zypper 2>/dev/null; then
+        echo 1
+    else
+        echo 0
+    fi
+}
+
+if [[ ! -f /etc/redhat-release && is_suse -eq 1 ]] ; then
         rm -rf ./dist  # Remove any previous artifacts
         mkdir -p $WORKSPACE/dist/noarch
         mkdir -p $WORKSPACE/dist/SRPMS
@@ -55,8 +62,7 @@ case $HOST in
                 cp -avf $HOME/rpmbuild/* $WORKSPACE/dist/
             fi
         fi
-        ;;
-*deb* | tala*)
+else
         DEB_VERSION=$(dpkg-parsechangelog | sed -rne 's,^Version: (.*),\1, p')
         BP_VERSION=${DEB_VERSION}${BPTAG}
         DEBEMAIL="sandon@inktank.com" dch -D $DIST --force-distribution -b -v "$BP_VERSION" "$comment"
@@ -69,9 +75,4 @@ case $HOST in
             mv ../*.changes ../*.dsc ../*.deb ../*.tar.gz dist/.
 
         fi
-        ;;
-*)
-	echo "Can't determine build host type"
-        exit 4
-        ;;
-esac
+fi
