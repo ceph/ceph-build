@@ -22,15 +22,7 @@ echo "  WS=$WORKSPACE"
 echo "  PWD=$(pwd)"
 ls -l
 
-is_suse() {
-    if hash zypper 2>/dev/null; then
-        echo 1
-    else
-        echo 0
-    fi
-}
-
-if [[ -f /etc/redhat-release || is_suse -eq 1 ]] ; then
+if [[ -f /etc/redhat-release || -f /usr/bin/zypper ]] ; then
         rm -rf ./dist  # Remove any previous artifacts
         mkdir -p $WORKSPACE/dist/noarch
         mkdir -p $WORKSPACE/dist/SRPMS
