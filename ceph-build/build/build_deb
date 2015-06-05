@@ -1,4 +1,5 @@
 #!/bin/bash
+set -ex
 
 # Only do actual work when we are a DEB distro
 if test -f /etc/redhat-release ; then
