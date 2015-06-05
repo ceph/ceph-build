@@ -1,4 +1,4 @@
-#!/bin/sh -ex
+#!/bin/bash -ex
 
 #export GNUPGHOME=/home/jenkins-build/build/gnupg.autobuild/
 export GNUPGHOME=/home/jenkins-build/build/gnupg.ceph-release/
