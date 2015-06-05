@@ -1,4 +1,5 @@
 #!/bin/bash
+set -ex
 
 # Run only in RPM based systems
 is_suse() {
