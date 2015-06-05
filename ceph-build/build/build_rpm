@@ -10,7 +10,7 @@ is_suse() {
     fi
 }
 
-if [[ ! -f /etc/redhat-release && ! is_suse ]] ; then
+if [[ ! -f /etc/redhat-release && is_suse -eq 0 ]] ; then
     exit 0
 fi
 
