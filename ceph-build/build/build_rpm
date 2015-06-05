@@ -1,3 +1,5 @@
+#!/bin/bash
+
 # Run only in RPM based systems
 is_suse() {
     if hash zypper 2>/dev/null; then
