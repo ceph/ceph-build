@@ -1,5 +1,13 @@
 # Run only in RPM based systems
-if [ ! test -f /etc/redhat-release ] ; then
+is_suse() {
+    if hash zypper 2>/dev/null; then
+        echo 1
+    else
+        echo 0
+    fi
+}
+
+if [[ ! -f /etc/redhat-release && ! is_suse ]] ; then
     exit 0
 fi
 
