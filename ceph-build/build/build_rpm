@@ -1,16 +1,7 @@
 #!/bin/bash
 set -ex
 
-# Run only in RPM based systems
-is_suse() {
-    if hash zypper 2>/dev/null; then
-        echo 1
-    else
-        echo 0
-    fi
-}
-
-if [[ ! -f /etc/redhat-release && is_suse -eq 0 ]] ; then
+if [[ ! -f /etc/redhat-release && ! -f /usr/bin/zypper ]] ; then
     exit 0
 fi
 
