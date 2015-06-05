@@ -2,8 +2,6 @@
 
 set -ex
 
-date
-
 # Jenkins will set $RELEASE as a parameter in the job configuration.
 if $RELEASE ; then
         # This is a formal release. Sign it with the release key.
