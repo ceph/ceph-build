@@ -58,11 +58,6 @@ echo "Running configure ..."
   --cache-file=/dev/null \
   --srcdir=.
 
-if [ $? -ne 0 ] ; then
-    echo "autogen failed"
-    exit 1
-fi
-
 mkdir -p release
 
 # Contents below used to come from /srv/release_tarball.sh and
@@ -149,4 +144,3 @@ mv release/$vers/ceph.spec dist/.
 mv release/$vers/*.tar.* dist/.
 # Parameters
 mv release/version dist/.
-exit 0
