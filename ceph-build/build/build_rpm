@@ -108,6 +108,9 @@ rpmbuild -ba --define "_topdir ${BUILDAREA}" ceph.spec
 
 echo done
 
+# Make sure we execute at the top level directory
+cd "$WORKSPACE"
+
 #Collect Artifacts
 mkdir -p dist/rpm/${DIST}
 mv release/${vers}/rpm/*/SRPMS ./dist/rpm/${DIST}/.
