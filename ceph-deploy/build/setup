@@ -1,0 +1,18 @@
+#!/bin/bash
+
+# This is the script that runs inside Jenkins.
+# http://jenkins.ceph.com/job/ceph-deploy/
+
+set -x
+set -e
+
+# ensure dependencies are installed for RPM hosts, because they are required and
+# we are not building with a contained environment like we do on DEB builds
+
+# TODO: use Mock to build ceph-deploy rpm's and avoid this
+
+rpm_deps="python-devel python-virtualenv python-mock python-tox pytest"
+
+if test -f /etc/redhat-release ; then
+    $SUDO yum install -y "$rpm_deps"
+fi
