@@ -1,0 +1,72 @@
+- job:
+    name: teuthology-pull-requests 
+    node: trusty
+    project-type: freestyle
+    defaults: global
+    disabled: false
+    display-name: 'Teuthology: Pull Requests'
+    concurrent: false
+    quiet-period: 5
+    block-downstream: false
+    block-upstream: false
+    retry-count: 3
+    properties:
+      - github:
+          url: https://github.com/ceph/teuthology/
+    logrotate:
+      daysToKeep: 15
+      numToKeep: 30
+      artifactDaysToKeep: -1
+      artifactNumToKeep: -1
+
+    parameters:
+      - string:
+          name: sha1
+          description: "A pull request ID, like 'origin/pr/72/head'"
+
+    triggers:
+      - github-pull-request:
+          cron: '* * * * *'
+          admin-list:
+            - alfredodeza
+            - ktdreyer
+            - trhoden
+            - zmc
+            - andrewschoen
+            - dmick
+          org-list:
+            - ceph
+          white-list:
+            - jcsp
+            - gregsfortytwo
+            - GregMeno
+            - dzafman
+            - dillaman
+            - dachary
+            - liewegas
+            - idryomov
+            - vasukulkarni
+          trigger-phrase: ''
+          only-trigger-phrase: false
+          github-hooks: true
+          permit-all: false
+          auto-close-on-fail: false
+
+    scm:
+      - git:
+          url: https://github.com/ceph/teuthology.git
+          branches:
+            - ${sha1}
+          refspec: +refs/pull/*:refs/remotes/origin/pr/*
+          browser: githubweb
+          browser-url: https://github.com/ceph/teuthology
+          timeout: 20
+          skip-tag: true
+          wipe-workspace: false
+
+    builders:
+      - shell:
+          !include-raw ../../build/build
+
+    publishers:
+      - github-notifier
