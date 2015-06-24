@@ -3,7 +3,7 @@
     action: apt_repository repo=ppa:fkrull/deadsnakes state=present
 
   - name: "update apt repo"
-    action: apt update-cache=yes
+    action: apt update_cache=yes
 
   - name: install python requirements
     action: apt pkg=$item state=installed
