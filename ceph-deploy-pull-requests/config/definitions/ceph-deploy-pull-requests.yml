@@ -55,6 +55,7 @@
           wipe-workspace: false
 
     builders:
+      - shell: !include-raw ../../build/setup
       - shell: "sh scripts/jenkins-pull-requests-build"
 
     publishers:
