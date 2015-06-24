@@ -25,7 +25,7 @@ fi
 # Install the package by trying with the cache first, otherwise doing a download only, and then
 # trying to install from the cache again.
 if ! venv/bin/pip install --find-links="file://$PIP_SDIST_INDEX" --no-index ansible; then
-    venv/bin/pip install --download-directory="$PIP_SDIST_INDEX" ansible
+    venv/bin/pip install --exists-action=i --download-directory="$PIP_SDIST_INDEX" ansible
     venv/bin/pip install --find-links="file://$PIP_SDIST_INDEX" --no-index ansible
 fi
 
