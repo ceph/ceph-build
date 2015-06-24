@@ -1,0 +1,35 @@
+#!/bin/bash
+
+set -ex
+
+# Create the virtualenv
+virtualenv venv
+. venv/bin/activate
+
+# Define and ensure the PIP cache
+PIP_SDIST_INDEX="$HOME/.cache/pip"
+mkdir -p $PIP_SDIST_INDEX
+
+# Define and ensure a GIT Ansible cache
+REPO_CACHE="$HOME/.cache/git/ceph-build"
+mkdir -p $REPO_CACHE
+
+# Clone the ceph-build repo or pull if it exists
+if [ -d "$REPO_CACHE/.git" ]; then
+    cd "$REPO_CACHE" && git pull
+    cd -
+else
+    git clone https://github.com/ceph/ceph-build.git "$REPO_CACHE"
+fi
+
+# Install the package by trying with the cache first, otherwise doing a download only, and then
+# trying to install from the cache again.
+if ! venv/bin/pip install --find-links="file://$PIP_SDIST_INDEX" --no-index ansible; then
+    venv/bin/pip install --download-directory="$PIP_SDIST_INDEX" ansible
+    venv/bin/pip install --find-links="file://$PIP_SDIST_INDEX" --no-index ansible
+fi
+
+# run ansible to get this current host to meet our requirements, specifying
+# a local connection and 'localhost' as the host where to execute
+cd "$REPO_CACHE/ceph-deploy-pull-requests/setup/playbooks"
+ansible-playbook -i "localhost," -c local setup.yml
