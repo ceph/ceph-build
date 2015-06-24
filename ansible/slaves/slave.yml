@@ -1,0 +1,58 @@
+---
+
+- hosts: all
+  sudo: true
+  vars:
+   - jenkins_user: 'jenkins-build'
+  tasks:
+    - name: create a jenkins-build user
+      user: name=jenkins-build comment="Jenkins Build Slave User"
+
+    - name: Create .ssh directory
+      file: path=/home/jenkins-build/.ssh
+            state=directory
+
+    - name: set the authorized keys
+      authorized_key: user=jenkins-build key="{{ lookup('file', 'files/ssh/keys/jenkins_build.pub') }}"
+
+    # FIXME: this doesn't work right now as we aren't pushing private keys
+    # around in public repos
+    - name: ensure private key is present
+      copy: src=files/ssh/keys/jenkins_build dest=/home/{{ jenkins_user }}/.ssh/id_rsa mode=0600
+
+    - name: ensure public key is present
+      copy: src=files/ssh/keys/jenkins_build.pub dest=/home/{{ jenkins_user }}/.ssh/id_rsa.pub mode=0600
+
+    # FIXME: this needs line_in_file with validation, that has:
+    # jenkins-build   ALL=(ALL:ALL) NOPASSWD:ALL
+    # Copy a new "sudoers" file into place, after passing validation with visudo
+    # - copy: src=files/sudoers dest=/etc/sudoers validate='visudo -cf %s'
+
+    - name: ensure the build dir exists
+      file: path=/home/{{ jenkins_user }}/build state=directory owner={{ jenkins_user }}
+
+    - name: copy the gnupg files to build/
+      synchronize: src=files/gnupg.ceph-release dest=/home/{{ jenkins_user }}/build/gnupg.ceph-release
+
+    - name: Install RPM requirements
+      sudo: yes
+      yum: name={{ item }} state=present
+      with_items:
+        - createrepo
+        - epel-release
+        #- rpm-sign
+      when: ansible_pkg_mgr  == "yum"
+
+    - name: Install DEB requirements
+      sudo: yes
+      apt: name={{ item }} state=present
+      with_items:
+        - fakeroot
+        - fakeroot-ng
+        - debhelper
+        - reprepro
+        - dchroot
+        - devscripts
+        - pbuilder
+        - pkg-config
+      when: ansible_pkg_mgr  == "apt"

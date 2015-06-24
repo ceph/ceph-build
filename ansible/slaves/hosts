@@ -1,0 +1,8 @@
+[rpm]
+jenkins-centos6-5.front.sepia.ceph.com
+jenkins-centos7.front.sepia.ceph.com
+jenkins-centos6-5b.front.sepia.ceph.com
+jenkins-centos7b.front.sepia.ceph.com
+
+[deb]
+mira062.front.sepia.ceph.com 
