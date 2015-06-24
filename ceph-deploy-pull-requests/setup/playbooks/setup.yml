@@ -1,0 +1,11 @@
+---
+
+- hosts: localhost
+  user: jenkins-build
+  sudo: True
+
+  tasks:
+     - include: tasks/ubuntu.yml
+       when: ansible_distribution == "Ubuntu"
+
+     # TODO: maybe add RPM or Debian handling?
