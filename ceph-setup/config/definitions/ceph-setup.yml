@@ -27,6 +27,7 @@
           branches:
             - $BRANCH
           skip-tag: true
+          wipe-workspace: true
 
     builders:
       - shell:
