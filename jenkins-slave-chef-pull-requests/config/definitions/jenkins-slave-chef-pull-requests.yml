@@ -21,7 +21,6 @@
 
     triggers:
       - github-pull-request:
-          cron: '* * * * *'
           admin-list:
             - alfredodeza
             - ktdreyer
