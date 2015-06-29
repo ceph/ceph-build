@@ -64,6 +64,8 @@
 
     builders:
       - shell:
+          !include-raw ../../setup/setup
+      - shell:
           !include-raw ../../build/build
 
     publishers:

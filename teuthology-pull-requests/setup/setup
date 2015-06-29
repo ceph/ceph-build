@@ -1,0 +1,7 @@
+#!/bin/bash
+
+set -ex
+
+# run the teuthology bootstrap to setup this node for
+# teuthology pull requests testing
+./bootstrap
