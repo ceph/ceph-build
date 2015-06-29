@@ -1,0 +1,4 @@
+---
+- name: Install dependencies
+  yum: name={{ item }} state=installed
+  with_items: jenkins.yum.dependencies

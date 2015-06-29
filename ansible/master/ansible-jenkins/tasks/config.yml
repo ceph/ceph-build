@@ -1,0 +1,21 @@
+---
+
+- name: Configure Jenkins Port
+  lineinfile: dest=/etc/sysconfig/jenkins regexp=^HTTP_PORT= line=HTTP_PORT={{port}}
+  register: config_changed
+
+- name: Restart jenkins now
+  service: name=jenkins state=restarted
+  when: config_changed.changed
+
+- name: Configure Jenkins Prefix
+  when: prefix is defined
+  lineinfile: dest=/etc/sysconfig/jenkins regexp=^PREFIX= line=PREFIX={{prefix}}
+
+- name: Set the amount of RAM
+  when: xmx is defined
+  lineinfile: dest=/etc/sysconfig/jenkins regexp=^JENKINS_JAVA_OPTIONS line='JENKINS_JAVA_OPTIONS="-Xmx{{xmx}}m -Djava.awt.headless=true"'
+
+- name: Configure Jenkins E-mail
+  when: email is defined
+  template: src=hudson.tasks.Mailer.xml.j2 dest={{ jenkins_lib }}/hudson.tasks.Mailer.xml owner=jenkins group=jenkins mode=0644
