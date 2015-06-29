@@ -60,7 +60,7 @@
           browser-url: https://github.com/ceph/teuthology
           timeout: 20
           skip-tag: true
-          wipe-workspace: false
+          wipe-workspace: true
 
     builders:
       - shell:
