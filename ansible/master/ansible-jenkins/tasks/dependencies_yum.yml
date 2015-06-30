@@ -1,4 +1,8 @@
 ---
+
+- name: epel-release install
+  yum: name=epel-release
+       state=present
 - name: Install dependencies
   yum: name={{ item }} state=installed
   with_items: jenkins.yum.dependencies
