@@ -19,3 +19,6 @@
 - name: Configure Jenkins E-mail
   when: email is defined
   template: src=hudson.tasks.Mailer.xml.j2 dest={{ jenkins_lib }}/hudson.tasks.Mailer.xml owner=jenkins group=jenkins mode=0644
+
+- name: Tell SELinux that we should allow Nginx to talk to Jenkins
+  shell: setsebool -P httpd_can_network_connect 1
