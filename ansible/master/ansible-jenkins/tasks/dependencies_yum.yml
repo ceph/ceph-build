@@ -6,3 +6,6 @@
 - name: Install dependencies
   yum: name={{ item }} state=installed
   with_items: jenkins.yum.dependencies
+
+- name: Enable Nginx service
+  service: name=nginx enabled=yes state=started
