@@ -1,0 +1,37 @@
+---
+
+- hosts: jenkins
+  sudo: true
+  roles:
+    - ansible-jenkins
+  vars:
+    - plugins:
+      - 'ldap'
+      - 'github'
+      - 'translation'
+      - 'preSCMbuildstep'
+      - 'copyartifact'
+      - 'ssh-slaves'
+      - 'scm-api'
+      - 'rebuild'
+      - 'publish-over-ssh'
+      - 'nested-view'
+      - 'jenkins-multijob-plugin'
+      - 'greenballs'
+      - 'ghprb'
+      - 'github'
+      - 'github-api'
+      - 'git'
+      - 'git-client'
+      - 'envinject'
+      - 'credentials'
+      - 'copyartifact'
+
+    - port: 8080
+    - prefix: '/build'
+    - xmx: 8192
+    # Email support
+    #- email:
+    #  smtp_host: 'mail.example.com'
+    #  smtp_ssl: 'true'
+    #  default_email_suffix: '@example.com'

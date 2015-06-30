@@ -1,0 +1,43 @@
+---
+
+- name: Configure Jenkins Port
+  lineinfile:
+    dest: /etc/sysconfig/jenkins
+    regexp: ^HTTP_PORT=
+    line: HTTP_PORT={{port}}
+    backrefs: yes
+  register: config_changed
+
+- name: Restart jenkins now
+  service:
+    name: jenkins
+    state: restarted
+  when: config_changed.changed
+
+- name: Configure Jenkins Prefix
+  when: prefix is defined
+  lineinfile:
+    dest: /etc/sysconfig/jenkins
+    regex: ^PREFIX=
+    line: PREFIX={{prefix}}
+    backrefs: yes
+
+- name: Set the amount of RAM
+  when: xmx is defined
+  lineinfile:
+    dest: /etc/sysconfig/jenkins
+    regexp: ^JENKINS_JAVA_OPTIONS
+    line: 'JENKINS_JAVA_OPTIONS="-Xmx{{xmx}}m -Djava.awt.headless=true"'
+    backrefs: yes
+
+- name: Configure Jenkins E-mail
+  when: email is defined
+  template:
+    src: hudson.tasks.Mailer.xml.j2
+    dest: {{ jenkins_lib }}/hudson.tasks.Mailer.xml
+    owner: jenkins
+    group: jenkins
+    mode: 0644
+
+- name: Tell SELinux that we should allow Nginx to talk to Jenkins
+  shell: setsebool -P httpd_can_network_connect 1
