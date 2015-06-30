@@ -1,3 +1,5 @@
+# {{ ansible_managed }} 
+
 [jenkins]
 name=Jenkins
 baseurl=http://pkg.jenkins-ci.org/redhat
