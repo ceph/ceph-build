@@ -1,3 +1,6 @@
+<!--
+    {{ ansible_managed }}
+-->
 <?xml version="1.0" encoding="UTF-8"?><project>
   <actions/>
   <description>&lt;!-- Managed by Jenkins Job Builder --&gt;</description>
