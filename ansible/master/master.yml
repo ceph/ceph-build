@@ -6,6 +6,8 @@
   roles:
     - ansible-jenkins
   vars:
+    - nginx_processor_count: 20
+    - nginx_connections: 2048
     - ansible_ssh_port: 2222
     - plugins:
       - 'ldap'
