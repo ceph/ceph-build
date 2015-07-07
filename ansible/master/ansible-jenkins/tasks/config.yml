@@ -8,17 +8,30 @@
     backrefs: yes
   register: config_changed
 
-- name: Restart jenkins now
-  service:
-    name: jenkins
-    state: restarted
-  when: config_changed.changed
+- name: ensure TTY is disabled for admin user
+  lineinfile:
+    dest: /etc/sudoers
+    state: present
+    regexp: '^{{ ansible_ssh_user }} ALL\='
+    regexp: '^Defaults    requiretty'
+    line: '#Defaults    requiretty'
+    validate: 'visudo -cf %s'
+    backrefs: yes
+
+- name: ensure ssh user can sudo without prompts
+  lineinfile:
+    dest: /etc/sudoers
+    state: present
+    regexp: '^{{ ansible_ssh_user }} ALL\='
+    line: '%{{ ansible_ssh_user }} ALL=(ALL) NOPASSWD:ALL'
+    validate: 'visudo -cf %s'
+    backrefs: yes
 
 - name: Configure Jenkins Prefix
   when: prefix is defined
   lineinfile:
     dest: /etc/sysconfig/jenkins
-    regex: ^PREFIX=
+    regexp: ^PREFIX=
     line: PREFIX={{prefix}}
     backrefs: yes
 
@@ -34,10 +47,67 @@
   when: email is defined
   template:
     src: hudson.tasks.Mailer.xml.j2
-    dest: {{ jenkins_lib }}/hudson.tasks.Mailer.xml
+    dest: '{{ jenkins_lib }}/hudson.tasks.Mailer.xml'
     owner: jenkins
     group: jenkins
     mode: 0644
 
 - name: Tell SELinux that we should allow Nginx to talk to Jenkins
   shell: setsebool -P httpd_can_network_connect 1
+
+- name: copy JJB config file to {{ jenkins_jobs }}
+  synchronize:
+    src: jobs/jenkins-job-builder
+    dest: '{{ jenkins_jobs }}'
+    owner: no
+    group: no
+
+- name: ensure correct ownership of {{ jenkins_jobs }}
+  file:
+    path: '{{ jenkins_jobs }}'
+    state: directory
+    owner: jenkins
+    group: jenkins
+    recurse: yes
+  notify:
+    - restart jenkins
+
+# Handle plugins
+- name: "{{ startup_delay_s | default(10) }}s delay while starting Jenkins"
+  wait_for:
+    host: localhost
+    port: '{{ port }}'
+    delay: '{{ startup_delay_s | default(10) }}'
+  when: jenkins_install.changed or config_changed.changed
+
+- name: "Create Jenkins CLI destination directory: {{ jenkins_dest }}"
+  file:
+    path: '{{ jenkins_dest }}'
+    state: directory
+
+- name: Get Jenkins CLI
+  get_url:
+    url: http://localhost:{{ port }}/jnlpJars/jenkins-cli.jar
+    dest: '{{ jenkins.cli_dest }}'
+    mode: 0440
+  register: jenkins_local_cli
+  until: "'OK' in jenkins_local_cli.msg or 'file already exists' in jenkins_local_cli.msg"
+  #retries: 5
+  #delay: 10
+  ignore_errors: true
+
+- name: Get Jenkins updates
+  get_url:
+    url: http://updates.jenkins-ci.org/update-center.json
+    dest: '{{ jenkins.updates_dest }}'
+    thirsty: yes
+    mode: 0440
+    timeout: 30
+  register: jenkins_updates
+
+- name: Update-center Jenkins
+  shell: "cat {{ jenkins.updates_dest }} | sed '1d;$d' | curl -X POST -H 'Accept: application/json' -d @- http://localhost:{{ port }}/updateCenter/byId/default/postBack"
+  when: jenkins_updates.changed
+  notify:
+    - 'restart jenkins'
+
