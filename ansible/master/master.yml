@@ -1,10 +1,12 @@
 ---
 
 - hosts: jenkins
+  user: centos
   sudo: true
   roles:
     - ansible-jenkins
   vars:
+    - ansible_ssh_port: 2222
     - plugins:
       - 'ldap'
       - 'github'
