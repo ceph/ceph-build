@@ -1,0 +1,21 @@
+---
+
+  - name: ensure sites-available for nginx
+    file: path=/etc/nginx/sites-available state=directory
+
+  - name: ensure sites-enable for nginx
+    file: path=/etc/nginx/sites-enabled state=directory
+
+  - name: remove default nginx site
+    action: file path=/etc/nginx/sites-enabled/default state=absent
+
+  - name: write nginx.conf
+    action: template src=../templates/nginx.conf dest=/etc/nginx/nginx.conf
+
+  - name: create nginx site config
+    action: template src=../templates/jenkins.conf dest=/etc/nginx/sites-available/jenkins.conf
+    notify:
+      - restart nginx
+
+  - name: link nginx config
+    action: file src=/etc/nginx/sites-available/jenkins.conf dest=/etc/nginx/sites-enabled/jenkins.conf state=link
