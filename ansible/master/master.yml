@@ -17,7 +17,6 @@
       - 'publish-over-ssh'
       - 'nested-view'
       - 'jenkins-multijob-plugin'
-      - 'greenballs'
       - 'ghprb'
       - 'github'
       - 'github-api'
