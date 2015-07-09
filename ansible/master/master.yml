@@ -29,6 +29,7 @@
       - 'envinject'
       - 'credentials'
       - 'copyartifact'
+      - 'github-oauth'
 
     - port: 8080
     - prefix: '/build'
