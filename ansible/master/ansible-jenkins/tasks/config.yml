@@ -53,7 +53,7 @@
     mode: 0644
 
 - name: Tell SELinux that we should allow Nginx to talk to Jenkins
-  shell: setsebool -P httpd_can_network_connect 1
+  seboolean: name=httpd_can_network_connect state=yes persistent=yes
 
 - name: copy JJB config file to {{ jenkins_jobs }}
   synchronize:
@@ -110,4 +110,20 @@
   when: jenkins_updates.changed
   notify:
     - 'restart jenkins'
+
+- name: create a jenkins-build user
+  user:
+    name: jenkins-build
+    comment: "Jenkins Build Slave User"
+
+- name: Create .ssh directory
+  file:
+    path: /home/jenkins-build/.ssh
+    state: directory
+
+- name: set the authorized keys '{{ playbook_dir }}/ansible-jenkins/files/ssh/keys/jenkins_build.pub'
+  authorized_key:
+    user: jenkins-build
+    key: "{{ lookup('file', 'ssh/keys/jenkins_build.pub') }}"
+  tags: fix
 
