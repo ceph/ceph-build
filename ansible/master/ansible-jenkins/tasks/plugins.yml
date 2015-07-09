@@ -9,7 +9,7 @@
   when: plugins_installed.changed and plugins_installed.stdout.find('{{ item }}') == -1
   with_items: plugins
   notify:
-    - 'Restart Jenkins'
+    - 'restart jenkins'
 
 - name: List plugins to be updated
   shell: java -jar {{ jenkins.cli_dest }} -s http://localhost:{{ port }} list-plugins | grep ')$' | cut -f 1 -d ' ' | sed ':a;N;$!ba;s/\n/ /g'
@@ -21,4 +21,4 @@
   when: plugins_updates.stdout != ''
   ignore_errors: yes
   notify:
-    - 'Restart Jenkins'
+    - 'restart jenkins'
