@@ -85,6 +85,7 @@ gen_debian_version() {
     dist=$2
 
     [ "$dist" = "sid" ] && dver="$raw"
+    [ "$dist" = "jessie" ] && dver="$raw~bpo80+1"
     [ "$dist" = "wheezy" ] && dver="$raw~bpo70+1"
     [ "$dist" = "squeeze" ] && dver="$raw~bpo60+1"
     [ "$dist" = "lenny" ] && dver="$raw~bpo50+1"
