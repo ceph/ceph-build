@@ -1,3 +1,30 @@
+# multiple scm requires definition of each scm with `name` so that they can be
+# referenced later in `job`
+# reference: http://docs.openstack.org/infra/jenkins-job-builder/scm.html
+- scm:
+    name: ceph-deploy
+    scm:
+      - git:
+          url: https://github.com/ceph/ceph-deploy.git
+          branches:
+            - ${sha1}
+          refspec: +refs/pull/*:refs/remotes/origin/pr/*
+          browser: githubweb
+          browser-url: https://github.com/ceph/ceph-deploy
+          timeout: 20
+          skip-tag: true
+          wipe-workspace: false
+
+- scm:
+    name: ceph-build
+    scm:
+      - git:
+          url: https://github.com/ceph/ceph-build.git
+          browser-url: https://github.com/ceph/ceph-build
+          timeout: 20
+          skip-tag: true
+          wipe-workspace: true
+
 - job:
     name: ceph-deploy-pull-requests
     node: trusty
@@ -42,16 +69,8 @@
           auto-close-on-fail: false
 
     scm:
-      - git:
-          url: https://github.com/ceph/ceph-deploy.git
-          branches:
-            - ${sha1}
-          refspec: +refs/pull/*:refs/remotes/origin/pr/*
-          browser: githubweb
-          browser-url: https://github.com/ceph/ceph-deploy
-          timeout: 20
-          skip-tag: true
-          wipe-workspace: false
+      - ceph-deploy
+      - ceph-build
 
     builders:
       - shell: !include-raw ../../build/setup
