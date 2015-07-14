@@ -10,17 +10,8 @@ virtualenv venv
 PIP_SDIST_INDEX="$HOME/.cache/pip"
 mkdir -p $PIP_SDIST_INDEX
 
-# Define and ensure a GIT Ansible cache
-REPO_CACHE="$HOME/.cache/git/ceph-build"
-mkdir -p $REPO_CACHE
-
-# Clone the ceph-build repo or pull if it exists
-if [ -d "$REPO_CACHE/.git" ]; then
-    cd "$REPO_CACHE" && git pull
-    cd -
-else
-    git clone https://github.com/ceph/ceph-build.git "$REPO_CACHE"
-fi
+# The setup for this job ensures that a copy of ceph-build will be available
+# for this script
 
 # Install the package by trying with the cache first, otherwise doing a download only, and then
 # trying to install from the cache again.
@@ -31,5 +22,5 @@ fi
 
 # run ansible to get this current host to meet our requirements, specifying
 # a local connection and 'localhost' as the host where to execute
-cd "$REPO_CACHE/ceph-deploy-pull-requests/setup/playbooks"
+cd "$WORKSPACE/ceph-build/ceph-deploy-pull-requests/setup/playbooks"
 ansible-playbook -i "localhost," -c local setup.yml
