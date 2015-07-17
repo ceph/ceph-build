@@ -1,6 +1,11 @@
 ---
+# Public-facing machines get the port changed to prevent a bit of abuse on the
+# standard one. There are some caveats to this approach, since we are changing
+# the default port we now need to instruct everything else to use the alternate
+# one. This should be run against newly brought up hosts when they are going to
+# be publicly accessible.
 
-- hosts: master
+- hosts: all
   user: centos
   sudo: true
   tasks:
