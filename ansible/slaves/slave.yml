@@ -32,10 +32,14 @@
     - name: jenkins api key should be present
       copy: src=files/jenkins_jobs.ini dest=/etc/jenkins_jobs/jenkins_jobs.ini
 
-    # FIXME: this needs line_in_file with validation, that has:
-    # jenkins-build   ALL=(ALL:ALL) NOPASSWD:ALL
-    # Copy a new "sudoers" file into place, after passing validation with visudo
-    # - copy: src=files/sudoers dest=/etc/sudoers validate='visudo -cf %s'
+    - name: ensure the build dir exists
+      sudo: yes
+      lineinfile:
+        dest: /etc/sudoers
+        regexp: '^jenkins-build ALL'
+        line: 'jenkins-build   ALL=(ALL:ALL) NOPASSWD:ALL'
+        backrefs: yes
+        validate: 'visudo -cf %s'
 
     - name: ensure the build dir exists
       file: path=/home/{{ jenkins_user }}/build state=directory owner={{ jenkins_user }}
