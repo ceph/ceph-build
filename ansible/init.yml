@@ -1,0 +1,48 @@
+---
+# Public-facing machines get the port changed to prevent a bit of abuse on the
+# standard one. There are some caveats to this approach, since we are changing
+# the default port we now need to instruct everything else to use the alternate
+# one. This should be run against newly brought up hosts when they are going to
+# be publicly accessible.
+
+- hosts: all
+  user: centos
+  sudo: true
+  tasks:
+
+    - name: uncomment SSH port
+      lineinfile:
+        dest: /etc/ssh/sshd_config
+        regexp: '^#Port '
+        line: 'Port 2222'
+        backrefs: yes
+
+    - name: change default port from 22 if set
+      lineinfile:
+        dest: /etc/ssh/sshd_config
+        regexp: '^Port '
+        line: 'Port 2222'
+        backrefs: yes
+
+    # this requires the firewalld module that
+    # I couldn't get to work. It exists in the extras modules
+    #- name: enable the port in the firewall
+    #  firewalld:
+    #    port: 2222/tcp
+    #    permanent: true
+    #    state: enabled
+
+    # this is far from ideal, we ignore errors because we can't
+    # condition this if the port was already opened
+    - name: tell selinux that ssh uses a new port
+      command: semanage port -a -t ssh_port_t -p tcp 2222
+      ignore_errors: yes
+
+    # The CentOS Wiki says this should be run but I couldn't find
+    # a firewall-cmd in the remote CentOS 7 box
+    #- name: configure firewall to add new port
+    #  command: firewall-cmd --add-port 2222/tcp --permanent
+
+    # Example action to start service httpd, if not running
+    - name: restart sshd
+      service: name=sshd state=restarted

@@ -3,13 +3,13 @@
 
 - include: dependencies_yum.yml
 
+- include: nginx.yml
+
 - name: Install Jenkins
-  yum: name=jenkins state=latest
+  yum: name=jenkins state=present
   register: jenkins_install
 
 - include: config.yml
-
-- include: cli.yml
 
 - include: plugins.yml
 

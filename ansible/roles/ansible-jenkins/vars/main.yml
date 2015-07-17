@@ -1,6 +1,7 @@
 ---
 jenkins_dest: /opt/jenkins
 jenkins_lib: /var/lib/jenkins
+jenkins_jobs: '{{ jenkins_lib }}/jobs'
 jenkins:
   yum:
     #repo: 'deb http://pkg.jenkins-ci.org/debian binary/' # Jenkins repository

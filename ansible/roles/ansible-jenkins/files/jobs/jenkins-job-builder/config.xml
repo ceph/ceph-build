@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?><project>
+  <actions/>
+  <description>&lt;!-- Managed by Jenkins Job Builder --&gt;</description>
+  <keepDependencies>false</keepDependencies>
+  <disabled>false</disabled>
+  <displayName>Jenkins Job Builder</displayName>
+  <blockBuildWhenDownstreamBuilding>false</blockBuildWhenDownstreamBuilding>
+  <blockBuildWhenUpstreamBuilding>false</blockBuildWhenUpstreamBuilding>
+  <concurrentBuild>true</concurrentBuild>
+  <quietPeriod>5</quietPeriod>
+  <assignedNode>trusty</assignedNode>
+  <canRoam>false</canRoam>
+  <scmCheckoutRetryCount>3</scmCheckoutRetryCount>
+  <properties/>
+  <scm class="hudson.plugins.git.GitSCM">
+    <configVersion>2</configVersion>
+    <userRemoteConfigs>
+      <hudson.plugins.git.UserRemoteConfig>
+        <name>origin</name>
+        <refspec>+refs/heads/*:refs/remotes/origin/*</refspec>
+        <url>https://github.com/ceph/ceph-build.git</url>
+      </hudson.plugins.git.UserRemoteConfig>
+    </userRemoteConfigs>
+    <branches>
+      <hudson.plugins.git.BranchSpec>
+        <name>master</name>
+      </hudson.plugins.git.BranchSpec>
+    </branches>
+    <excludedUsers/>
+    <buildChooser class="hudson.plugins.git.util.DefaultBuildChooser"/>
+    <disableSubmodules>false</disableSubmodules>
+    <recursiveSubmodules>false</recursiveSubmodules>
+    <doGenerateSubmoduleConfigurations>false</doGenerateSubmoduleConfigurations>
+    <authorOrCommitter>false</authorOrCommitter>
+    <wipeOutWorkspace>true</wipeOutWorkspace>
+    <pruneBranches>false</pruneBranches>
+    <remotePoll>false</remotePoll>
+    <gitTool>Default</gitTool>
+    <submoduleCfg class="list"/>
+    <relativeTargetDir/>
+    <reference/>
+    <gitConfigName/>
+    <gitConfigEmail/>
+    <skipTag>false</skipTag>
+    <scmName/>
+    <useShallowClone>false</useShallowClone>
+    <ignoreNotifyCommit>false</ignoreNotifyCommit>
+    <extensions>
+      <hudson.plugins.git.extensions.impl.CheckoutOption>
+        <timeout>20</timeout>
+      </hudson.plugins.git.extensions.impl.CheckoutOption>
+      <hudson.plugins.git.extensions.impl.WipeWorkspace/>
+    </extensions>
+    <browser class="hudson.plugins.git.browser.GithubWeb">
+      <url>http://github.com/ceph/ceph-build.git</url>
+    </browser>
+  </scm>
+  <triggers class="vector">
+    <hudson.triggers.SCMTrigger>
+      <spec>0 */3 * * *</spec>
+    </hudson.triggers.SCMTrigger>
+  </triggers>
+  <builders>
+    <hudson.tasks.Shell>
+      <command>bash jjb/config/config</command>
+    </hudson.tasks.Shell>
+  </builders>
+  <publishers/>
+  <buildWrappers/>
+</project>
