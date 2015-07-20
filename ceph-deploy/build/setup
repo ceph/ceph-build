@@ -13,6 +13,10 @@ set -e
 
 rpm_deps="python-devel python-virtualenv python-mock python-tox pytest"
 
+if test $(id -u) != 0 ; then
+    SUDO=sudo
+fi
+
 if test -f /etc/redhat-release ; then
     sudo yum install -y "$rpm_deps"
 fi
