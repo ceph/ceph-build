@@ -81,3 +81,18 @@
         - python-pip
         - python-virtualenv
       when: ansible_pkg_mgr  == "apt"
+
+    - name: install python-jenkins
+      sudo: true
+      pip: name=python-jenkins
+
+    - name: register the new slave to jenkins master
+      jenkins-node:
+        username: "{{ api_user }}"
+        uri: "{{ api_uri }}"
+        password: "{{ token }}"
+        name: "{{ nodename }}"
+        labels: "{{ labels }}"
+        host: "{{ ansible_default_ipv4.address }}"
+        credentialsId: 'c7098414-e0ba-4d97-892e-7122e01be8a8'
+        remoteFS: '/home/jenkins-build/build'

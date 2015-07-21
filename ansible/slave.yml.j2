@@ -87,6 +87,7 @@
         - python-pip
         - python-virtualenv
       when: ansible_pkg_mgr  == "apt"
+
     - name: install python-jenkins
       sudo: true
       pip: name=python-jenkins
