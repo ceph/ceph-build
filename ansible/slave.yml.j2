@@ -63,6 +63,9 @@
         opts: noatime
         state: mounted
 
+    - name: ensure the build dir has the right owner permissions
+      file: path=/home/{{ jenkins_user }}/build state=directory owner={{ jenkins_user }}
+
     - name: copy the gnupg files to build/
       synchronize: src=playbook/files/gnupg.ceph-release dest=/home/{{ jenkins_user }}/build/gnupg.ceph-release
       ignore_errors: true
