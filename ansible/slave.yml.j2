@@ -61,7 +61,7 @@
         src: '/dev/vdb'
         fstype: ext3
         opts: noatime
-        state: present
+        state: mounted
 
     - name: copy the gnupg files to build/
       synchronize: src=playbook/files/gnupg.ceph-release dest=/home/{{ jenkins_user }}/build/gnupg.ceph-release
