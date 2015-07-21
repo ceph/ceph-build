@@ -50,6 +50,17 @@
     - name: ensure the build dir exists
       file: path=/home/{{ jenkins_user }}/build state=directory owner={{ jenkins_user }}
 
+    - name: format /dev/vdb to ext4
+      filesystem: fstype=ext4 dev=/dev/vdb
+
+    - name: mount the ephemeral storage at the build dir
+      mount:
+        name: /home/jenkins-build/build
+        src: '/dev/vdb'
+        fstype: ext4
+        opts: noatime
+        state: present
+
     - name: copy the gnupg files to build/
       synchronize: src=playbook/files/gnupg.ceph-release dest=/home/{{ jenkins_user }}/build/gnupg.ceph-release
       ignore_errors: true
