@@ -1,0 +1,103 @@
+---
+
+- hosts: all
+  sudo: true
+  user: ubuntu
+  vars:
+   - jenkins_user: 'jenkins-build'
+   # jenkins API credentials:
+   - api_user: 'alfredodeza'
+   - api_password: '${token}'
+   - api_uri: 'http://staging-jenkins.ceph.com'
+   - node_name: '${nodename}'
+   - labels: '${labels}'
+  tasks:
+    - name: create a jenkins-build user
+      user: name=jenkins-build comment="Jenkins Build Slave User"
+
+    - name: Create .ssh directory
+      file: path=/home/jenkins-build/.ssh
+            state=directory
+
+    - name: set the authorized keys
+      authorized_key: user=jenkins-build key="{{ lookup('file', 'playbook/files/ssh/keys/jenkins_build.pub') }}"
+
+    # FIXME: this doesn't work right now as we aren't pushing private keys
+    # around in public repos
+    - name: ensure private key is present
+      copy: src=playbook/files/ssh/keys/jenkins_build dest=/home/{{ jenkins_user }}/.ssh/id_rsa mode=0600
+
+    - name: ensure public key is present
+      copy: src=playbook/files/ssh/keys/jenkins_build.pub dest=/home/{{ jenkins_user }}/.ssh/id_rsa.pub mode=0600
+
+    - name: /etc/jenkins_jobs should exist as a dir
+      file:
+        path: /etc/jenkins_jobs
+        state: directory
+
+    - name: jenkins api key should be present
+      copy: src=playbook/files/jenkins_jobs.ini dest=/etc/jenkins_jobs/jenkins_jobs.ini
+
+    - name: ensure the build dir exists
+      sudo: yes
+      lineinfile:
+        dest: /etc/sudoers
+        regexp: '^jenkins-build ALL'
+        line: 'jenkins-build   ALL=(ALL:ALL) NOPASSWD:ALL'
+        backrefs: yes
+        validate: 'visudo -cf %s'
+
+    - name: ensure the build dir exists
+      file: path=/home/{{ jenkins_user }}/build state=directory owner={{ jenkins_user }}
+
+    - name: copy the gnupg files to build/
+      synchronize: src=playbook/files/gnupg.ceph-release dest=/home/{{ jenkins_user }}/build/gnupg.ceph-release
+      ignore_errors: true
+
+    - name: Install RPM requirements
+      sudo: yes
+      yum: name={{ item }} state=present
+      with_items:
+        - createrepo
+        - epel-release
+        - java-1.7.0-openjdk
+        - git
+        #- rpm-sign
+      when: ansible_pkg_mgr  == "yum"
+
+    # Run the equivalent of "apt-get update" as a separate step
+    - apt: update_cache=yes
+      when: ansible_pkg_mgr  == "apt"
+
+    - name: Install DEB requirements
+      sudo: yes
+      apt: name={{ item }} state=present
+      with_items:
+        - git
+        - fakeroot
+        - fakeroot-ng
+        - debhelper
+        - reprepro
+        - dchroot
+        - devscripts
+        - pbuilder
+        - pkg-config
+        - openjdk-7-jre
+        - python-dev
+        - python-pip
+        - python-virtualenv
+      when: ansible_pkg_mgr  == "apt"
+    - name: install python-jenkins
+      sudo: true
+      pip: name=python-jenkins
+
+    - name: register the new slave to jenkins master
+      jenkins-node:
+        username: "{{ api_user }}"
+        uri: "{{ api_uri }}"
+        password: "{{ token }}"
+        name: "{{ nodename }}"
+        labels: "{{ labels }}"
+        host: "{{ ansible_default_ipv4.address }}"
+        credentialsId: 'c7098414-e0ba-4d97-892e-7122e01be8a8'
+        remoteFS: '/home/jenkins-build/build'
