@@ -7,9 +7,9 @@
    - jenkins_user: 'jenkins-build'
    # jenkins API credentials:
    - api_user: 'alfredodeza'
-   - api_password: '${token}'
+   - token: '${token}'
    - api_uri: 'http://staging-jenkins.ceph.com'
-   - node_name: '${nodename}'
+   - nodename: '${nodename}'
    - labels: '${labels}'
   tasks:
     - name: create a jenkins-build user
