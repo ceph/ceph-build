@@ -50,6 +50,8 @@
     - name: ensure the build dir exists
       file: path=/home/{{ jenkins_user }}/build state=directory owner={{ jenkins_user }}
 
+    # NOTE: this is *very* specific to the deployment environment. If we were
+    # to switch providers this would probably not apply
     - name: format /dev/vdb to ext4
       filesystem: fstype=ext4 dev=/dev/vdb
 
