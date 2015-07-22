@@ -78,6 +78,9 @@
         - epel-release
         - java-1.7.0-openjdk
         - git
+        - python-pip
+        - python-virtualenv
+        - libtool
         #- rpm-sign
       when: ansible_pkg_mgr  == "yum"
 
@@ -102,7 +105,12 @@
         - python-dev
         - python-pip
         - python-virtualenv
+        - libtool
       when: ansible_pkg_mgr  == "apt"
+
+    - name: install six, latest one
+      sudo: true
+      pip: name=six state=latest
 
     - name: install python-jenkins
       sudo: true
