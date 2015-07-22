@@ -82,6 +82,21 @@
         - python-virtualenv
         - libtool
         #- rpm-sign
+        - autoconf
+        - redhat-lsb-core
+        - automake
+        - binutils
+        - bison
+        - flex
+        - gcc
+        - gcc-c++
+        - gettext
+        - libtool
+        - make
+        - patch
+        - pkgconfig
+        - redhat-rpm-config
+        - rpm-build
       when: ansible_pkg_mgr  == "yum"
 
     # Run the equivalent of "apt-get update" as a separate step
