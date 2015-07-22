@@ -44,7 +44,6 @@
         dest: /etc/sudoers
         regexp: '^jenkins-build ALL'
         line: 'jenkins-build   ALL=(ALL:ALL) NOPASSWD:ALL'
-        backrefs: yes
         validate: 'visudo -cf %s'
 
     - name: ensure the build dir exists
