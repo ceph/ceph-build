@@ -38,7 +38,7 @@
     - name: jenkins api key should be present
       copy: src=playbook/files/jenkins_jobs.ini dest=/etc/jenkins_jobs/jenkins_jobs.ini
 
-    - name: ensure the build dir exists
+    - name: ensure jenkins-build can sudo without a prompt
       sudo: yes
       lineinfile:
         dest: /etc/sudoers
