@@ -96,6 +96,8 @@
         - pkgconfig
         - redhat-rpm-config
         - rpm-build
+        - dpkg
+        - dpkg-dev
       when: ansible_pkg_mgr  == "yum"
 
     # Run the equivalent of "apt-get update" as a separate step
@@ -120,6 +122,8 @@
         - python-pip
         - python-virtualenv
         - libtool
+        - autotools-dev
+        - automake
       when: ansible_pkg_mgr  == "apt"
 
     - name: install six, latest one
