@@ -6,6 +6,29 @@ if test -f /etc/redhat-release ; then
     exit 0
 fi
 
+get_bptag() {
+    dist=$1
+
+    [ "$dist" = "sid" ] && dver=""
+    [ "$dist" = "jessie" ] && dver="~bpo80+1"
+    [ "$dist" = "wheezy" ] && dver="~bpo70+1"
+    [ "$dist" = "squeeze" ] && dver="~bpo60+1"
+    [ "$dist" = "lenny" ] && dver="~bpo50+1"
+    [ "$dist" = "trusty" ] && dver="$dist"
+    [ "$dist" = "saucy" ] && dver="$dist"
+    [ "$dist" = "quantal" ] && dver="$dist"
+    [ "$dist" = "precise" ] && dver="$dist"
+    [ "$dist" = "oneiric" ] && dver="$dist"
+    [ "$dist" = "natty" ] && dver="$dist"
+    [ "$dist" = "maverick" ] && dver="$dist"
+    [ "$dist" = "lucid" ] && dver="$dist"
+    [ "$dist" = "karmic" ] && dver="$dist"
+
+    echo $dver
+}
+
+BPTAG=`get_bptag $DIST`
+
 export GNUPGHOME=/home/jenkins-build/build/gnupg.ceph-release/
 export KEYID=17ED316D
 HOST=$(hostname --short)
