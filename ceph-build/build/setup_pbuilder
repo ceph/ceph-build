@@ -43,6 +43,15 @@ else
     othermirror="deb http://apt-mirror.sepia.ceph.com/archive.ubuntu.com/ubuntu $DIST main restricted universe multiverse"
 fi
 
+# ensure that the tgz is valid, otherwise remove it so that it can be recreated
+# again
+pbuild_tar="$basedir/$DIST.tgz"
+is_not_tar=`python -c "exec 'try: import tarfile;print not int(tarfile.is_tarfile(\"$pbuild_tar\"))\nexcept IOError: print 1'"`
+
+if $is_not_tar; then
+    rm -f "$pbuild_tar/$DIST.tgz"
+fi
+
 sudo pbuilder --clean
 
 if [ -e $basedir/$DIST.tgz ]; then
