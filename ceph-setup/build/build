@@ -32,8 +32,10 @@ rm -rf release
 
 # because autogen+configure will check for dependencies, we are forced to install them
 # and ensure they are present in the current host
-echo "Ensuring dependencies are installed"
-./install-deps.sh
+if [ -x install-deps.sh ]; then
+  echo "Ensuring dependencies are installed"
+  ./install-deps.sh
+fi
 
 # run submodule updates regardless
 echo "Running submodule update ..."
