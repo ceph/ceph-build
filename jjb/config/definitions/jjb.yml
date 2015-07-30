@@ -13,6 +13,7 @@
 
     triggers:
       - pollscm: "H */3 * * *"
+      - github
 
     scm:
       - git:
