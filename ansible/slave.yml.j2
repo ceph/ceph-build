@@ -139,7 +139,10 @@
         username: "{{ api_user }}"
         uri: "{{ api_uri }}"
         password: "{{ token }}"
-        name: "{{ nodename }}"
+        # relies on a convention to set a unique name that allows a reverse
+        # mapping from Jenkins back to whatever service created the current
+        # node
+        name: "{{ nodename }}+{{ ansible_default_ipv4.address }}"
         labels: "{{ labels }}"
         host: "{{ ansible_default_ipv4.address }}"
         credentialsId: 'c7098414-e0ba-4d97-892e-7122e01be8a8'
