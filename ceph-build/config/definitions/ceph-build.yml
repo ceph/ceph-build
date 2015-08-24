@@ -12,8 +12,7 @@
           url: https://github.com/ceph/ceph
 
     execution-strategy:
-      combination-filter: |
-        (Arch=="x86_64") || (Arch=="i386" && Distro=="precise-pbuild")
+      combination-filter: Arch=="x86_64"
 
     axes:
       - axis:
@@ -21,7 +20,6 @@
           name: Arch
           values:
             - x86_64
-            - i386
       - axis:
           type: label-expression
           name: Distro
