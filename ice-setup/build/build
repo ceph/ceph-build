@@ -1,0 +1,36 @@
+#/bin/bash -ex
+
+echo "BRANCH: $BRANCH"
+cd $WORKSPACE/ice-setup
+
+DEBIAN=0
+
+if [ $Dist = 'trusty' -o $Dist = 'precise' -o $Dist = 'wheezy' ] ; then
+    DEBIAN=1
+fi
+
+if [ $DEBIAN = 1 ] ; then
+    dpkg-buildpackage -us -uc
+else
+    python ./setup.py sdist
+
+    RPMBUILD=$WORKSPACE/rpmbuild
+    mkdir -p $RPMBUILD/{SOURCES,SRPMS,SPECS,RPMS,BUILD}
+    cp -a dist/ice_setup*.tar.gz  $RPMBUILD/SOURCES/.
+    cp -a ice_setup.spec $RPMBUILD/SPECS/.
+
+    cd $RPMBUILD
+    rpmbuild -ba --define "_topdir $RPMBUILD" SPECS/ice_setup.spec
+fi
+
+cd $WORKSPACE
+rm -rf $BRANCH
+mkdir $BRANCH
+
+if [ $DEBIAN = 1 ] ; then
+    mv *.deb *.dsc *.changes *.tar.gz $BRANCH
+else
+    find rpmbuild -name '*.rpm' -o -name '*.srpm' | xargs -i mv {} $BRANCH
+fi
+
+exit 0
