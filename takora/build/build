@@ -7,7 +7,7 @@ cd $WORKSPACE/takora
 
 DEBIAN=0
 
-if [ "$ID" -eq 'Ubuntu' ] ; then
+if [ "$ID" == 'ubuntu' ] ; then
     DEBIAN=1
 fi
 
