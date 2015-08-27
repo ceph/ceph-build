@@ -14,15 +14,8 @@ fi
 if [ $DEBIAN = 1 ] ; then
     dpkg-buildpackage -us -uc
 else
-    python ./setup.py sdist
-
-    RPMBUILD=$WORKSPACE/rpmbuild
-    mkdir -p $RPMBUILD/{SOURCES,SRPMS,SPECS,RPMS,BUILD}
-    cp -a dist/takora*.tar.gz  $RPMBUILD/SOURCES/.
-    cp -a takora.spec $RPMBUILD/SPECS/.
-
-    cd $RPMBUILD
-    rpmbuild -ba --define "_topdir $RPMBUILD" SPECS/takora.spec
+    # FIXME: is this the correct tito command?
+    tito rpm
 fi
 
 cd $WORKSPACE
