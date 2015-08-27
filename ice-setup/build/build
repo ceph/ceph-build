@@ -1,4 +1,4 @@
-#/bin/bash -ex
+#!/bin/bash -ex
 
 echo "BRANCH: $BRANCH"
 cd $WORKSPACE/ice-setup

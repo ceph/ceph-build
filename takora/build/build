@@ -1,4 +1,4 @@
-#/bin/bash -ex
+#!/bin/bash -ex
 
 echo "BRANCH: $BRANCH"
 cd $WORKSPACE/takora
@@ -7,7 +7,7 @@ cd $WORKSPACE/takora
 
 DEBIAN=0
 
-if [[ "$ID" -eq 'Ubuntu' ]] ; then
+if [ "$ID" -eq 'Ubuntu' ] ; then
     DEBIAN=1
 fi
 
