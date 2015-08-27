@@ -13,7 +13,6 @@
         type: label-expression
         values:
         - trusty
-        - centos
     block-downstream: false
     block-upstream: false
 
