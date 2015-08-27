@@ -24,6 +24,7 @@
     scm:
     - git:
         skip-tag: true
+        basedir: takora
         url: https://github.com/ceph/takora
         branches:
          - $BRANCH
