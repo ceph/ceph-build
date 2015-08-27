@@ -1,0 +1,55 @@
+- job:
+    axes:
+    - axis:
+        name: Arch
+        type: label-expression
+        values:
+        - x86_64
+    - axis:
+        name: Dist
+        type: label-expression
+        values:
+        - trusty
+        - precise
+        - centos
+    block-downstream: false
+    block-upstream: false
+    builders:
+    - shell:
+        !include-raw ../../build/build
+    concurrent: false
+    description: Build ice-setup as a package for Red Hat Ceph, non-Red Hat releases
+    disabled: false
+    execution-strategy:
+      run-sequentially: false
+    keep-dependencies: false
+    name: ice-setup
+    parameters:
+    - string:
+        default: master
+        description: ''
+        name: BRANCH
+    project-type: matrix
+    properties:
+    - github:
+        url: https://github.com/ceph/ice-setup/
+    publishers:
+    - archive:
+        allow-empty: false
+        artifacts: $BRANCH/*
+        default-excludes: true
+        fingerprint: false
+        only-if-success: false
+    - description-setter:
+        regexp: '^BRANCH: (\S+)'
+        regexp-for-failed: null
+        set-for-matrix: false
+    scm:
+    - git:
+        basedir: ice-setup
+        branches: $BRANCH
+        url: https://github.com/ceph/ice-setup
+    wrappers:
+    - inject:
+        global: false
+        mask-password-params: true
