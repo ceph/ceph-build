@@ -3,9 +3,11 @@
 echo "BRANCH: $BRANCH"
 cd $WORKSPACE/takora
 
+. /etc/os-release
+
 DEBIAN=0
 
-if [ $Dist = 'trusty' -o $Dist = 'precise' -o $Dist = 'wheezy' ] ; then
+if [[ "$ID" -eq 'Ubuntu' ]] ; then
     DEBIAN=1
 fi
 
