@@ -32,5 +32,3 @@ if [ -n "$BRANCH" ]; then
         find rpmbuild -name '*.rpm' -o -name '*.srpm' | xargs -i mv {} $BRANCH
     fi
 fi
-
-exit 0
