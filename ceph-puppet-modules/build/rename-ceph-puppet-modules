@@ -5,7 +5,7 @@
 oldname='takora'
 newname='ceph-puppet-modules'
 
-cd debian
+cd $WORKSPACE/takora/debian
 
 for file in $(find . -type f); do
     if [ $file == './copyright' ]; then
