@@ -18,7 +18,7 @@ else
     tito rpm
 fi
 
-if [ -n "$BRANCH" ]
+if [ -n "$BRANCH" ]; then
     # A user explicitly told Jenkins to build a branch.
     # (ie, this is not an automatic GitHub pull request build.)
     # Move the artifacts into position for archiving.
