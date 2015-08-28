@@ -18,14 +18,19 @@ else
     tito rpm
 fi
 
-cd $WORKSPACE
-rm -rf $BRANCH
-mkdir $BRANCH
+if [ -n "$BRANCH" ]
+    # A user explicitly told Jenkins to build a branch.
+    # (ie, this is not an automatic GitHub pull request build.)
+    # Move the artifacts into position for archiving.
+    cd $WORKSPACE
+    rm -rf $BRANCH
+    mkdir $BRANCH
 
-if [ $DEBIAN = 1 ] ; then
-    mv *.deb *.dsc *.changes *.tar.gz $BRANCH
-else
-    find rpmbuild -name '*.rpm' -o -name '*.srpm' | xargs -i mv {} $BRANCH
+    if [ $DEBIAN = 1 ] ; then
+        mv *.deb *.dsc *.changes *.tar.gz $BRANCH
+    else
+        find rpmbuild -name '*.rpm' -o -name '*.srpm' | xargs -i mv {} $BRANCH
+    fi
 fi
 
 exit 0
