@@ -25,6 +25,7 @@
           name: Distro
           values:
             - wheezy-pbuild
+            - jessie
             - precise-pbuild
             - trusty-pbuild
             - centos6.5
