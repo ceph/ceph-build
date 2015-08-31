@@ -1,0 +1,34 @@
+- job:
+    block-downstream: false
+    block-upstream: false
+    builders:
+    - shell: !include-raw ../../build/build
+    concurrent: false
+    description: ''
+    logrotate:
+      artifactDaysToKeep: '-1'
+      artifactNumToKeep: '-1'
+      daysToKeep: '-1'
+      numToKeep: '10'
+    name: 'calamari-clients-precise-vagrant'
+    node: vagrant
+    parameters:
+    - string:
+        default: ''
+        description: ''
+        name: BRANCH
+    project-type: freestyle
+    publishers:
+    - archive:
+        allow-empty: false
+        artifacts: $BRANCH/calamari-clients*deb, $BRANCH/calamari-clients-build-output.tar.gz
+        default-excludes: true
+        fingerprint: false
+        only-if-success: false
+    - fingerprint:
+        files: $BRANCH/calamari-clients*deb, $BRANCH/calamari-clients-build-output.tar.gz
+    scm:
+    - git:
+        basedir: calamari-clients
+        branches: '*/${BRANCH}'
+        url: git@github.com:ceph/calamari-clients.git

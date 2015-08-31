@@ -1,0 +1,17 @@
+set -e
+echo "Building ${BRANCH}"
+rm -f ${WORKSPACE}/*rpm ${WORKSPACE}/calamari-repo-rhel6.tar.gz
+cd ${WORKSPACE}/calamari/vagrant/rhel-build && vagrant destroy -f
+vagrant up --no-provision
+vagrant ssh -c 'sudo subscription-manager refresh; sudo subscription-manager list'
+vagrant provision
+vagrant ssh -c 'sudo salt-call --local state.highstate' | multitee 0-1,4 4>/tmp/${BUILD_TAG}.out
+errs=$(sed --regexp-extended -n 's/^Failed:[[:space:]]+([[:digit:]]+)/\1/p' < /tmp/${BUILD_TAG}.out)
+rm /tmp/${BUILD_TAG}.out
+if [ $errs != 0 ] ; then echo "$errs HIGHSTATE ERRORS, BUILD FAILED"; exit 1; fi
+vagrant destroy -f
+cd $WORKSPACE
+rm -rf $BRANCH
+mkdir $BRANCH
+mv *rpm $BRANCH
+mv calamari-repo-rhel6.tar.gz $BRANCH

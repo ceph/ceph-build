@@ -1,0 +1,62 @@
+- job:
+    axes:
+    - axis:
+        name: arch
+        type: label-expression
+        values:
+        - x86_64
+    - axis:
+        name: dist
+        type: label-expression
+        values:
+        - centos
+        - rhel7
+        - trusty
+    - axis:
+        name: label
+        type: slave
+        values:
+        - calamari-buildslave
+    block-downstream: false
+    block-upstream: false
+    builders:
+    - copyartifact:
+        exclude-pattern: ''
+        filter: $BRANCH/calamari-clients-build-output.tar.gz
+        flatten: true
+        project: calamari-clients-precise
+        target: $WORKSPACE
+        which-build: last-successful
+    - shell: !include-raw ../../build/build
+    combination-filter: dist != "wheezy"
+    concurrent: false
+    description: 'Build all the non-precise distros (which really means "package them")'
+    execution-strategy:
+      run-sequentially: false
+    logrotate:
+      artifactDaysToKeep: '-1'
+      artifactNumToKeep: '-1'
+      daysToKeep: '-1'
+      numToKeep: '-1'
+    name: 'calamari-clients'
+    parameters:
+    - string:
+        default: master
+        description: ''
+        name: BRANCH
+    project-type: matrix
+    properties:
+    - github:
+        url: https://github.com/red-hat-storage/romana/
+    publishers:
+    - archive:
+        allow-empty: false
+        artifacts: $BRANCH/*
+        default-excludes: true
+        fingerprint: false
+        only-if-success: false
+    scm:
+    - git:
+        basedir: calamari-clients
+        branches: $BRANCH
+        url: git@github.com:red-hat-storage/romana.git
