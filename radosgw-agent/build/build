@@ -53,9 +53,10 @@ if [[ -f /etc/redhat-release || -f /usr/bin/zypper ]] ; then
             fi
         fi
 else
+        # XXX MAGICAL, Fix this
         DEB_VERSION=$(dpkg-parsechangelog | sed -rne 's,^Version: (.*),\1, p')
         BP_VERSION=${DEB_VERSION}${BPTAG}
-        DEBEMAIL="sandon@inktank.com" dch -D $DIST --force-distribution -b -v "$BP_VERSION" "$comment"
+        DEBEMAIL="adeza@redhat.com" dch -D $DIST --force-distribution -b -v "$BP_VERSION" "$comment"
         dpkg-source -b .
         dpkg-buildpackage -k$KEYID
         RC=$?
