@@ -47,15 +47,13 @@
             - wheezy
             - precise
             - trusty
+            - jessie
             - centos6.5
             - centos7
             - rhel6.5
-            - opensuse12.2
-            - sles11sp2
             - rhel7
 
     builders:
-      - shell: "pwd"
       - shell:
           !include-raw ../../build/build
 
