@@ -26,14 +26,10 @@ sudo mkdir -p "$basedir"
 # build.
 
 os="debian"
-[ "$DIST" = "saucy" ] && os="ubuntu"
-[ "$DIST" = "trusty" ] && os="ubuntu"
 [ "$DIST" = "precise" ] && os="ubuntu"
 [ "$DIST" = "quantal" ] && os="ubuntu"
-[ "$DIST" = "oneiric" ] && os="ubuntu"
-[ "$DIST" = "natty" ] && os="ubuntu"
-[ "$DIST" = "maverick" ] && os="ubuntu"
-[ "$DIST" = "lucid" ] && os="ubuntu"
+[ "$DIST" = "saucy" ] && os="ubuntu"
+[ "$DIST" = "trusty" ] && os="ubuntu"
 
 if [ $os = "debian" ]; then
     mirror="http://apt-mirror.sepia.ceph.com/ftp.us.debian.org/debian"
