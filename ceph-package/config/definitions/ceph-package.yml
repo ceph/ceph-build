@@ -23,7 +23,6 @@
           name: Arch
           values:
             - x86_64
-            - i386
       - axis:
           type: label-expression
           name: Distro
@@ -32,6 +31,7 @@
             - wheezy-pbuild
             - precise-pbuild
             - trusty-pbuild
+            - jessie
             - centos6.5
             - centos7
             - rhel6.5
