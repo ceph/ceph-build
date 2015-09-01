@@ -48,6 +48,7 @@
             - wheezy
             - precise
             - trusty
+            - jessie
             - centos6.5
             - centos7
             - rhel6.5
