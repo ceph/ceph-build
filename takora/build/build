@@ -3,19 +3,28 @@
 echo "BRANCH: $BRANCH"
 cd $WORKSPACE/takora
 
-. /etc/os-release
+# FIXME A very naive way to just list the RPM $DIST that we currently support.
+# We should be a bit more lenient to allow any rhel/centos/sles/suse
+rpm_dists="rhel centos6.5 centos7 rhel6.5 rhel7 centos"
+deb_dists="precise wheezy squeeze trusty"
 
-DEBIAN=0
+# A helper to match an item in a list of items, like python's `if item in list`
+listcontains() {
+  for word in $2; do
+    [[ $word = $1 ]] && return 0
+  done
+  return 1
+}
 
-if [ "$ID" == 'ubuntu' ] ; then
+if listcontains $DIST "$deb_dists" ; then
     DEBIAN=1
-fi
-
-if [ $DEBIAN = 1 ] ; then
     dpkg-buildpackage -us -uc
+elif listcontains $DIST "$rpm_dists" ; then
+    DEBIAN=0
+    tito build --rpm
 else
-    # FIXME: is this the correct tito command?
-    tito rpm
+    echo "Can't determine build host type"
+    exit 1
 fi
 
 if [ -n "$BRANCH" ]; then
