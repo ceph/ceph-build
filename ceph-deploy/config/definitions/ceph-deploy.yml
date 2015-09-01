@@ -30,10 +30,6 @@
           skip-tag: true
           timeout: 20
 
-    execution-strategy:
-      combination-filter: |
-        (Arch=="x86_64")  || (Arch=="armhf" && (Dist=="quantal"))
-
     axes:
       - axis:
           type: label-expression
