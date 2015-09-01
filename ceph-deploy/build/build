@@ -115,7 +115,7 @@ then
     REPO=debian-repo
     COMPONENT=main
     KEYID=${KEYID:-03C3951A}  # default is autobuild keyid
-    DEB_DIST="sid wheezy squeeze jessie quantal precise raring trusty"
+    DEB_DIST="sid wheezy squeeze jessie precise raring trusty"
     DEB_BUILD=$(lsb_release -s -c)
     #XXX only releases until we fix this
     RELEASE=1

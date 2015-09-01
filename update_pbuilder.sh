@@ -23,7 +23,6 @@ do
     [ "$dist" = "saucy" ] && os="ubuntu"
     [ "$dist" = "trusty" ] && os="ubuntu"
     [ "$dist" = "precise" ] && os="ubuntu"
-    [ "$dist" = "quantal" ] && os="ubuntu"
     [ "$dist" = "oneiric" ] && os="ubuntu"
     [ "$dist" = "natty" ] && os="ubuntu"
     [ "$dist" = "maverick" ] && os="ubuntu"
