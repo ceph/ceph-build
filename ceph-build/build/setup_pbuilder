@@ -27,7 +27,6 @@ sudo mkdir -p "$basedir"
 
 os="debian"
 [ "$DIST" = "precise" ] && os="ubuntu"
-[ "$DIST" = "quantal" ] && os="ubuntu"
 [ "$DIST" = "saucy" ] && os="ubuntu"
 [ "$DIST" = "trusty" ] && os="ubuntu"
 

@@ -11,7 +11,6 @@ dist=$2
 [ "$dist" = "trusty" ] && dver="$raw$dist"
 [ "$dist" = "saucy" ] && dver="$raw$dist"
 [ "$dist" = "raring" ] && dver="$raw$dist"
-[ "$dist" = "quantal" ] && dver="$raw$dist"
 [ "$dist" = "precise" ] && dver="$raw$dist"
 [ "$dist" = "oneiric" ] && dver="$raw$dist"
 [ "$dist" = "natty" ] && dver="$raw$dist"
