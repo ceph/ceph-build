@@ -5,7 +5,7 @@ cd $WORKSPACE/ice-setup
 
 DEBIAN=0
 
-if [ $Dist = 'trusty' -o $Dist = 'precise' -o $Dist = 'wheezy' ] ; then
+if [ $DIST = 'trusty' -o $DIST = 'precise' -o $DIST = 'wheezy' ] ; then
     DEBIAN=1
 fi
 
