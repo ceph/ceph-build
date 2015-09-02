@@ -36,7 +36,7 @@
     builders:
 
       # "Clean up any prior stuff"
-      - shell: 'rm -rf Arch=* 2>/dev/null; true'
+      - shell: 'rm -rf ARCH=* 2>/dev/null; true'
 
       - copyartifact:
           project: ceph-build
