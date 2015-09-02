@@ -23,7 +23,6 @@
           type: label-expression
           name: DIST
           values:
-            - squeeze
             - wheezy
             - precise
             - trusty
