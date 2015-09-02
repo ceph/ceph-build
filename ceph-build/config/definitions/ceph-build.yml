@@ -11,23 +11,20 @@
       - github:
           url: https://github.com/ceph/ceph
 
-    execution-strategy:
-      combination-filter: Arch=="x86_64"
-
     axes:
       - axis:
           type: label-expression
-          name: Arch
+          name: ARCH
           values:
             - x86_64
       - axis:
           type: label-expression
-          name: Distro
+          name: DIST
           values:
-            - wheezy-pbuild
+            - wheezy
             - jessie
-            - precise-pbuild
-            - trusty-pbuild
+            - precise
+            - trusty
             - centos6.5
             - centos7
             - rhel6.5
