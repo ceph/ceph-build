@@ -16,17 +16,17 @@
     axes:
       - axis:
           type: label-expression
-          name: Arch
+          name: ARCH
           values:
             - x86_64
       - axis:
           type: label-expression
-          name: Distro
+          name: DIST
           values:
-            - squeeze-pbuild
-            - wheezy-pbuild
-            - precise-pbuild
-            - trusty-pbuild
+            - squeeze
+            - wheezy
+            - precise
+            - trusty
             - jessie
             - centos6.5
             - centos7
