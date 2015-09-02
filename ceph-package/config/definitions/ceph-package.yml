@@ -13,10 +13,6 @@
       artifactDaysToKeep: -1
       artifactNumToKeep: -1
 
-    execution-strategy:
-      combination-filter: |
-        (Arch=="x86_64") || (Arch=="i386" && (Distro=="wheezy-pbuild" || Distro=="precise-pbuild"))
-
     axes:
       - axis:
           type: label-expression
