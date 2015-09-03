@@ -5,17 +5,19 @@
 oldname='mariner-installer'
 newname='rhcs-installer'
 
-cd $WORKSPACE/$oldname/debian
+cd $WORKSPACE/$oldname
 
-for file in $(find . -type f); do
-    if [ $file == './copyright' ]; then
+# Replace content in files
+for file in $(find config debian -type f); do
+    if [ $file == 'debian/copyright' ]; then
         # The uses of "$oldname" in the copyright file are ok to leave alone.
         continue
     fi
     sed -i -e "s/$oldname/$newname/g" $file
 done
 
-for file in $(find . -type f -name "*$oldname*"); do
+# Rename files
+for file in $(find bin config debian -type f -name "*$oldname*"); do
     newfile=$(echo $file | sed -e "s/$oldname/$newname/")
     mv $file $newfile
 done
