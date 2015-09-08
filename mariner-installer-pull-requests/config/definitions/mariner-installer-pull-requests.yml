@@ -4,12 +4,12 @@
     project-type: matrix
     axes:
       - axis:
-          name: Arch
+          name: ARCH
           type: label-expression
           values:
             - x86_64
       - axis:
-          name: Dist
+          name: DIST
           type: label-expression
           values:
             - trusty

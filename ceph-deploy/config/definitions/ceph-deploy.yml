@@ -33,12 +33,12 @@
     axes:
       - axis:
           type: label-expression
-          name: Arch
+          name: ARCH
           values:
             - x86_64
       - axis:
           type: label-expression
-          name: Dist
+          name: DIST
           values:
             - squeeze
             - wheezy

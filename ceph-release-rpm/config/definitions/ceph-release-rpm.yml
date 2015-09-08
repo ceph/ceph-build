@@ -8,9 +8,6 @@
     block-downstream: false
     block-upstream: false
 
-    execution-strategy:
-      combination-filter: Arch=="x86_64"
-
     parameters:
       - string:
           name: RELEASE
@@ -19,19 +16,17 @@
     axes:
       - axis:
           type: label-expression
-          name: Arch
+          name: ARCH
           values:
             - x86_64
-            - i386
-            - arm7l
+
       - axis:
           type: label-expression
-          name: label_exp
+          name: DIST
           values:
             - centos6.5
             - centos7
             - rhel6.5
-            - sles11sp2
             - rhel7
 
     builders:

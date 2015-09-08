@@ -13,24 +13,19 @@
       artifactDaysToKeep: -1
       artifactNumToKeep: -1
 
-    execution-strategy:
-      combination-filter: |
-        (Arch=="x86_64") || (Arch=="i386" && (Distro=="wheezy-pbuild" || Distro=="precise-pbuild"))
-
     axes:
       - axis:
           type: label-expression
-          name: Arch
+          name: ARCH
           values:
             - x86_64
       - axis:
           type: label-expression
-          name: Distro
+          name: DIST
           values:
-            - squeeze-pbuild
-            - wheezy-pbuild
-            - precise-pbuild
-            - trusty-pbuild
+            - wheezy
+            - precise
+            - trusty
             - jessie
             - centos6.5
             - centos7
@@ -40,7 +35,7 @@
     builders:
 
       # "Clean up any prior stuff"
-      - shell: 'rm -rf Arch=* 2>/dev/null; true'
+      - shell: 'rm -rf ARCH=* 2>/dev/null; true'
 
       - copyartifact:
           project: ceph-build
