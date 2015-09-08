@@ -16,6 +16,9 @@ for file in $(find config debian -type f); do
     sed -i -e "s/$oldname/$newname/g" $file
 done
 
+# Change takora dependency to ceph-puppet-modules
+sed -i -e "s/takora/ceph-puppet-modules/g" debian/control
+
 # Rename files
 for file in $(find bin config debian -type f -name "*$oldname*"); do
     newfile=$(echo $file | sed -e "s/$oldname/$newname/")
