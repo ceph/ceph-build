@@ -41,7 +41,7 @@ fi
 # ensure that the tgz is valid, otherwise remove it so that it can be recreated
 # again
 pbuild_tar="$basedir/$DIST.tgz"
-is_not_tar=`python -c "exec 'try: import tarfile;print not int(tarfile.is_tarfile(\"$pbuild_tar\"))\nexcept IOError: print 1'"`
+is_not_tar=`python -c "exec 'try: import tarfile;print int(not int(tarfile.is_tarfile(\"$pbuild_tar\")))\nexcept IOError: print 1'"`
 
 if $is_not_tar; then
     rm -f "$pbuild_tar/$DIST.tgz"
