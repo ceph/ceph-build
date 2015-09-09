@@ -31,7 +31,11 @@ os="debian"
 [ "$DIST" = "trusty" ] && os="ubuntu"
 
 if [ $os = "debian" ]; then
-    mirror="http://apt-mirror.sepia.ceph.com/ftp.us.debian.org/debian"
+    # We used to consume from an internal mirror
+    # ("http://apt-mirror.sepia.ceph.com/ftp.us.debian.org/debian") but given
+    # that it has caused us issues before (e.g. packages out of date) and that
+    # it currently does not have Jessie we are going to use a public mirror.
+    mirror="http://www.gtlib.gatech.edu/pub/debian"
     othermirror=""
 else
     mirror=""
@@ -41,10 +45,15 @@ fi
 # ensure that the tgz is valid, otherwise remove it so that it can be recreated
 # again
 pbuild_tar="$basedir/$DIST.tgz"
-is_not_tar=`python -c "exec 'try: import tarfile;print not int(tarfile.is_tarfile(\"$pbuild_tar\"))\nexcept IOError: print 1'"`
+is_not_tar=`python -c "exec 'try: import tarfile;print int(not int(tarfile.is_tarfile(\"$pbuild_tar\")))\nexcept IOError: print 1'"`
+file_size_kb=`du -k "$pbuild_tar" | cut -f1`
 
 if $is_not_tar; then
-    rm -f "$pbuild_tar/$DIST.tgz"
+    sudo rm -f "$pbuild_tar"
+fi
+
+if [ $file_size_kb -lt 1 ]; then
+    sudo rm -f "$pbuild_tar"
 fi
 
 sudo pbuilder --clean
