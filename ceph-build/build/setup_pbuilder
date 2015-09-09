@@ -45,7 +45,7 @@ is_not_tar=`python -c "exec 'try: import tarfile;print int(not int(tarfile.is_ta
 file_size_kb=`du -k "$pbuild_tar" | cut -f1`
 
 if $is_not_tar; then
-    rm -f "$pbuild_tar/$DIST.tgz"
+    sudo rm -f "$pbuild_tar"
 fi
 
 if [ $file_size_kb -lt 1 ]; then
