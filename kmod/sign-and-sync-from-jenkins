@@ -20,7 +20,7 @@ BUILD=lastSuccessful
 ROOT=/home2/jenkins/jobs/${JOB}/configurations/axis-label
 
 #KEYID=${KEYID:-03C3951A}  # default is autobuild keyid
-KEYID=${KEYID:-17ED316D}  # default is release keyid
+KEYID=${KEYID:-460F3994}  # default is release keyid
 
 if gpg --list-keys 2>/dev/null | grep -q ${KEYID} ; then
     echo "Signing packages and repo with ${KEYID}"

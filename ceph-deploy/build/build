@@ -10,7 +10,7 @@ set -e
 if $RELEASE ; then
         # This is a formal release. Sign it with the release key.
         export GNUPGHOME=/home/jenkins-build/build/gnupg.ceph-release/
-        export KEYID=17ED316D
+        export KEYID=460F3994
 else
         # This is an automatic build. Sign it with the autobuild key.
         export GNUPGHOME=/home/jenkins-build/build/gnupg.autobuild/
