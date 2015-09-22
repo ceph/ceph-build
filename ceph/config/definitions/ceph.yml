@@ -28,7 +28,7 @@
           description: "
 If this is unchecked, then the builds will be signed with the autosign key (03C3951A). This is the default.&lt;br/&gt;
 
-If this is checked, then the builds will be signed by the release key (17ED316D).&lt;br/&gt;
+If this is checked, then the builds will be signed by the release key (9DCEEEAD).&lt;br/&gt;
 
 Only check this box if we will be shipping the packages as formal releases."
 

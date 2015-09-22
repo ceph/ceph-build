@@ -29,7 +29,7 @@ get_bptag() {
 BPTAG=`get_bptag $DIST`
 
 export GNUPGHOME=/home/jenkins-build/build/gnupg.ceph-release/
-export KEYID=17ED316D
+export KEYID=9DCEEEAD
 HOST=$(hostname --short)
 echo "Building on $(hostname) Date: $(date)"
 echo "  DIST=${DIST}"
