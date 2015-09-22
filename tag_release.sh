@@ -1,3 +1,3 @@
 #!/bin/sh
 
-git tag -s $1 -u 17ED316D -m $1
+git tag -s $1 -u 460F3994 -m $1

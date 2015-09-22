@@ -3,7 +3,7 @@
 set -e
 
 xterm=${xterm:-0}	# set to 1 to use xterm for remote sessions
-gpgkey='17ED316D'
+gpgkey='460F3994'
 
 bindir=`dirname $0`
 

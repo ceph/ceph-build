@@ -6,7 +6,7 @@ releasedir=$1
 repo=$2
 cephvers=$3
 
-keyid=17ED316D
+keyid=460F3994
 
 usage() {
     echo "usage: $0 releasedir repodir version component"
