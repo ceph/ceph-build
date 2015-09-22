@@ -22,7 +22,6 @@
           name: DIST
           values:
             - wheezy
-            - jessie
             - precise
             - trusty
             - centos6.5
