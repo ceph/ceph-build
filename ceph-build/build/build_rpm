@@ -5,13 +5,10 @@ if [[ ! -f /etc/redhat-release && ! -f /usr/bin/zypper ]] ; then
     exit 0
 fi
 
-export GNUPGHOME=/home/jenkins-build/build/gnupg.ceph-release/
-export KEYID=460F3994
 HOST=$(hostname --short)
 echo "Building on $(hostname) Date: $(date)"
 echo "  DIST=${DIST}"
 echo "  BPTAG=${BPTAG}"
-echo "  KEYID=${KEYID}"
 echo "  WS=$WORKSPACE"
 echo "  PWD=$(pwd)"
 echo "  BUILD SOURCE=$COPYARTIFACT_BUILD_NUMBER_CEPH_SETUP"
