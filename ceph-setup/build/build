@@ -1,13 +1,9 @@
 #!/bin/bash -ex
 
-#export GNUPGHOME=/home/jenkins-build/build/gnupg.autobuild/
-export GNUPGHOME=/home/jenkins-build/build/gnupg.ceph-release/
-export KEYID=460F3994
 HOST=$(hostname --short)
 echo "Building on ${HOST}"
 echo "  DIST=${DIST}"
 echo "  BPTAG=${BPTAG}"
-echo "  KEYID=${KEYID}"
 echo "  WS=$WORKSPACE"
 echo "  PWD=$(pwd)"
 echo "  BRANCH=$BRANCH"
