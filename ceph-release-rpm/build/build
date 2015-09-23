@@ -1,32 +1,12 @@
 #!/bin/sh
 
-#export GNUPGHOME=/home/jenkins-build/build/gnupg.autobuild/
-export GNUPGHOME=/home/jenkins-build/build/gnupg.ceph-release/
-export KEYID=460F3994
 HOST=$(hostname --short)
 echo "Building on ${HOST}"
 echo "  DIST=${DIST}"
 echo "  BPTAG=${BPTAG}"
-echo "  KEYID=${KEYID}"
 echo "  WS=$WORKSPACE"
 echo "  PWD=$(pwd)"
 echo "Building on Host: $(hostname) Date: $(date)"
-
-# Check if we have a key to sign packages with
-if gpg --list-keys 2>/dev/null | grep -q ${KEYID} ; then
-    echo "Signing packages and repo with ${KEYID}"
-else
-    echo "Package signing key (${KEYID}) not found"
-    echo "Have you set \$GNUPGHOME ? "
-    exit 3
-fi
-
-# We expect the ceph build tools to be installed.
-if [ ! -d /srv/ceph-build ] ; then
-    echo "Build tools are not installed"
-    exit 1
-fi
-BINDIR=/srv/ceph-build
 
 # remove any previous builds
 rm -rf dist
@@ -58,7 +38,7 @@ Release:        1%{?dist}
 Summary:        Ceph repository configuration
 Group:          System Environment/Base
 License:        GPLv2
-URL:            http://gitbuilder.ceph.com/$dist
+URL:            http://download.ceph.com/
 Source0:        ceph.repo
 #Source0:        RPM-GPG-KEY-CEPH
 #Source1:        ceph.repo
