@@ -8,13 +8,6 @@ echo "  WS=$WORKSPACE"
 echo "  PWD=$(pwd)"
 echo "Building on Host: $(hostname) Date: $(date)"
 
-# We expect the ceph build tools to be installed.
-if [ ! -d /srv/ceph-build ] ; then
-    echo "Build tools are not installed"
-    exit 1
-fi
-BINDIR=/srv/ceph-build
-
 # remove any previous builds
 rm -rf dist
 rm -rf RPMBUILD
