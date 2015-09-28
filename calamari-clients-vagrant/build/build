@@ -1,0 +1,43 @@
+#!/bin/bash
+set -ex
+echo "BRANCH: ${BRANCH} DIST: $dist ARCH: $arch WORKSPACE: $WORKSPACE  PWD: ${PWD}"
+ls $WORKSPACE
+rm -f $WORKSPACE/*{rpm,deb}
+ls $WORKSPACE
+cd $WORKSPACE/calamari-clients/vagrant/${dist}-package && vagrant destroy -f
+
+# CDN == PITA
+if [ ${dist:0:4} = 'rhel' ] ; then
+   vagrant up --no-provision
+   vagrant ssh -c 'sudo subscription-manager refresh; sudo subscription-manager list'
+   if [ $dist = 'rhel' ] ; then 
+      vagrant ssh -c '
+      echo "
+[server]
+name=server
+enabled=1
+gpgcheck=0
+baseurl=http://apt-mirror.front.sepia.ceph.com/rhel6repo-server
+
+[server-optional]
+name=server-optional
+enabled=1
+gpgcheck=0
+baseurl=http://apt-mirror.front.sepia.ceph.com/rhel6repo-server-optional" | sudo tee /etc/yum.repos.d/local.repo'
+      vagrant ssh -c 'sudo yum clean all'
+      vagrant ssh -c 'sudo yum makecache'
+   fi
+   vagrant provision   
+else
+   vagrant up
+fi
+vagrant up
+
+vagrant ssh -c 'sudo salt-call --local state.highstate' | multitee 0-1,4 4>/tmp/${BUILD_TAG}.out
+errs=$(sed --regexp-extended -n 's/^Failed:[[:space:]]+([[:digit:]]+)/\1/p' < /tmp/${BUILD_TAG}.out)
+rm /tmp/${BUILD_TAG}.out
+if [ $errs != 0 ] ; then echo "$errs HIGHSTATE ERRORS, BUILD FAILED"; exit 1; fi
+vagrant destroy -f
+rm -rf $WORKSPACE/$BRANCH
+mkdir $WORKSPACE/$BRANCH
+find $WORKSPACE -maxdepth 1 -name '*.deb' -print0 -o -name '*.rpm' -print0 -o -name 'calamari-clients.build.output.tar.gz' -print0 | xargs --verbose -0 -I'{}' mv '{}' $WORKSPACE/$BRANCH

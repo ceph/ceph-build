@@ -1,0 +1,17 @@
+#!/bin/bash
+set -ex
+echo "BRANCH: ${BRANCH} DIST: $dist ARCH: $arch WORKSPACE: $WORKSPACE  PWD: ${PWD}"
+ls $WORKSPACE
+rm -f $WORKSPACE/*{rpm,deb}
+ls $WORKSPACE
+
+sudo -E salt-call --local --file-root=$WORKSPACE/calamari-clients/vagrant/salt/roots state.highstate | \
+   multitee 0-1,4 4>/tmp/${BUILD_TAG}.out
+errs=$(sed --regexp-extended -n 's/^Failed:[[:space:]]+([[:digit:]]+)/\1/p' < /tmp/${BUILD_TAG}.out)
+rm /tmp/${BUILD_TAG}.out
+if [ $errs != 0 ] ; then echo "$errs HIGHSTATE ERRORS, BUILD FAILED"; exit 1; fi
+
+rm -rf $WORKSPACE/$BRANCH
+mkdir $WORKSPACE/$BRANCH
+find $WORKSPACE -maxdepth 1 -name '*.deb' -print0 -o -name '*.rpm' -print0 \
+  -o -name 'calamari-clients.build.output.tar.gz' -print0 | xargs --verbose -0 -I'{}' mv '{}' $WORKSPACE/$BRANCH
