@@ -22,12 +22,12 @@
           name: DIST
           values:
             - jessie
-            - wheezy
-            - precise
-            - trusty
-            - centos6.5
+            #- wheezy
+            #- precise
+            #- trusty
+            #- centos6.5
             - centos7
-            - rhel6.5
+            #- rhel6.5
             - rhel7
 
     builders:
