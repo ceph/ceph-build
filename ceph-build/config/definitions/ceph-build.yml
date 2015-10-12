@@ -21,6 +21,7 @@
           type: label-expression
           name: DIST
           values:
+            - jessie
             - wheezy
             - precise
             - trusty
