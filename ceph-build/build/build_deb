@@ -99,9 +99,6 @@ cephver=$vers
 start_time=`date`
 echo version $cephver
 
-whoami=`whoami`
-[ "$whoami" != "root" ] && echo "must run as root not $whoami" && usage && exit 1
-
 # This used to live in a *file* on /src/ceph-build. Now it lives here because
 # it doesn't make sense to have a file that lives in /srv/ that we then
 # concatenate to get its contents.
