@@ -1,9 +1,9 @@
 - job:
-    name: ceph-build
+    name: ceph-build-next
     project-type: matrix
     defaults: global
     disabled: false
-    display-name: 'ceph-build'
+    display-name: 'ceph-build-next'
     concurrent: false
     block-downstream: false
     block-upstream: false
@@ -44,7 +44,7 @@
           rm -rf dist
           rm -rf release
       - copyartifact:
-          project: ceph-setup
+          project: ceph-setup-next
           filter: 'dist/**'
           which-build: last-successful
       - shell:
