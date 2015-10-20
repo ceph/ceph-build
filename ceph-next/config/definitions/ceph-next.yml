@@ -1,0 +1,49 @@
+- job:
+    name: ceph-next
+    description: 'This is the main ceph build task which uses chacra.ceph.com.'
+    project-type: multijob
+    defaults: global
+    disabled: false
+    display-name: 'ceph-next'
+    concurrent: false
+    logrotate:
+      daysToKeep: -1
+      numToKeep: 25
+      artifactDaysToKeep: 25
+      artifactNumToKeep: 25
+    block-downstream: false
+    block-upstream: false
+    properties:
+      - github:
+          url: https://github.com/ceph/ceph
+
+    parameters:
+      - string:
+          name: BRANCH
+          description: "The git branch (or tag) to build"
+          default: master
+
+      - bool:
+          name: RELEASE
+          description: "
+If this is unchecked, then the builds will be signed with the autosign key (03C3951A). This is the default.&lt;br/&gt;
+
+If this is checked, then the builds will be signed by the release key (460F3994).&lt;br/&gt;
+
+Only check this box if we will be shipping the packages as formal releases."
+
+    builders:
+      - multijob:
+          name: 'ceph setup phase'
+          condition: SUCCESSFUL
+          projects:
+            - name: ceph-setup-next
+              current-parameters: true
+              exposed-scm: false
+      - multijob:
+          name: 'ceph build phase'
+          condition: SUCCESSFUL
+          projects:
+            - name: ceph-build-next
+              current-parameters: true
+              exposed-scm: false

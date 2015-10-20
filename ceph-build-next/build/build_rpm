@@ -1,0 +1,107 @@
+#!/bin/bash
+set -ex
+
+if [[ ! -f /etc/redhat-release && ! -f /usr/bin/zypper ]] ; then
+    exit 0
+fi
+
+HOST=$(hostname --short)
+echo "Building on $(hostname) Date: $(date)"
+echo "  DIST=${DIST}"
+echo "  BPTAG=${BPTAG}"
+echo "  WS=$WORKSPACE"
+echo "  PWD=$(pwd)"
+echo "  BUILD SOURCE=$COPYARTIFACT_BUILD_NUMBER_CEPH_SETUP"
+echo "*****"
+env
+echo "*****"
+
+
+vers=`cat ./dist/version`
+# create a release directory for ceph-build tools
+mkdir -p release
+cp -a dist release/${vers}
+echo $DIST > release/${vers}/debian_dists
+echo "${vers}-1" > release/${vers}/debian_version
+
+echo "Building RPMs"
+
+# The below contents ported from /srv/ceph-build/build_rpms.sh ::
+#     $bindir/build_rpms.sh ./release $vers
+#
+
+releasedir="./release"
+cephver=$vers
+
+# Contents below ported from /srv/ceph-build/get_rpm_dist.sh
+# dist=`$bindir/get_rpm_dist.sh`
+
+get_rpm_dist() {
+    LSB_RELEASE=/usr/bin/lsb_release
+    [ ! -x $LSB_RELEASE ] && echo unknown && exit
+
+    ID=`$LSB_RELEASE --short --id`
+
+    case $ID in
+    RedHatEnterpriseServer)
+        RELEASE=`$LSB_RELEASE --short --release | cut -d. -f1`
+        DIST=rhel$RELEASE
+        ;;
+    CentOS)
+        RELEASE=`$LSB_RELEASE --short --release | cut -d. -f1`
+        DIST=el$RELEASE
+        ;;
+    Fedora)
+        RELEASE=`$LSB_RELEASE --short --release`
+        DIST=fc$RELEASE
+        ;;
+    SUSE\ LINUX)
+        DESC=`$LSB_RELEASE --short --description`
+        RELEASE=`$LSB_RELEASE --short --release`
+        case $DESC in
+        *openSUSE*)
+                DIST=opensuse$RELEASE
+            ;;
+        *Enterprise*)
+                DIST=sles$RELEASE
+                ;;
+            esac
+        ;;
+    *)
+        DIST=unknown
+        ;;
+    esac
+
+    echo $DIST
+}
+
+dist=`get_rpm_dist`
+
+[ -z "$dist" ] && echo no dist && exit 1
+echo dist $dist
+
+cd $releasedir/$cephver || exit 1
+
+# Set up build area
+BUILDAREA=./rpm/$dist
+mkdir -p ${BUILDAREA}/{SOURCES,SRPMS,SPECS,RPMS,BUILD}
+cp -a ceph-*.tar.bz2 ${BUILDAREA}/SOURCES/.
+cp -a ceph.spec ${BUILDAREA}/SPECS/.
+cp -a rpm/*.patch ${BUILDAREA}/SOURCES/. || true
+
+# Build RPMs
+BUILDAREA=`readlink -fn ${BUILDAREA}`   ### rpm wants absolute path
+cd ${BUILDAREA}/SPECS
+rpmbuild -ba --define "_topdir ${BUILDAREA}" ceph.spec
+
+echo done
+
+# Make sure we execute at the top level directory
+cd "$WORKSPACE"
+
+#Collect Artifacts
+mkdir -p dist/rpm/${DIST}
+mv release/${vers}/rpm/*/SRPMS ./dist/rpm/${DIST}/.
+mv release/${vers}/rpm/*/RPMS/* ./dist/rpm/${DIST}/.
+
+echo "End Date: $(date)"
