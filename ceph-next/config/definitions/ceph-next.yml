@@ -1,5 +1,5 @@
 - job:
-    name: ceph
+    name: ceph-next
     description: 'This is the main ceph build task which uses chacra.ceph.com.'
     project-type: multijob
     defaults: global
