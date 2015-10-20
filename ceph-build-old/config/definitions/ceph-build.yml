@@ -1,0 +1,55 @@
+- job:
+    name: ceph-build
+    project-type: matrix
+    defaults: global
+    disabled: false
+    display-name: 'ceph-build'
+    concurrent: false
+    block-downstream: false
+    block-upstream: false
+    properties:
+      - github:
+          url: https://github.com/ceph/ceph
+
+    axes:
+      - axis:
+          type: label-expression
+          name: ARCH
+          values:
+            - x86_64
+      - axis:
+          type: label-expression
+          name: DIST
+          values:
+            - jessie
+            #- wheezy
+            #- precise
+            #- trusty
+            #- centos6.5
+            - centos7
+            #- rhel6.5
+            - rhel7
+
+    builders:
+      - shell: |
+          echo "Cleaning up workarea"
+          rm -rf dist
+          rm -rf release
+      - copyartifact:
+          project: ceph-setup
+          filter: 'dist/**'
+          which-build: last-successful
+      - shell:
+          !include-raw ../../build/setup
+      - shell:
+          !include-raw ../../build/setup_pbuilder
+      - shell:
+          !include-raw ../../build/build_deb
+      - shell:
+          !include-raw ../../build/build_rpm
+
+    publishers:
+      - archive:
+          artifacts: 'dist/**'
+          allow-empty: false
+          latest-only: false
