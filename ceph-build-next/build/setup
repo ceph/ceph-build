@@ -74,17 +74,9 @@ virtualenv venv
 PIP_SDIST_INDEX="$HOME/.cache/pip"
 mkdir -p $PIP_SDIST_INDEX
 
-# The setup for this job ensures that a copy of ceph-build will be available
-# for this script
-
 # Install the package by trying with the cache first, otherwise doing a download only, and then
 # trying to install from the cache again.
-if ! venv/bin/pip install --find-links="file://$PIP_SDIST_INDEX" --no-index ansible; then
-    venv/bin/pip install --exists-action=i --download-directory="$PIP_SDIST_INDEX" ansible
-    venv/bin/pip install --find-links="file://$PIP_SDIST_INDEX" --no-index ansible
+if ! venv/bin/pip install --find-links="file://$PIP_SDIST_INDEX" --no-index chacractl; then
+    venv/bin/pip install --exists-action=i --download-directory="$PIP_SDIST_INDEX" chacractl
+    venv/bin/pip install --find-links="file://$PIP_SDIST_INDEX" --no-index chacractl
 fi
-
-# run ansible to get this current host to meet our requirements, specifying
-# a local connection and 'localhost' as the host where to execute
-cd "$WORKSPACE/ceph-build/setup/playbooks"
-ansible-playbook -i "localhost," -c local setup.yml
