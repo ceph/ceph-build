@@ -30,14 +30,6 @@
             #- rhel6.5
             - rhel7
 
-    scm:
-      - git:
-          url: https://github.com/ceph/ceph-build.git
-          branches:
-            - origin/master
-          timeout: 20
-          wipe-workspace: true
-
     builders:
       - shell: |
           echo "Cleaning up workarea"
