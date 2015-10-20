@@ -1,0 +1,8 @@
+---
+
+- hosts: localhost
+  user: jenkins-build
+  sudo: True
+
+  tasks:
+     - include: tasks/main.yml
