@@ -46,14 +46,17 @@ get_rpm_dist() {
     RedHatEnterpriseServer)
         RELEASE=`$LSB_RELEASE --short --release | cut -d. -f1`
         DIST=rhel$RELEASE
+        DISTRO=rhel
         ;;
     CentOS)
         RELEASE=`$LSB_RELEASE --short --release | cut -d. -f1`
         DIST=el$RELEASE
+        DISTRO=centos
         ;;
     Fedora)
         RELEASE=`$LSB_RELEASE --short --release`
         DIST=fc$RELEASE
+        DISTRO=fedora
         ;;
     SUSE\ LINUX)
         DESC=`$LSB_RELEASE --short --description`
@@ -61,14 +64,17 @@ get_rpm_dist() {
         case $DESC in
         *openSUSE*)
                 DIST=opensuse$RELEASE
+                DISTRO=opensuse
             ;;
         *Enterprise*)
                 DIST=sles$RELEASE
+                DISTRO=sles
                 ;;
             esac
         ;;
     *)
         DIST=unknown
+        DISTRO=unknown
         ;;
     esac
 
@@ -99,9 +105,8 @@ echo done
 # Make sure we execute at the top level directory
 cd "$WORKSPACE"
 
-#Collect Artifacts
-mkdir -p dist/rpm/${DIST}
-mv release/${vers}/rpm/*/SRPMS ./dist/rpm/${DIST}/.
-mv release/${vers}/rpm/*/RPMS/* ./dist/rpm/${DIST}/.
+# push binaries to chacra
+find release/${vers}/rpm/*/SRPMS | grep rpm | chacractl binary create ceph/${vers}/${DISTRO}/${RELEASE}/source
+find release/${vers}/rpm/*/RPMS/* | grep rpm | chacractl binary create ceph/${vers}/${DISTRO}/{$RELEASE}/${ARCH}
 
 echo "End Date: $(date)"

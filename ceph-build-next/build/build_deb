@@ -130,6 +130,8 @@ sudo pbuilder --clean
 bpvers=`gen_debian_version $dvers $DIST`
 echo deb vers $bpvers
 
+distro=`python -c "exec 'import platform; print platform.linux_distribution()[0].lower()'"`
+
 echo building debs for $DIST
 if [ `dpkg-architecture -qDEB_BUILD_ARCH` = "i386" ] ; then
     #  Architecture dependent, independent and source
@@ -159,12 +161,8 @@ echo "Start Time = $start_time"
 echo "  End Time = $(date)"
 
 
-#Collect Artifacts
-mkdir -p dist/debian
-cp -a release/$vers/*.changes dist/debian/.
-cp -a release/$vers/*.deb     dist/debian/.
-cp -a release/$vers/*.dsc     dist/debian/.
-cp -a release/$vers/*.diff.gz dist/debian/.
-cp -a release/$vers/*.tar.gz  dist/debian/.
+# push binaries to chacra
+find release/$vers/ | grep 'changes\|deb\|dsc\|gz' | chacractl binary create ceph/${vers}/${distro}/{$dist}/${ARCH}
+
 
 echo "End Date: $(date)"

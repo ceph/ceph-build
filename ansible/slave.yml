@@ -32,6 +32,11 @@
     - name: jenkins api key should be present
       copy: src=files/jenkins_jobs.ini dest=/etc/jenkins_jobs/jenkins_jobs.ini
 
+    - name: Upload the .chacractl file
+      copy:
+        src: files/chacractl
+        dest: "/home/{{ jenkins_user }}/.chacractl"
+
     - name: ensure the build dir exists
       sudo: yes
       lineinfile:
