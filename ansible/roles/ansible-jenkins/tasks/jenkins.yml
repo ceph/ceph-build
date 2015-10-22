@@ -1,15 +1,19 @@
 ---
 - include: repo.yml
-  when: ansible_pkg_mgr  == "yum"
 
-- include: dependencies_yum.yml
-  when: ansible_pkg_mgr  == "yum"
+- include: dependencies.yml
 
 - include: nginx.yml
 
-- name: Install Jenkins
+- name: Install Jenkins with Yum
   yum: name=jenkins state=present
   register: jenkins_install
+  when: ansible_pkg_mgr  == "yum"
+
+- name: Install Jenkins with Apt
+  apt: name=jenkins state=present
+  register: jenkins_install
+  when: ansible_pkg_mgr  == "apt"
 
 - include: config.yml
 

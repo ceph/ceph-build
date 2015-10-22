@@ -1,0 +1,16 @@
+---
+
+- name: epel-release install
+  yum: name=epel-release
+       state=present
+  when: ansible_pkg_mgr  == "yum"
+
+- name: Install RPM dependencies
+  yum: name={{ item }} state=installed
+  with_items: jenkins.{{ ansible_pkg_mgr }}.dependencies
+  when: ansible_pkg_mgr  == "yum"
+
+- name: Install DEB dependencies
+  apt: name={{ item }} state=installed
+  with_items: jenkins.{{ ansible_pkg_mgr }}.dependencies
+  when: ansible_pkg_mgr  == "apt"

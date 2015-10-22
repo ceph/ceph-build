@@ -1,12 +1,18 @@
 ---
+
+# Yum
+
 - name: Install python-devel
   yum: name=python-devel state=present
+  when: ansible_pkg_mgr  == "yum"
 
 - name: Install python-pycurl
   yum: name=python-pycurl state=present
+  when: ansible_pkg_mgr  == "yum"
 
 - name: Add Jenkins GPG Key
   rpm_key: state=present key=https://jenkins-ci.org/redhat/jenkins-ci.org.key
+  when: ansible_pkg_mgr  == "yum"
 
 - name: Create the repo file for Jenkins
   copy: src=jenkins.repo
@@ -14,3 +20,19 @@
         owner=root
         group=root
         mode=0644
+  when: ansible_pkg_mgr  == "yum"
+
+# Apt
+
+- name: Add Jenkins GPG Key
+  apt_key:
+    url: "https://jenkins-ci.org/debian/jenkins-ci.org.key"
+    state: present
+  when: ansible_pkg_mgr  == "apt"
+
+- name: Add the jenkins repo
+  apt_repository:
+    repo: 'deb http://pkg.jenkins-ci.org/debian binary/'
+    state: present
+    update_cache: true
+  when: ansible_pkg_mgr  == "apt"
