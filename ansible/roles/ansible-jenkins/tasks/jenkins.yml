@@ -1,7 +1,9 @@
 ---
 - include: repo.yml
+  when: ansible_pkg_mgr  == "yum"
 
 - include: dependencies_yum.yml
+  when: ansible_pkg_mgr  == "yum"
 
 - include: nginx.yml
 
