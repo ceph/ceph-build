@@ -1,0 +1,247 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+DOCUMENTATION = """
+module: jenkins-node
+short_decription: Manage Jenkins nodes
+description:
+  - This module provides some management features to control Jenkins
+    nodes.
+
+options:
+  uri:
+    description:
+      - Base URI for the Jenkins instance
+    required: true
+
+  username:
+    description:
+      - The username to log-in with.
+    required: true
+
+  password:
+    description:
+      - The password to log-in with.
+    required: true
+
+  operation:
+    description:
+      - Operation to perform
+    required: false
+    default: 'create'
+    choices: [ create, delete, enable, disable ]
+
+  name:
+    description:
+      - Node name
+    required: true
+
+  executors:
+    description:
+      - Number of executors in node
+    required: false
+    default: 2
+
+  description:
+    description:
+      - Description of the node
+    required: false
+    default: null
+
+  labels:
+    description:
+      - Labels to associate with a node, like "amd64" or "python"
+    required: false
+    default: null
+
+  exclusive:
+    description:
+      - Mark this node for tied jobs only
+    required: false
+    default: 'no'
+    choices: ['no', 'yes']
+
+  launcher:
+    description:
+      - Launcher method for a remote node (only needed for 'create' operations)
+    required: false
+    default: 'hudson.plugins.sshslaves.SSHLauncher'
+
+  remoteFS:
+    description:
+      - Path to the directory used for builds
+    required: false
+
+  credentialsId:
+    description:
+      - the ID of the user needed for authentication. Usually found in
+        credentials.xml or via the url
+        {host}/credential-store/domain/_/credential/{id}
+
+  host:
+    description:
+      - hostname or IP for the host to connect to the slave
+
+requirements: ['python-jenkins']
+author:
+    - "Alfredo Deza"
+
+"""
+
+EXAMPLES = """
+# Create new node
+- name: Create new node
+  jenkins-node: uri={{ jenkins_uri }} username={{ user }} password={{ password }}
+           name={{ node_name }} operation=create
+
+# Delete an existing node
+- name: Delete a node
+  jenkins-node: uri={{ jenkins_uri }} username={{ user }} password={{ password }}
+           name={{ node_name }} operation=delete
+"""
+
+HAS_JENKINS_API = True
+try:
+    import jenkins
+except ImportError:
+    HAS_JENKINS_API = False
+
+
+def _jenkins(uri, username, password):
+    return jenkins.Jenkins(uri, username, password)
+
+
+def translate_params(params):
+    sanitized = {}
+    mapping = {
+        'executors': 'numExecutors',
+        'description': 'nodeDescription',
+    }
+    for k, v in params.items():
+        key = mapping.get(k, k)
+        sanitized[key] = v
+    return sanitized
+
+
+def create(uri, user, password, name, **kw):
+    launcher_params = {}
+    launcher_params['credentialsId'] = kw.pop('credentialsId', None)
+    launcher_params['host'] = kw.pop('host', None)
+    if all(launcher_params.values()) is False:
+        launcher_params = {}
+    params = translate_params(kw)
+    j = _jenkins(uri, user, password)
+    if j.node_exists(name):
+        return False, "Failed to create node '%s' - already exists." % name
+    j.create_node(name, launcher_params=launcher_params, **params)
+    if not j.node_exists(name):
+        return False, "Failed to create node '%s'." % name
+    return True, None
+
+
+def delete(uri, user, password, name, **kw):
+    j = _jenkins(uri, user, password)
+    if not j.node_exists(name):
+        return False, "Could not delete '%s' - unknown node." % name
+    j.delete_node(name)
+    if j.node_exists(name):
+        return False, "Failed to delete node '%s'." % name
+    return True, None
+
+
+def enable(uri, user, password, name, **kw):
+    j = _jenkins(uri, user, password)
+    if not j.node_exists(name):
+        return False, "Could not enable '%s' - unknown node." % name
+    j.enable_node(name)
+    return True, None
+
+
+def disable(uri, user, password, name, **kw):
+    j = _jenkins(uri, user, password)
+    if not j.node_exists(name):
+        return False, "Could not disable '%s' - unknown node." % name
+    j.disable_node(name)
+    return True, None
+
+
+def main():
+    module = AnsibleModule(
+        argument_spec=dict(
+            uri=dict(required=True),
+            username=dict(required=True),
+            password=dict(required=True),
+            operation=dict(default='create', choices=['create', 'delete', 'enable', 'disable']),
+            name=dict(required=True),
+            executors=dict(required=False, default=2),
+            description=dict(required=False, default=None),
+            labels=dict(required=False, default=None),
+            host=dict(required=False, default=None),
+            credentialsId=dict(required=False, default=None),
+            launcher=dict(required=False, default='hudson.plugins.sshslaves.SSHLauncher'),
+            remoteFS=dict(required=False, default=None),
+            exclusive=dict(required=False, default='no', type='bool'),
+        ),
+        supports_check_mode=False
+    )
+
+    if not HAS_JENKINS_API:
+        module.fail_json(msg="Could not import python module: jenkins. Please install the python-jenkins package.")
+
+    uri = module.params['uri']
+    username = module.params['username']
+    password = module.params['password']
+    operation = module.params.get('operation', 'create')
+    name = module.params['name']
+    executors = module.params['executors']
+    description = module.params.get('description')
+    labels = module.params.get('labels')
+    exclusive = module.params.get('exclusive', False)
+    host = module.params.get('host')
+    remoteFS = module.params.get('remoteFS')
+    credentialsId = module.params.get('credentialsId')
+    launcher = module.params.get('launcher', 'hudson.plugins.sshslaves.SSHLauncher')
+
+    api_calls = {
+        'create': create,
+        'delete': delete,
+        'enable': enable,
+        'disable': disable
+    }
+
+    try:
+        func = api_calls[operation]
+    except KeyError:
+        return module.fail_json(
+            msg="operation: %s is not supported. Choose one of: %s'" % (
+                operation, str(api_calls.keys()))
+        )
+
+    try:
+        changed, msg = func(
+            uri,
+            username,
+            password,
+            name,
+            executors=executors,
+            description=description,
+            labels=labels,
+            exclusive=exclusive,
+            host=host,
+            credentialsId=credentialsId,
+            launcher=launcher,
+            remoteFS=remoteFS,
+        )
+    except Exception as ex:
+        return module.fail_json(msg=ex.message)
+
+    args = {'changed': changed}
+    if msg:
+        args['msg'] = msg
+    module.exit_json(**args)
+
+
+# yep, everything: https://docs.ansible.com/developing_modules.html#common-module-boilerplate
+from ansible.module_utils.basic import *
+if __name__ == '__main__':
+    main()
