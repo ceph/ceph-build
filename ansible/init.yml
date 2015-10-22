@@ -6,7 +6,7 @@
 # be publicly accessible.
 
 - hosts: all
-  user: centos
+  user: admin
   sudo: true
   tasks:
 
@@ -44,5 +44,10 @@
     #  command: firewall-cmd --add-port 2222/tcp --permanent
 
     # Example action to start service httpd, if not running
+    - name: restart ssh
+      service: name=ssh state=restarted
+      when: ansible_pkg_mgr  == "apt"
+
     - name: restart sshd
       service: name=sshd state=restarted
+      when: ansible_pkg_mgr  == "yum"
