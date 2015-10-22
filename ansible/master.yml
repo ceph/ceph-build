@@ -29,6 +29,7 @@
       - 'credentials'
       - 'copyartifact'
       - 'github-oauth'
+      - 'mask-passwords'
 
     - port: 8080
     - prefix: '/build'
