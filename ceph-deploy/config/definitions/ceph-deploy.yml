@@ -45,10 +45,8 @@
             - precise
             - trusty
             - jessie
-            - centos6.5
+            - centos6
             - centos7
-            - rhel6.5
-            - rhel7
 
     builders:
       - shell: !include-raw ../../build/setup
