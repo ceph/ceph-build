@@ -25,4 +25,4 @@
           timeout: 20
 
     builders:
-      - shell: "bash jjb/config/config"
+      - shell: "bash jenkins-job-builder/config/config"
