@@ -2,7 +2,7 @@
 
 - name: Configure Jenkins Port
   lineinfile:
-    dest: /etc/sysconfig/jenkins
+    dest: '{{ jenkins.apt.config_file }}'
     regexp: ^HTTP_PORT=
     line: HTTP_PORT={{port}}
     backrefs: yes
@@ -30,7 +30,7 @@
 - name: Configure Jenkins Prefix
   when: prefix is defined
   lineinfile:
-    dest: /etc/sysconfig/jenkins
+    dest: '{{ jenkins.apt.config_file }}'
     regexp: ^PREFIX=
     line: PREFIX={{prefix}}
     backrefs: yes
@@ -38,7 +38,7 @@
 - name: Set the amount of RAM
   when: xmx is defined
   lineinfile:
-    dest: /etc/sysconfig/jenkins
+    dest: '{{ jenkins.apt.config_file }}'
     regexp: ^JENKINS_JAVA_OPTIONS
     line: 'JENKINS_JAVA_OPTIONS="-Xmx{{xmx}}m -Djava.awt.headless=true"'
     backrefs: yes
@@ -54,6 +54,7 @@
 
 - name: Tell SELinux that we should allow Nginx to talk to Jenkins
   seboolean: name=httpd_can_network_connect state=yes persistent=yes
+  when: ansible_pkg_mgr  == "yum"
 
 - name: copy JJB config file to {{ jenkins_jobs }}
   synchronize:

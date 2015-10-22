@@ -11,5 +11,12 @@ jenkins:
       - 'git'
       - 'curl'
       - 'nginx'
+    config_file: '/etc/sysconfig/jenkins'
+  apt:
+    dependencies: # Jenkins dependencies
+      - 'git'
+      - 'curl'
+      - 'nginx'
+    config_file: '/etc/default/jenkins'
   cli_dest: '{{ jenkins_dest }}/jenkins-cli.jar' # Jenkins CLI destination
   updates_dest: '{{ jenkins_dest }}/updates_jenkins.json' # Jenkins updates file
