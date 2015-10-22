@@ -10,7 +10,6 @@
     - nginx_connections: 2048
     - ansible_ssh_port: 2222
     - plugins:
-      - 'ldap'
       - 'github'
       - 'translation'
       - 'preSCMbuildstep'
