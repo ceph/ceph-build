@@ -24,11 +24,9 @@
             - jessie
             #- wheezy
             #- precise
-            #- trusty
-            #- centos6.5
+            - trusty
+            #- centos6
             - centos7
-            #- rhel6.5
-            - rhel7
 
     builders:
       - shell: |

@@ -24,10 +24,8 @@
           type: label-expression
           name: DIST
           values:
-            - centos6.5
+            - centos6
             - centos7
-            - rhel6.5
-            - rhel7
 
     builders:
       - shell:
