@@ -16,27 +16,6 @@
     - name: set the authorized keys
       authorized_key: user=jenkins-build key="{{ lookup('file', 'files/ssh/keys/jenkins_build.pub') }}"
 
-    # FIXME: this doesn't work right now as we aren't pushing private keys
-    # around in public repos
-    - name: ensure private key is present
-      copy: src=files/ssh/keys/jenkins_build dest=/home/{{ jenkins_user }}/.ssh/id_rsa mode=0600
-
-    - name: ensure public key is present
-      copy: src=files/ssh/keys/jenkins_build.pub dest=/home/{{ jenkins_user }}/.ssh/id_rsa.pub mode=0600
-
-    - name: /etc/jenkins_jobs should exist as a dir
-      file:
-        path: /etc/jenkins_jobs
-        state: directory
-
-    - name: jenkins api key should be present
-      copy: src=files/jenkins_jobs.ini dest=/etc/jenkins_jobs/jenkins_jobs.ini
-
-    - name: Upload the .chacractl file
-      copy:
-        src: files/chacractl
-        dest: "/home/{{ jenkins_user }}/.chacractl"
-
     - name: ensure the build dir exists
       sudo: yes
       lineinfile:
