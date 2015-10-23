@@ -23,6 +23,18 @@ if ! venv/bin/pip install --find-links="file://$PIP_SDIST_INDEX" --no-index jenk
     venv/bin/pip install --find-links="file://$PIP_SDIST_INDEX" --no-index jenkins-job-builder
 fi
 
+# workaround for https://issues.jenkins-ci.org/browse/JENKINS-16225
+JENKINS_URL=${JENKINS_URL:-"http://jenkins.ceph.com/"}
+JJB_CONFIG="$HOME/.jenkins_jobs.ini"
+
+# slap the programatically computed JJB config using env vars from Jenkins
+cat > $JJB_CONFIG << EOF
+[jenkins]
+user=$JOB_BUILDER_USER
+password=$JOB_BUILDER_PASS
+url=$JENKINS_URL
+EOF
+
 # Test every definition if available in the current repository and update the jobs
 # if they do define one (they should always define their definitions)
 for dir in `find . -maxdepth 1 -path ./.git -prune -o -type d -print`; do
@@ -31,11 +43,11 @@ for dir in `find . -maxdepth 1 -path ./.git -prune -o -type d -print`; do
         echo "found definitions directory: $definitions_dir"
 
         # Test the definitions first
-        venv/bin/jenkins-jobs test $definitions_dir -o /tmp/output
+        venv/bin/jenkins-jobs --conf $HOME/.jenkins_jobs.ini test $definitions_dir -o /tmp/output
 
         # Update Jenkins with the output if they passed the test phase
         # Note that this needs proper permissions with the right credentials to the
         # correct Jenkins instance.
-        venv/bin/jenkins-jobs update $definitions_dir
+        venv/bin/jenkins-jobs --conf $HOME/.jenkins_jobs.ini update $definitions_dir
     fi
 done
