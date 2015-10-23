@@ -33,14 +33,6 @@
     - name: ensure the build dir exists
       file: path=/home/{{ jenkins_user }}/build state=directory owner={{ jenkins_user }}
 
-    - name: mount the ephemeral storage at the build dir
-      mount:
-        name: /home/jenkins-build/build
-        src: '/dev/vdb'
-        fstype: ext3
-        opts: noatime
-        state: mounted
-
     - name: ensure the build dir has the right owner permissions
       file: path=/home/{{ jenkins_user }}/build state=directory owner={{ jenkins_user }}
 
