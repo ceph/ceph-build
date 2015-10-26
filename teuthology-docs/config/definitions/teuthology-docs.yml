@@ -34,3 +34,11 @@
     builders:
       - shell:
           !include-raw ../../build/build
+
+    # publish docs to docs.ceph.com/teuthology/docs
+    publishers:
+      - ssh:
+          site: 'docs.ceph.com'
+          target: 'teuthology/docs/'
+          source: '.tox/docs/tmp/html/**'
+          remove-prefix: '.tox/docs/tmp/html/'
