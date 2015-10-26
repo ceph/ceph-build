@@ -105,7 +105,7 @@ echo done
 # Make sure we execute at the top level directory
 cd "$WORKSPACE"
 
-[ "$TEST_BUILD" = true ] && chacra_ref="$vers" || chacra_ref="test"
+[ "$TEST" = true ] && chacra_ref="$vers" || chacra_ref="test"
 
 # push binaries to chacra
 find release/${vers}/rpm/*/SRPMS | grep rpm | chacractl binary create ceph/${chacra_ref}/${DISTRO}/${RELEASE}/source

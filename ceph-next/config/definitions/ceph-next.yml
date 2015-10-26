@@ -33,7 +33,7 @@ If this is checked, then the builds will be signed by the release key (460F3994)
 Only check this box if we will be shipping the packages as formal releases."
 
       - bool:
-          name: TEST_BUILD
+          name: TEST
           description: "
 If this is unchecked, then the builds will be pushed to chacra with the correct ref. This is the default.&lt;br/&gt;
 
