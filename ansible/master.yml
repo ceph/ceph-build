@@ -30,6 +30,7 @@
       - 'copyartifact'
       - 'github-oauth'
       - 'mask-passwords'
+      - 'description-setter'
 
     - port: 8080
     - prefix: '/build'
