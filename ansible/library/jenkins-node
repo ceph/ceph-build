@@ -16,12 +16,12 @@ options:
 
   username:
     description:
-      - The username to log-in with.
+      - The Jenkins username to log-in with.
     required: true
 
   password:
     description:
-      - The password to log-in with.
+      - The Jenkins password (or API token) to log-in with.
     required: true
 
   operation:
@@ -76,7 +76,8 @@ options:
     description:
       - the ID of the user needed for authentication. Usually found in
         credentials.xml or via the url
-        {host}/credential-store/domain/_/credential/{id}
+	{host}/credential-store/domain/_/credential/{id}. By default this is an
+        SSH user account and key (see "launcher" above).
 
   host:
     description:
@@ -233,7 +234,16 @@ def main():
             remoteFS=remoteFS,
         )
     except Exception as ex:
-        return module.fail_json(msg=ex.message)
+        # Ensure that errors going out to Jenkins, specifically the network
+        # requests, can be properly translated into meaningful errors so that
+        # Ansible can report those back.
+        if ex.__class__.__name__ == 'HTTPError':
+            msg = "HTTPError %s: %s" % (exc_obj.code, exc_obj.url)
+        else:
+            message = getattr(ex, 'message', None)
+            msg = getattr(ex, 'msg', message)
+            msg = "%s: %s" % (ex.__class__.__name__, msg)
+        return module.fail_json(msg=msg)
 
     args = {'changed': changed}
     if msg:
