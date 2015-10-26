@@ -160,9 +160,10 @@ echo lintian --allow-root $releasedir/$cephver/*$bpvers*.deb
 echo "Start Time = $start_time"
 echo "  End Time = $(date)"
 
+[ "$TEST" = true ] && chacra_ref="$vers" || chacra_ref="test"
 
 # push binaries to chacra
-find release/$vers/ | grep 'changes\|deb\|dsc\|gz' | chacractl binary create ceph/${vers}/${distro}/{$dist}/${ARCH}
+find release/$vers/ | grep 'changes\|deb\|dsc\|gz' | chacractl binary create ceph/${chacra_ref}/${distro}/{$dist}/${ARCH}
 
 
 echo "End Date: $(date)"
