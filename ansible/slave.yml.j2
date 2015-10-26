@@ -97,7 +97,8 @@
 
     - name: install python-jenkins
       sudo: true
-      pip: name=python-jenkins
+      # https://bugs.launchpad.net/python-jenkins/+bug/1500898
+      pip: name=python-jenkins version=0.4.7
 
     - name: register the new slave to jenkins master
       jenkins-node:
