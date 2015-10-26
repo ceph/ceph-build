@@ -62,7 +62,7 @@
   </triggers>
   <builders>
     <hudson.tasks.Shell>
-      <command>bash jenkins-job-builder/config/config</command>
+      <command>bash jenkins-job-builder/build/build</command>
     </hudson.tasks.Shell>
   </builders>
   <publishers/>
