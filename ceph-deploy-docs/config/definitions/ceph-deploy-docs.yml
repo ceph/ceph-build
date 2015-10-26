@@ -35,3 +35,11 @@
     builders:
       - shell:
           !include-raw ../../build/build
+
+    # publish docs to docs.ceph.com/ceph-deploy/docs
+    publishers:
+      - ssh:
+          site: 'docs.ceph.com'
+          target: 'ceph-deploy/docs/'
+          source: '.tox/docs/tmp/html/**'
+          remove-prefix: '.tox/docs/tmp/html/'
