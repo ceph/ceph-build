@@ -1,0 +1,31 @@
+- job:
+    name: ceph-mirror
+    project-type: freestyle
+    defaults: global
+    disabled: false
+    display-name: 'ceph-mirror: Repo mirror from ceph/ceph to ceph/ceph-releases'
+    concurrent: false
+    quiet-period: 5
+    block-downstream: false
+    block-upstream: false
+    retry-count: 3
+    properties:
+      - github:
+          url: https://github.com/ceph/ceph-releases/
+    logrotate:
+      daysToKeep: 15
+      numToKeep: 30
+      artifactDaysToKeep: -1
+      artifactNumToKeep: -1
+
+    triggers:
+      - pollscm: "* * * * *"
+
+    scm:
+      - git:
+          url: https://github.com/ceph/ceph.git
+          remotes: ['git@github.com:ceph/ceph-releases.git']
+          timeout: 20
+
+    builders:
+      - shell: !include-raw ../../build/build
