@@ -11,11 +11,11 @@ vers=`cat ./dist/version`
 distro=`python -c "exec 'import platform; print platform.linux_distribution()[0].lower()'"`
 chacra_endpoint="ceph/${chacra_ref}/${distro}/{$dist}/${ARCH}"
 
-binary_exists=`chacractl binary exists ${chacra_endpoint}`
+chacractl exists binaries/${chacra_endpoint}; exists=$? || true
 
 # if the binary already exists in chacra, do not rebuild
-if [ "$binary_exists" = true ] ; then
-    echo "The binary at ${chacra_endpoint} already exists, Exiting..."
+if [ $exists -e 0 ] && [ "$FORCE" = false ] ; then
+    echo "The endpoint at ${chacra_endpoint} already exists and FORCE was not set, Exiting..."
     exit 0
 fi
 
