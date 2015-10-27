@@ -5,37 +5,6 @@ if [[ ! -f /etc/redhat-release && ! -f /usr/bin/zypper ]] ; then
     exit 0
 fi
 
-HOST=$(hostname --short)
-echo "Building on $(hostname) Date: $(date)"
-echo "  DIST=${DIST}"
-echo "  BPTAG=${BPTAG}"
-echo "  WS=$WORKSPACE"
-echo "  PWD=$(pwd)"
-echo "  BUILD SOURCE=$COPYARTIFACT_BUILD_NUMBER_CEPH_SETUP"
-echo "*****"
-env
-echo "*****"
-
-
-vers=`cat ./dist/version`
-# create a release directory for ceph-build tools
-mkdir -p release
-cp -a dist release/${vers}
-echo $DIST > release/${vers}/debian_dists
-echo "${vers}-1" > release/${vers}/debian_version
-
-echo "Building RPMs"
-
-# The below contents ported from /srv/ceph-build/build_rpms.sh ::
-#     $bindir/build_rpms.sh ./release $vers
-#
-
-releasedir="./release"
-cephver=$vers
-
-# Contents below ported from /srv/ceph-build/get_rpm_dist.sh
-# dist=`$bindir/get_rpm_dist.sh`
-
 get_rpm_dist() {
     LSB_RELEASE=/usr/bin/lsb_release
     [ ! -x $LSB_RELEASE ] && echo unknown && exit
@@ -82,9 +51,48 @@ get_rpm_dist() {
 }
 
 dist=`get_rpm_dist`
-
 [ -z "$dist" ] && echo no dist && exit 1
 echo dist $dist
+
+vers=`cat ./dist/version`
+[ "$TEST" = true ] && chacra_ref="$vers" || chacra_ref="test"
+chacra_baseurl="ceph/${chacra_ref}/${DISTRO}/${RELEASE}"
+
+binary_exists=`chacractl binary exists ${chacra_baseurl}/${ARCH}`
+
+# if the binary already exists in chacra, do not rebuild
+if [ "$binary_exists" = true ] ; then
+    echo "The binary at ${chacra_baseurl}/${ARCH} already exists, Exiting..."
+    exit 0
+fi
+
+
+HOST=$(hostname --short)
+echo "Building on $(hostname) Date: $(date)"
+echo "  DIST=${DIST}"
+echo "  BPTAG=${BPTAG}"
+echo "  WS=$WORKSPACE"
+echo "  PWD=$(pwd)"
+echo "  BUILD SOURCE=$COPYARTIFACT_BUILD_NUMBER_CEPH_SETUP"
+echo "*****"
+env
+echo "*****"
+
+
+# create a release directory for ceph-build tools
+mkdir -p release
+cp -a dist release/${vers}
+echo $DIST > release/${vers}/debian_dists
+echo "${vers}-1" > release/${vers}/debian_version
+
+echo "Building RPMs"
+
+# The below contents ported from /srv/ceph-build/build_rpms.sh ::
+#     $bindir/build_rpms.sh ./release $vers
+#
+
+releasedir="./release"
+cephver=$vers
 
 cd $releasedir/$cephver || exit 1
 
@@ -105,10 +113,9 @@ echo done
 # Make sure we execute at the top level directory
 cd "$WORKSPACE"
 
-[ "$TEST" = true ] && chacra_ref="$vers" || chacra_ref="test"
 
 # push binaries to chacra
-find release/${vers}/rpm/*/SRPMS | grep rpm | chacractl binary create ceph/${chacra_ref}/${DISTRO}/${RELEASE}/source
-find release/${vers}/rpm/*/RPMS/* | grep rpm | chacractl binary create ceph/${chacra_ref}/${DISTRO}/{$RELEASE}/${ARCH}
+find release/${vers}/rpm/*/SRPMS | grep rpm | chacractl binary create ${chacra_baseurl}/source
+find release/${vers}/rpm/*/RPMS/* | grep rpm | chacractl binary create ${chacra_baseurl}/${ARCH}
 
 echo "End Date: $(date)"
