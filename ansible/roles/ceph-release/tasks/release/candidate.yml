@@ -1,0 +1,3 @@
+
+  - name: set the debian version
+    command: dch -v {{ version }}-1 -D stable "New upstream release" chdir=ceph
