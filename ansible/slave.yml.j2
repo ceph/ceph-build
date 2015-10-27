@@ -93,6 +93,10 @@
         - doxygen
         - ditaa
         - ant
+        # teuthology-docs job:
+        - libmysqlclient-dev
+        - libevent-dev
+        - libffi-dev
       when: ansible_pkg_mgr  == "apt"
 
     - name: install six, latest one

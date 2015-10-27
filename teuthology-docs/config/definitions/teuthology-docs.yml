@@ -31,6 +31,12 @@
           browser-url: https://github.com/ceph/teuthology.git
           timeout: 20
 
+    wrappers:
+      - ssh-agent-credentials:
+          users:
+            # "jenkins-publish" SSH key, needed for rsync to docs.ceph.com:
+            - 'fa9ca012-6731-4c7d-be74-eda748e36ee8'
+
     builders:
       - shell:
           !include-raw ../../build/build
