@@ -11,7 +11,7 @@ vers=`cat ./dist/version`
 distro=`python -c "exec 'import platform; print platform.linux_distribution()[0].lower()'"`
 chacra_endpoint="ceph/${chacra_ref}/${distro}/{$dist}/${ARCH}"
 
-chacractl binary exists ${chacra_endpoint}
+chacractl exists binaries/${chacra_endpoint}
 
 # if the binary already exists in chacra, do not rebuild
 if [ $? -e 0 ] && [ "$FORCE" = false ] ; then

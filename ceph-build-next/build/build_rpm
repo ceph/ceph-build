@@ -58,7 +58,7 @@ vers=`cat ./dist/version`
 [ "$TEST" = true ] && chacra_ref="$vers" || chacra_ref="test"
 chacra_baseurl="ceph/${chacra_ref}/${DISTRO}/${RELEASE}"
 
-chacractl binary exists ${chacra_baseurl}/${ARCH}
+chacractl exists binaries/${chacra_baseurl}/${ARCH}
 
 # if the binary already exists in chacra, do not rebuild
 if [ $? -e 0 ] && [ "$FORCE" = false ]; then
