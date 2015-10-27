@@ -24,7 +24,9 @@
     scm:
       - git:
           url: https://github.com/ceph/ceph.git
-          remotes: ['git@github.com:ceph/ceph-releases.git']
+          remotes:
+             - remote:
+                 url: git@github.com:ceph/ceph-releases.git
           timeout: 20
 
     builders:
