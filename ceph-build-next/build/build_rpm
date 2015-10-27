@@ -62,7 +62,7 @@ chacractl exists binaries/${chacra_baseurl}/${ARCH}
 
 # if the binary already exists in chacra, do not rebuild
 if [ $? -e 0 ] && [ "$FORCE" = false ]; then
-    echo "The endpoint at ${chacra_baseurl}/${ARCH} already exists, Exiting..."
+    echo "The endpoint at ${chacra_baseurl}/${ARCH} already exists and FORCE was not set, Exiting..."
     exit 0
 fi
 
