@@ -89,6 +89,10 @@
         - libtool
         - autotools-dev
         - automake
+        # ceph-docs job:
+        - doxygen
+        - ditaa
+        - ant
       when: ansible_pkg_mgr  == "apt"
 
     - name: install six, latest one
@@ -99,6 +103,13 @@
       sudo: true
       # https://bugs.launchpad.net/python-jenkins/+bug/1500898
       pip: name=python-jenkins version=0.4.7
+
+    - name: add docs.ceph.com host key
+      sudo: true
+      known_hosts: path='/etc/ssh/ssh_known_hosts'
+      name='docs.ceph.com'
+      # docs.ceph.com.pub is the output of `ssh-keyscan docs.ceph.com`
+      key="{{ lookup('file', 'ssh/hostkeys/docs.ceph.com.pub') }}"
 
     - name: register the new slave to jenkins master
       jenkins-node:
