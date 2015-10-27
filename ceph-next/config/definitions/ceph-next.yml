@@ -30,6 +30,13 @@ If this is unchecked, then the builds will be pushed to chacra with the correct 
 
 If this is checked, then the builds will be pushed to chacra under the 'test' ref."
 
+      - bool:
+          name: FORCE
+          description: "
+If this is unchecked, then then nothing is built or pushed if they already exist in chacra. This is the default.
+
+If this is checked, then the binaries will be built and pushed to chacra even if they already exist in chacra."
+
     builders:
       - multijob:
           name: 'ceph setup phase'
