@@ -29,6 +29,7 @@
           admin-list:
             - alfredodeza
             - ktdreyer
+            - andrewschoen
           org-list:
             - ceph
           trigger-phrase: ''
