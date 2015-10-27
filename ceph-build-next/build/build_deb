@@ -6,6 +6,19 @@ if test -f /etc/redhat-release ; then
     exit 0
 fi
 
+[ "$TEST" = true ] && chacra_ref="$vers" || chacra_ref="test"
+vers=`cat ./dist/version`
+distro=`python -c "exec 'import platform; print platform.linux_distribution()[0].lower()'"`
+chacra_endpoint="ceph/${chacra_ref}/${distro}/{$dist}/${ARCH}"
+
+binary_exists=`chacractl binary exists ${chacra_endpoint}`
+
+# if the binary already exists in chacra, do not rebuild
+if [ "$binary_exists" = true ] ; then
+    echo "The binary at ${chacra_endpoint} already exists, Exiting..."
+    exit 0
+fi
+
 get_bptag() {
     dist=$1
 
@@ -39,7 +52,6 @@ echo "*****"
 env
 echo "*****"
 
-vers=`cat ./dist/version`
 # create a release directory for ceph-build tools
 mkdir -p release
 cp -a dist release/${vers}
@@ -130,7 +142,6 @@ sudo pbuilder --clean
 bpvers=`gen_debian_version $dvers $DIST`
 echo deb vers $bpvers
 
-distro=`python -c "exec 'import platform; print platform.linux_distribution()[0].lower()'"`
 
 echo building debs for $DIST
 if [ `dpkg-architecture -qDEB_BUILD_ARCH` = "i386" ] ; then
@@ -160,10 +171,8 @@ echo lintian --allow-root $releasedir/$cephver/*$bpvers*.deb
 echo "Start Time = $start_time"
 echo "  End Time = $(date)"
 
-[ "$TEST" = true ] && chacra_ref="$vers" || chacra_ref="test"
-
 # push binaries to chacra
-find release/$vers/ | grep 'changes\|deb\|dsc\|gz' | chacractl binary create ceph/${chacra_ref}/${distro}/{$dist}/${ARCH}
+find release/$vers/ | grep 'changes\|deb\|dsc\|gz' | chacractl binary create ${chacra_endpoint}
 
 
 echo "End Date: $(date)"
