@@ -54,3 +54,8 @@ If this is checked, then the builds will be pushed to chacra under the 'test' re
             - name: ceph-build-next
               current-parameters: true
               exposed-scm: false
+
+    wrappers:
+      - inject-passwords:
+          global: true
+          mask-password-params: true

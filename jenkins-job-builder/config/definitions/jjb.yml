@@ -15,6 +15,11 @@
       - pollscm: "H */3 * * *"
       - github
 
+    wrappers:
+      - inject-passwords:
+          global: true
+          mask-password-params: true
+
     scm:
       - git:
           url: https://github.com/ceph/ceph-build.git
