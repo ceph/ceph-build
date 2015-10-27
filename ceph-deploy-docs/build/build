@@ -20,5 +20,6 @@ fi
 
 # create the docs build with tox
 tox -rv -e docs
-# publish docs to ceph.com/ceph-deploy/docs
-rsync -auv --delete -e "ssh -i /home/jenkins-build/.ssh/cephdocs_id_rsa -o StrictHostKeyChecking=no" .tox/docs/tmp/html/* cephdocs@ceph.newdream.net:/home/ceph_site/ceph.com/ceph-deploy/docs/
+
+# publish docs to docs.ceph.com/docs/ceph-deploy
+rsync -auv --delete .tox/docs/tmp/html/* jenkins-publish@newdocs.ceph.com:/var/ceph-deploy/docs/
