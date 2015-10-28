@@ -22,7 +22,7 @@
 
     scm:
       - git:
-          url: https://github.com/ceph/ceph.git
+          url: https://github.com/ceph/ceph
           browser: auto
           # The default is to build and publish every branch.
           # Uncomment this for testing:
