@@ -13,7 +13,7 @@
   when: ceph_repo.stat.exists is defined and ceph_repo.stat.exists == false
 
 - name: add origin
-  command: git remote add origin git://github.com/ceph/ceph-releases.git chdir=ceph
+  command: git remote add origin git@github.com:ceph/ceph-releases.git chdir=ceph
 
 - name: clear the previous local tag
   command: git tag -d v{{ version }} chdir=ceph
