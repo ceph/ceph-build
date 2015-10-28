@@ -1,0 +1,40 @@
+- job:
+    name: ceph-tag-next
+    description: "This job clones from upstream Ceph, sets the right version from the tag and pushes changes to ceph-releases"
+    disabled: false
+    display-name: 'ceph-tag-next'
+    concurrent: false
+    logrotate:
+      daysToKeep: -1
+      numToKeep: 25
+      artifactDaysToKeep: -1
+      artifactNumToKeep: -1
+    block-downstream: false
+    block-upstream: false
+    properties:
+      - github:
+          url: https://github.com/ceph/ceph
+
+    parameters:
+      - string:
+          name: BRANCH
+          description: "The git branch (or tag) to build"
+      - string:
+          name: VERSION
+          description: "The version for release, e.g. 0.94.4"
+    scm:
+      - git:
+          url: git://github.com/ceph/ceph.git
+          branches:
+            - $BRANCH
+          skip-tag: true
+          wipe-workspace: true
+
+    builders:
+      - shell:
+          !include-raw ../../build/build
+
+    wrappers:
+      - inject-passwords:
+          global: true
+          mask-password-params: true
