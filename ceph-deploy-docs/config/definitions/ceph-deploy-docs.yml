@@ -24,11 +24,11 @@
 
     scm:
       - git:
-          url: https://github.com/ceph/ceph-deploy.git
+          url: https://github.com/ceph/ceph-deploy
           branches:
             - master
           browser: githubweb
-          browser-url: https://github.com/ceph/ceph-deploy.git
+          browser-url: https://github.com/ceph/ceph-deploy
           skip-tag: true
           timeout: 20
 
