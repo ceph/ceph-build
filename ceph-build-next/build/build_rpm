@@ -56,7 +56,7 @@ dist=$DIST
 echo dist $dist
 
 vers=`cat ./dist/version`
-[ "$TEST" = true ] && chacra_ref="test" || chacra_ref="$vers"
+[ "$TEST" = true ] && chacra_ref="test" || chacra_ref="$BRANCH"
 chacra_baseurl="ceph/${chacra_ref}/${DISTRO}/${RELEASE}"
 
 ./venv/bin/chacractl exists binaries/${chacra_baseurl}/${ARCH}; exists=$? || true

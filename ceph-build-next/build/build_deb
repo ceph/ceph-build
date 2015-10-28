@@ -28,7 +28,7 @@ get_bptag() {
 
 BPTAG=`get_bptag $DIST`
 
-[ "$TEST" = true ] && chacra_ref="test" || chacra_ref="$vers"
+[ "$TEST" = true ] && chacra_ref="test" || chacra_ref="$BRANCH"
 vers=`cat ./dist/version`
 distro=`python -c "exec 'import platform; print platform.linux_distribution()[0].lower()'"`
 chacra_endpoint="ceph/${chacra_ref}/${distro}/{$dist}/${ARCH}"
