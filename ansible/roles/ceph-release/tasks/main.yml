@@ -9,6 +9,7 @@
     repo: git@github.com:ceph/ceph
     remote: upstream
     dest: ceph
+    accept_hostkey: yes
   when: ceph_repo.stat.exists is defined and ceph_repo.stat.exists == false
 
 - name: add origin
