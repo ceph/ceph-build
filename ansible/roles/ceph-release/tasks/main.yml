@@ -17,6 +17,12 @@
   # because if the repo exists then it probably has the origin already in there
   ignore_errors: yes
 
+- name: reset --hard to upstream
+  command: git fetch
+  command: git reset --hard /{{ branch }}
+  ignore_errors: yes
+  when: clean
+
 - name: clear the previous local tag
   command: git tag -d v{{ version }} chdir=ceph
   ignore_errors: yes
@@ -24,12 +30,6 @@
 
 - name: clear the previous remote tag
   command: git push origin :v{{ version }} chdir=ceph
-  ignore_errors: yes
-  when: clean
-
-- name: reset --hard to upstream
-  command: git fetch
-  command: git reset --hard /{{ branch }}
   ignore_errors: yes
   when: clean
 
