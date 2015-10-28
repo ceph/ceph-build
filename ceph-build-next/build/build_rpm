@@ -55,7 +55,7 @@ dist=`get_rpm_dist`
 echo dist $dist
 
 vers=`cat ./dist/version`
-[ "$TEST" = true ] && chacra_ref="$vers" || chacra_ref="test"
+[ "$TEST" = true ] && chacra_ref="test" || chacra_ref="$vers"
 chacra_baseurl="ceph/${chacra_ref}/${DISTRO}/${RELEASE}"
 
 ./venv/bin/chacractl exists binaries/${chacra_baseurl}/${ARCH}; exists=$? || true
