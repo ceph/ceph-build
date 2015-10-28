@@ -20,7 +20,7 @@
       artifactNumToKeep: -1
 
     triggers:
-      - pollscm: "* * * * *"
+      - github
 
     scm:
       - git:

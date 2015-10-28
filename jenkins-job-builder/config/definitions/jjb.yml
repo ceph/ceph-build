@@ -12,7 +12,6 @@
     retry-count: 3
 
     triggers:
-      - pollscm: "H */3 * * *"
       - github
 
     wrappers:
