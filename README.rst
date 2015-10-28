@@ -219,3 +219,24 @@ job.
 
 For these jobs, note that the destination directory must be created on the
 ceph.com web server before the ``rsync`` command will succeed.
+
+Polling and GitHub
+------------------
+Jenkins can periodically poll Git repos on github.com for changes, but this is
+slow and inefficient. Instead of polling GitHub, it's best to use GitHub's web hooks instead.
+
+See the "jenkins-job-builder" job as an example.
+
+1. Set up the ``triggers`` section::
+
+    triggers:
+      - github
+
+2. Visit the GitHub repository's "settings" page, eg
+   https://github.com/ceph/ceph-build/settings/hooks, and add a new web hook.
+
+   - The Payload URL should be ``https://jenkins.ceph.com/github-webhook/``
+     (note the trailing slash)
+   - The ``Content type`` should be ``application/x-www-form-urlencoded``
+   - ``Secret`` should be blank
+   - Select ``Just send the push event``.
