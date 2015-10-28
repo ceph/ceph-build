@@ -83,7 +83,7 @@ fi
 
 # create the .chacractl config file
 cat > $HOME/.chacractl << EOF
-url = $CHACRACTL_URL
-user = $CHACRACTL_USER
-key = $CHACRACTL_KEY
+url = "$CHACRACTL_URL"
+user = "$CHACRACTL_USER"
+key = "$CHACRACTL_KEY"
 EOF
