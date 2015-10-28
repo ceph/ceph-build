@@ -33,7 +33,7 @@ vers=`cat ./dist/version`
 distro=`python -c "exec 'import platform; print platform.linux_distribution()[0].lower()'"`
 chacra_endpoint="ceph/${chacra_ref}/${distro}/{$dist}/${ARCH}"
 
-./venv/bin/chacractl exists binaries/${chacra_endpoint}; exists=$? || true
+$WORKSPACE/venv/bin/chacractl exists binaries/${chacra_endpoint}; exists=$? || true
 
 # if the binary already exists in chacra, do not rebuild
 if [ $exists -e 0 ] && [ "$FORCE" = false ] ; then
@@ -173,7 +173,7 @@ echo "Start Time = $start_time"
 echo "  End Time = $(date)"
 
 # push binaries to chacra
-find release/$vers/ | grep 'changes\|deb\|dsc\|gz' | ./venv/bin/chacractl binary create ${chacra_endpoint}
+find release/$vers/ | grep 'changes\|deb\|dsc\|gz' | $WORKSPACE/venv/bin/chacractl binary create ${chacra_endpoint}
 
 
 echo "End Date: $(date)"

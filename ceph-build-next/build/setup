@@ -67,8 +67,8 @@ CentOS|Fedora|SUSE*|RedHatEnterpriseServer)
 esac
 
 # Create the virtualenv
-virtualenv venv
-. venv/bin/activate
+virtualenv $WORKSPACE/venv
+$WORKSPACE/venv/bin/activate
 
 # Define and ensure the PIP cache
 PIP_SDIST_INDEX="$HOME/.cache/pip"
