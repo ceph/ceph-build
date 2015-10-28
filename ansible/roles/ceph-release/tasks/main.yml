@@ -6,7 +6,7 @@
 
 - name: clone the ceph repository
   git:
-    repo: git@github.com:ceph/ceph
+    repo: https://github.com/ceph/ceph
     remote: upstream
     dest: ceph
     accept_hostkey: yes
