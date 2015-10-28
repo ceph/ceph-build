@@ -19,7 +19,7 @@
 
 - name: reset --hard to upstream
   command: git fetch
-  command: git reset --hard /{{ branch }}
+  command: git reset --hard origin/{{ branch }}
   ignore_errors: yes
   when: clean
 
