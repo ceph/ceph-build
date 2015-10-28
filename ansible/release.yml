@@ -1,0 +1,15 @@
+---
+
+- hosts: localhost
+  roles:
+    - ceph-release
+  vars:
+    # should be passed in the CLI like `--extra-vars "version=1.23.45 branch=master"`
+    version: 0-dev # e.g. 0.78
+    branch: master # any existing branch on Github
+    release: stable # stable, development, or rc are valid options
+    clean: true # if re-doing a deployment this deletes the remote branch in Jenkin's git repo
+    force_dch: false # if coming from a rc and wanting to release a stable you need to force dch
+    debemail: adeza@redhat.com
+    debfullname: "Alfredo Deza"
+
