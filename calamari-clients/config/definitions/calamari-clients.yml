@@ -58,6 +58,7 @@
     scm:
     - git:
         basedir: calamari-clients
-        branches: $BRANCH
+        branches:
+          - $BRANCH
         url: git@github.com:red-hat-storage/romana.git
         wipe-workspace: true
