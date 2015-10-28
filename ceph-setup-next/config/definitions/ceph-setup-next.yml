@@ -25,7 +25,7 @@
 
     scm:
       - git:
-          url: https://github.com/ceph/ceph-releases.git
+          url: git@github.com:ceph/ceph-releases.git
           branches:
             - $BRANCH
           skip-tag: true
