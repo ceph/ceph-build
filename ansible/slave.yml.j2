@@ -124,6 +124,14 @@
       # docs.ceph.com.pub is the output of `ssh-keyscan docs.ceph.com`
       key="{{ lookup('file', 'ssh/hostkeys/docs.ceph.com.pub') }}"
 
+    - name: add github.com host key
+      sudo: true
+      known_hosts:
+        path: '/etc/ssh/ssh_known_hosts'
+        name: 'github.com'
+        # github.com.pub is the output of `ssh-keyscan github.com`
+        key: "{{ lookup('file', 'ssh/hostkeys/github.com.pub') }}"
+
     - name: register the new slave to jenkins master
       jenkins-node:
         username: "{{ api_user }}"
