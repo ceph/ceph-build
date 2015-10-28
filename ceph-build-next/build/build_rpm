@@ -5,6 +5,9 @@ if [[ ! -f /etc/redhat-release && ! -f /usr/bin/zypper ]] ; then
     exit 0
 fi
 
+# activate the virtualenv
+$WORKSPACE/venv/bin/activate
+
 get_rpm_dist() {
     LSB_RELEASE=/usr/bin/lsb_release
     [ ! -x $LSB_RELEASE ] && echo unknown && exit
@@ -59,7 +62,7 @@ vers=`cat ./dist/version`
 [ "$TEST" = true ] && chacra_ref="test" || chacra_ref="$BRANCH"
 chacra_baseurl="ceph/${chacra_ref}/${DISTRO}/${RELEASE}"
 
-$WORKSPACE/venv/bin/chacractl exists binaries/${chacra_baseurl}/${ARCH}; exists=$? || true
+chacractl exists binaries/${chacra_baseurl}/${ARCH}; exists=$? || true
 
 # if the binary already exists in chacra, do not rebuild
 if [ $exists -e 0 ] && [ "$FORCE" = false ]; then
@@ -115,7 +118,7 @@ cd "$WORKSPACE"
 
 
 # push binaries to chacra
-find release/${vers}/rpm/*/SRPMS | grep rpm | $WORKSPACE/venv/bin/chacractl binary create ${chacra_baseurl}/source
-find release/${vers}/rpm/*/RPMS/* | grep rpm | $WORKSPACE/venv/bin/chacractl binary create ${chacra_baseurl}/${ARCH}
+find release/${vers}/rpm/*/SRPMS | grep rpm | chacractl binary create ${chacra_baseurl}/source
+find release/${vers}/rpm/*/RPMS/* | grep rpm | chacractl binary create ${chacra_baseurl}/${ARCH}
 
 echo "End Date: $(date)"
