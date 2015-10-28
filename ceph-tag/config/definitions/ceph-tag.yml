@@ -1,3 +1,14 @@
+- scm:
+    name: ceph-build
+    scm:
+      - git:
+          url: https://github.com/ceph/ceph-build.git
+          browser-url: https://github.com/ceph/ceph-build
+          timeout: 20
+          skip-tag: true
+          wipe-workspace: false
+          basedir: "ceph-build"
+
 - job:
     name: ceph-tag
     description: "This job clones from upstream Ceph, sets the right version from the tag and pushes changes to ceph-releases"
@@ -23,12 +34,7 @@
           name: VERSION
           description: "The version for release, e.g. 0.94.4"
     scm:
-      - git:
-          url: git://github.com/ceph/ceph.git
-          branches:
-            - $BRANCH
-          skip-tag: true
-          wipe-workspace: true
+      - ceph-build
 
     builders:
       - shell:
