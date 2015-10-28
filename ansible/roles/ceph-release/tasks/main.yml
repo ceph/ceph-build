@@ -35,7 +35,7 @@
   command: git checkout -f {{ branch }} chdir=ceph
 
 - name: fetch upstream
-  command: git fetch upstream -v
+  command: git fetch upstream -v chdir=ceph
 
 - name: git submodule update
   command: git submodule update --init chdir=ceph
