@@ -1,85 +1,70 @@
 ---
 
-- hosts: local
+- name: check if ceph repo exists
+  stat: path='./ceph'
+  register: 'ceph_repo'
 
-  connection: local
+- name: clone the ceph repository
+  git:
+    repo: git@github.com:ceph/ceph
+    remote: upstream
+    dest: ceph
+  when: ceph_repo.stat.exists is defined and ceph_repo.stat.exists == false
 
-  vars:
-    # should be passed in the CLI like `--extra-vars "version=1.23.45 branch=master"`
-    version: 0-dev # e.g. 0.78
-    branch: master # any existing branch on Github
-    release: stable # stable, development, or rc are valid options
-    clean: true # if re-doing a deployment this deletes the remote branch in Jenkin's git repo
-    force_dch: false # if coming from a rc and wanting to release a stable you need to force dch
-    debemail: adeza@redhat.com
-    debfullname: "Alfredo Deza"
+- name: add origin
+  command: git remote add origin git://github.com/ceph/ceph-releases.git chdir=ceph
 
-  tasks:
-     - name: check if ceph repo exists
-       stat: path='./ceph'
-       register: 'ceph_repo'
+- name: clear the previous local tag
+  command: git tag -d v{{ version }} chdir=ceph
+  ignore_errors: yes
+  when: clean
 
-     - name: clone the ceph repository
-       git:
-         repo: git@github.com:ceph/ceph
-         remote: upstream
-         dest: ceph
-       when: ceph_repo.stat.exists is defined and ceph_repo.stat.exists == false
+- name: clear the previous remote tag
+  command: git push origin :v{{ version }} chdir=ceph
+  ignore_errors: yes
+  when: clean
 
-     - name: add origin
-       command: git remote add origin git://github.com/ceph/ceph-releases.git chdir=ceph
+- name: reset --hard to upstream
+  command: git fetch
+  command: git reset --hard /{{ branch }}
+  ignore_errors: yes
+  when: clean
 
-     - name: clear the previous local tag
-       command: git tag -d v{{ version }} chdir=ceph
-       ignore_errors: yes
-       when: clean
+- name: force git checkout {{ branch }} branch
+  command: git checkout -f {{ branch }} chdir=ceph
 
-     - name: clear the previous remote tag
-       command: git push origin :v{{ version }} chdir=ceph
-       ignore_errors: yes
-       when: clean
+- name: fetch upstream
+  command: git fetch upstream -v
 
-     - name: reset --hard to upstream
-       command: git fetch
-       command: git reset --hard /{{ branch }}
-       ignore_errors: yes
-       when: clean
+- name: git submodule update
+  command: git submodule update --init chdir=ceph
 
-     - name: force git checkout {{ branch }} branch
-       command: git checkout -f {{ branch }} chdir=ceph
+- name: replace the version in configure.ac
+  lineinfile: dest=ceph/configure.ac
+              regexp='^AC_INIT\(\[ceph\],'
+              line='AC_INIT([ceph], [{{ version }}], [ceph-devel@vger.kernel.org])'
 
-     - name: fetch upstream
-       command: git fetch upstream -v
+- include: release/candidate.yml
+  when: "release in ['candidate', 'rc']"
 
-     - name: git submodule update
-       command: git submodule update --init chdir=ceph
+- include: release/development.yml
+  when: "release == 'development'"
 
-     - name: replace the version in configure.ac
-       lineinfile: dest=ceph/configure.ac
-                   regexp='^AC_INIT\(\[ceph\],'
-                   line='AC_INIT([ceph], [{{ version }}], [ceph-devel@vger.kernel.org])'
+- include: release/stable.yml
+  when: "release == 'stable'"
 
-     - include: release/candidate.yml
-       when: "release in ['candidate', 'rc']"
+- name: commit the version changes
+  command: git commit -a -m "{{ version }}" chdir=ceph
 
-     - include: release/development.yml
-       when: "release == 'development'"
+  # from script: /srv/ceph-build/tag_release.sh
+- name: tag and commit the version
+  # we used to sign releases like:
+  # GNUPGHOME=~/build/gnupg.ceph-release
+  # git tag -s "v{{ version }}"  -u 17ED316D -m "v{{ version }}" chdir=ceph
+  command: git tag "v{{ version }}" -m "v{{ version }}" chdir=ceph
 
-     - include: release/stable.yml
-       when: "release == 'stable'"
+- name: push changes to ceph-releases git repo
+  command: git push origin {{ branch }} chdir=ceph
 
-     - name: commit the version changes
-       command: git commit -a -m "{{ version }}" chdir=ceph
-
-       # from script: /srv/ceph-build/tag_release.sh
-     - name: tag and commit the version
-       # we used to sign releases like:
-       # GNUPGHOME=~/build/gnupg.ceph-release
-       # git tag -s "v{{ version }}"  -u 17ED316D -m "v{{ version }}" chdir=ceph
-       command: git tag "v{{ version }}" -m "v{{ version }}" chdir=ceph
-
-     - name: push changes to ceph-releases git repo
-       command: git push origin {{ branch }} chdir=ceph
-
-     - name: push the newly created tag
-       command: git push origin v{{ version }} chdir=ceph
+- name: push the newly created tag
+  command: git push origin v{{ version }} chdir=ceph
