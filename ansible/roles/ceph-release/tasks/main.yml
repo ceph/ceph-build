@@ -23,16 +23,6 @@
   ignore_errors: yes
   when: clean
 
-- name: clear the previous local tag
-  command: git tag -d v{{ version }} chdir=ceph
-  ignore_errors: yes
-  when: clean
-
-- name: clear the previous remote tag
-  command: git push origin :v{{ version }} chdir=ceph
-  ignore_errors: yes
-  when: clean
-
 - name: force git checkout {{ branch }} branch
   command: git checkout -f {{ branch }} chdir=ceph
 
@@ -59,8 +49,18 @@
 - name: commit the version changes
   command: git commit -a -m "{{ version }}" chdir=ceph
 
+- name: clear the previous local tag
+  command: git tag -d v{{ version }} chdir=ceph
+  ignore_errors: yes
+  when: clean
+
+- name: clear the previous remote tag
+  command: git push origin :v{{ version }} chdir=ceph
+  ignore_errors: yes
+  when: clean
+
   # from script: /srv/ceph-build/tag_release.sh
-- name: tag and commit the version
+- name: tag the version
   # we used to sign releases like:
   # GNUPGHOME=~/build/gnupg.ceph-release
   # git tag -s "v{{ version }}"  -u 17ED316D -m "v{{ version }}" chdir=ceph
