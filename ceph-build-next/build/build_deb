@@ -7,7 +7,7 @@ if test -f /etc/redhat-release ; then
 fi
 
 # activate the virtualenv
-$WORKSPACE/venv/bin/activate
+source $WORKSPACE/venv/bin/activate
 
 get_bptag() {
     dist=$1

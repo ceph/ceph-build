@@ -6,7 +6,7 @@ if [[ ! -f /etc/redhat-release && ! -f /usr/bin/zypper ]] ; then
 fi
 
 # activate the virtualenv
-$WORKSPACE/venv/bin/activate
+source $WORKSPACE/venv/bin/activate
 
 get_rpm_dist() {
     LSB_RELEASE=/usr/bin/lsb_release
