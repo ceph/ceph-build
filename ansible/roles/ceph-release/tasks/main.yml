@@ -66,8 +66,12 @@
   # git tag -s "v{{ version }}"  -u 17ED316D -m "v{{ version }}" chdir=ceph
   command: git tag "v{{ version }}" -m "v{{ version }}" chdir=ceph
 
-- name: push changes to ceph-releases git repo
-  command: git push origin {{ branch }} chdir=ceph
+  # 'origin' in this case is ceph-releases, since this is our fork/copy of the
+  # official ceph repo it is ok to forcefully push "losing" changes. This may
+  # come up if we need to re-do a release which means doing a fresh commit to
+  # the debian changelog and rpm files and tagging.
+- name: force push changes to ceph-releases git repo
+  command: git push -f origin {{ branch }} chdir=ceph
 
 - name: push the newly created tag
   command: git push origin v{{ version }} chdir=ceph
