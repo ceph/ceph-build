@@ -36,6 +36,13 @@
     scm:
       - ceph-build
 
+    wrappers:
+      - ssh-agent-credentials:
+          users:
+            # "jenkins-build" SSH key, needed so we can push to
+            # ceph-releases.git
+            - '39fa150b-b2a1-416e-b334-29a9a2c0b32d'
+
     builders:
       - shell:
           !include-raw ../../build/build
