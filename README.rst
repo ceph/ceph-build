@@ -98,7 +98,7 @@ or ``x86_64``, or package manager (as in ``yum`` or ``apt``).
 
 Below is an example of having three scripts for ``centos`` that at any given
 time (when there is a match) only two of them will get executed: ``all`` and
-either ``5`` or ``6``.
+either ``6`` or ``7``.
 
 ``all`` is a helper that will get executed always for all ``centos`` distro
 versions and combinations::
@@ -108,8 +108,8 @@ versions and combinations::
     │   └── post
     ├── pre
     │   ├── centos
-    │   │   ├── 5
     │   │   ├── 6
+    │   │   ├── 7
     │   │   └── all
     │   └── pre
     └── setup
