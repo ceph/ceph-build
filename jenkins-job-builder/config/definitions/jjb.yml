@@ -10,6 +10,9 @@
     block-downstream: false
     block-upstream: false
     retry-count: 3
+    properties:
+      - github:
+          url: https://github.com/ceph/ceph-build
 
     triggers:
       - github
@@ -21,11 +24,11 @@
 
     scm:
       - git:
-          url: https://github.com/ceph/ceph-build.git
+          url: https://github.com/ceph/ceph-build
           branches:
             - master
           browser: githubweb
-          browser-url: http://github.com/ceph/ceph-build.git
+          browser-url: https://github.com/ceph/ceph-build
           timeout: 20
 
     builders:
