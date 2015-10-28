@@ -6,7 +6,7 @@
           browser-url: https://github.com/ceph/ceph-build
           timeout: 20
           skip-tag: true
-          wipe-workspace: false
+          wipe-workspace: true
           basedir: "ceph-build"
 
 - job:
