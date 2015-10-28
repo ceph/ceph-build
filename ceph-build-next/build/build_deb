@@ -39,7 +39,7 @@ chacra_endpoint="ceph/${chacra_ref}/${distro}/{$dist}/${ARCH}"
 chacractl exists binaries/${chacra_endpoint}; exists=$? || true
 
 # if the binary already exists in chacra, do not rebuild
-if [ $exists -e 0 ] && [ "$FORCE" = false ] ; then
+if [ $exists -eq 0 ] && [ "$FORCE" = false ] ; then
     echo "The endpoint at ${chacra_endpoint} already exists and FORCE was not set, Exiting..."
     exit 0
 fi
