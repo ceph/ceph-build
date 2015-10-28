@@ -50,7 +50,8 @@ get_rpm_dist() {
     echo $DIST
 }
 
-dist=`get_rpm_dist`
+get_rpm_dist
+dist=$DIST
 [ -z "$dist" ] && echo no dist && exit 1
 echo dist $dist
 
