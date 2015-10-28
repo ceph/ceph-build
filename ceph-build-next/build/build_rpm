@@ -50,15 +50,16 @@ get_rpm_dist() {
     echo $DIST
 }
 
-dist=`get_rpm_dist`
+get_rpm_dist
+dist=$DIST
 [ -z "$dist" ] && echo no dist && exit 1
 echo dist $dist
 
 vers=`cat ./dist/version`
-[ "$TEST" = true ] && chacra_ref="$vers" || chacra_ref="test"
+[ "$TEST" = true ] && chacra_ref="test" || chacra_ref="$BRANCH"
 chacra_baseurl="ceph/${chacra_ref}/${DISTRO}/${RELEASE}"
 
-chacractl exists binaries/${chacra_baseurl}/${ARCH}; exists=$? || true
+./venv/bin/chacractl exists binaries/${chacra_baseurl}/${ARCH}; exists=$? || true
 
 # if the binary already exists in chacra, do not rebuild
 if [ $exists -e 0 ] && [ "$FORCE" = false ]; then
@@ -114,7 +115,7 @@ cd "$WORKSPACE"
 
 
 # push binaries to chacra
-find release/${vers}/rpm/*/SRPMS | grep rpm | chacractl binary create ${chacra_baseurl}/source
-find release/${vers}/rpm/*/RPMS/* | grep rpm | chacractl binary create ${chacra_baseurl}/${ARCH}
+find release/${vers}/rpm/*/SRPMS | grep rpm | ./venv/bin/chacractl binary create ${chacra_baseurl}/source
+find release/${vers}/rpm/*/RPMS/* | grep rpm | ./venv/bin/chacractl binary create ${chacra_baseurl}/${ARCH}
 
 echo "End Date: $(date)"
