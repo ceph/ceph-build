@@ -176,7 +176,7 @@ echo "Start Time = $start_time"
 echo "  End Time = $(date)"
 
 # push binaries to chacra
-find release/$vers/ | grep 'changes\|deb\|dsc\|gz' | chacractl binary create ${chacra_endpoint}
+find release/$vers/ | egrep "*\.(changes|deb|dsc|gz)$" | egrep -v "(Packages|Sources|Contents)" | chacractl binary create ${chacra_endpoint}
 
 
 echo "End Date: $(date)"
