@@ -61,5 +61,6 @@
     scm:
     - git:
         basedir: calamari-clients
-        branches: '*/$BRANCH'
+        branches:
+          - '*/$BRANCH'
         url: git@github.com:red-hat-storage/calamari-clients.git
