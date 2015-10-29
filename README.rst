@@ -15,8 +15,8 @@ on the actual directory for `its own job
 definition and its build process automated).
 
 The JJB configuration defines the rules needed to generate and update/create
-all other Jenkins Jobs in this repo as long as they define the ``config``
-directory with any script called ``pre``, ``post``, or ``config``.
+all other Jenkins Jobs in this repo as long as they define the
+``config/definitions`` along with a valid YAML file.
 
 This script should have all the rules and requirements for generating the
 Jenkins configurations needed from the YAML files to create/update the jenkins
@@ -42,88 +42,34 @@ a project called ``foo`` that uses every choice available::
     |   ├── config
     |   └── definitions
     |       └── foo.yml
-    |   ├── setup
-    |   ├── post
-    |   └── pre
     ├── setup
     |   ├── setup
     |   ├── post
     |   └── pre
-    ├── build
-    │   ├── build
-    │   ├── post
-    │   └── pre
-    ├── package
-    │   ├── package
-    │   ├── post
-    │   └── pre
-    └── deploy
-       ├── deploy
-       ├── post
-       └── pre
+    └── build
+        ├── build
+        ├── post
+        └── pre
 
-The structure consists of four steps (shown in the order they would get
-executed) with the files available for finer control of each step and with a
-config directory where the configuration for creating the job in jenkins would
-live.
+This structure consists of two directories with scripts and one for
+configuration. The scripts should be included in the ``foo.yml`` file in
+whatever order the job requires.
 
-``pre`` and ``post`` are obvious, while the script name that has the same name
-as the directory will get called in between (after ``pre`` and before ``post``).
+For example, this is how it could look in the ``builders`` section for its
+configuration::
 
-Nothing is required with the structure. As long as the convention of file names
-and order, execution will follow the order with whatever exists.
+    builders:
+      # Setup scripts
+      - shell: !include-raw ../../setup/pre
+      - shell: !include-raw ../../setup/setup
+      - shell: !include-raw ../../setup/post
+      # Build scripts
+      - shell: !include-raw ../../build/pre
+      - shell: !include-raw ../../build/build
+      - shell: !include-raw ../../build/post
 
-If only the ``setup`` directory is available with a single ``setup`` file, that
-is the only one thing that will get executed.
-
-Platform-specific
------------------
-Sometimes, the process needs to do something specific depending on the
-distribution, version, release, or architecture. For example installing
-a specific package that is only available on CentOS 6, and not in CentOS 7.
-
-All steps (setup, build, package, and deploy) can define scripts to be run
-whenever any of the distribution metadata matches.
-
-To help in ordering the execution, the directory structure needs to change
-a bit to accomodate for metadata-specific calls. Only ``pre`` and ``post`` are
-allowed to have this mixed behavior (either script or directory/script).
-
-In those directories, the upper most level can accept files that match certain
-metadata information, like distribution name and architecture. If the script
-name matches in a given distro it will get executed.
-
-distribution name (e.g. ``centos`` or ``ubuntu``), architecture (e.g. ``i386``
-or ``x86_64``, or package manager (as in ``yum`` or ``apt``).
-
-Below is an example of having three scripts for ``centos`` that at any given
-time (when there is a match) only two of them will get executed: ``all`` and
-either ``6`` or ``7``.
-
-``all`` is a helper that will get executed always for all ``centos`` distro
-versions and combinations::
-
-    foo/setup
-    ├── post
-    │   └── post
-    ├── pre
-    │   ├── centos
-    │   │   ├── 6
-    │   │   ├── 7
-    │   │   └── all
-    │   └── pre
-    └── setup
-
-Because we made ``foo/setup/pre`` a directory, we now define the actual ``pre``
-script (if needed) inside the ``pre`` directory with ``pre`` as the name.
-
-Testing Changes
----------------
-When adding new YAML files or testing changes, it's a good idea to do a
-sanity-check before merging the changes to master.
-
-You can install the Jenkins Job Builder package locally (``pip install
-jenkins-job-builder``) and then run ``jenkins-jobs test my_configuration.yml``
+These scripts will be added to the Jenkins server so that they can be executed
+as part of a job.
 
 Job Naming Conventions
 ----------------------
@@ -197,7 +143,6 @@ You should also use the ``triggers`` setting for the job, like so::
       ...
 
       triggers:
-        - pollscm: "*/1 * * * *"
         - github-pull-request:
             cron: '* * * * *'
             admin-list:
