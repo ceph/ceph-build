@@ -60,5 +60,6 @@
     scm:
     - git:
         basedir: Diamond
-        branches: '*/calamari'
+        branches:
+          - '*/calamari'
         url: git@github.com:ceph/Diamond
