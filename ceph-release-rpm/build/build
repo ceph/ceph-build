@@ -110,7 +110,7 @@ baseurl=http://download.ceph.com/rpm-${ceph_release}/${target}/\$basearch
 enabled=1
 gpgcheck=1
 type=rpm-md
-gpgkey=https://git.ceph.com/?p=ceph.git;a=blob_plain;f=keys/release.asc
+gpgkey=https://download.ceph.com/keys/release.asc
 
 [Ceph-noarch]
 name=Ceph noarch packages
@@ -118,7 +118,7 @@ baseurl=http://download.ceph.com/rpm-${ceph_release}/${target}/noarch
 enabled=1
 gpgcheck=1
 type=rpm-md
-gpgkey=https://git.ceph.com/?p=ceph.git;a=blob_plain;f=keys/release.asc
+gpgkey=https://download.ceph.com/keys/release.asc
 
 [ceph-source]
 name=Ceph source packages
@@ -126,7 +126,7 @@ baseurl=http://download.ceph.com/rpm-${ceph_release}/${target}/SRPMS
 enabled=1
 gpgcheck=1
 type=rpm-md
-gpgkey=https://git.ceph.com/?p=ceph.git;a=blob_plain;f=keys/release.asc
+gpgkey=https://download.ceph.com/keys/release.asc
 EOF
 # End of ceph.repo file
 
