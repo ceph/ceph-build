@@ -130,6 +130,28 @@ gpgkey=https://download.ceph.com/keys/release.asc
 EOF
 # End of ceph.repo file
 
+# Create the virtualenv
+virtualenv $WORKSPACE/venv
+source $WORKSPACE/venv/bin/activate
+
+# Define and ensure the PIP cache
+PIP_SDIST_INDEX="$HOME/.cache/pip"
+mkdir -p $PIP_SDIST_INDEX
+
+# Install the package by trying with the cache first, otherwise doing a download only, and then
+# trying to install from the cache again.
+if ! pip install --find-links="file://$PIP_SDIST_INDEX" --no-index chacractl; then
+    pip install --exists-action=i --download-directory="$PIP_SDIST_INDEX" chacractl
+    pip install --find-links="file://$PIP_SDIST_INDEX" --no-index chacractl
+fi
+
+# create the .chacractl config file
+cat > $HOME/.chacractl << EOF
+url = "$CHACRACTL_URL"
+user = "$CHACRACTL_USER"
+key = "$CHACRACTL_KEY"
+EOF
+
 rpmbuild -ba --define "_topdir ${BUILDAREA}" --define "_unpackaged_files_terminate_build 0" ${BUILDAREA}/SPECS/ceph-release.spec
 if [ $? -eq 0 ] ; then
     mkdir -p $WORKSPACE/dist
