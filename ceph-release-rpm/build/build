@@ -15,9 +15,18 @@ rm -rf RPMBUILD
 # What are we building ?
 
 target=$DIST
-if [ "$target" = "centos6" ] ; then target=el6 ; fi
-if [ "$target" = "centos7" ] ; then target=el7 ; fi
-if [ "$target" = "sles11sp2" ] ; then target=sles11 ; fi
+if [ "$target" = "centos6" ] ; then
+    target=el6
+    chacra_baseurl="ceph/${RELEASE}/centos/6"
+fi
+if [ "$target" = "centos7" ] ; then
+    target=el7
+    chacra_baseurl="ceph/${RELEASE}/centos/7"
+fi
+if [ "$target" = "sles11sp2" ] ; then
+    target=sles11
+    chacra_baseurl="ceph/${RELEASE}/sles/11"
+fi
 echo "Target directory is: $target"
 
 # setup rpm build area
@@ -154,7 +163,6 @@ EOF
 
 rpmbuild -ba --define "_topdir ${BUILDAREA}" --define "_unpackaged_files_terminate_build 0" ${BUILDAREA}/SPECS/ceph-release.spec
 if [ $? -eq 0 ] ; then
-    mkdir -p $WORKSPACE/dist
-    mv $BUILDAREA/RPMS/* $WORKSPACE/dist/.
-    mv $BUILDAREA/SRPMS $WORKSPACE/dist/.
+    find $BUILDAREA/RPMS/* | grep rpm | chacractl binary create ${chacra_baseurl}/${ARCH}
+    find $BUILDAREA/SRPMS | grep rpm | chacractl binary create ${chacra_baseurl}/source
 fi
