@@ -171,9 +171,10 @@ gpgkey=https://download.ceph.com/keys/release.asc
 EOF
 # End of ceph.repo file
 
+[ "$FORCE" = true ] && chacra_flags="--force" || chacra_flags=""
 
 rpmbuild -ba --define "_topdir ${BUILDAREA}" --define "_unpackaged_files_terminate_build 0" ${BUILDAREA}/SPECS/ceph-release.spec
 if [ $? -eq 0 ] ; then
-    find $BUILDAREA/RPMS/* | grep rpm | chacractl binary create ${chacra_baseurl}/${ARCH}
-    find $BUILDAREA/SRPMS | grep rpm | chacractl binary create ${chacra_baseurl}/source
+    find $BUILDAREA/RPMS/* | grep rpm | chacractl binary ${chacra_flags} create ${chacra_baseurl}/${ARCH}
+    find $BUILDAREA/SRPMS | grep rpm | chacractl binary ${chacra_flags} create ${chacra_baseurl}/source
 fi
