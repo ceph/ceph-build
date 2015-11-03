@@ -34,6 +34,9 @@
     builders:
       - shell: "bash jenkins-job-builder/build/build"
 
-    - postbuildscript:
-        generic-script:
-            - 'rm $HOME/.jenkins_jobs.ini'
+    publishers:
+      - postbuildscript:
+          builders:
+            - shell: 'rm $HOME/.jenkins_jobs.ini'
+        script-only-if-succeeded: false
+        script-only-if-failed: false
