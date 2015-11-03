@@ -2,8 +2,8 @@
 
 set -ex
 
-if [ "$RETAG" = true ] ; then
-    echo "Assuming tagging process has succeeded before because RETAG was set"
+if [ "$TAG" = false ] ; then
+    echo "Assuming tagging process has succeeded before because TAG was set to false"
     exit 0
 fi
 
