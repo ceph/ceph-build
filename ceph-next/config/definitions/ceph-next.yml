@@ -29,6 +29,10 @@
 If this is unchecked, then the builds will be pushed to chacra with the correct ref. This is the default.
 
 If this is checked, then the builds will be pushed to chacra under the 'test' ref."
+      - bool:
+          name: TAG
+          description: "Removes the previous private tag to recreate it again, changing the control files and committing again"
+          default: true
 
       - bool:
           name: FORCE
