@@ -36,22 +36,22 @@ EOF
 
 # What are we building ?
 
+[ "$TEST" = true ] && chacra_ref="test" || chacra_ref="${RELEASE}"
+
 target=$DIST
 if [ "$target" = "centos6" ] ; then
     target=el6
-    chacra_baseurl="ceph/${RELEASE}/centos/6"
+    chacra_baseurl="ceph/${chacra_ref}/centos/6"
 fi
 if [ "$target" = "centos7" ] ; then
     target=el7
-    chacra_baseurl="ceph/${RELEASE}/centos/7"
+    chacra_baseurl="ceph/${chacra_ref}/centos/7"
 fi
 if [ "$target" = "sles11sp2" ] ; then
     target=sles11
-    chacra_baseurl="ceph/${RELEASE}/sles/11"
+    chacra_baseurl="ceph/${chacra_ref}/sles/11"
 fi
 echo "Target directory is: $target"
-
-[ "$TEST" = true ] && chacra_ref="test" || chacra_ref="$BRANCH"
 
 chacractl exists binaries/${chacra_baseurl}/${ARCH}; exists=$? || true
 
