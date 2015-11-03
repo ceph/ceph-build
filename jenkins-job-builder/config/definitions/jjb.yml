@@ -33,3 +33,7 @@
 
     builders:
       - shell: "bash jenkins-job-builder/build/build"
+
+    - postbuildscript:
+        generic-script:
+            - 'rm $HOME/.jenkins_jobs.ini'
