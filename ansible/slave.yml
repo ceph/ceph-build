@@ -60,6 +60,8 @@
         - python-dev
         - python-pip
         - python-virtualenv
+        # jenkins-job-builder job:
+        - libyaml-dev
         # ceph-docs job:
         - doxygen
         - ditaa
