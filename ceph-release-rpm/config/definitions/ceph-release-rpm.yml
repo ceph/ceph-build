@@ -54,3 +54,8 @@ If this is checked, then the binaries will be built and pushed to chacra even if
           artifacts: 'dist/**'
           allow-empty: false
           latest-only: false
+
+    wrappers:
+      - inject-passwords:
+          global: true
+          mask-password-params: true
