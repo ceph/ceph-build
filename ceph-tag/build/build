@@ -2,6 +2,11 @@
 
 set -ex
 
+if [ "$TAG" = false ] ; then
+    echo "Assuming tagging process has succeeded before because TAG was set to false"
+    exit 0
+fi
+
 # Create the virtualenv
 virtualenv venv
 . venv/bin/activate
