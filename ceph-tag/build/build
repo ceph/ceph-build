@@ -2,6 +2,11 @@
 
 set -ex
 
+if [ "$RETAG" = true ] ; then
+    echo "Assuming tagging process has succeeded before because RETAG was set"
+    exit 0
+fi
+
 # Create the virtualenv
 virtualenv venv
 . venv/bin/activate
