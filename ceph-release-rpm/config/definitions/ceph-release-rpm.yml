@@ -44,13 +44,8 @@ If this is checked, then the binaries will be built and pushed to chacra even if
     builders:
       - shell:
           !include-raw ../../build/build
-      - copyartifact:
-          project: ceph-release-rpm
-          filter: 'dist/**'
-          which-build: last-successful
 
-    publishers:
-      - archive:
-          artifacts: 'dist/**'
-          allow-empty: false
-          latest-only: false
+    wrappers:
+      - inject-passwords:
+          global: true
+          mask-password-params: true

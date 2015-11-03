@@ -175,6 +175,7 @@ EOF
 
 rpmbuild -ba --define "_topdir ${BUILDAREA}" --define "_unpackaged_files_terminate_build 0" ${BUILDAREA}/SPECS/ceph-release.spec
 if [ $? -eq 0 ] ; then
-    find $BUILDAREA/RPMS/* | grep rpm | chacractl binary ${chacra_flags} create ${chacra_baseurl}/${ARCH}
+    # we actually do noarch stuff here
+    find $BUILDAREA/RPMS/* | grep noarch | grep rpm | chacractl binary ${chacra_flags} create ${chacra_baseurl}/noarch
     find $BUILDAREA/SRPMS | grep rpm | chacractl binary ${chacra_flags} create ${chacra_baseurl}/source
 fi
