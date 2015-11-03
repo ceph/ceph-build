@@ -12,13 +12,54 @@ echo "Building on Host: $(hostname) Date: $(date)"
 rm -rf dist
 rm -rf RPMBUILD
 
+# Create the virtualenv
+virtualenv $WORKSPACE/venv
+source $WORKSPACE/venv/bin/activate
+
+# Define and ensure the PIP cache
+PIP_SDIST_INDEX="$HOME/.cache/pip"
+mkdir -p $PIP_SDIST_INDEX
+
+# Install the package by trying with the cache first, otherwise doing a download only, and then
+# trying to install from the cache again.
+if ! pip install --find-links="file://$PIP_SDIST_INDEX" --no-index chacractl; then
+    pip install --exists-action=i --download-directory="$PIP_SDIST_INDEX" chacractl
+    pip install --find-links="file://$PIP_SDIST_INDEX" --no-index chacractl
+fi
+
+# create the .chacractl config file
+cat > $HOME/.chacractl << EOF
+url = "$CHACRACTL_URL"
+user = "$CHACRACTL_USER"
+key = "$CHACRACTL_KEY"
+EOF
+
 # What are we building ?
 
+[ "$TEST" = true ] && chacra_ref="test" || chacra_ref="${RELEASE}"
+
 target=$DIST
-if [ "$target" = "centos6" ] ; then target=el6 ; fi
-if [ "$target" = "centos7" ] ; then target=el7 ; fi
-if [ "$target" = "sles11sp2" ] ; then target=sles11 ; fi
+if [ "$target" = "centos6" ] ; then
+    target=el6
+    chacra_baseurl="ceph/${chacra_ref}/centos/6"
+fi
+if [ "$target" = "centos7" ] ; then
+    target=el7
+    chacra_baseurl="ceph/${chacra_ref}/centos/7"
+fi
+if [ "$target" = "sles11sp2" ] ; then
+    target=sles11
+    chacra_baseurl="ceph/${chacra_ref}/sles/11"
+fi
 echo "Target directory is: $target"
+
+chacractl exists binaries/${chacra_baseurl}/${ARCH}; exists=$? || true
+
+# if the binary already exists in chacra, do not rebuild
+if [ $exists -eq 0 ] && [ "$FORCE" = false ]; then
+    echo "The endpoint at ${chacra_baseurl}/${ARCH} already exists and FORCE was not set, Exiting..."
+    exit 0
+fi
 
 # setup rpm build area
 mkdir -p RPMBUILD/{BUILD,RPMS,SOURCES,SPECS,SRPMS}
@@ -130,9 +171,10 @@ gpgkey=https://download.ceph.com/keys/release.asc
 EOF
 # End of ceph.repo file
 
+[ "$FORCE" = true ] && chacra_flags="--force" || chacra_flags=""
+
 rpmbuild -ba --define "_topdir ${BUILDAREA}" --define "_unpackaged_files_terminate_build 0" ${BUILDAREA}/SPECS/ceph-release.spec
 if [ $? -eq 0 ] ; then
-    mkdir -p $WORKSPACE/dist
-    mv $BUILDAREA/RPMS/* $WORKSPACE/dist/.
-    mv $BUILDAREA/SRPMS $WORKSPACE/dist/.
+    find $BUILDAREA/RPMS/* | grep rpm | chacractl binary ${chacra_flags} create ${chacra_baseurl}/${ARCH}
+    find $BUILDAREA/SRPMS | grep rpm | chacractl binary ${chacra_flags} create ${chacra_baseurl}/source
 fi
