@@ -41,15 +41,15 @@ EOF
 target=$DIST
 if [ "$target" = "centos6" ] ; then
     target=el6
-    chacra_baseurl="ceph/${chacra_ref}/centos/6"
+    chacra_baseurl="ceph-release/${chacra_ref}/centos/6"
 fi
 if [ "$target" = "centos7" ] ; then
     target=el7
-    chacra_baseurl="ceph/${chacra_ref}/centos/7"
+    chacra_baseurl="ceph-release/${chacra_ref}/centos/7"
 fi
 if [ "$target" = "sles11sp2" ] ; then
     target=sles11
-    chacra_baseurl="ceph/${chacra_ref}/sles/11"
+    chacra_baseurl="ceph-release/${chacra_ref}/sles/11"
 fi
 echo "Target directory is: $target"
 
