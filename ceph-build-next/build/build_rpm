@@ -117,9 +117,10 @@ echo done
 # Make sure we execute at the top level directory
 cd "$WORKSPACE"
 
+[ "$FORCE" = true ] && chacra_flags="--force" || chacra_flags=""
 
 # push binaries to chacra
-find release/${vers}/rpm/*/SRPMS | grep rpm | chacractl binary create ${chacra_baseurl}/source
-find release/${vers}/rpm/*/RPMS/* | grep rpm | chacractl binary create ${chacra_baseurl}/${ARCH}
+find release/${vers}/rpm/*/SRPMS | grep rpm | chacractl binary ${chacra_flags} create ${chacra_baseurl}/source
+find release/${vers}/rpm/*/RPMS/* | grep rpm | chacractl binary ${chacra_flags} create ${chacra_baseurl}/${ARCH}
 
 echo "End Date: $(date)"
