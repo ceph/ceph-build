@@ -176,8 +176,10 @@ echo lintian --allow-root $releasedir/$cephver/*$bpvers*.deb
 echo "Start Time = $start_time"
 echo "  End Time = $(date)"
 
+[ "$FORCE" = true ] && chacra_flags="--force" || chacra_flags=""
+
 # push binaries to chacra
-find release/$vers/ | egrep "*\.(changes|deb|dsc|gz)$" | egrep -v "(Packages|Sources|Contents)" | chacractl binary create ${chacra_endpoint}
+find release/$vers/ | egrep "*\.(changes|deb|dsc|gz)$" | egrep -v "(Packages|Sources|Contents)" | chacractl binary ${chacra_flags} create ${chacra_endpoint}
 
 
 echo "End Date: $(date)"
