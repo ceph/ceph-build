@@ -7,10 +7,10 @@
    - jenkins_user: 'jenkins-build'
   tasks:
     - name: create a jenkins-build user
-      user: name=jenkins-build comment="Jenkins Build Slave User"
+      user: name=jenkins-build comment="Jenkins Build Slave User" home="/home/{{ jenkins_user }}"
 
     - name: Create .ssh directory
-      file: path=/home/jenkins-build/.ssh
+      file: path=/home/{{ jenkins_user }}/.ssh
             state=directory
 
     - name: set the authorized keys
@@ -37,6 +37,13 @@
         - java-1.7.0-openjdk
         - git
         #- rpm-sign
+      when: ansible_pkg_mgr  == "yum"
+
+    - name: ensure the rpmmacros file exists to fix centos builds
+      template:
+         src: files/rpmmacros.j2
+         dest: "/home/{{ jenkins_user }}/.rpmmacros"
+         owner: "{{ jenkins_user }}"
       when: ansible_pkg_mgr  == "yum"
 
     # Run the equivalent of "apt-get update" as a separate step
@@ -78,10 +85,11 @@
 
     - name: add docs.ceph.com host key
       sudo: true
-      known_hosts: path='/etc/ssh/ssh_known_hosts'
-      name='docs.ceph.com'
-      # docs.ceph.com.pub is the output of `ssh-keyscan docs.ceph.com`
-      key="{{ lookup('file', 'ssh/hostkeys/docs.ceph.com.pub') }}"
+      known_hosts:
+        path: '/etc/ssh/ssh_known_hosts'
+        name: 'docs.ceph.com'
+        # docs.ceph.com.pub is the output of `ssh-keyscan docs.ceph.com`
+        key: "{{ lookup('file', 'ssh/hostkeys/docs.ceph.com.pub') }}"
 
     - name: register the new slave to jenkins master
       jenkins-node:
