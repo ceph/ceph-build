@@ -96,6 +96,19 @@ then
     DEB_BUILD=$(lsb_release -s -c)
     #XXX only releases until we fix this
     RELEASE=1
+    DISTRO=`python -c "exec 'import platform; print platform.linux_distribution()[0].lower()'"`
+
+    [ "$TEST" = true ] && chacra_ref="test" || chacra_ref="$BRANCH"
+    chacra_endpoint="ceph/${chacra_ref}/${DISTRO}/${DEB_BUILD}/${ARCH}"
+
+    # prevent early exit from a non-zero exit because we use `set -e`
+    ! chacractl exists binaries/${chacra_endpoint} ; exists=$? || true
+
+    # if the binary already exists in chacra, do not rebuild
+    if [ $exists -eq 0 ] && [ "$FORCE" = false ] ; then
+        echo "The endpoint at ${chacra_endpoint} already exists and FORCE was not set, Exiting..."
+        exit 0
+    fi
 
     if [ ! -d debian ] ; then
         echo "Are we in the right directory"
@@ -124,40 +137,11 @@ then
         exit 2
     fi
 
-    # Build Repo
-    PKG=../ceph-deploy*.changes
-    mkdir -p $REPO/conf
-    if [ -e $REPO/conf/distributions ] ; then
-        rm -f $REPO/conf/distributions
-    fi
+    [ "$FORCE" = true ] && chacra_flags="--force" || chacra_flags=""
 
-    # FIXME: This file is explicitly saying what it was signed with but we no longer
-    # sign anything here. This could become a problem if this repo is getting built
-    # and not signed and published somehwere. When the Binary API service is running
-    # and serving repos, this step should no longer create repositories
-    for DIST in  $DEB_DIST ; do
-        cat <<EOF >> $REPO/conf/distributions
-Codename: $DIST
-Suite: stable
-Components: $COMPONENT
-Architectures: amd64 armhf i386 source
-Origin: Inktank
-Description: Ceph distributed file system
-DebIndices: Packages Release . .gz .bz2
-DscIndices: Sources Release .gz .bz2
-Contents: .gz .bz2
-SignWith: 460F3994
+    # push binaries to chacra
+    find ../ | egrep "*\.(changes|deb|dsc|gz)$" | egrep -v "(Packages|Sources|Contents)" | chacractl binary ${chacra_flags} create ${chacra_endpoint}
 
-EOF
-    done
-
-    echo "Adding package to repo, dist: $DEB_BUILD ($PKG)"
-    reprepro --ask-passphrase -b $REPO -C $COMPONENT --ignore=undefinedtarget --ignore=wrongdistribution include $DEB_BUILD $PKG
-
-
-    cd $WORKSPACE
-    mkdir -p dist
-    mv ../*.changes ../*.dsc ../*.deb ../*.tar.gz dist/.
     echo "Done"
 
 else
