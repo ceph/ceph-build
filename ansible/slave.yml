@@ -6,22 +6,22 @@
   vars:
    - jenkins_user: 'jenkins-build'
   tasks:
-    - name: create a jenkins-build user
-      user: name=jenkins-build comment="Jenkins Build Slave User" home="/home/{{ jenkins_user }}"
+    - name: create a {{ jenkins_user }} user
+      user: name={{ jenkins_user }} comment="Jenkins Build Slave User" home="/home/{{ jenkins_user }}"
 
     - name: Create .ssh directory
       file: path=/home/{{ jenkins_user }}/.ssh
             state=directory
 
     - name: set the authorized keys
-      authorized_key: user=jenkins-build key="{{ lookup('file', 'files/ssh/keys/jenkins_build.pub') }}"
+      authorized_key: user={{ jenkins_user }} key="{{ lookup('file', 'files/ssh/keys/jenkins_build.pub') }}"
 
     - name: ensure the build dir exists
       sudo: yes
       lineinfile:
         dest: /etc/sudoers
-        regexp: '^jenkins-build ALL'
-        line: 'jenkins-build   ALL=(ALL:ALL) NOPASSWD:ALL'
+        regexp: '^{{ jenkins_user }} ALL'
+        line: '{{ jenkins_user }}   ALL=(ALL:ALL) NOPASSWD:ALL'
         backrefs: yes
         validate: 'visudo -cf %s'
 
@@ -103,4 +103,4 @@
         labels: "{{ labels }}"
         host: "{{ ansible_default_ipv4.address }}"
         credentialsId: '39fa150b-b2a1-416e-b334-29a9a2c0b32d'
-        remoteFS: '/home/jenkins-build/build'
+        remoteFS: '/home/{{ jenkins_user }}/build'
