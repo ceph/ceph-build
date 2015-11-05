@@ -36,6 +36,13 @@
     - name: ensure the build dir has the right owner permissions
       file: path=/home/{{ jenkins_user }}/build state=directory owner={{ jenkins_user }}
 
+    - name: ensure the rpmmacros file exists to fix centos builds
+      template:
+         src: files/rpmmacros.j2
+         dest: "/home/{{ jenkins_user }}/.rpmmacros"
+         owner: "{{ jenkins_user }}"
+      when: ansible_pkg_mgr  == "yum"
+
     - name: Install RPM requirements
       sudo: yes
       yum: name={{ item }} state=present
