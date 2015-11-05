@@ -12,22 +12,22 @@
    - nodename: '${nodename}'
    - labels: '${labels}'
   tasks:
-    - name: create a jenkins-build user
-      user: name=jenkins-build comment="Jenkins Build Slave User"
+    - name: create a {{ jenkins_user }} user
+      user: name={{ jenkins_user }} comment="Jenkins Build Slave User"
 
     - name: Create .ssh directory
-      file: path=/home/jenkins-build/.ssh
+      file: path=/home/{{ jenkins_user }}/.ssh
             state=directory
 
     - name: set the authorized keys
-      authorized_key: user=jenkins-build key="{{ lookup('file', 'playbook/files/ssh/keys/jenkins_build.pub') }}"
+      authorized_key: user={{ jenkins_user }} key="{{ lookup('file', 'playbook/files/ssh/keys/jenkins_build.pub') }}"
 
-    - name: ensure jenkins-build can sudo without a prompt
+    - name: ensure {{ jenkins_user }} can sudo without a prompt
       sudo: yes
       lineinfile:
         dest: /etc/sudoers
-        regexp: '^jenkins-build ALL'
-        line: 'jenkins-build   ALL=(ALL:ALL) NOPASSWD:ALL'
+        regexp: '^{{ jenkins_user }} ALL'
+        line: '{{ jenkins_user }}   ALL=(ALL:ALL) NOPASSWD:ALL'
         validate: 'visudo -cf %s'
 
     - name: ensure the build dir exists
@@ -35,6 +35,13 @@
 
     - name: ensure the build dir has the right owner permissions
       file: path=/home/{{ jenkins_user }}/build state=directory owner={{ jenkins_user }}
+
+    - name: ensure the rpmmacros file exists to fix centos builds
+      template:
+         src: files/rpmmacros.j2
+         dest: "/home/{{ jenkins_user }}/.rpmmacros"
+         owner: "{{ jenkins_user }}"
+      when: ansible_pkg_mgr  == "yum"
 
     - name: Install RPM requirements
       sudo: yes
@@ -129,4 +136,4 @@
         labels: "{{ labels }}"
         host: "{{ ansible_default_ipv4.address }}"
         credentialsId: '39fa150b-b2a1-416e-b334-29a9a2c0b32d'
-        remoteFS: '/home/jenkins-build/build'
+        remoteFS: '/home/{{ jenkins_user }}/build'
