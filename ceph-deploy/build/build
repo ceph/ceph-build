@@ -19,6 +19,9 @@ echo "  BRANCH=$BRANCH"
 rpm_dists="rhel centos6 centos7 centos"
 deb_dists="precise wheezy squeeze trusty jessie"
 
+# activate the virtualenv
+source $WORKSPACE/venv/bin/activate
+
 # A helper to match an item in a list of items, like python's `if item in list`
 listcontains() {
   for word in $2; do
@@ -38,15 +41,24 @@ then
         BUILDAREA=./rpmbuild
         DIST=el6
         RPM_BUILD=$(lsb_release -s -c)
+        DISTRO_VERSION=`$LSB_RELEASE --short --release | cut -d. -f1`
+        DISTRO=`python -c "exec 'import platform; print platform.linux_distribution()[0].lower()'"`
+
+        [ "$TEST" = true ] && chacra_ref="test" || chacra_ref="$BRANCH"
+        chacra_endpoint="ceph/${chacra_ref}/${DISTRO}/${DISTRO_VERSION}"
+
+        # prevent early exit from a non-zero exit because we use `set -e`
+        ! chacractl exists binaries/${chacra_endpoint}/${ARCH} ; exists=$? || true
+
+        # if the binary already exists in chacra, do not rebuild
+        if [ $exists -eq 0 ] && [ "$FORCE" = false ] ; then
+            echo "The endpoint at ${chacra_endpoint}/${ARCH} already exists and FORCE was not set, Exiting..."
+            exit 0
+        fi
 
         if [ ! -e setup.py ] ; then
             echo "Are we in the right directory"
             exit 1
-        fi
-
-        if ! CREATEREPO=`which createrepo` ; then
-            echo "Please install the createrepo package"
-            exit 4
         fi
 
         # Create Tarball
@@ -60,18 +72,10 @@ then
         echo "buildarea is: ${BUILDAREA}"
         rpmbuild -ba --define "_topdir ${BUILDAREA}" --define "_unpackaged_files_terminate_build 0" ${BUILDAREA}/SPECS/ceph-deploy.spec
 
-        # create repo
-        DEST=${REPO}/${DIST}
-        mkdir -p ${REPO}/${DIST}
-        cp -r ${BUILDAREA}/*RPMS ${DEST}
+        [ "$FORCE" = true ] && chacra_flags="--force" || chacra_flags=""
 
-        # Construct repodata
-        for dir in ${DEST}/SRPMS ${DEST}/RPMS/*
-        do
-            if [ -d $dir ] ; then
-                createrepo $dir
-            fi
-        done
+        find ${BUILDAREA}/SRPMS | grep rpm | chacractl binary ${chacra_flags} create ${chacra_baseurl}/source
+        find ${BUILDAREA}/RPMS/* | grep rpm | chacractl binary ${chacra_flags} create ${chacra_baseurl}/${ARCH}
 
         cd $WORKSPACE
         mkdir -p dist
