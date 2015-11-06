@@ -66,3 +66,8 @@ If this is checked, then the binaries will be built and pushed to chacra even if
     builders:
       - shell: !include-raw ../../build/setup
       - shell: !include-raw ../../build/build
+
+    wrappers:
+      - inject-passwords:
+          global: true
+          mask-password-params: true
