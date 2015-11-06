@@ -168,7 +168,8 @@ then
     [ "$FORCE" = true ] && chacra_flags="--force" || chacra_flags=""
 
     # push binaries to chacra
-    find $WORKSPACE/ceph-deploy/* | egrep "*\.(changes|deb|dsc|gz)$" | egrep -v "(Packages|Sources|Contents)" | chacractl binary ${chacra_flags} create ${chacra_endpoint}
+    # the binaries are created in one directory up from $WORKSPACE
+    find ../ | egrep "*\.(changes|deb|dsc|gz)$" | egrep -v "(Packages|Sources|Contents)" | chacractl binary ${chacra_flags} create ${chacra_endpoint}
 
     echo "Done"
 
