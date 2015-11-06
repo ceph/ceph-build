@@ -3,7 +3,6 @@
     node: small && trusty
     project-type: matrix
     defaults: global
-    disabled: false
     display-name: 'ceph-deploy'
     concurrent: true
     quiet-period: 5

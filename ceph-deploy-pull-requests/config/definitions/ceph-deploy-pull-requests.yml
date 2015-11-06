@@ -32,7 +32,6 @@
     node: trusty
     project-type: freestyle
     defaults: global
-    disabled: false
     display-name: 'ceph-deploy: Pull Requests'
     concurrent: false
     quiet-period: 5

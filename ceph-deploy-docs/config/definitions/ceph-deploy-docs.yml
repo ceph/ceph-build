@@ -3,7 +3,6 @@
     node: docs
     project-type: freestyle
     defaults: global
-    disabled: false
     display-name: 'ceph-deploy: docs build'
     concurrent: false
     quiet-period: 5

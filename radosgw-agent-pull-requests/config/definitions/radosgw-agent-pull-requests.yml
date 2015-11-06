@@ -3,7 +3,6 @@
     node: trusty
     project-type: freestyle
     defaults: global
-    disabled: false
     display-name: 'radosgw-agent: Pull Requests'
     concurrent: false
     quiet-period: 5

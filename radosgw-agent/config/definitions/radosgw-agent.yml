@@ -3,7 +3,6 @@
     node: trusty
     project-type: matrix
     defaults: global
-    disabled: false
     display-name: 'radosgw-agent'
     concurrent: true
     quiet-period: 5

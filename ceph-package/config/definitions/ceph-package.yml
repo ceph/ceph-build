@@ -1,7 +1,6 @@
 - job:
     name: ceph-package
     defaults: global
-    disabled: false
     display-name: 'ceph-package'
     node: package
     concurrent: false

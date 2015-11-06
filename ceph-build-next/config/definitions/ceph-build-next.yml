@@ -2,7 +2,6 @@
     name: ceph-build-next
     project-type: matrix
     defaults: global
-    disabled: false
     display-name: 'ceph-build-next'
     concurrent: false
     block-downstream: false

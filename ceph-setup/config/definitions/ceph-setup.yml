@@ -4,7 +4,6 @@
     # we do not need to pin this to trusty anymore for the new jenkins instance
     # FIXME: unpin when this gets ported over
     node: trusty
-    disabled: false
     display-name: 'ceph-setup'
     concurrent: false
     logrotate:

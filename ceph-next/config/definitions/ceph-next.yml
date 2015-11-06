@@ -3,7 +3,6 @@
     description: 'This is the main ceph build task which uses chacra.ceph.com.'
     project-type: multijob
     defaults: global
-    disabled: false
     display-name: 'ceph-next'
     concurrent: false
     logrotate:
