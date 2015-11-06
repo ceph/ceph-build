@@ -19,6 +19,6 @@ mkdir -p docs.raw/ref/
 ln -s ../sha1/$REV "docs.raw/ref/$BRANCH"
 
 # Publish this sha1's contents first:
-rsync -a -v docs.raw/sha1/$REV jenkins-publish@newdocs.ceph.com:/var/docs.raw/sha1/
+rsync -a -v docs.raw/sha1/$REV /var/docs.raw/sha1/
 # Now point the ref symlink at the newly-uploaded sha1.
-rsync -a -v docs.raw/ref/$BRANCH jenkins-publish@newdocs.ceph.com:/var/docs.raw/ref/
+rsync -a -v docs.raw/ref/$BRANCH /var/docs.raw/ref/

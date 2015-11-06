@@ -21,5 +21,5 @@ fi
 # create the docs build with tox
 tox -rv -e docs
 
-# publish docs to docs.ceph.com/docs/ceph-deploy
-rsync -auv --delete .tox/docs/tmp/html/* jenkins-publish@newdocs.ceph.com:/var/ceph-deploy/docs/
+# publish docs to http://docs.ceph.com/docs/ceph-deploy
+rsync -auv --delete .tox/docs/tmp/html/* /var/ceph-deploy/docs/
