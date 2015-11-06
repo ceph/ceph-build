@@ -1,6 +1,6 @@
 - job:
     name: ceph-deploy
-    node: trusty
+    node: small && trusty
     project-type: matrix
     defaults: global
     disabled: false
