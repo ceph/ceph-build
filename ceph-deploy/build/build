@@ -19,6 +19,9 @@ echo "  BRANCH=$BRANCH"
 rpm_dists="rhel centos6 centos7 centos"
 deb_dists="precise wheezy squeeze trusty jessie"
 
+# activate the virtualenv
+source $WORKSPACE/venv/bin/activate
+
 # A helper to match an item in a list of items, like python's `if item in list`
 listcontains() {
   for word in $2; do
@@ -29,8 +32,6 @@ listcontains() {
 
 if listcontains $DIST "$rpm_dists"
 then
-        rm -rf rpm-repo dist/* build/rpmbuild
-
         # Tag tree and update version number in change log and
         # in setup.py before building.
 
@@ -38,15 +39,24 @@ then
         BUILDAREA=./rpmbuild
         DIST=el6
         RPM_BUILD=$(lsb_release -s -c)
+        DISTRO_VERSION=`$LSB_RELEASE --short --release | cut -d. -f1`
+        DISTRO=`python -c "exec 'import platform; print platform.linux_distribution()[0].lower()'"`
+
+        [ "$TEST" = true ] && chacra_ref="test" || chacra_ref="$BRANCH"
+        chacra_endpoint="ceph/${chacra_ref}/${DISTRO}/${DISTRO_VERSION}"
+
+        # prevent early exit from a non-zero exit because we use `set -e`
+        ! chacractl exists binaries/${chacra_endpoint}/${ARCH} ; exists=$? || true
+
+        # if the binary already exists in chacra, do not rebuild
+        if [ $exists -eq 0 ] && [ "$FORCE" = false ] ; then
+            echo "The endpoint at ${chacra_endpoint}/${ARCH} already exists and FORCE was not set, Exiting..."
+            exit 0
+        fi
 
         if [ ! -e setup.py ] ; then
             echo "Are we in the right directory"
             exit 1
-        fi
-
-        if ! CREATEREPO=`which createrepo` ; then
-            echo "Please install the createrepo package"
-            exit 4
         fi
 
         # Create Tarball
@@ -60,28 +70,15 @@ then
         echo "buildarea is: ${BUILDAREA}"
         rpmbuild -ba --define "_topdir ${BUILDAREA}" --define "_unpackaged_files_terminate_build 0" ${BUILDAREA}/SPECS/ceph-deploy.spec
 
-        # create repo
-        DEST=${REPO}/${DIST}
-        mkdir -p ${REPO}/${DIST}
-        cp -r ${BUILDAREA}/*RPMS ${DEST}
+        [ "$FORCE" = true ] && chacra_flags="--force" || chacra_flags=""
 
-        # Construct repodata
-        for dir in ${DEST}/SRPMS ${DEST}/RPMS/*
-        do
-            if [ -d $dir ] ; then
-                createrepo $dir
-            fi
-        done
+        find ${BUILDAREA}/SRPMS | grep rpm | chacractl binary ${chacra_flags} create ${chacra_baseurl}/source
+        find ${BUILDAREA}/RPMS/* | grep rpm | chacractl binary ${chacra_flags} create ${chacra_baseurl}/${ARCH}
 
-        cd $WORKSPACE
-        mkdir -p dist
         exit 0
 
 elif listcontains $DIST "$deb_dists"
 then
-        rm -rf debian-repo
-        rm -rf dist
-        rm -f ../*.changes ../*.dsc ../*.gz ../*.diff
 
     # Tag tree and update version number in change log and
     # in setup.py before building.
@@ -92,15 +89,24 @@ then
     DEB_BUILD=$(lsb_release -s -c)
     #XXX only releases until we fix this
     RELEASE=1
+    DISTRO=`python -c "exec 'import platform; print platform.linux_distribution()[0].lower()'"`
+
+    [ "$TEST" = true ] && chacra_ref="test" || chacra_ref="$BRANCH"
+    chacra_endpoint="ceph/${chacra_ref}/${DISTRO}/${DEB_BUILD}/${ARCH}"
+
+    # prevent early exit from a non-zero exit because we use `set -e`
+    ! chacractl exists binaries/${chacra_endpoint} ; exists=$? || true
+
+    # if the binary already exists in chacra, do not rebuild
+    if [ $exists -eq 0 ] && [ "$FORCE" = false ] ; then
+        echo "The endpoint at ${chacra_endpoint} already exists and FORCE was not set, Exiting..."
+        exit 0
+    fi
 
     if [ ! -d debian ] ; then
         echo "Are we in the right directory"
         exit 1
     fi
-
-    # Clean up any leftover builds
-    rm -f ../ceph-deploy*.dsc ../ceph-deploy*.changes ../ceph-deploy*.deb ../ceph-deploy.tgz
-    rm -rf ./debian-repo
 
     # Apply backport tag if release build
     if [ $RELEASE -eq 1 ] ; then
@@ -120,40 +126,11 @@ then
         exit 2
     fi
 
-    # Build Repo
-    PKG=../ceph-deploy*.changes
-    mkdir -p $REPO/conf
-    if [ -e $REPO/conf/distributions ] ; then
-        rm -f $REPO/conf/distributions
-    fi
+    [ "$FORCE" = true ] && chacra_flags="--force" || chacra_flags=""
 
-    # FIXME: This file is explicitly saying what it was signed with but we no longer
-    # sign anything here. This could become a problem if this repo is getting built
-    # and not signed and published somehwere. When the Binary API service is running
-    # and serving repos, this step should no longer create repositories
-    for DIST in  $DEB_DIST ; do
-        cat <<EOF >> $REPO/conf/distributions
-Codename: $DIST
-Suite: stable
-Components: $COMPONENT
-Architectures: amd64 armhf i386 source
-Origin: Inktank
-Description: Ceph distributed file system
-DebIndices: Packages Release . .gz .bz2
-DscIndices: Sources Release .gz .bz2
-Contents: .gz .bz2
-SignWith: 460F3994
+    # push binaries to chacra
+    find $WORKSPACE/ceph-deploy/* | egrep "*\.(changes|deb|dsc|gz)$" | egrep -v "(Packages|Sources|Contents)" | chacractl binary ${chacra_flags} create ${chacra_endpoint}
 
-EOF
-    done
-
-    echo "Adding package to repo, dist: $DEB_BUILD ($PKG)"
-    reprepro --ask-passphrase -b $REPO -C $COMPONENT --ignore=undefinedtarget --ignore=wrongdistribution include $DEB_BUILD $PKG
-
-
-    cd $WORKSPACE
-    mkdir -p dist
-    mv ../*.changes ../*.dsc ../*.deb ../*.tar.gz dist/.
     echo "Done"
 
 else
