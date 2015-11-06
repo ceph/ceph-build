@@ -1,6 +1,6 @@
 - job:
     name: ceph-docs
-    node: trusty
+    node: docs
     project-type: freestyle
     defaults: global
     concurrent: false
@@ -31,12 +31,6 @@
           skip-tag: true
           timeout: 20
           wipe-workspace: true
-
-    wrappers:
-      - ssh-agent-credentials:
-          users:
-            # "jenkins-publish" SSH key, needed for rsync to docs.ceph.com:
-            - 'fa9ca012-6731-4c7d-be74-eda748e36ee8'
 
     builders:
       - shell:
