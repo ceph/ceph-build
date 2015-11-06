@@ -43,6 +43,7 @@ If this is checked, then the binaries will be built and pushed to chacra even if
           browser-url: http://github.com/ceph/ceph-deploy.git
           skip-tag: true
           timeout: 20
+          wipe-workspace: true
 
     axes:
       - axis:

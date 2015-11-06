@@ -32,8 +32,6 @@ listcontains() {
 
 if listcontains $DIST "$rpm_dists"
 then
-        rm -rf rpm-repo dist/* build/rpmbuild
-
         # Tag tree and update version number in change log and
         # in setup.py before building.
 
@@ -77,15 +75,10 @@ then
         find ${BUILDAREA}/SRPMS | grep rpm | chacractl binary ${chacra_flags} create ${chacra_baseurl}/source
         find ${BUILDAREA}/RPMS/* | grep rpm | chacractl binary ${chacra_flags} create ${chacra_baseurl}/${ARCH}
 
-        cd $WORKSPACE
-        mkdir -p dist
         exit 0
 
 elif listcontains $DIST "$deb_dists"
 then
-        rm -rf debian-repo
-        rm -rf dist
-        rm -f ../*.changes ../*.dsc ../*.gz ../*.diff
 
     # Tag tree and update version number in change log and
     # in setup.py before building.
@@ -114,10 +107,6 @@ then
         echo "Are we in the right directory"
         exit 1
     fi
-
-    # Clean up any leftover builds
-    rm -f ../ceph-deploy*.dsc ../ceph-deploy*.changes ../ceph-deploy*.deb ../ceph-deploy.tgz
-    rm -rf ./debian-repo
 
     # Apply backport tag if release build
     if [ $RELEASE -eq 1 ] ; then
