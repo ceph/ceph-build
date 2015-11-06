@@ -47,7 +47,7 @@
     project-type: matrix
     properties:
     - github:
-        url: https://github.com/red-hat-storage/romana/
+        url: https://github.com/ceph/romana/
     publishers:
     - archive:
         allow-empty: false
@@ -60,5 +60,5 @@
         basedir: calamari-clients
         branches:
           - $BRANCH
-        url: git@github.com:red-hat-storage/romana.git
+        url: https://github.com/ceph/calamari-clients.git
         wipe-workspace: true
