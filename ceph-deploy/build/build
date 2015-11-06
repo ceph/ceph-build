@@ -72,8 +72,8 @@ then
 
         [ "$FORCE" = true ] && chacra_flags="--force" || chacra_flags=""
 
-        find ${BUILDAREA}/SRPMS | grep rpm | chacractl binary ${chacra_flags} create ${chacra_baseurl}/source
-        find ${BUILDAREA}/RPMS/* | grep rpm | chacractl binary ${chacra_flags} create ${chacra_baseurl}/${ARCH}
+        find ${BUILDAREA}/SRPMS | grep rpm | chacractl binary ${chacra_flags} create ${chacra_endpoint}/source
+        find ${BUILDAREA}/RPMS/* | grep rpm | chacractl binary ${chacra_flags} create ${chacra_endpoint}/${ARCH}
 
         exit 0
 
