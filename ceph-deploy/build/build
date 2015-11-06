@@ -35,15 +35,54 @@ then
         # Tag tree and update version number in change log and
         # in setup.py before building.
 
+        get_rpm_dist() {
+            LSB_RELEASE=/usr/bin/lsb_release
+            [ ! -x $LSB_RELEASE ] && echo unknown && exit
+
+            ID=`$LSB_RELEASE --short --id`
+
+            case $ID in
+            RedHatEnterpriseServer)
+                DISTRO_VERSION=`$LSB_RELEASE --short --release | cut -d. -f1`
+                DISTRO=rhel
+                ;;
+            CentOS)
+                DISTRO_VERSION=`$LSB_RELEASE --short --release | cut -d. -f1`
+                DISTRO=centos
+                ;;
+            Fedora)
+                DISTRO_VERSION=`$LSB_RELEASE --short --release`
+                DISTRO=fedora
+                ;;
+            SUSE\ LINUX)
+                DESC=`$LSB_RELEASE --short --description`
+                DISTRO_VERSION=`$LSB_RELEASE --short --release`
+                case $DESC in
+                *openSUSE*)
+                        DISTRO=opensuse
+                    ;;
+                *Enterprise*)
+                        DISTRO=sles
+                        ;;
+                    esac
+                ;;
+            *)
+                DIST=unknown
+                DISTRO=unknown
+                ;;
+            esac
+
+        }
+
+        get_rpm_dist
+
         REPO=rpm-repo
         BUILDAREA=./rpmbuild
         DIST=el6
         RPM_BUILD=$(lsb_release -s -c)
-        DISTRO_VERSION=`$LSB_RELEASE --short --release | cut -d. -f1`
-        DISTRO=`python -c "exec 'import platform; print platform.linux_distribution()[0].lower()'"`
 
         [ "$TEST" = true ] && chacra_ref="test" || chacra_ref="$BRANCH"
-        chacra_endpoint="ceph/${chacra_ref}/${DISTRO}/${DISTRO_VERSION}"
+        chacra_endpoint="ceph-deploy/${chacra_ref}/${DISTRO}/${DISTRO_VERSION}"
 
         # prevent early exit from a non-zero exit because we use `set -e`
         ! chacractl exists binaries/${chacra_endpoint}/${ARCH} ; exists=$? || true
@@ -72,8 +111,8 @@ then
 
         [ "$FORCE" = true ] && chacra_flags="--force" || chacra_flags=""
 
-        find ${BUILDAREA}/SRPMS | grep rpm | chacractl binary ${chacra_flags} create ${chacra_baseurl}/source
-        find ${BUILDAREA}/RPMS/* | grep rpm | chacractl binary ${chacra_flags} create ${chacra_baseurl}/${ARCH}
+        find ${BUILDAREA}/SRPMS | grep rpm | chacractl binary ${chacra_flags} create ${chacra_endpoint}/source
+        find ${BUILDAREA}/RPMS/* | grep rpm | chacractl binary ${chacra_flags} create ${chacra_endpoint}/${ARCH}
 
         exit 0
 
@@ -92,7 +131,7 @@ then
     DISTRO=`python -c "exec 'import platform; print platform.linux_distribution()[0].lower()'"`
 
     [ "$TEST" = true ] && chacra_ref="test" || chacra_ref="$BRANCH"
-    chacra_endpoint="ceph/${chacra_ref}/${DISTRO}/${DEB_BUILD}/${ARCH}"
+    chacra_endpoint="ceph-deploy/${chacra_ref}/${DISTRO}/${DEB_BUILD}/${ARCH}"
 
     # prevent early exit from a non-zero exit because we use `set -e`
     ! chacractl exists binaries/${chacra_endpoint} ; exists=$? || true
@@ -129,7 +168,8 @@ then
     [ "$FORCE" = true ] && chacra_flags="--force" || chacra_flags=""
 
     # push binaries to chacra
-    find $WORKSPACE/ceph-deploy/* | egrep "*\.(changes|deb|dsc|gz)$" | egrep -v "(Packages|Sources|Contents)" | chacractl binary ${chacra_flags} create ${chacra_endpoint}
+    # the binaries are created in one directory up from $WORKSPACE
+    find ../ | egrep "*\.(changes|deb|dsc|gz)$" | egrep -v "(Packages|Sources|Contents)" | chacractl binary ${chacra_flags} create ${chacra_endpoint}
 
     echo "Done"
 
