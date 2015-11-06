@@ -50,7 +50,7 @@
     project-type: matrix
     properties:
     - github:
-        url: https://github.com/red-hat-storage/calamari/
+        url: https://github.com/ceph/calamari-clients
     publishers:
     - archive:
         allow-empty: false
@@ -63,4 +63,4 @@
         basedir: calamari-clients
         branches:
           - '*/$BRANCH'
-        url: git@github.com:red-hat-storage/calamari-clients.git
+        url: https://github.com/ceph/calamari-clients.git
