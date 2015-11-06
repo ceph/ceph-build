@@ -117,13 +117,6 @@
       # https://bugs.launchpad.net/python-jenkins/+bug/1500898
       pip: name=python-jenkins version=0.4.7
 
-    - name: add docs.ceph.com host key
-      sudo: true
-      known_hosts: path='/etc/ssh/ssh_known_hosts'
-      name='docs.ceph.com'
-      # docs.ceph.com.pub is the output of `ssh-keyscan docs.ceph.com`
-      key="{{ lookup('file', 'ssh/hostkeys/docs.ceph.com.pub') }}"
-
     - name: add github.com host key
       sudo: true
       known_hosts:
