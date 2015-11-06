@@ -185,3 +185,41 @@ See the "jenkins-job-builder" job as an example.
    - The ``Content type`` should be ``application/x-www-form-urlencoded``
    - ``Secret`` should be blank
    - Select ``Just send the push event``.
+
+Testing JJB changes by hand, before merging to master
+-----------------------------------------------------
+
+Sometimes it's useful to test a JJB change by hand prior to merging a pull
+request.
+
+1. Install ``jenkins-job-builder`` on your local computer.
+
+2. Create ``$HOME/.jenkins_jobs.ini`` on your local computer::
+
+    [jenkins]
+    user=ktdreyer
+    password=a8b767bb9cf0938dc7f40603f33987e5
+    url=https://jenkins.ceph.com/
+
+Where ``user`` is your Jenkins (ie GitHub) account username, and ``password``
+is your Jenkins API token. (Note, your Jenkins API token can be found @
+https://jenkins.ceph.com/ , for example
+https://jenkins.ceph.com/user/ktdreyer/configure)
+
+3. Switch to the Git branch with the JJB changes that you wish to test::
+
+    git checkout <branch with your changes>
+
+Let's say this git branch makes a change in the ``my-cool-job`` job.
+
+4. Run JJB to push your changes live to job on the master::
+
+    jenkins-jobs --conf ~/.jenkins_jobs.ini test my-cool-job/config/definitions/my-cool-job.yml
+
+5. Run a throwaway build with your change, and verify that your change didn't
+   break anything and does what you want it to do.
+
+(Note: if anyone merges anything to master during this time, Jenkins will reset
+all jobs to the state of what is in master, and your customizations will be
+wiped out. This "by-hand" testing procedure is only intended for short-lived
+tests.)
