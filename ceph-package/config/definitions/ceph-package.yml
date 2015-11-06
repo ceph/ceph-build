@@ -3,7 +3,6 @@
     defaults: global
     display-name: 'ceph-package'
     node: package
-    concurrent: false
     block-downstream: false
     block-upstream: false
     logrotate:

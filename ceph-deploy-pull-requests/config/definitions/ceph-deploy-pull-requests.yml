@@ -33,7 +33,6 @@
     project-type: freestyle
     defaults: global
     display-name: 'ceph-deploy: Pull Requests'
-    concurrent: false
     quiet-period: 5
     block-downstream: false
     block-upstream: false

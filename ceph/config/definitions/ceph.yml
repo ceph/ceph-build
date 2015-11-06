@@ -4,7 +4,6 @@
     project-type: multijob
     defaults: global
     display-name: 'ceph'
-    concurrent: false
     logrotate:
       daysToKeep: -1
       numToKeep: 25

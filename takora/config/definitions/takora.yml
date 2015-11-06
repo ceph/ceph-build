@@ -34,7 +34,6 @@
     builders:
     - shell:
         !include-raw ../../build/build
-    concurrent: false
     parameters:
     - string:
         default: master

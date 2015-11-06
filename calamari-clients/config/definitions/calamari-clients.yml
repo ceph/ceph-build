@@ -29,7 +29,6 @@
         which-build: last-successful
     - shell: !include-raw ../../build/build
     combination-filter: dist != "wheezy"
-    concurrent: false
     description: 'Build all the non-precise distros (which really means "package them")'
     execution-strategy:
       run-sequentially: false

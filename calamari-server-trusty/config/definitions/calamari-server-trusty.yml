@@ -3,7 +3,6 @@
     block-upstream: false
     builders:
     - shell: !include-raw ../../build/build
-    concurrent: false
     description: ''
     logrotate:
       artifactDaysToKeep: '-1'

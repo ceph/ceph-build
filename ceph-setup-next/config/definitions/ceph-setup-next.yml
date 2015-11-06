@@ -5,7 +5,6 @@
     # FIXME: unpin when this gets ported over
     node: huge && trusty
     display-name: 'ceph-setup-next'
-    concurrent: false
     logrotate:
       daysToKeep: -1
       numToKeep: 25

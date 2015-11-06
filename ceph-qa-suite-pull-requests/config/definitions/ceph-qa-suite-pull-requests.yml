@@ -4,7 +4,6 @@
     project-type: freestyle
     defaults: global
     display-name: 'ceph-qa-suite: Pull Requests'
-    concurrent: false
     quiet-period: 5
     block-downstream: false
     block-upstream: false

@@ -20,7 +20,6 @@
     builders:
     - shell: !include-raw ../../build/build
     combination-filter: dist != "wheezy"
-    concurrent: false
     description: ''
     execution-strategy:
       run-sequentially: false

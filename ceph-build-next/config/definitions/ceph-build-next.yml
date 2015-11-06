@@ -3,7 +3,6 @@
     project-type: matrix
     defaults: global
     display-name: 'ceph-build-next'
-    concurrent: false
     block-downstream: false
     block-upstream: false
     properties:

@@ -3,7 +3,6 @@
     project-type: matrix
     defaults: global
     description: Builds the repository configuration package for ceph-release.  RPMS Only
-    concurrent: false
     block-downstream: false
     block-upstream: false
 
