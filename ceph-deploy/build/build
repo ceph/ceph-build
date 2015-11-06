@@ -129,7 +129,7 @@ then
     [ "$FORCE" = true ] && chacra_flags="--force" || chacra_flags=""
 
     # push binaries to chacra
-    find ../ | egrep "*\.(changes|deb|dsc|gz)$" | egrep -v "(Packages|Sources|Contents)" | chacractl binary ${chacra_flags} create ${chacra_endpoint}
+    find $WORKSPACE/ceph-deploy/* | egrep "*\.(changes|deb|dsc|gz)$" | egrep -v "(Packages|Sources|Contents)" | chacractl binary ${chacra_flags} create ${chacra_endpoint}
 
     echo "Done"
 
