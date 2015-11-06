@@ -1,6 +1,6 @@
 - job:
     name: ceph-deploy
-    node: trusty
+    node: small && trusty
     project-type: matrix
     defaults: global
     disabled: false
@@ -55,7 +55,6 @@ If this is checked, then the binaries will be built and pushed to chacra even if
           type: label-expression
           name: DIST
           values:
-            - squeeze
             - wheezy
             - precise
             - trusty
