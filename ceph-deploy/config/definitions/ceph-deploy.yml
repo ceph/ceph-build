@@ -39,8 +39,7 @@ If this is checked, then the binaries will be built and pushed to chacra even if
           url: https://github.com/ceph/ceph-deploy.git
           branches:
             - $BRANCH
-          browser: githubweb
-          browser-url: http://github.com/ceph/ceph-deploy.git
+          browser: auto
           skip-tag: true
           timeout: 20
           wipe-workspace: true

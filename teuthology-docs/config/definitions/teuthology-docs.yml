@@ -27,8 +27,7 @@
           url: https://github.com/ceph/teuthology.git
           branches:
             - master
-          browser: githubweb
-          browser-url: https://github.com/ceph/teuthology.git
+          browser: auto
           timeout: 20
 
     builders:
