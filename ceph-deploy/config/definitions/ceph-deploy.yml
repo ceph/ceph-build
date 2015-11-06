@@ -55,7 +55,6 @@ If this is checked, then the binaries will be built and pushed to chacra even if
           type: label-expression
           name: DIST
           values:
-            - squeeze
             - wheezy
             - precise
             - trusty
