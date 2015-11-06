@@ -43,7 +43,7 @@ then
         DISTRO=`python -c "exec 'import platform; print platform.linux_distribution()[0].lower()'"`
 
         [ "$TEST" = true ] && chacra_ref="test" || chacra_ref="$BRANCH"
-        chacra_endpoint="ceph/${chacra_ref}/${DISTRO}/${DISTRO_VERSION}"
+        chacra_endpoint="ceph-deploy/${chacra_ref}/${DISTRO}/${DISTRO_VERSION}"
 
         # prevent early exit from a non-zero exit because we use `set -e`
         ! chacractl exists binaries/${chacra_endpoint}/${ARCH} ; exists=$? || true
@@ -92,7 +92,7 @@ then
     DISTRO=`python -c "exec 'import platform; print platform.linux_distribution()[0].lower()'"`
 
     [ "$TEST" = true ] && chacra_ref="test" || chacra_ref="$BRANCH"
-    chacra_endpoint="ceph/${chacra_ref}/${DISTRO}/${DEB_BUILD}/${ARCH}"
+    chacra_endpoint="ceph-deploy/${chacra_ref}/${DISTRO}/${DEB_BUILD}/${ARCH}"
 
     # prevent early exit from a non-zero exit because we use `set -e`
     ! chacractl exists binaries/${chacra_endpoint} ; exists=$? || true
