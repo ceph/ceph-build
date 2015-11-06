@@ -3,7 +3,7 @@
     scm:
       - git:
           url: https://github.com/ceph/ceph-build.git
-          browser-url: https://github.com/ceph/ceph-build
+          browser: auto
           timeout: 20
           skip-tag: true
           wipe-workspace: true

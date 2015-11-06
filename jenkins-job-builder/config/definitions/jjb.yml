@@ -27,8 +27,7 @@
           url: https://github.com/ceph/ceph-build
           branches:
             - master
-          browser: githubweb
-          browser-url: https://github.com/ceph/ceph-build
+          browser: auto
           timeout: 20
 
     builders:

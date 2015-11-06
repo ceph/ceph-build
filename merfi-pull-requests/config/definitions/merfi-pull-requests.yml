@@ -56,8 +56,7 @@
           branches:
             - ${sha1}
           refspec: +refs/pull/*:refs/remotes/origin/pr/*
-          browser: githubweb
-          browser-url: https://github.com/alfredodeza/merfi
+          browser: auto
           timeout: 20
           skip-tag: true
           wipe-workspace: true
