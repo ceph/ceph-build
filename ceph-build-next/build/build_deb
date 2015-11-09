@@ -6,8 +6,7 @@ if test -f /etc/redhat-release ; then
     exit 0
 fi
 
-# activate the virtualenv
-source $WORKSPACE/venv/bin/activate
+VENV="$WORKSPACE/venv/bin"
 
 get_bptag() {
     dist=$1
@@ -36,7 +35,7 @@ vers=`cat ./dist/version`
 distro=`python -c "exec 'import platform; print platform.linux_distribution()[0].lower()'"`
 chacra_endpoint="ceph/${chacra_ref}/${distro}/${DIST}/${ARCH}"
 
-chacractl exists binaries/${chacra_endpoint} ; exists=$?
+$VENV/chacractl exists binaries/${chacra_endpoint} ; exists=$?
 
 # if the binary already exists in chacra, do not rebuild
 if [ $exists -eq 0 ] && [ "$FORCE" = false ] ; then
@@ -178,7 +177,7 @@ echo "  End Time = $(date)"
 [ "$FORCE" = true ] && chacra_flags="--force" || chacra_flags=""
 
 # push binaries to chacra
-find release/$vers/ | egrep "*\.(changes|deb|dsc|gz)$" | egrep -v "(Packages|Sources|Contents)" | chacractl binary ${chacra_flags} create ${chacra_endpoint}
+find release/$vers/ | egrep "*\.(changes|deb|dsc|gz)$" | egrep -v "(Packages|Sources|Contents)" | $VENV/chacractl binary ${chacra_flags} create ${chacra_endpoint}
 
 
 echo "End Date: $(date)"
