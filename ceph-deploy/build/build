@@ -19,8 +19,7 @@ echo "  BRANCH=$BRANCH"
 rpm_dists="rhel centos6 centos7 centos"
 deb_dists="precise wheezy squeeze trusty jessie"
 
-# activate the virtualenv
-source $WORKSPACE/venv/bin/activate
+VENV="$WORKSPACE/venv/bin"
 
 # A helper to match an item in a list of items, like python's `if item in list`
 listcontains() {
@@ -84,7 +83,7 @@ then
         [ "$TEST" = true ] && chacra_ref="test" || chacra_ref="$BRANCH"
         chacra_endpoint="ceph-deploy/${chacra_ref}/${DISTRO}/${DISTRO_VERSION}"
 
-        chacractl exists binaries/${chacra_endpoint}/${ARCH} ; exists=$?
+        $VENV/chacractl exists binaries/${chacra_endpoint}/${ARCH} ; exists=$?
 
         # if the binary already exists in chacra, do not rebuild
         if [ $exists -eq 0 ] && [ "$FORCE" = false ] ; then
@@ -110,8 +109,8 @@ then
 
         [ "$FORCE" = true ] && chacra_flags="--force" || chacra_flags=""
 
-        find ${BUILDAREA}/SRPMS | grep rpm | chacractl binary ${chacra_flags} create ${chacra_endpoint}/source
-        find ${BUILDAREA}/RPMS/* | grep rpm | chacractl binary ${chacra_flags} create ${chacra_endpoint}/${ARCH}
+        find ${BUILDAREA}/SRPMS | grep rpm | $VENV/chacractl binary ${chacra_flags} create ${chacra_endpoint}/source
+        find ${BUILDAREA}/RPMS/* | grep rpm | $VENV/chacractl binary ${chacra_flags} create ${chacra_endpoint}/${ARCH}
 
         exit 0
 
@@ -132,7 +131,7 @@ then
     [ "$TEST" = true ] && chacra_ref="test" || chacra_ref="$BRANCH"
     chacra_endpoint="ceph-deploy/${chacra_ref}/${DISTRO}/${DEB_BUILD}/${ARCH}"
 
-    chacractl exists binaries/${chacra_endpoint} ; exists=$?
+    $VENV/chacractl exists binaries/${chacra_endpoint} ; exists=$?
 
     # if the binary already exists in chacra, do not rebuild
     if [ $exists -eq 0 ] && [ "$FORCE" = false ] ; then
@@ -167,7 +166,7 @@ then
 
     # push binaries to chacra
     # the binaries are created in one directory up from $WORKSPACE
-    find ../ | egrep "*\.(changes|deb|dsc|gz)$" | egrep -v "(Packages|Sources|Contents)" | chacractl binary ${chacra_flags} create ${chacra_endpoint}
+    find ../ | egrep "*\.(changes|deb|dsc|gz)$" | egrep -v "(Packages|Sources|Contents)" | $VENV/chacractl binary ${chacra_flags} create ${chacra_endpoint}
 
     echo "Done"
 
