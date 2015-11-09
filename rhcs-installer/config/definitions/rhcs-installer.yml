@@ -36,7 +36,6 @@
         !include-raw ../../build/rename-rhcs-installer
     - shell:
         !include-raw ../../../mariner-installer/build/build
-    concurrent: false
     parameters:
     - string:
         default: master

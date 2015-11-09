@@ -36,7 +36,6 @@
         !include-raw ../../build/rename-ceph-puppet-modules
     - shell:
         !include-raw ../../../takora/build/build
-    concurrent: false
     parameters:
     - string:
         default: master

@@ -3,9 +3,7 @@
     description: 'This is the main ceph build task.'
     project-type: multijob
     defaults: global
-    disabled: false
     display-name: 'ceph'
-    concurrent: false
     logrotate:
       daysToKeep: -1
       numToKeep: 25

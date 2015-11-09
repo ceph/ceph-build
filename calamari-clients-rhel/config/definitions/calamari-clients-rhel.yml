@@ -9,7 +9,6 @@
         target: ${WORKSPACE}
         which-build: last-successful
     - shell: !include-raw ../../build/build
-    concurrent: false
     description: ''
     logrotate:
       artifactDaysToKeep: '-1'

@@ -2,9 +2,7 @@
     name: merfi-pull-requests
     project-type: freestyle
     defaults: global
-    disabled: false
     display-name: 'Merfi: Pull Requests'
-    concurrent: false
     quiet-period: 5
     block-downstream: false
     block-upstream: false

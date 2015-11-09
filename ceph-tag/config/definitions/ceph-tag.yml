@@ -12,9 +12,7 @@
 - job:
     name: ceph-tag
     description: "This job clones from upstream Ceph, sets the right version from the tag and pushes changes to ceph-releases"
-    disabled: false
     display-name: 'ceph-tag'
-    concurrent: false
     logrotate:
       daysToKeep: -1
       numToKeep: 25
