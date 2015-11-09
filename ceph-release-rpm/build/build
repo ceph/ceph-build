@@ -24,9 +24,9 @@ CHACRACTL_VERSION="chacractl>=0.0.4"
 
 # Install the package by trying with the cache first, otherwise doing a download only, and then
 # trying to install from the cache again.
-if ! $VENV/pip install --find-links="file://$PIP_SDIST_INDEX" --no-index $CHACRACTL_VERSION; then
-    $VENV/pip install --exists-action=i --download-directory="$PIP_SDIST_INDEX" $CHACRACTL_VERSION
-    $VENV/pip install --find-links="file://$PIP_SDIST_INDEX" --no-index $CHACRACTL_VERSION
+if ! $VENV/pip install --upgrade --find-links="file://$PIP_SDIST_INDEX" --no-index $CHACRACTL_VERSION; then
+    $VENV/pip install --upgrade --exists-action=i --download-directory="$PIP_SDIST_INDEX" $CHACRACTL_VERSION
+    $VENV/pip install --upgrade --find-links="file://$PIP_SDIST_INDEX" --no-index $CHACRACTL_VERSION
 fi
 
 # create the .chacractl config file
