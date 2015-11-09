@@ -14,7 +14,7 @@ rm -rf RPMBUILD
 
 # Create the virtualenv
 virtualenv $WORKSPACE/venv
-source $WORKSPACE/venv/bin/activate
+VENV="$WORKSPACE/venv/bin"
 
 # Define and ensure the PIP cache
 PIP_SDIST_INDEX="$HOME/.cache/pip"
@@ -22,9 +22,9 @@ mkdir -p $PIP_SDIST_INDEX
 
 # Install the package by trying with the cache first, otherwise doing a download only, and then
 # trying to install from the cache again.
-if ! pip install --find-links="file://$PIP_SDIST_INDEX" --no-index chacractl; then
-    pip install --exists-action=i --download-directory="$PIP_SDIST_INDEX" chacractl
-    pip install --find-links="file://$PIP_SDIST_INDEX" --no-index chacractl
+if ! $VENV/pip install --find-links="file://$PIP_SDIST_INDEX" --no-index chacractl; then
+    $VENV/pip install --exists-action=i --download-directory="$PIP_SDIST_INDEX" chacractl
+    $VENV/pip install --find-links="file://$PIP_SDIST_INDEX" --no-index chacractl
 fi
 
 # create the .chacractl config file
@@ -53,7 +53,7 @@ if [ "$target" = "sles11sp2" ] ; then
 fi
 echo "Target directory is: $target"
 
-chacractl exists binaries/${chacra_baseurl}/${ARCH}; exists=$? || true
+$VENV/chacractl exists binaries/${chacra_baseurl}/${ARCH}; exists=$? || true
 
 # if the binary already exists in chacra, do not rebuild
 if [ $exists -eq 0 ] && [ "$FORCE" = false ]; then
@@ -176,6 +176,6 @@ EOF
 rpmbuild -ba --define "_topdir ${BUILDAREA}" --define "_unpackaged_files_terminate_build 0" ${BUILDAREA}/SPECS/ceph-release.spec
 if [ $? -eq 0 ] ; then
     # we actually do noarch stuff here
-    find $BUILDAREA/RPMS/* | grep noarch | grep rpm | chacractl binary ${chacra_flags} create ${chacra_baseurl}/noarch
-    find $BUILDAREA/SRPMS | grep rpm | chacractl binary ${chacra_flags} create ${chacra_baseurl}/source
+    find $BUILDAREA/RPMS/* | grep noarch | grep rpm | $VENV/chacractl binary ${chacra_flags} create ${chacra_baseurl}/noarch
+    find $BUILDAREA/SRPMS | grep rpm | $VENV/chacractl binary ${chacra_flags} create ${chacra_baseurl}/source
 fi
