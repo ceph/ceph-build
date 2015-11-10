@@ -19,7 +19,7 @@ fi
 
 # Create the virtualenv
 virtualenv $WORKSPACE/venv
-source $WORKSPACE/venv/bin/activate
+VENV="$WORKSPACE/venv/bin"
 
 # Define and ensure the PIP cache
 PIP_SDIST_INDEX="$HOME/.cache/pip"
@@ -27,12 +27,10 @@ mkdir -p $PIP_SDIST_INDEX
 
 CHACRACTL_VERSION="chacractl>=0.0.4"
 
-# Install the package by trying with the cache first, otherwise doing a download only, and then
-# trying to install from the cache again.
-if ! pip install --upgrade --find-links="file://$PIP_SDIST_INDEX" --no-index $CHACRACTL_VERSION; then
-    pip install --upgrade --exists-action=i --download-directory="$PIP_SDIST_INDEX" $CHACRACTL_VERSION
-    pip install --upgrade --find-links="file://$PIP_SDIST_INDEX" --no-index $CHACRACTL_VERSION
-fi
+# download packages to the local pip cache
+$VENV/pip install --upgrade --exists-action=i --download="$PIP_SDIST_INDEX" $CHACRACTL_VERSION
+# install packages from the local pip cache, ignoring pypi
+$VENV/pip install --upgrade --exists-action=i --find-links="file://$PIP_SDIST_INDEX" --no-index $CHACRACTL_VERSION
 
 # create the .chacractl config file
 cat > $HOME/.chacractl << EOF
