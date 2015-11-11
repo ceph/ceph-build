@@ -29,7 +29,7 @@ If this is unchecked, then the builds will be pushed to chacra with the correct 
 If this is checked, then the builds will be pushed to chacra under the 'test' ref."
       - bool:
           name: TAG
-          description: "Removes the previous private tag to recreate it again, changing the control files and committing again"
+          description: "When this is checked, Jenkins will remove the previous private tag and recreate it again, changing the control files and committing again. When this is unchecked, Jenkins will not do any commit or tag operations. If you've already created the private tag separately, then leave this unchecked."
           default: true
 
       - bool:
