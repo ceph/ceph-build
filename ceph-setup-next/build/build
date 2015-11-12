@@ -13,7 +13,7 @@ if [ -x "$BRANCH" ] ; then
     exit 1
 fi
 
-echo "Building version $(git describe) Branch $Branch"
+echo "Building version $(git describe) Branch $BRANCH"
 
 rm -rf dist
 rm -rf release
