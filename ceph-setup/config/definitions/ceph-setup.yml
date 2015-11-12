@@ -1,10 +1,10 @@
 - job:
-    name: ceph-setup-next
+    name: ceph-setup
     description: "This job step checks out the branch and builds the tarballs, diffs, and dsc that are passed to the ceph-build step.\r\n\r\nNotes:\r\nJob needs to run on a releatively recent debian system.  The Restrict where run feature is used to specifiy an appropriate label.\r\nThe clear workspace before checkout box for the git plugin is used."
     # we do not need to pin this to trusty anymore for the new jenkins instance
     # FIXME: unpin when this gets ported over
     node: huge && trusty
-    display-name: 'ceph-setup-next'
+    display-name: 'ceph-setup'
     logrotate:
       daysToKeep: -1
       numToKeep: 25

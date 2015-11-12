@@ -1,9 +1,9 @@
 - job:
-    name: ceph-next
+    name: ceph
     description: 'This is the main ceph build task which uses chacra.ceph.com.'
     project-type: multijob
     defaults: global
-    display-name: 'ceph-next'
+    display-name: 'ceph'
     logrotate:
       daysToKeep: -1
       numToKeep: 25
@@ -54,14 +54,14 @@ If this is checked, then the binaries will be built and pushed to chacra even if
           name: 'ceph setup phase'
           condition: SUCCESSFUL
           projects:
-            - name: ceph-setup-next
+            - name: ceph-setup
               current-parameters: true
               exposed-scm: false
       - multijob:
           name: 'ceph build phase'
           condition: SUCCESSFUL
           projects:
-            - name: ceph-build-next
+            - name: ceph-build
               current-parameters: true
               exposed-scm: false
 
