@@ -49,3 +49,8 @@
           artifacts: 'dist/**'
           allow-empty: false
           latest-only: false
+
+    wrappers:
+      - inject-passwords:
+          global: true
+          mask-password-params: true

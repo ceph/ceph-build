@@ -6,6 +6,8 @@ if test -f /etc/redhat-release ; then
     exit 0
 fi
 
+VENV="$WORKSPACE/venv/bin"
+
 get_bptag() {
     dist=$1
 
@@ -28,6 +30,20 @@ get_bptag() {
 
 BPTAG=`get_bptag $DIST`
 
+[ "$TEST" = true ] && chacra_ref="test" || chacra_ref="$BRANCH"
+vers=`cat ./dist/version`
+distro=`python -c "exec 'import platform; print platform.linux_distribution()[0].lower()'"`
+chacra_endpoint="ceph/${chacra_ref}/${distro}/${DIST}/${ARCH}"
+
+$VENV/chacractl exists binaries/${chacra_endpoint} ; exists=$?
+
+# if the binary already exists in chacra, do not rebuild
+if [ $exists -eq 0 ] && [ "$FORCE" = false ] ; then
+    echo "The endpoint at ${chacra_endpoint} already exists and FORCE was not set, Exiting..."
+    exit 0
+fi
+
+
 HOST=$(hostname --short)
 echo "Building on $(hostname) Date: $(date)"
 echo "  DIST=${DIST}"
@@ -39,7 +55,6 @@ echo "*****"
 env
 echo "*****"
 
-vers=`cat ./dist/version`
 # create a release directory for ceph-build tools
 mkdir -p release
 cp -a dist release/${vers}
@@ -130,6 +145,7 @@ sudo pbuilder --clean
 bpvers=`gen_debian_version $dvers $DIST`
 echo deb vers $bpvers
 
+
 echo building debs for $DIST
 if [ `dpkg-architecture -qDEB_BUILD_ARCH` = "i386" ] ; then
     #  Architecture dependent, independent and source
@@ -158,13 +174,10 @@ echo lintian --allow-root $releasedir/$cephver/*$bpvers*.deb
 echo "Start Time = $start_time"
 echo "  End Time = $(date)"
 
+[ "$FORCE" = true ] && chacra_flags="--force" || chacra_flags=""
 
-#Collect Artifacts
-mkdir -p dist/debian
-cp -a release/$vers/*.changes dist/debian/.
-cp -a release/$vers/*.deb     dist/debian/.
-cp -a release/$vers/*.dsc     dist/debian/.
-cp -a release/$vers/*.diff.gz dist/debian/.
-cp -a release/$vers/*.tar.gz  dist/debian/.
+# push binaries to chacra
+find release/$vers/ | egrep "*\.(changes|deb|dsc|gz)$" | egrep -v "(Packages|Sources|Contents)" | $VENV/chacractl binary ${chacra_flags} create ${chacra_endpoint}
+
 
 echo "End Date: $(date)"

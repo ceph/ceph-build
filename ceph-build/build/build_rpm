@@ -5,6 +5,70 @@ if [[ ! -f /etc/redhat-release && ! -f /usr/bin/zypper ]] ; then
     exit 0
 fi
 
+VENV="$WORKSPACE/venv/bin"
+
+get_rpm_dist() {
+    LSB_RELEASE=/usr/bin/lsb_release
+    [ ! -x $LSB_RELEASE ] && echo unknown && exit
+
+    ID=`$LSB_RELEASE --short --id`
+
+    case $ID in
+    RedHatEnterpriseServer)
+        RELEASE=`$LSB_RELEASE --short --release | cut -d. -f1`
+        DIST=rhel$RELEASE
+        DISTRO=rhel
+        ;;
+    CentOS)
+        RELEASE=`$LSB_RELEASE --short --release | cut -d. -f1`
+        DIST=el$RELEASE
+        DISTRO=centos
+        ;;
+    Fedora)
+        RELEASE=`$LSB_RELEASE --short --release`
+        DIST=fc$RELEASE
+        DISTRO=fedora
+        ;;
+    SUSE\ LINUX)
+        DESC=`$LSB_RELEASE --short --description`
+        RELEASE=`$LSB_RELEASE --short --release`
+        case $DESC in
+        *openSUSE*)
+                DIST=opensuse$RELEASE
+                DISTRO=opensuse
+            ;;
+        *Enterprise*)
+                DIST=sles$RELEASE
+                DISTRO=sles
+                ;;
+            esac
+        ;;
+    *)
+        DIST=unknown
+        DISTRO=unknown
+        ;;
+    esac
+
+    echo $DIST
+}
+
+get_rpm_dist
+dist=$DIST
+[ -z "$dist" ] && echo no dist && exit 1
+echo dist $dist
+
+vers=`cat ./dist/version`
+[ "$TEST" = true ] && chacra_ref="test" || chacra_ref="$BRANCH"
+chacra_baseurl="ceph/${chacra_ref}/${DISTRO}/${RELEASE}"
+
+$VENV/chacractl exists binaries/${chacra_baseurl}/${ARCH} ; exists=$?
+
+# if the binary already exists in chacra, do not rebuild
+if [ $exists -eq 0 ] && [ "$FORCE" = false ]; then
+    echo "The endpoint at ${chacra_baseurl}/${ARCH} already exists and FORCE was not set, Exiting..."
+    exit 0
+fi
+
 HOST=$(hostname --short)
 echo "Building on $(hostname) Date: $(date)"
 echo "  DIST=${DIST}"
@@ -17,7 +81,6 @@ env
 echo "*****"
 
 
-vers=`cat ./dist/version`
 # create a release directory for ceph-build tools
 mkdir -p release
 cp -a dist release/${vers}
@@ -32,53 +95,6 @@ echo "Building RPMs"
 
 releasedir="./release"
 cephver=$vers
-
-# Contents below ported from /srv/ceph-build/get_rpm_dist.sh
-# dist=`$bindir/get_rpm_dist.sh`
-
-get_rpm_dist() {
-    LSB_RELEASE=/usr/bin/lsb_release
-    [ ! -x $LSB_RELEASE ] && echo unknown && exit
-
-    ID=`$LSB_RELEASE --short --id`
-
-    case $ID in
-    RedHatEnterpriseServer)
-        RELEASE=`$LSB_RELEASE --short --release | cut -d. -f1`
-        DIST=rhel$RELEASE
-        ;;
-    CentOS)
-        RELEASE=`$LSB_RELEASE --short --release | cut -d. -f1`
-        DIST=el$RELEASE
-        ;;
-    Fedora)
-        RELEASE=`$LSB_RELEASE --short --release`
-        DIST=fc$RELEASE
-        ;;
-    SUSE\ LINUX)
-        DESC=`$LSB_RELEASE --short --description`
-        RELEASE=`$LSB_RELEASE --short --release`
-        case $DESC in
-        *openSUSE*)
-                DIST=opensuse$RELEASE
-            ;;
-        *Enterprise*)
-                DIST=sles$RELEASE
-                ;;
-            esac
-        ;;
-    *)
-        DIST=unknown
-        ;;
-    esac
-
-    echo $DIST
-}
-
-dist=`get_rpm_dist`
-
-[ -z "$dist" ] && echo no dist && exit 1
-echo dist $dist
 
 cd $releasedir/$cephver || exit 1
 
@@ -99,9 +115,10 @@ echo done
 # Make sure we execute at the top level directory
 cd "$WORKSPACE"
 
-#Collect Artifacts
-mkdir -p dist/rpm/${DIST}
-mv release/${vers}/rpm/*/SRPMS ./dist/rpm/${DIST}/.
-mv release/${vers}/rpm/*/RPMS/* ./dist/rpm/${DIST}/.
+[ "$FORCE" = true ] && chacra_flags="--force" || chacra_flags=""
+
+# push binaries to chacra
+find release/${vers}/rpm/*/SRPMS | grep rpm | $VENV/chacractl binary ${chacra_flags} create ${chacra_baseurl}/source
+find release/${vers}/rpm/*/RPMS/* | grep rpm | $VENV/chacractl binary ${chacra_flags} create ${chacra_baseurl}/${ARCH}
 
 echo "End Date: $(date)"
