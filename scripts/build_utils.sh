@@ -31,8 +31,8 @@ install_python_packages () {
 }
 
 make_chacractl_config () {
-# create the .chacractl config file
-cat > $HOME/.chacractl << EOF
+    # create the .chacractl config file
+    cat > $HOME/.chacractl << EOF
 url = "$CHACRACTL_URL"
 user = "$CHACRACTL_USER"
 key = "$CHACRACTL_KEY"
