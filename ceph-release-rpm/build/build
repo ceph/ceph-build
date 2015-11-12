@@ -12,27 +12,11 @@ echo "Building on Host: $(hostname) Date: $(date)"
 rm -rf dist
 rm -rf RPMBUILD
 
-# Create the virtualenv
-virtualenv $WORKSPACE/venv
-VENV="$WORKSPACE/venv/bin"
+pkgs=( "chacractl>=0.0.4" )
+install_python_packages "pkgs[@]"
 
-# Define and ensure the PIP cache
-PIP_SDIST_INDEX="$HOME/.cache/pip"
-mkdir -p $PIP_SDIST_INDEX
-
-CHACRACTL_VERSION="chacractl>=0.0.4"
-
-# download packages to the local pip cache
-$VENV/pip install --upgrade --exists-action=i --download="$PIP_SDIST_INDEX" $CHACRACTL_VERSION
-# install packages from the local pip cache, ignoring pypi
-$VENV/pip install --upgrade --exists-action=i --find-links="file://$PIP_SDIST_INDEX" --no-index $CHACRACTL_VERSION
-
-# create the .chacractl config file
-cat > $HOME/.chacractl << EOF
-url = "$CHACRACTL_URL"
-user = "$CHACRACTL_USER"
-key = "$CHACRACTL_KEY"
-EOF
+# create the .chacractl config file using global variables
+make_chacractl_config
 
 # What are we building ?
 

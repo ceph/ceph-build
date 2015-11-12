@@ -36,7 +36,9 @@
           filter: 'dist/**'
           which-build: last-successful
       - shell:
-          !include-raw ../../build/setup
+          !include-raw:
+            - ../../../scripts/build_utils.sh
+            - ../../build/setup
       - shell:
           !include-raw ../../build/setup_pbuilder
       - shell:
