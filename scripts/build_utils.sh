@@ -30,3 +30,12 @@ install_python_packages () {
         $VENV/pip install --upgrade --exists-action=i --find-links="file://$PIP_SDIST_INDEX" --no-index $package
     done
 }
+
+make_chacractl_config () {
+    # create the .chacractl config file
+    cat > $HOME/.chacractl << EOF
+    url = "$CHACRACTL_URL"
+    user = "$CHACRACTL_USER"
+    key = "$CHACRACTL_KEY"
+    EOF
+}
