@@ -1,26 +1,3 @@
-- scm:
-    name: ceph-deploy
-    scm:
-      - git:
-          url: https://github.com/ceph/ceph-deploy.git
-          branches:
-            - $BRANCH
-          browser: auto
-          skip-tag: true
-          timeout: 20
-          wipe-workspace: true
-
-- scm:
-    name: ceph-build
-    scm:
-      - git:
-          url: https://github.com/ceph/ceph-build.git
-          browser-url: https://github.com/ceph/ceph-build
-          timeout: 20
-          skip-tag: true
-          wipe-workspace: true
-          basedir: "ceph-build"
-
 - job:
     name: ceph-deploy
     node: small && trusty
@@ -57,8 +34,14 @@ If this is unchecked, then then nothing is built or pushed if they already exist
 If this is checked, then the binaries will be built and pushed to chacra even if they already exist in chacra."
 
     scm:
-      - ceph-deploy
-      - ceph-build
+      - git:
+          url: https://github.com/ceph/ceph-deploy.git
+          branches:
+            - $BRANCH
+          browser: auto
+          skip-tag: true
+          timeout: 20
+          wipe-workspace: true
 
     axes:
       - axis:
@@ -78,7 +61,10 @@ If this is checked, then the binaries will be built and pushed to chacra even if
             - centos7
 
     builders:
-      - shell: !include-raw ../../build/setup
+      - shell:
+            !include-raw:
+              - ../../../scripts/build_utils.sh
+              - ../../build/setup
       - shell: !include-raw ../../build/build
 
     wrappers:

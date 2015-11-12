@@ -6,14 +6,13 @@ VENV="$WORKSPACE/venv/bin"
 
 install_python_packages () {
     # Use this function to create a virtualenv and install
-    # python packages. Pass either a single package name or a list
-    # of package names. Usage:
+    # python packages. Pass a list of package names.
     #
-    #   install_python_packages "ansible"
+    # Usage:
     #
     #   to_install=( "ansible" "chacractl>=0.0.4" )
     #   install_python_packages "to_install[@]" 
-    #
+
     # Create the virtualenv
     virtualenv $WORKSPACE/venv
 
@@ -32,10 +31,10 @@ install_python_packages () {
 }
 
 make_chacractl_config () {
-    # create the .chacractl config file
-    cat > $HOME/.chacractl << EOF
-    url = "$CHACRACTL_URL"
-    user = "$CHACRACTL_USER"
-    key = "$CHACRACTL_KEY"
-    EOF
+# create the .chacractl config file
+cat > $HOME/.chacractl << EOF
+url = "$CHACRACTL_URL"
+user = "$CHACRACTL_USER"
+key = "$CHACRACTL_KEY"
+EOF
 }

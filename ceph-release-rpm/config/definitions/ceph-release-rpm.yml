@@ -25,15 +25,6 @@ If this is unchecked, then then nothing is built or pushed if they already exist
 
 If this is checked, then the binaries will be built and pushed to chacra even if they already exist in chacra."
 
-    scm:
-      - git:
-          url: https://github.com/ceph/ceph-build.git
-          browser-url: https://github.com/ceph/ceph-build
-          timeout: 20
-          skip-tag: true
-          wipe-workspace: true
-          basedir: "ceph-build"
-
     axes:
       - axis:
           type: label-expression
@@ -50,7 +41,9 @@ If this is checked, then the binaries will be built and pushed to chacra even if
 
     builders:
       - shell:
-          !include-raw ../../build/build
+          !include-raw:
+            - ../../../scripts/build_utils.sh
+            - ../../build/build
 
     wrappers:
       - inject-passwords:

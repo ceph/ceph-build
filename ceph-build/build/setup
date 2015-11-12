@@ -66,9 +66,8 @@ CentOS|Fedora|SUSE*|RedHatEnterpriseServer)
         ;;
 esac
 
-source $WORKSPACE/ceph-build/scripts/build_utils.sh
-
-install_python_packages "chacractl>=0.0.4"
+pkgs=( "chacractl>=0.0.4" )
+install_python_packages "pkgs[@]"
 
 # create the .chacractl config file using global variables
 make_chacractl_config

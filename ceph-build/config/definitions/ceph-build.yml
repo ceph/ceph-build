@@ -36,22 +36,15 @@
           filter: 'dist/**'
           which-build: last-successful
       - shell:
-          !include-raw ../../build/setup
+          !include-raw:
+            - ../../../scripts/build_utils.sh
+            - ../../build/setup
       - shell:
           !include-raw ../../build/setup_pbuilder
       - shell:
           !include-raw ../../build/build_deb
       - shell:
           !include-raw ../../build/build_rpm
-
-    scm:
-      - git:
-          url: https://github.com/ceph/ceph-build.git
-          browser-url: https://github.com/ceph/ceph-build
-          timeout: 20
-          skip-tag: true
-          wipe-workspace: true
-          basedir: "ceph-build"
 
     publishers:
       - archive:
