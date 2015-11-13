@@ -1,6 +1,6 @@
 - job:
     name: radosgw-agent
-    node: trusty
+    node: small && trusty
     project-type: matrix
     defaults: global
     display-name: 'radosgw-agent'
