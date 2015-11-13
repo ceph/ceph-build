@@ -10,6 +10,14 @@ echo "  WS=$WORKSPACE"
 echo "  PWD=$(pwd)"
 ls -l
 
+
+# the following two methods exist in scripts/build_utils.sh
+pkgs=( "chacractl>=0.0.4" )
+install_python_packages "pkgs[@]"
+
+# create the .chacractl config file using global variables
+make_chacractl_config
+
 if [[ -f /etc/redhat-release || -f /usr/bin/zypper ]] ; then
         rm -rf ./dist  # Remove any previous artifacts
         mkdir -p $WORKSPACE/dist/noarch
