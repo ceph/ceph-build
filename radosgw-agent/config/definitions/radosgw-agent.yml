@@ -54,3 +54,8 @@
           artifacts: '*-repo/**, dist/**'
           allow-empty: true
           latest-only: false
+
+    wrappers:
+      - inject-passwords:
+          global: true
+          mask-password-params: true
