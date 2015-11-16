@@ -12,6 +12,9 @@ set -ex
 virtualenv venv
 . venv/bin/activate
 
+# Wipe out JJB's cache if $FORCE is set.
+[ "$FORCE" = true ] && rm -rf "$HOME/.cache/jenkins_jobs/"
+
 # Define and ensure the PIP cache
 PIP_SDIST_INDEX="$HOME/.cache/pip"
 mkdir -p $PIP_SDIST_INDEX
