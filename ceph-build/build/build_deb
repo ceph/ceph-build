@@ -35,14 +35,8 @@ vers=`cat ./dist/version`
 distro=`python -c "exec 'import platform; print platform.linux_distribution()[0].lower()'"`
 chacra_endpoint="ceph/${chacra_ref}/${distro}/${DIST}/${ARCH}"
 
-$VENV/chacractl exists binaries/${chacra_endpoint} ; exists=$?
-
-# if the binary already exists in chacra, do not rebuild
-if [ $exists -eq 0 ] && [ "$FORCE" = false ] ; then
-    echo "The endpoint at ${chacra_endpoint} already exists and FORCE was not set, Exiting..."
-    exit 0
-fi
-
+# this exists in scripts/build_utils.sh
+check_binary_existence $chacra_endpoint
 
 HOST=$(hostname --short)
 echo "Building on $(hostname) Date: $(date)"
