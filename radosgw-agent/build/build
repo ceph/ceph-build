@@ -18,12 +18,31 @@ install_python_packages "pkgs[@]"
 # create the .chacractl config file using global variables
 make_chacractl_config
 
+# set chacra variables
+[ "$FORCE" = true ] && chacra_flags="--force" || chacra_flags=""
+[ "$TEST" = true ] && chacra_ref="test" || chacra_ref="$BRANCH"
+
 if [[ -f /etc/redhat-release || -f /usr/bin/zypper ]] ; then
         rm -rf ./dist  # Remove any previous artifacts
         mkdir -p $WORKSPACE/dist/noarch
         mkdir -p $WORKSPACE/dist/SRPMS
         mkdir -p $WORKSPACE/dist/SPECS
         mkdir -p $WORKSPACE/dist/SOURCES
+
+        # create the DISTRO and DISTRO_VERSION variables
+        # get_rpm_dist is located in scripts/build_utils.sh
+        get_rpm_dist
+
+        chacra_endpoint="radosgw-agent/${chacra_ref}/${DISTRO}/${DISTRO_VERSION}"
+
+        $VENV/chacractl exists binaries/${chacra_endpoint}/noarch ; exists=$?
+
+        # if the binary already exists in chacra, do not rebuild
+        if [ $exists -eq 0 ] && [ "$FORCE" = false ] ; then
+            echo "The endpoint at ${chacra_endpoint}/noarch already exists and FORCE was not set, Exiting..."
+            exit 0
+        fi
+
         suse=$(uname -n | grep -ic -e suse -e sles || true)
         if [ $suse -gt 0 ]
         then
@@ -31,8 +50,8 @@ if [[ -f /etc/redhat-release || -f /usr/bin/zypper ]] ; then
             python setup.py bdist_rpm
             if [ $? -eq 0 ]
             then
-                mv dist/*.noarch.rpm $WORKSPACE/dist/noarch/.
-                mv dist/*.src.rpm $WORKSPACE/dist/SRPMS
+                find dist -name "*.noarch.rpm" | $VENV/chacractl binary ${chacra_flags} create ${chacra_endpoint}/noarch
+                find dist -name "*.src.rpm" | $VENV/chacractl binary ${chacra_flags} create ${chacra_endpoint}/source
             fi
         else
             python setup.py clean
@@ -45,7 +64,8 @@ if [[ -f /etc/redhat-release || -f /usr/bin/zypper ]] ; then
             if [ $? -ne 0 ] ; then
                 rm -Rvf $WORKSPACE/dist/${DIST}/
             else
-                cp -avf $HOME/rpmbuild/* $WORKSPACE/dist/
+                find $HOME/rpmbuild -name "*.noarch.rpm" | $VENV/chacractl binary ${chacra_flags} create ${chacra_endpoint}/noarch
+                find $HOME/rpmbuild -name "*.src.rpm" | $VENV/chacractl binary ${chacra_flags} create ${chacra_endpoint}/source
             fi
         fi
 else
