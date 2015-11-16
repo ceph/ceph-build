@@ -73,6 +73,20 @@ else
         DEB_VERSION=$(dpkg-parsechangelog | sed -rne 's,^Version: (.*),\1, p')
         BP_VERSION=${DEB_VERSION}${BPTAG}
         DEBEMAIL="adeza@redhat.com" dch -D $DIST --force-distribution -b -v "$BP_VERSION" "$comment"
+
+        DEB_BUILD=$(lsb_release -s -c)
+        DISTRO=`python -c "exec 'import platform; print platform.linux_distribution()[0].lower()'"`
+
+        chacra_endpoint="radosgw-agent/${chacra_ref}/${DISTRO}/${DEB_BUILD}/noarch"
+
+        $VENV/chacractl exists binaries/${chacra_endpoint} ; exists=$?
+
+        # if the binary already exists in chacra, do not rebuild
+        if [ $exists -eq 0 ] && [ "$FORCE" = false ] ; then
+            echo "The endpoint at ${chacra_endpoint} already exists and FORCE was not set, Exiting..."
+            exit 0
+        fi
+
         dpkg-source -b .
         # we no longer sign the .dsc or .changes files (done by default with
         # the `-k$KEYID` flag), so explicitly tell the tool not to sign them
@@ -80,8 +94,9 @@ else
         RC=$?
         if [ $RC -eq 0 ] ; then
             cd $WORKSPACE
-            mkdir -p dist
-            mv ../*.changes ../*.dsc ../*.deb ../*.tar.gz dist/.
 
+            # push binaries to chacra
+            # the binaries are created in one directory up from $WORKSPACE
+            find ../ | egrep "*\.(changes|deb|dsc|gz)$" | egrep -v "(Packages|Sources|Contents)" | $VENV/chacractl binary ${chacra_flags} create ${chacra_endpoint}
         fi
 fi
