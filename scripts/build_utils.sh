@@ -38,3 +38,60 @@ user = "$CHACRACTL_USER"
 key = "$CHACRACTL_KEY"
 EOF
 }
+
+get_rpm_dist() {
+    # creates a DISTRO_VERSION and DISTRO global variable for
+    # use in constructing chacra urls for rpm distros
+
+    LSB_RELEASE=/usr/bin/lsb_release
+    [ ! -x $LSB_RELEASE ] && echo unknown && exit
+
+    ID=`$LSB_RELEASE --short --id`
+
+    case $ID in
+    RedHatEnterpriseServer)
+        DISTRO_VERSION=`$LSB_RELEASE --short --release | cut -d. -f1`
+        DISTRO=rhel
+        ;;
+    CentOS)
+        DISTRO_VERSION=`$LSB_RELEASE --short --release | cut -d. -f1`
+        DISTRO=centos
+        ;;
+    Fedora)
+        DISTRO_VERSION=`$LSB_RELEASE --short --release`
+        DISTRO=fedora
+        ;;
+    SUSE\ LINUX)
+        DESC=`$LSB_RELEASE --short --description`
+        DISTRO_VERSION=`$LSB_RELEASE --short --release`
+        case $DESC in
+        *openSUSE*)
+                DISTRO=opensuse
+            ;;
+        *Enterprise*)
+                DISTRO=sles
+                ;;
+            esac
+        ;;
+    *)
+        DIST=unknown
+        DISTRO=unknown
+        ;;
+    esac
+
+}
+
+check_binary_existence () {
+    url=$1
+
+    # we have to use ! here so thet -e will ignore the error code for the command
+    # because of this, the exit code is also reversed
+    ! $VENV/chacractl exists binaries/${url} ; exists=$?
+
+    # if the binary already exists in chacra, do not rebuild
+    if [ $exists -eq 1 ] && [ "$FORCE" = false ] ; then
+        echo "The endpoint at ${chacra_endpoint} already exists and FORCE was not set, Exiting..."
+        exit 0
+    fi
+
+}

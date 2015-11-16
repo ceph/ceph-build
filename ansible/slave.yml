@@ -37,6 +37,7 @@
         - java-1.7.0-openjdk
         - git
         #- rpm-sign
+        - rpmdevtools
       when: ansible_pkg_mgr  == "yum"
 
     - name: ensure the rpmmacros file exists to fix centos builds

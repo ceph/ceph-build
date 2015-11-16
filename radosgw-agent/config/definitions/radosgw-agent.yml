@@ -1,6 +1,6 @@
 - job:
     name: radosgw-agent
-    node: trusty
+    node: small && trusty
     project-type: matrix
     defaults: global
     display-name: 'radosgw-agent'
@@ -18,6 +18,20 @@
       - bool:
           name: RELEASE
           description: "If checked, it will use the key for releases, otherwise it will use the autosign one."
+
+      - bool:
+          name: TEST
+          description: "
+If this is unchecked, then the builds will be pushed to chacra with the correct ref. This is the default.
+
+If this is checked, then the builds will be pushed to chacra under the 'test' ref."
+
+      - bool:
+          name: FORCE
+          description: "
+If this is unchecked, then then nothing is built or pushed if they already exist in chacra. This is the default.
+
+If this is checked, then the binaries will be built and pushed to chacra even if they already exist in chacra."
 
     scm:
       - git:
@@ -47,10 +61,11 @@
 
     builders:
       - shell:
-          !include-raw ../../build/build
+          !include-raw:
+            - ../../../scripts/build_utils.sh
+            - ../../build/build
 
-    publishers:
-      - archive:
-          artifacts: '*-repo/**, dist/**'
-          allow-empty: true
-          latest-only: false
+    wrappers:
+      - inject-passwords:
+          global: true
+          mask-password-params: true
