@@ -27,7 +27,7 @@ if ! venv/bin/pip install --find-links="file://$PIP_SDIST_INDEX" --no-index jenk
 fi
 
 # workaround for https://issues.jenkins-ci.org/browse/JENKINS-16225
-JENKINS_URL=${JENKINS_URL:-"http://jenkins.ceph.com/"}
+JENKINS_URL=${JENKINS_URL:-"https://jenkins.ceph.com/"}
 JJB_CONFIG="$HOME/.jenkins_jobs.ini"
 
 # slap the programatically computed JJB config using env vars from Jenkins
