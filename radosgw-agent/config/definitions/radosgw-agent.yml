@@ -65,12 +65,6 @@ If this is checked, then the binaries will be built and pushed to chacra even if
             - ../../../scripts/build_utils.sh
             - ../../build/build
 
-    publishers:
-      - archive:
-          artifacts: '*-repo/**, dist/**'
-          allow-empty: true
-          latest-only: false
-
     wrappers:
       - inject-passwords:
           global: true
