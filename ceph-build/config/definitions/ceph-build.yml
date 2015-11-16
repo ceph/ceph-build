@@ -39,12 +39,9 @@
           !include-raw:
             - ../../../scripts/build_utils.sh
             - ../../build/setup
-      - shell:
-          !include-raw ../../build/setup_pbuilder
-      - shell:
-          !include-raw ../../build/build_deb
-      - shell:
-          !include-raw ../../build/build_rpm
+            - ../../build/setup_pbuilder
+            - ../../build/build_deb
+            - ../../build/build_rpm
 
     publishers:
       - archive:
