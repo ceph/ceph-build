@@ -61,13 +61,8 @@ vers=`cat ./dist/version`
 [ "$TEST" = true ] && chacra_ref="test" || chacra_ref="$BRANCH"
 chacra_baseurl="ceph/${chacra_ref}/${DISTRO}/${RELEASE}"
 
-$VENV/chacractl exists binaries/${chacra_baseurl}/${ARCH} ; exists=$?
-
-# if the binary already exists in chacra, do not rebuild
-if [ $exists -eq 0 ] && [ "$FORCE" = false ]; then
-    echo "The endpoint at ${chacra_baseurl}/${ARCH} already exists and FORCE was not set, Exiting..."
-    exit 0
-fi
+# this exists in scripts/build_utils.sh
+check_binary_existence $chacra_baseurl/$ARCH
 
 HOST=$(hostname --short)
 echo "Building on $(hostname) Date: $(date)"
