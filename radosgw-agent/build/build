@@ -35,13 +35,7 @@ if [[ -f /etc/redhat-release || -f /usr/bin/zypper ]] ; then
 
         chacra_endpoint="radosgw-agent/${chacra_ref}/${DISTRO}/${DISTRO_VERSION}"
 
-        $VENV/chacractl exists binaries/${chacra_endpoint}/noarch ; exists=$?
-
-        # if the binary already exists in chacra, do not rebuild
-        if [ $exists -eq 0 ] && [ "$FORCE" = false ] ; then
-            echo "The endpoint at ${chacra_endpoint}/noarch already exists and FORCE was not set, Exiting..."
-            exit 0
-        fi
+        check_binary_existence $chacra_endpoint/noarch
 
         suse=$(uname -n | grep -ic -e suse -e sles || true)
         if [ $suse -gt 0 ]
@@ -79,13 +73,7 @@ else
 
         chacra_endpoint="radosgw-agent/${chacra_ref}/${DISTRO}/${DEB_BUILD}/noarch"
 
-        $VENV/chacractl exists binaries/${chacra_endpoint} ; exists=$?
-
-        # if the binary already exists in chacra, do not rebuild
-        if [ $exists -eq 0 ] && [ "$FORCE" = false ] ; then
-            echo "The endpoint at ${chacra_endpoint} already exists and FORCE was not set, Exiting..."
-            exit 0
-        fi
+        check_binary_existence $chacra_endpoint
 
         dpkg-source -b .
         # we no longer sign the .dsc or .changes files (done by default with
