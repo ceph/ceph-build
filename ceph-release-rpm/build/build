@@ -37,13 +37,7 @@ if [ "$target" = "sles11sp2" ] ; then
 fi
 echo "Target directory is: $target"
 
-$VENV/chacractl exists binaries/${chacra_baseurl}/${ARCH}; exists=$? || true
-
-# if the binary already exists in chacra, do not rebuild
-if [ $exists -eq 0 ] && [ "$FORCE" = false ]; then
-    echo "The endpoint at ${chacra_baseurl}/${ARCH} already exists and FORCE was not set, Exiting..."
-    exit 0
-fi
+check_binary_existence $chacra_baseurl/noarch
 
 # setup rpm build area
 mkdir -p RPMBUILD/{BUILD,RPMS,SOURCES,SPECS,SRPMS}
