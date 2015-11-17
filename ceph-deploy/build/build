@@ -45,13 +45,8 @@ then
         [ "$TEST" = true ] && chacra_ref="test" || chacra_ref="$BRANCH"
         chacra_endpoint="ceph-deploy/${chacra_ref}/${DISTRO}/${DISTRO_VERSION}"
 
-        $VENV/chacractl exists binaries/${chacra_endpoint}/${ARCH} ; exists=$?
-
-        # if the binary already exists in chacra, do not rebuild
-        if [ $exists -eq 0 ] && [ "$FORCE" = false ] ; then
-            echo "The endpoint at ${chacra_endpoint}/${ARCH} already exists and FORCE was not set, Exiting..."
-            exit 0
-        fi
+        # this exists in scripts/build_utils.sh
+        check_binary_existence $chacra_endpoint/$ARCH
 
         if [ ! -e setup.py ] ; then
             echo "Are we in the right directory"
@@ -93,13 +88,8 @@ then
     [ "$TEST" = true ] && chacra_ref="test" || chacra_ref="$BRANCH"
     chacra_endpoint="ceph-deploy/${chacra_ref}/${DISTRO}/${DEB_BUILD}/${ARCH}"
 
-    $VENV/chacractl exists binaries/${chacra_endpoint} ; exists=$?
-
-    # if the binary already exists in chacra, do not rebuild
-    if [ $exists -eq 0 ] && [ "$FORCE" = false ] ; then
-        echo "The endpoint at ${chacra_endpoint} already exists and FORCE was not set, Exiting..."
-        exit 0
-    fi
+    # this exists in scripts/build_utils.sh
+    check_binary_existence $chacra_endpoint
 
     if [ ! -d debian ] ; then
         echo "Are we in the right directory"
