@@ -65,7 +65,7 @@ If this is checked, then the binaries will be built and pushed to chacra even if
             !include-raw:
               - ../../../scripts/build_utils.sh
               - ../../build/setup
-      - shell: !include-raw ../../build/build
+              - ../../build/build
 
     wrappers:
       - inject-passwords:
