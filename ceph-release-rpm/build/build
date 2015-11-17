@@ -37,7 +37,7 @@ if [ "$target" = "sles11sp2" ] ; then
 fi
 echo "Target directory is: $target"
 
-check_binary_existence $chacra_baseurl/$ARCH
+check_binary_existence $chacra_baseurl/noarch
 
 # setup rpm build area
 mkdir -p RPMBUILD/{BUILD,RPMS,SOURCES,SPECS,SRPMS}
