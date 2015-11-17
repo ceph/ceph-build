@@ -12,6 +12,11 @@
     axes:
       - axis:
           type: label-expression
+          name: MACHINE_SIZE
+          values:
+            - huge
+      - axis:
+          type: label-expression
           name: ARCH
           values:
             - x86_64
