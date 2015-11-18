@@ -29,7 +29,8 @@ If this is unchecked, then the builds will be pushed to chacra with the correct 
 If this is checked, then the builds will be pushed to chacra under the 'test' ref."
       - bool:
           name: TAG
-          description: "When this is checked, Jenkins will remove the previous private tag and recreate it again, changing the control files and committing again. When this is unchecked, Jenkins will not do any commit or tag operations. If you've already created the private tag separately, then leave this unchecked."
+          description: "When this is checked, Jenkins will remove the previous private tag and recreate it again, changing the control files and committing again. When this is unchecked, Jenkins will not do any commit or tag operations. If you've already created the private tag separately, then leave this unchecked.
+Defaults to checked."
           default: true
 
       - bool:
@@ -41,6 +42,14 @@ If this is checked, then the binaries will be built and pushed to chacra even if
       - string:
           name: VERSION
           description: "The version for release, e.g. 0.94.4"
+
+      - bool:
+          name: RC
+          description: "
+If this is checked, binaries will be pushed to chacra using the $BRANCH-rc name, for release candidate binaries.
+
+Defaults to un-checked"
+          default: false
 
     builders:
       - multijob:
