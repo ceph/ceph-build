@@ -58,7 +58,9 @@ dist=$DIST
 echo dist $dist
 
 vers=`cat ./dist/version`
-[ "$TEST" = true ] && chacra_ref="test" || chacra_ref="$BRANCH"
+# slap -rc to the ref if we are doing a release-candidate build
+[ "$RC" = true ] && chacra_ref="$BRANCH-rc" || chacra_ref="$BRANCH"
+[ "$TEST" = true ] && chacra_ref="test"
 chacra_baseurl="ceph/${chacra_ref}/${DISTRO}/${RELEASE}"
 
 # this exists in scripts/build_utils.sh
