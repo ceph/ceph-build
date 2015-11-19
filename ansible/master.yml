@@ -16,6 +16,7 @@
       - 'copyartifact'
       - 'ssh-slaves'
       - 'scm-api'
+      - 'multiple-scms'
       - 'rebuild'
       - 'publish-over-ssh'
       - 'nested-view'
