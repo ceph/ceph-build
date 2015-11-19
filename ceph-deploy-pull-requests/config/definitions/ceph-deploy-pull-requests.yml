@@ -78,6 +78,3 @@
     builders:
       - shell: !include-raw ../../build/setup
       - shell: "cd $WORKSPACE/ceph-deploy && sh scripts/jenkins-pull-requests-build"
-
-    publishers:
-      - github-notifier
