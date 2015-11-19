@@ -32,6 +32,7 @@
       - 'mask-passwords'
       - 'description-setter'
       - 'postbuildscript'
+      - 'jobConfigHistory'
 
     - port: 8080
     - prefix: '/build'
