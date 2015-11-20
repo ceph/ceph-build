@@ -1,24 +1,9 @@
 #!/bin/bash
 
-set -ex
+# the following two methods exist in scripts/build_utils.sh
+pkgs=( "ansible" "tox" )
+install_python_packages "pkgs[@]"
 
-# Create the virtualenv
-virtualenv venv
-. venv/bin/activate
-
-# Define and ensure the PIP cache
-PIP_SDIST_INDEX="$HOME/.cache/pip"
-mkdir -p $PIP_SDIST_INDEX
-
-# The setup for this job ensures that a copy of ceph-build will be available
-# for this script
-
-# Install the package by trying with the cache first, otherwise doing a download only, and then
-# trying to install from the cache again.
-if ! venv/bin/pip install --find-links="file://$PIP_SDIST_INDEX" --no-index ansible; then
-    venv/bin/pip install --exists-action=i --download-directory="$PIP_SDIST_INDEX" ansible
-    venv/bin/pip install --find-links="file://$PIP_SDIST_INDEX" --no-index ansible
-fi
 
 # run ansible to get this current host to meet our requirements, specifying
 # a local connection and 'localhost' as the host where to execute
