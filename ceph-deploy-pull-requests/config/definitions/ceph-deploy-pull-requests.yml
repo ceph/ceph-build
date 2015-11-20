@@ -77,4 +77,4 @@
 
     builders:
       - shell: !include-raw ../../build/setup
-      - shell: "cd $WORKSPACE/ceph-deploy && sh scripts/jenkins-pull-requests-build"
+      - shell: "cd $WORKSPACE/ceph-deploy && $WORKSPACE/venv/bin/tox -rv"
