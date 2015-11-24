@@ -16,6 +16,7 @@
     parameters:
       - bool:
           name: FORCE
+          default: false
           description: "
 If this is unchecked, then JJB will use its cache to update jobs. This makes this JJB job run faster, but it could cause JJB to fail to update some Jenkins jobs if the jobs have been changed outside of this JJB job's workflow. (This is the default.)
 
