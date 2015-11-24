@@ -8,7 +8,8 @@
     properties:
       - github:
           url: https://github.com/ceph/ceph
-
+    execution-strategy:
+      combination-filter: (ARCH=="x86_64") || (DIST == "trusty" && ARCH == "arm64")
     axes:
       - axis:
           type: label-expression
