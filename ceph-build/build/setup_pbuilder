@@ -32,6 +32,8 @@ os="debian"
 
 if [ $os = "debian" ]; then
     mirror="http://www.gtlib.gatech.edu/pub/debian"
+elif [ "$ARCH" = "arm64" ]; then
+    mirror="http://ports.ubuntu.com/ubuntu-ports"
 else
     mirror="http://us.archive.ubuntu.com/ubuntu"
 fi
