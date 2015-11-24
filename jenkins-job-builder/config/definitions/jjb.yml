@@ -1,6 +1,6 @@
 - job:
     name: jenkins-job-builder
-    node: trusty
+    node: small && trusty
     project-type: freestyle
     defaults: global
     display-name: 'Jenkins Job Builder'
