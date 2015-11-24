@@ -41,7 +41,7 @@ chacra_endpoint="ceph/${chacra_ref}/${distro}/${DIST}/${ARCH}"
 check_binary_existence $chacra_endpoint
 
 HOST=$(hostname --short)
-echo "Building on $(hostname) Date: $(date)"
+echo "Building on $(hostname)"
 echo "  DIST=${DIST}"
 echo "  BPTAG=${BPTAG}"
 echo "  WS=$WORKSPACE"
@@ -107,7 +107,6 @@ releasedir="./release"
 pbuilddir="/srv/debian-base"
 cephver=$vers
 
-start_time=`date`
 echo version $cephver
 
 # This used to live in a *file* on /src/ceph-build. Now it lives here because
@@ -167,13 +166,7 @@ bpvers=`gen_debian_version $dvers $DIST`
 echo lintian checks for $bpvers
 echo lintian --allow-root $releasedir/$cephver/*$bpvers*.deb
 
-echo "Start Time = $start_time"
-echo "  End Time = $(date)"
-
 [ "$FORCE" = true ] && chacra_flags="--force" || chacra_flags=""
 
 # push binaries to chacra
 find release/$vers/ | egrep "*\.(changes|deb|dsc|gz)$" | egrep -v "(Packages|Sources|Contents)" | $VENV/chacractl binary ${chacra_flags} create ${chacra_endpoint}
-
-
-echo "End Date: $(date)"
