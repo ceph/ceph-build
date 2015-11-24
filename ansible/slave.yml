@@ -16,13 +16,12 @@
     - name: set the authorized keys
       authorized_key: user={{ jenkins_user }} key="{{ lookup('file', 'files/ssh/keys/jenkins_build.pub') }}"
 
-    - name: ensure the build dir exists
+    - name: ensure {{ jenkins_user }} can sudo without a prompt
       sudo: yes
       lineinfile:
         dest: /etc/sudoers
         regexp: '^{{ jenkins_user }} ALL'
         line: '{{ jenkins_user }}   ALL=(ALL:ALL) NOPASSWD:ALL'
-        backrefs: yes
         validate: 'visudo -cf %s'
 
     - name: ensure the build dir exists
