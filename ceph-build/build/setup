@@ -13,7 +13,7 @@
 #
 set -ex
 HOST=$(hostname --short)
-echo "Building on $(hostname) Date: $(date)"
+echo "Building on $(hostname)"
 echo "  DIST=${DIST}"
 echo "  BPTAG=${BPTAG}"
 echo "  KEYID=${KEYID}"

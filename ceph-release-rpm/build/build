@@ -6,7 +6,7 @@ echo "  DIST=${DIST}"
 echo "  BPTAG=${BPTAG}"
 echo "  WS=$WORKSPACE"
 echo "  PWD=$(pwd)"
-echo "Building on Host: $(hostname) Date: $(date)"
+echo "Building on Host: $(hostname)"
 
 # remove any previous builds
 rm -rf dist

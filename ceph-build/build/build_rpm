@@ -67,7 +67,7 @@ chacra_baseurl="ceph/${chacra_ref}/${DISTRO}/${RELEASE}"
 check_binary_existence $chacra_baseurl/$ARCH
 
 HOST=$(hostname --short)
-echo "Building on $(hostname) Date: $(date)"
+echo "Building on $(hostname)"
 echo "  DIST=${DIST}"
 echo "  BPTAG=${BPTAG}"
 echo "  WS=$WORKSPACE"
@@ -117,5 +117,3 @@ cd "$WORKSPACE"
 # push binaries to chacra
 find release/${vers}/rpm/*/SRPMS | grep rpm | $VENV/chacractl binary ${chacra_flags} create ${chacra_baseurl}/source
 find release/${vers}/rpm/*/RPMS/* | grep rpm | $VENV/chacractl binary ${chacra_flags} create ${chacra_baseurl}/${ARCH}
-
-echo "End Date: $(date)"
