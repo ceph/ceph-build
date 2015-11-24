@@ -122,9 +122,10 @@
       sudo: true
       known_hosts:
         path: '/etc/ssh/ssh_known_hosts'
-        name: 'github.com'
+        # we need to use 'host' here because prado currently uses ansible-playbook==1.9.1
+        host: 'github.com'
         # github.com.pub is the output of `ssh-keyscan github.com`
-        key: "{{ lookup('file', 'ssh/hostkeys/github.com.pub') }}"
+        key: "{{ lookup('file', 'playbook/files/ssh/hostkeys/github.com.pub') }}"
 
     - name: register the new slave to jenkins master
       jenkins-node:
