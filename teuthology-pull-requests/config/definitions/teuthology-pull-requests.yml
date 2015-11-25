@@ -1,6 +1,6 @@
 - job:
     name: teuthology-pull-requests 
-    node: trusty
+    node: trusty && amd64 && small
     project-type: freestyle
     defaults: global
     display-name: 'Teuthology: Pull Requests'
