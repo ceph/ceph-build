@@ -28,4 +28,4 @@ fi
 # run ansible to do all the tagging and release specifying
 # a local connection and 'localhost' as the host where to execute
 cd "$WORKSPACE/ceph-build/ansible/"
-ansible-playbook -i "localhost," -c local release.yml --extra-vars="version=$VERSION branch=$BRANCH release=stable clean=true"
+ansible-playbook -i "localhost," -c local release.yml --extra-vars="version=$VERSION branch=$BRANCH release=stable clean=true project=ceph"
