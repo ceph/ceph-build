@@ -13,11 +13,8 @@
     parameters:
       - string:
           name: BRANCH
-          description: "The git branch or tag to build"
-
-      - bool:
-          name: RELEASE
-          description: "If checked, it will use the key for releases, otherwise it will use the autosign one."
+          description: "The git branch or tag to build. Defaults to master"
+          default: "master"
 
       - bool:
           name: TEST
@@ -27,11 +24,21 @@ If this is unchecked, then the builds will be pushed to chacra with the correct 
 If this is checked, then the builds will be pushed to chacra under the 'test' ref."
 
       - bool:
+          name: TAG
+          description: "When this is checked, Jenkins will remove the previous tag and recreate it again, changing the control files and committing again. When this is unchecked, Jenkins will not do any commit or tag operations. If you've already created the private tag separately, then leave this unchecked.
+Defaults to checked."
+          default: true
+
+      - bool:
           name: FORCE
           description: "
 If this is unchecked, then then nothing is built or pushed if they already exist in chacra. This is the default.
 
 If this is checked, then the binaries will be built and pushed to chacra even if they already exist in chacra."
+
+      - string:
+          name: VERSION
+          description: "The version for release, e.g. 0.94.4"
 
     scm:
       - git:
@@ -61,6 +68,14 @@ If this is checked, then the binaries will be built and pushed to chacra even if
             - centos7
 
     builders:
+      - multijob:
+          name: 'ceph-deploy tag phase'
+          condition: SUCCESSFUL
+          projects:
+            - name: ceph-deploy-tag
+              current-parameters: true
+              exposed-scm: false
+
       - shell:
             !include-raw:
               - ../../../scripts/build_utils.sh
