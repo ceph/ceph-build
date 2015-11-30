@@ -1,7 +1,6 @@
 - job:
     name: ceph-deploy
-    node: small && trusty
-    project-type: matrix
+    project-type: multijob
     defaults: global
     display-name: 'ceph-deploy'
     concurrent: true
