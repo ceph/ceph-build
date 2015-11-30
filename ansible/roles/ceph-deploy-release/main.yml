@@ -1,0 +1,35 @@
+---
+
+- name: check if ceph-deploy repo exists
+  stat: path='./ceph-deploy'
+  register: 'cdep_repo'
+
+- name: clone the ceph-deploy repository
+  git: repo=git@github.com:ceph/ceph-deploy dest=ceph-deploy
+  when: cdep_repo.stat.exists is defined and cdep_repo.stat.exists == false
+
+- name: rename origin to jenkins
+  command: git remote rename origin jenkins chdir=ceph-deploy
+  ignore_errors: yes
+
+- name: fetch the latest from remote
+  command: git fetch jenkins chdir=ceph-deploy
+
+- name: ensure local repo is in sync with remote
+  command: git reset --hard jenkins/{{ branch }} chdir=ceph-deploy
+
+- name: check if we are re-pushing the release commit
+  command: git log -1 --pretty=%B chdir=ceph-deploy
+  register: 'last_commit'
+
+  # we probably messed up the previous commit+tag, so we chose to use 'clean'
+  # that will rollback that commit, delete the local and remote tag, and force
+  # push the new changes
+- include: clear_version.yml
+  when: (clean and version in last_commit.stdout)
+
+  # if the last commit wasn't one that we already did, then go ahead and make
+  # the changes + tag for the release. Otherwise, just skip because it was
+  # already done for this release
+- include: release.yml
+  when: (version not in last_commit.stdout)
