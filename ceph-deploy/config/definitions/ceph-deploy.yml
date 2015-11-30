@@ -40,33 +40,6 @@ If this is checked, then the binaries will be built and pushed to chacra even if
           name: VERSION
           description: "The version for release, e.g. 0.94.4"
 
-    scm:
-      - git:
-          url: https://github.com/ceph/ceph-deploy.git
-          branches:
-            - $BRANCH
-          browser: auto
-          skip-tag: true
-          timeout: 20
-          wipe-workspace: true
-
-    axes:
-      - axis:
-          type: label-expression
-          name: ARCH
-          values:
-            - x86_64
-      - axis:
-          type: label-expression
-          name: DIST
-          values:
-            - wheezy
-            - precise
-            - trusty
-            - jessie
-            - centos6
-            - centos7
-
     builders:
       - multijob:
           name: 'ceph-deploy tag phase'
