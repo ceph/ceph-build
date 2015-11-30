@@ -1,0 +1,45 @@
+---
+
+- name: fetch the latest from remote
+  command: git fetch jenkins chdir=ceph-deploy
+
+- name: ensure local repo is in sync with remote
+  command: git reset --hard jenkins/{{ branch }} chdir=ceph-deploy
+
+- name: git checkout {{ branch }} branch
+  command: git checkout {{ branch }} chdir=ceph-deploy
+
+- name: set the debian version
+  command: dch -v {{ version }} -D stable "New upstream release" chdir=ceph-deploy
+  environment:
+    DEBEMAIL: "{{ debemail }}"
+    DEBFULLNAME: "{{ debfullname }}"
+
+- name: set the version in the spec file
+  lineinfile: dest=ceph-deploy/ceph-deploy.spec
+              regexp="Version{{':'}}\s+"
+              line="Version{{':'}}       {{ version }}"
+              state=present
+
+- name: commit the version changes
+  command: git commit -a -m "{{ version }}" chdir=ceph-deploy
+
+  # from script: /srv/ceph-build/tag_release.sh
+  # Contents of tag_release.sh
+  # FIXME: this used to be a signed tag:
+  # command: git tag -s "v{{ version }}"  -u 17ED316D -m "v{{ version }}" chdir=ceph-deploy
+- name: tag and commit the version
+  command: git tag "v{{ version }}" -m "v{{ version }}" chdir=ceph-deploy
+  environment:
+    GNUPGHOME: ~/build/gnupg.ceph-release
+    DEBEMAIL: "{{ debemail }}"
+    DEBFULLNAME: "{{ debfullname }}"
+
+- name: push changes to jenkins git repo
+  command: git push jenkins {{ branch }} chdir=ceph-deploy
+
+  # FIXME: this used to be set when signing the tag:
+  #   environment:
+  #       GNUPGHOME: ~/build/gnupg.ceph-release
+- name: push the newly created tag
+  command: git push jenkins v{{ version }} chdir=ceph-deploy
