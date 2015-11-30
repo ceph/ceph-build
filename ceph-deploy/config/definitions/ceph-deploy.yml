@@ -76,11 +76,13 @@ If this is checked, then the binaries will be built and pushed to chacra even if
               current-parameters: true
               exposed-scm: false
 
-      - shell:
-            !include-raw:
-              - ../../../scripts/build_utils.sh
-              - ../../build/setup
-              - ../../build/build
+      - multijob:
+          name: 'ceph-deploy build phase'
+          condition: SUCCESSFUL
+          projects:
+            - name: ceph-deploy-build
+              current-parameters: true
+              exposed-scm: false
 
     wrappers:
       - inject-passwords:
