@@ -73,6 +73,8 @@
         - doxygen
         - ditaa
         - ant
+        - libxml2-dev
+        - libxslt1-dev
         # teuthology-docs job:
         - libmysqlclient-dev
         - libevent-dev
