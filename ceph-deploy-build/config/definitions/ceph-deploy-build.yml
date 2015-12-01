@@ -30,8 +30,6 @@
           type: label-expression
           name: DIST
           values:
-            - wheezy
-            - precise
             - trusty
             - jessie
             - centos6
