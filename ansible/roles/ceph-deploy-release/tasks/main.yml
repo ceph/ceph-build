@@ -26,10 +26,10 @@
   # that will rollback that commit, delete the local and remote tag, and force
   # push the new changes
 - include: clear_version.yml
-  when: (clean and version in last_commit.stdout)
+  when: (clean and last_commit.stdout == tag_name)
 
   # if the last commit wasn't one that we already did, then go ahead and make
   # the changes + tag for the release. Otherwise, just skip because it was
   # already done for this release
 - include: release.yml
-  when: (version not in last_commit.stdout)
+  when: (tag_name != last_commit.stdout)
