@@ -11,7 +11,7 @@ install_python_packages () {
     # Usage:
     #
     #   to_install=( "ansible" "chacractl>=0.0.4" )
-    #   install_python_packages "to_install[@]" 
+    #   install_python_packages "to_install[@]"
 
     # Create the virtualenv
     virtualenv $WORKSPACE/venv
@@ -19,6 +19,10 @@ install_python_packages () {
     # Define and ensure the PIP cache
     PIP_SDIST_INDEX="$HOME/.cache/pip"
     mkdir -p $PIP_SDIST_INDEX
+
+    echo "Ensuring latest pip is installed"
+    $VENV/pip install --upgrade --exists-action=i --download="$PIP_SDIST_INDEX" pip
+    $VENV/pip install --upgrade --exists-action=i --find-links="file://$PIP_SDIST_INDEX" --no-index pip
 
     pkgs=("${!1}")
     for package in ${pkgs[@]}; do
