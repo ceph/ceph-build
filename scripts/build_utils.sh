@@ -11,7 +11,7 @@ install_python_packages () {
     # Usage:
     #
     #   to_install=( "ansible" "chacractl>=0.0.4" )
-    #   install_python_packages "to_install[@]" 
+    #   install_python_packages "to_install[@]"
 
     # Create the virtualenv
     virtualenv $WORKSPACE/venv
