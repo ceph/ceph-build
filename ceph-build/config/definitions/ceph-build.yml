@@ -35,7 +35,7 @@
 
     builders:
       - shell: |
-          echo "Cleaning up workarea"
+          echo "Cleaning up top-level workarea (shared among workspaces)"
           rm -rf dist
           rm -rf venv
           rm -rf release
