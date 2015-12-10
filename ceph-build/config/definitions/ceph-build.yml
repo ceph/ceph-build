@@ -37,6 +37,7 @@
       - shell: |
           echo "Cleaning up workarea"
           rm -rf dist
+          rm -rf venv
           rm -rf release
       - copyartifact:
           project: ceph-setup
