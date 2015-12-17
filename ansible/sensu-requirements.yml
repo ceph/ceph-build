@@ -1,0 +1,4 @@
+- src: Mayeu.sensu
+
+- src: Mayeu.RabbitMQ
+  version: 1.4.0

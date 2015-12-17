@@ -1,3 +1,8 @@
+# This playbook requires that you install the roles defined
+# in ./sensu-requiremnts.yml. Do this by running:
+#
+#     ansible-galaxy install -r sensu-requirements.yml
+#
 - hosts: all
   user: admin
   sudo: true
