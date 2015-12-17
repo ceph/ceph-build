@@ -1,0 +1,16 @@
+- hosts: all
+  user: admin
+  sudo: true
+  vars_files:
+    - sensu-vars.yml
+  roles:
+    - role: Mayeu.RabbitMQ
+      rabbitmq_vhost_definitions:
+        - name: sensu
+      rabbitmq_users_definitions:
+        - vhost:    sensu
+          user:     sensu
+          password: placeholder
+      rabbitmq_ssl: false
+    - redis
+    - Mayeu.sensu
