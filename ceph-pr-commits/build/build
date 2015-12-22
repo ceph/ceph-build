@@ -20,8 +20,16 @@ returncode = process.wait()
 stdout = process.stdout.read()
 stderr = process.stderr.read()
 
-# git log output goes to stdout so process that
+def extract_sha(lines):
+    trim = lines.split()
+    for i in trim:
+        if i and 'commit' not in i:
+            return i
 
-for chunk in stdout.split('commit '): # we are interested in every commit chunk
+# git log output goes to stdout so process that
+for chunk in stdout.split('\n\ncommit'): # we are interested in every commit chunk
+    if not chunk:
+        continue
     if not 'Signed-off-by:' in chunk:
-        raise SystemExit('A commit is missing "Signed-off-by"')
+        sha = extract_sha(chunk)
+        raise SystemExit('A commit is missing "Signed-off-by". sha: %s' % sha)
