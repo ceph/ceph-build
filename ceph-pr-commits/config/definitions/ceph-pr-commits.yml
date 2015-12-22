@@ -59,7 +59,7 @@
 
     builders:
       - shell:
-          !include-raw: ../../build/build
+          !include-raw ../../build/build
     # NOTE: no publishing yet as we want to prevent errors in the
     # new checks. Once this is robust enough we should uncomment
     # to fully enable notifications. Maybe consider a comment on the 
