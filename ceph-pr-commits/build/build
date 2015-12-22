@@ -5,7 +5,7 @@ import os
 target_branch = os.getenv('ghprbTargetBranch', 'master')
 source_branch = os.getenv('ghprbSourceBranch', 'HEAD')
 
-command = ['git', 'log', '%s..%s' % (target_branch, source_branch)]
+command = ['git', 'log', '--no-merges', '%s..%s' % (target_branch, source_branch)]
 
 
 process = Popen(
