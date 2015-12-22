@@ -1,4 +1,7 @@
-- src: Mayeu.sensu
+- src: https://github.com/andrewschoen/ansible-playbook-sensu
+  scm: git
+  name: Mayeu.sensu
+  version: remotes/origin/update-sensu-repo
 
 - src: Mayeu.RabbitMQ
   version: 1.4.0
