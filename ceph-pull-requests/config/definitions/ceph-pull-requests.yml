@@ -1,0 +1,64 @@
+- job:
+    name: ceph-pull-requests
+    project-type: freestyle
+    defaults: global
+    display-name: 'ceph: Pull Requests'
+    quiet-period: 5
+    block-downstream: false
+    block-upstream: false
+    retry-count: 3
+    properties:
+      - github:
+          url: https://github.com/ceph/ceph/
+    logrotate:
+      daysToKeep: 15
+      numToKeep: 30
+      artifactDaysToKeep: -1
+      artifactNumToKeep: -1
+
+    parameters:
+      - string:
+          name: sha1
+          description: "A pull request ID, like 'origin/pr/72/head'"
+
+    triggers:
+      - github-pull-request:
+          admin-list:
+            - alfredodeza
+            - ktdreyer
+            - andrewschoen
+            - dmick
+          org-list:
+            - ceph
+          white-list:
+            - jcsp
+            - gregsfortytwo
+            - GregMeno
+            - dzafman
+            - dillaman
+            - dachary
+            - liewegas
+            - idryomov
+            - vasukulkarni
+          trigger-phrase: ''
+          only-trigger-phrase: false
+          github-hooks: true
+          permit-all: false
+          auto-close-on-fail: false
+
+    scm:
+      - git:
+          url: https://github.com/ceph/ceph.git
+          branches:
+            - ${sha1}
+          refspec: +refs/pull/*:refs/remotes/origin/pr/*
+          browser: auto
+          timeout: 20
+          skip-tag: true
+          wipe-workspace: true
+
+    builders:
+      - shell: "./run-make-check.sh"
+
+    publishers:
+      - github-notifier
