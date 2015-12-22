@@ -4,18 +4,24 @@
 #     ansible-galaxy install -r sensu-requirements.yml
 #
 - hosts: all
-  user: admin
   sudo: true
   vars_files:
     - sensu-vars.yml
   roles:
     - role: Mayeu.RabbitMQ
       rabbitmq_vhost_definitions:
-        - name: sensu
+          - name: "/sensu"
       rabbitmq_users_definitions:
-        - vhost:    sensu
-          user:     sensu
-          password: placeholder
+          - vhost: "/sensu"
+            user: sensu
+            password: secret
+            configure_priv: ".*"
+            read_priv: ".*"
+            write_priv: ".*"
       rabbitmq_ssl: false
     - redis
-    - Mayeu.sensu
+    - role: Mayeu.sensu
+      sensu_server_rabbitmq_port: 5672
+      sensu_server_api_password: secret
+      sensu_server_rabbitmq_password: secret
+      sensu_server_dashboard_password: secret

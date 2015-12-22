@@ -1,15 +1,6 @@
 ---
-# Set the rabbitmq SSL address
-rabbitmq_conf_ssl_listeners_address: '0.0.0.0'
-
-# Set the rabbitmq vhost
-rabbitmq_vhost_definitions:
-  - name:     "{{ sensu_server_rabbitmq_vhost }}"
-
-rabbitmq_users_definitions:
-  - vhost:    "{{ sensu_server_rabbitmq_vhost }}"
-    user:     "{{ sensu_server_rabbitmq_user }}"
-    password: "{{ sensu_server_rabbitmq_password }}"
+# Set the rabbitmq address
+rabbitmq_conf_tcp_listeners_address: '0.0.0.0'
 
 sensu_server_rabbitmq_insecure: true
 
@@ -17,14 +8,32 @@ sensu_server_rabbitmq_insecure: true
 sensu_client_subscription_names:
   - test
 
-# Dummy sensu_checks
 sensu_checks:
-  test_check:
-    handler    : default
-    command    : "/bin/sh echo Hello World"
-    interval   : 60
+  cpu:
+    command: "check-cpu.rb"
+    interval: 10
     subscribers:
-      - test
+      - common
+  disk:
+    command: "check-disk-usage.rb -w 85 -c 95"
+    interval: 10
+    subscribers:
+      - common
+  load:
+    command: "check-load.rb"
+    interval: 10
+    subscribers:
+      - common
+  memory:
+    command: "check-memory.rb -w 85 -c 95"
+    interval: 10
+    subscribers:
+      - common
+  rabbitmq-alive:
+    command: "check-rabbitmq-amqp-alive.rb -u :::rabbitmq.user|guest::: -p :::rabbitmq.password|guest::: -v :::rabbitmq.vhost|%2F:::"
+    interval: 10
+    subscribers:
+      - rabbitmq
 
 # Dummy sensu_handlers
 sensu_handlers:
