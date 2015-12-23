@@ -5,8 +5,6 @@ rabbitmq_conf_tcp_listeners_address: '0.0.0.0'
 sensu_server_rabbitmq_insecure: true
 
 # Sensu client variable
-sensu_client_subscription_names:
-  - test
 
 sensu_checks:
   cpu:
@@ -34,6 +32,13 @@ sensu_checks:
     interval: 10
     subscribers:
       - rabbitmq
+
+sensu_ruby_gem_plugins:
+  - "sensu-plugins-load-checks"
+  - "sensu-plugins-memory-checks"
+  - "sensu-plugins-disk-checks"
+  - "sensu-plugins-cpu-checks"
+  - "sensu-plugins-rabbitmq"
 
 # Dummy sensu_handlers
 sensu_handlers:
