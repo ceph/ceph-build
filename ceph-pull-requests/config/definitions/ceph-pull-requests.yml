@@ -3,6 +3,7 @@
     project-type: freestyle
     defaults: global
     concurrent: true
+    node: huge
     display-name: 'ceph: Pull Requests'
     quiet-period: 5
     block-downstream: false
