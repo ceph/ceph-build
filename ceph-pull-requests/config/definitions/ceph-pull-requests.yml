@@ -2,6 +2,7 @@
     name: ceph-pull-requests
     project-type: freestyle
     defaults: global
+    concurrent: true
     display-name: 'ceph: Pull Requests'
     quiet-period: 5
     block-downstream: false
