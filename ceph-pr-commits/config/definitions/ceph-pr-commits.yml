@@ -23,27 +23,13 @@
 
     triggers:
       - github-pull-request:
-          admin-list:
-            - alfredodeza
-            - ktdreyer
-            - andrewschoen
-            - dmick
+          allow-whitelist-orgs-as-admins: true
           org-list:
             - ceph
-          white-list:
-            - jcsp
-            - gregsfortytwo
-            - GregMeno
-            - dzafman
-            - dillaman
-            - dachary
-            - liewegas
-            - idryomov
-            - vasukulkarni
           trigger-phrase: ''
           only-trigger-phrase: false
           github-hooks: true
-          permit-all: false
+          permit-all: true
           auto-close-on-fail: false
 
     scm:
@@ -62,7 +48,7 @@
           !include-raw ../../build/build
     # NOTE: no publishing yet as we want to prevent errors in the
     # new checks. Once this is robust enough we should uncomment
-    # to fully enable notifications. Maybe consider a comment on the 
+    # to fully enable notifications. Maybe consider a comment on the
     # Pull Request vs. a simple notification?
     #publishers:
     #  - github-notifier
