@@ -25,6 +25,7 @@
 
     triggers:
       - github-pull-request:
+          allow-whitelist-orgs-as-admins: true
           admin-list:
             - alfredodeza
             - ktdreyer
