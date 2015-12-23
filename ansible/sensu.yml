@@ -25,3 +25,14 @@
       sensu_server_api_password: secret
       sensu_server_rabbitmq_password: secret
       sensu_server_dashboard_password: secret
+      sensu_client_subscription_names:
+        - common
+        - rabbitmq
+      # these are custom settings for this client
+      sensu_settings:
+        # used in the rabbitmq-alive check
+        rabbitmq:
+          user: sensu
+          password: secret
+          # we need to escape the / in /sensu
+          vhost: "%2Fsensu"
