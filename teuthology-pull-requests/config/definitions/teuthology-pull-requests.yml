@@ -3,6 +3,7 @@
     node: trusty && amd64 && small
     project-type: freestyle
     defaults: global
+    concurrent: true
     display-name: 'Teuthology: Pull Requests'
     quiet-period: 5
     block-downstream: false
