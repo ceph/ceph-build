@@ -36,6 +36,11 @@ if ! venv/bin/pip install --find-links="file://$PIP_SDIST_INDEX" --no-index ansi
     venv/bin/pip install --find-links="file://$PIP_SDIST_INDEX" --no-index ansible
 fi
 
+# install ansible-galaxy roles for playbook syntax check
+for reqs in $WORKSPACE/ansible/requirements/*; do
+    ansible-galaxy install -r $reqs -p $WORKSPACE/ansible/roles --force
+done
+
 # Syntax-check each Ansible playbook
 for playbook in $WORKSPACE/ansible/*.yml; do
     ansible-playbook -i '127.0.0.1,' $playbook --syntax-check
