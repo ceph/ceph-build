@@ -3,7 +3,7 @@
 #
 #     ansible-galaxy install -r sensu-requirements.yml
 #
-- hosts: all
+- hosts: sensu-server
   sudo: true
   vars_files:
     - sensu-vars.yml
@@ -36,3 +36,17 @@
           password: secret
           # we need to escape the / in /sensu
           vhost: "%2Fsensu"
+
+- hosts: sensu-clients
+  sudo: true
+  vars_files:
+    - sensu-vars.yml
+  roles:
+    - role: Mayeu.sensu
+      sensu_server_rabbitmq_hostname: "{{ rabbitmq_client_address|mandatory }}"
+      sensu_server_rabbitmq_port: 5672
+      sensu_server_rabbitmq_password: secret
+      sensu_install_server: false
+      sensu_install_uchiwa: false
+      # sensu_client_subscription_names need to be defined in a hosts_var file
+      # relative to your inventory
