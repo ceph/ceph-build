@@ -14,6 +14,7 @@ install_python_packages () {
     #   install_python_packages "to_install[@]"
 
     # Create the virtualenv
+    rm -rf "$WORKSPACE/venv"
     virtualenv $WORKSPACE/venv
 
     # Define and ensure the PIP cache
