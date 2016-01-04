@@ -1,0 +1,47 @@
+---
+# Set the rabbitmq address
+rabbitmq_conf_tcp_listeners_address: '0.0.0.0'
+
+sensu_server_rabbitmq_insecure: true
+
+# Sensu client variable
+
+sensu_checks:
+  cpu:
+    command: "check-cpu.rb"
+    interval: 10
+    subscribers:
+      - common
+  disk:
+    command: "check-disk-usage.rb -w 85 -c 95"
+    interval: 10
+    subscribers:
+      - common
+  load:
+    command: "check-load.rb"
+    interval: 10
+    subscribers:
+      - common
+  memory:
+    command: "check-memory.rb -w 85 -c 95"
+    interval: 10
+    subscribers:
+      - common
+  rabbitmq-alive:
+    command: "check-rabbitmq-amqp-alive.rb -u :::rabbitmq.user|guest::: -p :::rabbitmq.password|guest::: -v :::rabbitmq.vhost|%2F:::"
+    interval: 10
+    subscribers:
+      - rabbitmq
+
+sensu_ruby_gem_plugins:
+  - "sensu-plugins-load-checks"
+  - "sensu-plugins-memory-checks"
+  - "sensu-plugins-disk-checks"
+  - "sensu-plugins-cpu-checks"
+  - "sensu-plugins-rabbitmq"
+
+# Dummy sensu_handlers
+sensu_handlers:
+  test_handler:
+    type   : pipe
+    command: "echo"

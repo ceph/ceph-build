@@ -1,0 +1,7 @@
+[sensu-server]
+158.69.67.168
+
+[sensu-clients]
+jenkins.ceph.com
+chacra.ceph.com
+prado.ceph.com
