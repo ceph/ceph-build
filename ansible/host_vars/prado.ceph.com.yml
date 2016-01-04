@@ -1,0 +1,3 @@
+---
+sensu_client_subscription_names:
+  - common
