@@ -6,7 +6,7 @@
 - hosts: sensu-server
   sudo: true
   vars_files:
-    - sensu-vars.yml
+    - vars/sensu-vars.yml
   roles:
     - role: Mayeu.RabbitMQ
       rabbitmq_vhost_definitions:
@@ -40,7 +40,7 @@
 - hosts: sensu-clients
   sudo: true
   vars_files:
-    - sensu-vars.yml
+    - vars/sensu-vars.yml
   roles:
     - role: Mayeu.sensu
       sensu_server_rabbitmq_hostname: "{{ rabbitmq_client_address|mandatory }}"
