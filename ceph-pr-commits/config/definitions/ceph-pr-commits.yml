@@ -32,6 +32,12 @@
           permit-all: true
           auto-close-on-fail: false
 
+          # notifications
+          status-context: "Signed-off-by"
+          started-status: "checking if commits are signed"
+          success-status: "all commits in this PR are signed"
+          failure-status: "one or more commits in this PR are not signed"
+
     scm:
       - git:
           url: https://github.com/ceph/ceph.git
@@ -46,9 +52,3 @@
     builders:
       - shell:
           !include-raw ../../build/build
-    # NOTE: no publishing yet as we want to prevent errors in the
-    # new checks. Once this is robust enough we should uncomment
-    # to fully enable notifications. Maybe consider a comment on the
-    # Pull Request vs. a simple notification?
-    #publishers:
-    #  - github-notifier
