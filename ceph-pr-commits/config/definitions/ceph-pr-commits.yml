@@ -31,8 +31,6 @@
           github-hooks: true
           permit-all: true
           auto-close-on-fail: false
-
-          # notifications
           status-context: "Signed-off-by"
           started-status: "checking if commits are signed"
           success-status: "all commits in this PR are signed"
