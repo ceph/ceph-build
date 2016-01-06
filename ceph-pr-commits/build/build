@@ -20,6 +20,24 @@ returncode = process.wait()
 stdout = process.stdout.read()
 stderr = process.stderr.read()
 
+
+def produce_junit(**kw):
+    time = kw.get('time', 0)
+    tests = kw.get('tests', [])
+    failures = kw.get('failures', [])
+    total_tests = len(tests)
+    total_failures = len(failures)
+    template = """
+<?xml version="1.0" encoding="utf-8"?>
+<testsuite errors="0" failures="{total_failures}" name="Signed-off-by" skips="0" tests="{total_tests}" time="0">
+</testsuite>
+    """.format(total_failures=total_failures, total_tests=total_tests)
+    path = os.path.join(os.getenv("$WORKSPACE", ""), 'report.xml')
+    print template
+    with open(path, 'w') as junit_file:
+        junit_file.write(template)
+
+
 def extract_sha(lines):
     trim = lines.split()
     for i in trim:
@@ -27,9 +45,17 @@ def extract_sha(lines):
             return i
 
 # git log output goes to stdout so process that
+tests = []
+failures = []
 for chunk in stdout.split('\n\ncommit'): # we are interested in every commit chunk
     if not chunk:
         continue
+    tests.append(1)
     if not 'Signed-off-by:' in chunk:
         sha = extract_sha(chunk)
-        raise SystemExit('A commit is missing "Signed-off-by". sha: %s' % sha)
+        failures.append(sha)
+
+produce_junit(tests=tests, failures=failures)
+
+if failures:
+    raise SystemExit('A commit is missing "Signed-off-by". sha: %s' % sha)
