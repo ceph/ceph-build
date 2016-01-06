@@ -50,3 +50,7 @@
     builders:
       - shell:
           !include-raw ../../build/build
+
+    publishers:
+      - junit:
+          results: report.xml
