@@ -1,3 +1,29 @@
+- scm:
+    name: ceph
+    scm:
+      - git:
+          url: https://github.com/ceph/ceph.git
+          branches:
+            - ${sha1}
+          refspec: +refs/pull/*:refs/remotes/origin/pr/*
+          browser: auto
+          timeout: 20
+          skip-tag: true
+          wipe-workspace: false
+          basedir: "ceph"
+
+- scm:
+    name: ceph-build
+    scm:
+      - git:
+          url: https://github.com/ceph/ceph-build.git
+          browser-url: https://github.com/ceph/ceph-build
+          timeout: 20
+          skip-tag: true
+          wipe-workspace: false
+          basedir: "ceph-build"
+
+
 - job:
     name: ceph-pr-commits
     project-type: freestyle
@@ -37,19 +63,15 @@
           failure-status: "one or more commits in this PR are not signed"
 
     scm:
-      - git:
-          url: https://github.com/ceph/ceph.git
-          branches:
-            - ${sha1}
-          refspec: +refs/pull/*:refs/remotes/origin/pr/*
-          browser: auto
-          timeout: 20
-          skip-tag: true
-          wipe-workspace: true
+      - ceph
+      - ceph-build
+
 
     builders:
       - shell:
-          !include-raw ../../build/build
+          !include-raw:
+            - ../../../scripts/build_utils.sh
+            - ../../build/build
 
     publishers:
       - junit:
