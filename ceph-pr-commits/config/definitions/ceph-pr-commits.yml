@@ -17,6 +17,8 @@
     scm:
       - git:
           url: https://github.com/ceph/ceph-build.git
+          branches:
+            - origin/master
           browser-url: https://github.com/ceph/ceph-build
           timeout: 20
           skip-tag: true

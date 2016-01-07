@@ -1,5 +1,6 @@
 from subprocess import Popen, PIPE
 import os
+import pytest
 
 
 def run(command):
@@ -37,7 +38,8 @@ commits = get_commits()
 
 class TestSignedOffByCommits(object):
 
-    def test_signed_off_by('commit', commits):
+    @pytest.mark.parametrize('commit', commits)
+    def test_signed_off_by(self, commit):
         assert 'Signed-off-by:' in commit
 
     def extract_sha(self, lines):
