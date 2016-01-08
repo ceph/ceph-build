@@ -21,7 +21,7 @@ def run(command):
 
 
 def get_commits():
-    target_branch = os.getenv('ghprbTargetBranch', 'master')
+    target_branch = os.getenv('ghprbTargetBranch', 'origin/master')
     source_branch = os.getenv('ghprbSourceBranch', 'HEAD')
     command = ['git', 'log', '--no-merges', '%s..%s' % (target_branch, source_branch)]
     output = run(command)
