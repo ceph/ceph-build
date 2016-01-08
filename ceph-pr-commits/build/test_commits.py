@@ -40,14 +40,12 @@ def get_commits():
     return chunked_commits
 
 
-commits = get_commits()
-
 
 class TestSignedOffByCommits(object):
 
-    @pytest.mark.parametrize('commit', commits)
-    def test_signed_off_by(self, commit):
-        assert 'Signed-off-by:' in commit
+    def test_signed_off_by(self):
+        for commit in get_commits():
+            assert 'Signed-off-by:' in commit
 
     def extract_sha(self, lines):
         # XXX Unused for now, if py.test can spit out the hashes in verbose
