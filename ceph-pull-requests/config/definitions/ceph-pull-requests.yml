@@ -46,8 +46,7 @@
           wipe-workspace: true
 
     builders:
-      - shell: "./run-make-check.sh"
-      - shell: "sudo reboot"
+      - shell: "trap 'sudo reboot' EXIT ; ./run-make-check.sh"
 
     publishers:
       - github-notifier
