@@ -1,15 +1,22 @@
 from subprocess import Popen, PIPE
 import os
+from os.path import dirname
 import pytest
+
+# ceph-pr-commits/build
+current_directory = dirname(os.path.abspath(__file__))
+
+# workspace directory
+workspace = os.getenv('WORKSPACE', None) or dirname(dirname(dirname(current_directory)))
+
+# ceph checkout path
+ceph_checkout = os.path.join(workspace, 'ceph')
 
 
 def run(command):
-    path = os.getenv('WORKSPACE', '../../../ceph')
-    print "running %s" % ' '.join(command)
-    print "at path: %s" % os.path.abspath(path)
     process = Popen(
         command,
-        cwd=path,
+        cwd=ceph_checkout,
         stdout=PIPE,
         stderr=PIPE,
         close_fds=True

@@ -5,5 +5,5 @@ pkgs=( "pytest" )
 install_python_packages "pkgs[@]"
 
 
-cd "$WORKSPACE/ceph-build/ceph-pr-commits/build"
-$VENV/py.test -v --junitxml="$WORKSPACE/report.xml"
+cd "$WORKSPACE"
+$VENV/py.test -v --junitxml="$WORKSPACE/report.xml" "$WORKSPACE/ceph-build/ceph-pr-commits/build/test_commits.py"
