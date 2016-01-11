@@ -3,7 +3,7 @@
     project-type: freestyle
     defaults: global
     concurrent: true
-    node: huge && centos7
+    node: huge && (centos7 || trusty)
     display-name: 'ceph: Pull Requests'
     quiet-period: 5
     block-downstream: false
@@ -14,7 +14,7 @@
           url: https://github.com/ceph/ceph/
     logrotate:
       daysToKeep: 15
-      numToKeep: 30
+      numToKeep: 300
       artifactDaysToKeep: -1
       artifactNumToKeep: -1
 
