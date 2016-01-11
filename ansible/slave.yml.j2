@@ -135,7 +135,7 @@
         # relies on a convention to set a unique name that allows a reverse
         # mapping from Jenkins back to whatever service created the current
         # node
-        name: "{{ nodename }}+{{ ansible_default_ipv4.address }}"
+        name: "{{ ansible_default_ipv4.address }}+{{ nodename }}"
         labels: "{{ labels }}"
         host: "{{ ansible_default_ipv4.address }}"
         credentialsId: '39fa150b-b2a1-416e-b334-29a9a2c0b32d'
