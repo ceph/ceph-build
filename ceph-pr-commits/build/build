@@ -6,4 +6,4 @@ install_python_packages "pkgs[@]"
 
 
 cd "$WORKSPACE"
-$VENV/py.test -v --junitxml="$WORKSPACE/report.xml" "$WORKSPACE/ceph-build/ceph-pr-commits/build/test_commits.py"
+$VENV/py.test -vs --junitxml="$WORKSPACE/report.xml" "$WORKSPACE/ceph-build/ceph-pr-commits/build/test_commits.py"
