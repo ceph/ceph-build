@@ -21,7 +21,6 @@
           name: ARCH
           values:
             - x86_64
-            - arm64
       - axis:
           type: label-expression
           name: DIST
