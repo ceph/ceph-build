@@ -52,6 +52,16 @@ if [ $file_size_kb -lt 1 ]; then
     sudo rm -f "$pbuild_tar"
 fi
 
+# Ordinarily pbuilder only pulls packages from "main".  ceph depends on
+# packages like python-virtualenv which are in "universe". We have to configure
+# pbuilder to look in "universe". Otherwise the build would fail with a message similar
+# to:
+#    The following packages have unmet dependencies:
+#      pbuilder-satisfydepends-dummy : Depends: python-virtualenv which is a virtual package.
+#                                      Depends: xmlstarlet which is a virtual package.
+#     Unable to resolve dependencies!  Giving up...
+echo 'COMPONENTS="main universe"' > ~/.pbuilderrc
+
 sudo pbuilder --clean
 
 if [ -e $basedir/$DIST.tgz ]; then
