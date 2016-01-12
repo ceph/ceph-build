@@ -14,6 +14,7 @@ ceph_checkout = os.path.join(workspace, 'ceph')
 
 
 def run(command):
+    print "Running command: %s" % ' '.join(command)
     process = Popen(
         command,
         cwd=ceph_checkout,
@@ -45,7 +46,14 @@ class TestSignedOffByCommits(object):
 
     def test_signed_off_by(self):
         for commit in get_commits():
-            assert 'Signed-off-by:' in commit
+            if 'Signed-off-by:' not in commit:
+                msg = (
+                    "\nFollowing commit is not signed, please make sure all commits",
+                    "\nare signed following the 'Submitting Patches' guide:",
+                    "\nhttps://github.com/ceph/ceph/blob/master/SubmittingPatches#L61",
+                    "\n",
+                    commit)
+                raise AssertionError, ' '.join(msg)
 
     def extract_sha(self, lines):
         # XXX Unused for now, if py.test can spit out the hashes in verbose
