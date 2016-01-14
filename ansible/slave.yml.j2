@@ -37,10 +37,13 @@
       file: path=/home/{{ jenkins_user }}/build state=directory owner={{ jenkins_user }}
 
     - name: ensure the rpmmacros file exists to fix centos builds
-      template:
-         src: files/rpmmacros.j2
-         dest: "/home/{{ jenkins_user }}/.rpmmacros"
-         owner: "{{ jenkins_user }}"
+      file: path="/home/{{ jenkins_user }}/.rpmmacros" owner="{{ jenkins_user }}" state=touch
+
+    - name: write the rpmmacros needed in centos
+      lineinfile:
+        dest: "/home/{{ jenkins_user }}/.rpmmacros"
+        regexp: '^%dist'
+        line: '%dist .el{{ ansible_lsb.major_release }}'
       when: ansible_pkg_mgr  == "yum"
 
     - name: Install RPM requirements
