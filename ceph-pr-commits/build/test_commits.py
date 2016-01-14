@@ -30,7 +30,8 @@ def run(command):
 
 def get_commits():
     target_branch = os.getenv('ghprbTargetBranch', 'origin/master')
-    source_branch = os.getenv('ghprbSourceBranch', 'HEAD')
+    # we use 'HEAD' here because the PR is already checked out on the right branch
+    source_branch = 'HEAD'
     command = ['git', 'log', '--no-merges', '%s..%s' % (target_branch, source_branch)]
     output = run(command)
     chunked_commits = []
