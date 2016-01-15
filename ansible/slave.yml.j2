@@ -36,16 +36,6 @@
     - name: ensure the build dir has the right owner permissions
       file: path=/home/{{ jenkins_user }}/build state=directory owner={{ jenkins_user }}
 
-    - name: ensure the rpmmacros file exists to fix centos builds
-      file: path="/home/{{ jenkins_user }}/.rpmmacros" owner="{{ jenkins_user }}" state=touch
-
-    - name: write the rpmmacros needed in centos
-      lineinfile:
-        dest: "/home/{{ jenkins_user }}/.rpmmacros"
-        regexp: '^%dist'
-        line: '%dist .el{{ ansible_lsb.major_release }}'
-      when: ansible_pkg_mgr  == "yum"
-
     - name: Install RPM requirements
       sudo: yes
       yum: name={{ item }} state=present
@@ -111,6 +101,16 @@
         - libevent-dev
         - libffi-dev
       when: ansible_pkg_mgr  == "apt"
+
+    - name: ensure the rpmmacros file exists to fix centos builds
+      file: path="/home/{{ jenkins_user }}/.rpmmacros" owner="{{ jenkins_user }}" state=touch
+
+    - name: write the rpmmacros needed in centos
+      lineinfile:
+        dest: "/home/{{ jenkins_user }}/.rpmmacros"
+        regexp: '^%dist'
+        line: '%dist .el{{ ansible_lsb.major_release }}'
+      when: ansible_pkg_mgr  == "yum"
 
     - name: install six, latest one
       sudo: true
