@@ -109,7 +109,7 @@
       lineinfile:
         dest: "/home/{{ jenkins_user }}/.rpmmacros"
         regexp: '^%dist'
-        line: '%dist .el{{ ansible_lsb.major_release }}'
+        line: '%dist .el{{ ansible_distribution_major_version }}'
       when: ansible_pkg_mgr  == "yum"
 
     - name: install six, latest one
