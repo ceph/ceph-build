@@ -29,6 +29,9 @@ def run(command):
 
 
 def get_commits():
+    # ensure that we have the latest commits from master
+    command = ['git', 'fetch', 'origin', '+refs/heads/{target_branch}:refs/remotes/origin/{target_branch}'.format(target_branch=target_branch)]
+    run(command)
     target_branch = os.getenv('ghprbTargetBranch', 'master')
     # we use 'HEAD' here because the PR is already checked out on the right branch
     source_branch = 'HEAD'
