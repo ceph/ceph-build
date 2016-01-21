@@ -47,7 +47,7 @@
           auto-close-on-fail: false
           status-context: "Testing Playbooks"
           started-status: "Running ansible playbook"
-          success-status: "Run completed"
+          success-status: "OK - Run completed"
           failure-status: "Playbook run failed with errors"
 
     scm:
