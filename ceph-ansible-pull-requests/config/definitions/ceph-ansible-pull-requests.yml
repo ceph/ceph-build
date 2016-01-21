@@ -12,17 +12,6 @@
           wipe-workspace: false
           basedir: "ceph-ansible"
 
-- scm:
-    name: ceph-build
-    scm:
-      - git:
-          url: https://github.com/ceph/ceph-build.git
-          browser-url: https://github.com/ceph/ceph-build
-          timeout: 20
-          skip-tag: true
-          wipe-workspace: false
-          basedir: "ceph-build"
-
 - job:
     name: ceph-ansible-pull-requests
     project-type: freestyle
@@ -63,7 +52,6 @@
 
     scm:
       - ceph-ansible
-      - ceph-build
 
     builders:
       - shell:
