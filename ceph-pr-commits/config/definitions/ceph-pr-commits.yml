@@ -28,6 +28,7 @@
 
 - job:
     name: ceph-pr-commits
+    node: small
     project-type: freestyle
     defaults: global
     display-name: 'ceph: Pull Request commits'
