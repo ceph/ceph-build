@@ -32,6 +32,7 @@
     project-type: freestyle
     defaults: global
     display-name: 'ceph: Pull Request commits'
+    concurrent: true
     quiet-period: 5
     block-downstream: false
     block-upstream: false
