@@ -4,6 +4,9 @@
 pkgs=( "ansible" )
 install_python_packages "pkgs[@]"
 
+# ceph-ansible does a check on the installed version of ansible and
+# without our virtualenv activated it can not find it and fails
+source $VENV/activate
 
 cd "$WORKSPACE"/ceph-ansible
 $VENV/ansible-playbook -i "localhost," -c local test.yml
