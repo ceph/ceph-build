@@ -63,7 +63,7 @@
     publishers:
       - github-notifier
       - postbuildscript:
-          script-only-if-succeeded: False
+          script-only-if-succeeded: True
           script-only-if-failed: True
           builders:
             - shell: "curl -X POST https://mita.ceph.com/api/nodes/${NODE_NAME}/delete/"
