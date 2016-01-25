@@ -59,3 +59,11 @@
           !include-raw:
             - ../../../scripts/build_utils.sh
             - ../../build/build
+
+    publishers:
+      - github-notifier
+      - postbuildscript:
+          script-only-if-succeeded: False
+          script-only-if-failed: True
+          builders:
+            - shell: "curl -X POST https://mita.ceph.com/api/nodes/${NODE_NAME}/delete/"
