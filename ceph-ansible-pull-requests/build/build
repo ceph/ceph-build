@@ -9,4 +9,4 @@ install_python_packages "pkgs[@]"
 source $VENV/activate
 
 cd "$WORKSPACE"/ceph-ansible
-$VENV/ansible-playbook -i "localhost," -c local test.yml
+$VENV/ansible-playbook -i tests/inventories/single-machine.yml -c local test.yml
