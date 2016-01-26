@@ -63,7 +63,7 @@
     publishers:
       - github-notifier
       - postbuildscript:
-          script-only-if-succeeded: True
-          script-only-if-failed: True
+          script-only-if-succeeded: False
+          script-only-if-failed: False
           builders:
             - shell: !include-raw ../../build/teardown
