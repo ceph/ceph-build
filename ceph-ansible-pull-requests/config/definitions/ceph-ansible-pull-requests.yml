@@ -14,7 +14,7 @@
 
 - job:
     name: ceph-ansible-pull-requests
-    node: small && ceph-ansible-unique
+    node: small && unique
     project-type: freestyle
     defaults: global
     display-name: 'ceph-ansible: Pull Requests'
