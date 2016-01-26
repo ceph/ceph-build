@@ -101,9 +101,9 @@ install -pm 644 %{SOURCE0} \
 %defattr(-,root,root,-)
 #%doc GPL
 %if 0%{defined suse_version}
-%config(noreplace) /etc/zypp/repos.d/*
+%config /etc/zypp/repos.d/*
 %else
-%config(noreplace) /etc/yum.repos.d/*
+%config /etc/yum.repos.d/*
 %endif
 #/etc/pki/rpm-gpg/*
 
