@@ -1,4 +1,4 @@
 #!/bin/bash
 
 NODE=$(echo $NODE_NAME | awk -F'__' '{print $2}')
-curl -X POST https://mita.ceph.com/api/nodes/${NODE}/delete/
+curl -k -X POST https://mita.ceph.com/api/nodes/${NODE}/delete/

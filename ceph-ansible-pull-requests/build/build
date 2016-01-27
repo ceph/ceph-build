@@ -9,4 +9,4 @@ install_python_packages "pkgs[@]"
 source $VENV/activate
 
 cd "$WORKSPACE"/ceph-ansible
-$VENV/ansible-playbook -vv -i tests/inventories/single-machine.yml -c local test.yml --extra-vars="ceph_stable=true journal_collocation=true journal_size=1024 monitor_interface=ETH cluster_network=127.0.0.1/0 public_network=127.0.0.1/0"
+$VENV/ansible-playbook -vv -i tests/inventories/single-machine.yml -c local test.yml --extra-vars="osd_auto_discovery=true ceph_stable=true journal_collocation=true journal_size=1024 monitor_interface=ETH cluster_network=127.0.0.1/0 public_network=127.0.0.1/0"
