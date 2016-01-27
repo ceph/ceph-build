@@ -8,5 +8,34 @@ install_python_packages "pkgs[@]"
 # without our virtualenv activated it can not find it and fails
 source $VENV/activate
 
+devices='["/dev/vdb"]'
+ceph_stable="true"
+journal_collocation="true"
+journal_size=1024
+# use eth1 for libvirt and ubuntu, enp0s8 for CentOS
+monitor_interface="eth1"
+cluster_network="127.0.0.1/0"
+public_network="127.0.0.1/0"
+# the default settings include a setting for vm.min_free_kbytes which asks
+# for more memory than our jenkins slaves allow, so we remove it here
+os_tuning_params='[{"name": "kernel.pid_max", "value": 4194303},{"name": "fs.file-max", "value": 26234859}]'
+fsid="4a158d27-f750-41d5-9e7f-26ce4c9d2d45"
+monitor_secret="AQAWqilTCDh7CBAAawXt6kyTgLFCxSvJhTEmuw=="
+
+cat > $HOME/test-vars.json << EOF
+{
+    "devices":$devices,
+    "ceph_stable":$ceph_stable,
+    "journal_collocation":$journal_collocation,
+    "journal_size":$journal_size,
+    "monitor_interface":"$monitor_interace",
+    "cluster_network":"$cluster_network",
+    "public_network":"$cluster_network",
+    "os_tuning_params":$os_tuning_params,
+    "fsid":"$fsid",
+    "monitor_secret":"$monitor_secret"
+}
+EOF
+
 cd "$WORKSPACE"/ceph-ansible
-$VENV/ansible-playbook -vv -i tests/inventories/single-machine.yml -c local test.yml --extra-vars='{"devices":["/dev/vdb"], "ceph_stable":true, "journal_collocation":true, "journal_size":1024, "monitor_interface":"eth1", "cluster_network":"127.0.0.1/0", "public_network":"127.0.0.1/0"}'
+$VENV/ansible-playbook -vvv -i tests/inventories/single-machine.yml -c local test.yml --extra-vars "@$HOME/test-vars.json"
