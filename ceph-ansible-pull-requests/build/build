@@ -38,4 +38,4 @@ cat > $HOME/test-vars.json << EOF
 EOF
 
 cd "$WORKSPACE"/ceph-ansible
-$VENV/ansible-playbook -vv -i tests/inventories/single-machine.yml -c local test.yml --extra-vars "@$HOME/test-vars.json"
+$VENV/ansible-playbook -vvv -i tests/inventories/single-machine.yml -c local test.yml --extra-vars "@$HOME/test-vars.json"
