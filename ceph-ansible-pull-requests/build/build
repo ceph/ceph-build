@@ -19,6 +19,8 @@ public_network="127.0.0.1/0"
 # the default settings include a setting for vm.min_free_kbytes which asks
 # for more memory than our jenkins slaves allow, so we remove it here
 os_tuning_params='[{"name": "kernel.pid_max", "value": 4194303},{"name": "fs.file-max", "value": 26234859}]'
+fsid="4a158d27-f750-41d5-9e7f-26ce4c9d2d45"
+monitor_secret="AQAWqilTCDh7CBAAawXt6kyTgLFCxSvJhTEmuw=="
 
 cat > $HOME/test-vars.json << EOF
 {
@@ -29,7 +31,9 @@ cat > $HOME/test-vars.json << EOF
     "monitor_interface":"$monitor_interace",
     "cluster_network":"$cluster_network",
     "public_network":"$cluster_network",
-    "os_tuning_params":$os_tuning_params
+    "os_tuning_params":$os_tuning_params,
+    "fsid":"$fsid",
+    "monitor_secret":"$monitor_secret"
 }
 EOF
 
