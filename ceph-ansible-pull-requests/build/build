@@ -12,8 +12,8 @@ devices='["/dev/vdb"]'
 ceph_stable="true"
 journal_collocation="true"
 journal_size=1024
-# use eth1 for libvirt and ubuntu, enp0s8 for CentOS
-monitor_interface="eth1"
+# both our trusty and centos nodes created in OVH use eth0
+monitor_interface="eth0"
 cluster_network="127.0.0.1/0"
 public_network="127.0.0.1/0"
 # the default settings include a setting for vm.min_free_kbytes which asks
@@ -28,7 +28,7 @@ cat > $HOME/test-vars.json << EOF
     "ceph_stable":$ceph_stable,
     "journal_collocation":$journal_collocation,
     "journal_size":$journal_size,
-    "monitor_interface":"$monitor_interace",
+    "monitor_interface":"$monitor_interface",
     "cluster_network":"$cluster_network",
     "public_network":"$cluster_network",
     "os_tuning_params":$os_tuning_params,
