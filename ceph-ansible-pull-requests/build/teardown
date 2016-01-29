@@ -3,4 +3,5 @@
 NODE=$(echo $NODE_NAME | awk -F'__' '{print $2}')
 # The "delay" means that mita will wait these many seconds before proceeding
 # with the deletion of the node
+echo "curl -k  -d '{"delay": 5}' -X POST https://mita.ceph.com/api/nodes/${NODE}/delete/"
 curl -k  -d '{"delay": 5}' -X POST https://mita.ceph.com/api/nodes/${NODE}/delete/
