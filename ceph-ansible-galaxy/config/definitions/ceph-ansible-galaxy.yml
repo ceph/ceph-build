@@ -1,0 +1,36 @@
+- job:
+    name: ceph-ansible-galaxy 
+    node: small && trusty 
+    project-type: freestyle
+    defaults: global
+    display-name: 'ceph-ansible: Update galaxy roles'
+    quiet-period: 5
+    block-downstream: false
+    block-upstream: false
+    retry-count: 3
+    properties:
+      - github:
+          url: https://github.com/ceph/ceph-ansible
+    logrotate:
+      daysToKeep: -1
+      numToKeep: -1
+      artifactDaysToKeep: -1
+      artifactNumToKeep: -1
+
+    triggers:
+      - github
+
+    scm:
+      - git:
+          url: https://github.com/ceph/ceph-ansible.git
+          branches:
+            - master
+          browser: auto
+          basedir: "ceph-ansible"
+          timeout: 20
+
+    builders:
+      - shell:
+          !include-raw:
+            - ../../../scripts/build_utils.sh
+            - ../../build/build

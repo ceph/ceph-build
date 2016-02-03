@@ -1,0 +1,10 @@
+#!/bin/bash
+
+# the following method exists in scripts/build_utils.sh
+pkgs=( "ansible" )
+install_python_packages "pkgs[@]"
+
+cd "$WORKSPACE"/ceph-ansible
+# propagates the change in the necessary Ansible Galaxy repos.
+# i.e. https://github.com/ceph/ansible-ceph-common
+$VENV/ansible-playbook -i dummy-ansible-hosts contrib/splitup.yml --tags update 
