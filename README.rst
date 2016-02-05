@@ -100,6 +100,16 @@ will have the following settings:
 
 * Jenkins job ``display-name``: ``ceph-deploy: Pull Requests``
 
+
+Scripts
+-------
+Scripts that may hang should be using the ``timeout`` command::
+
+    timeout 600 ./bad-script.sh
+
+The above command will make the job expire after ten minutes (the argument is
+in seconds).
+
 Pull Request Jobs
 -----------------
 When configuring a new job that will build pull requests, you must also
