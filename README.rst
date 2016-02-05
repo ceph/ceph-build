@@ -32,7 +32,9 @@ Enforcement
 The rules and structure for the builds are *strictly* enforced. If the
 convention is not followed, the builds will not work.
 
-Changing Jenkins jobs in Jenkins is **strongly** discouraged.
+Changing Jenkins jobs in Jenkins is **strongly** discouraged. Changing
+something in the Jenkins UI does not guarantee it will persist and will
+probably be overwritten.
 
 By default, this is how a directory tree would look like for a build for
 a project called ``foo`` that uses every choice available::
