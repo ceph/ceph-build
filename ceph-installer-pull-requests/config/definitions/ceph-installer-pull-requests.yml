@@ -2,6 +2,7 @@
     name: ceph-installer-pull-requests
     description: Unit-test the ceph-installer for each GitHub PR
     project-type: freestyle
+    node: trusty && small
     block-downstream: false
     block-upstream: false
     defaults: global
