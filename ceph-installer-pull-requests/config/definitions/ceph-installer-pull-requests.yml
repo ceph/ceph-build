@@ -1,20 +1,24 @@
 - job:
-    name: merfi-pull-requests
+    name: ceph-installer-pull-requests
+    description: Unit-test the ceph-installer for each GitHub PR
     project-type: freestyle
-    defaults: global
-    display-name: 'Merfi: Pull Requests'
-    quiet-period: 5
+    node: trusty && small
     block-downstream: false
     block-upstream: false
+    defaults: global
+    display-name: 'ceph-installer: Pull Requests'
+    quiet-period: 5
     retry-count: 3
-    properties:
-      - github:
-          url: https://github.com/alfredodeza/merfi/
+
     logrotate:
       daysToKeep: 15
       numToKeep: 30
-      artifactDaysToKeep: -1
-      artifactNumToKeep: -1
+      artifactDaysToKeep: 15
+      artifactNumToKeep: 15
+
+    properties:
+      - github:
+          url: https://github.com/ceph/ceph-installer/
 
     parameters:
       - string:
@@ -25,22 +29,11 @@
       - github-pull-request:
           admin-list:
             - alfredodeza
-            - ktdreyer
-            - zmc
-            - andrewschoen
             - dmick
+            - ktdreyer
+            - andrewschoen
           org-list:
             - ceph
-          white-list:
-            - jcsp
-            - gregsfortytwo
-            - GregMeno
-            - dzafman
-            - dillaman
-            - dachary
-            - liewegas
-            - idryomov
-            - vasukulkarni
           only-trigger-phrase: false
           github-hooks: true
           permit-all: false
@@ -48,7 +41,7 @@
 
     scm:
       - git:
-          url: https://github.com/alfredodeza/merfi.git
+          url: https://github.com/ceph/ceph-installer
           branches:
             - ${sha1}
           refspec: +refs/pull/*:refs/remotes/origin/pr/*
