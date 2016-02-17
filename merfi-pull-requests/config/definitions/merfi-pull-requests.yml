@@ -26,7 +26,6 @@
           admin-list:
             - alfredodeza
             - ktdreyer
-            - trhoden
             - zmc
             - andrewschoen
             - dmick
@@ -42,7 +41,6 @@
             - liewegas
             - idryomov
             - vasukulkarni
-            - ivotron
           only-trigger-phrase: false
           github-hooks: true
           permit-all: false
