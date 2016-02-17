@@ -1,5 +1,8 @@
 - job:
     name: mariner-installer
+    # XXX Rename this when proper packaging for the ceph-installer (previously
+    # known as the mariner-installer)
+    disabled: true
     description: Build and package mariner-installer
     project-type: matrix
     axes:
