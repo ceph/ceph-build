@@ -1,34 +1,46 @@
 - job:
-    name: mariner-installer-pull-requests
-    description: Build and package mariner-installer for each GitHub PR
-    project-type: matrix
-    axes:
-      - axis:
-          name: ARCH
-          type: label-expression
-          values:
-            - x86_64
-      - axis:
-          name: DIST
-          type: label-expression
-          values:
-            - trusty
+    name: ceph-installer-pull-requests
+    description: Unit-test the ceph-installer for each GitHub PR
+    project-type: freestyle
     block-downstream: false
     block-upstream: false
+    defaults: global
+    display-name: 'ceph-installer: Pull Requests'
+    quiet-period: 5
+    retry-count: 3
+
+    logrotate:
+      daysToKeep: 15
+      numToKeep: 30
+      artifactDaysToKeep: 15
+      artifactNumToKeep: 15
 
     properties:
       - github:
-          url: https://github.com/ceph/mariner-installer/
+          url: https://github.com/ceph/ceph-installer/
 
     parameters:
       - string:
           name: sha1
           description: "A pull request ID, like 'origin/pr/72/head'"
 
+    triggers:
+      - github-pull-request:
+          admin-list:
+            - alfredodeza
+            - dmick
+            - ktdreyer
+            - andrewschoen
+          org-list:
+            - ceph
+          only-trigger-phrase: false
+          github-hooks: true
+          permit-all: false
+          auto-close-on-fail: false
+
     scm:
       - git:
-          url: https://github.com/ceph/mariner-installer
-          basedir: mariner-installer
+          url: https://github.com/ceph/ceph-installer
           branches:
             - ${sha1}
           refspec: +refs/pull/*:refs/remotes/origin/pr/*
@@ -37,24 +49,9 @@
           skip-tag: true
           wipe-workspace: true
 
-    triggers:
-      - github-pull-request:
-          admin-list:
-            - alfredodeza
-            - dmick
-            - ktdreyer
-            - trhoden
-          org-list:
-            - ceph
-          only-trigger-phrase: false
-          github-hooks: true
-          permit-all: false
-          auto-close-on-fail: false
-
     builders:
       - shell:
-          # Note that we're including the main "mariner-installer" job's build steps here.
-          !include-raw ../../../mariner-installer/build/build
+          !include-raw ../../build/build
 
     publishers:
       - github-notifier
