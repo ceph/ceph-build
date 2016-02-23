@@ -1,0 +1,36 @@
+- job:
+    name: ceph-installer-docs
+    node: docs
+    project-type: freestyle
+    defaults: global
+    display-name: 'ceph-installer: docs build'
+    quiet-period: 5
+    block-downstream: false
+    block-upstream: false
+    retry-count: 3
+    properties:
+      - github:
+          url: https://github.com/ceph/ceph-installer
+    logrotate:
+      daysToKeep: -1
+      numToKeep: 10
+      artifactDaysToKeep: -1
+      artifactNumToKeep: -1
+
+    triggers:
+      - github
+
+    scm:
+      - git:
+          url: https://github.com/ceph/ceph-installer
+          branches:
+            - master
+          browser: auto
+          skip-tag: true
+          timeout: 20
+
+    builders:
+      - shell:
+          !include-raw:
+            - ../../../scripts/build_utils.sh
+            - ../../build/build
