@@ -5,4 +5,4 @@ pkgs=( "tox" )
 install_python_packages "pkgs[@]"
 
 # create the docs build with tox
-tox -rv -e docs
+$VENV/tox -rv -e docs
