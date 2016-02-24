@@ -6,7 +6,7 @@ install_python_packages "pkgs[@]"
 
 
 # create the docs build with tox
-tox -rv -e docs
+$VENV/tox -rv -e docs
 
 # publish docs to http://docs.ceph.com/docs/ceph-installer
 rsync -auv --delete .tox/docs/tmp/html/* /var/ceph-installer/docs/
