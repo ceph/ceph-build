@@ -1,5 +1,5 @@
 - job:
-    name: ceph-installer-docs
+    name: ceph-installer-docs-pull-requests
     node: small && (centos7 || trusty)
     project-type: freestyle
     defaults: global
