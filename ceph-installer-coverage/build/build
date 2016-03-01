@@ -9,4 +9,4 @@ install_python_packages "pkgs[@]"
 # spit out a coverage.xml file)
 cd $WORKSPACE
 $VENV/python setup.py develop
-$VENV/py.test -v  --junitxml junit.xml --cov-report xml --cov ceph_installer
+$VENV/py.test -v  --junitxml junit.xml --cov-report xml --cov ceph_installer ceph_installer/tests
