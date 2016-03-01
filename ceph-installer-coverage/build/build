@@ -1,0 +1,10 @@
+#!/bin/bash
+
+# the following two methods exist in scripts/build_utils.sh
+pkgs=( "pytest" "pytest-coverage" )
+install_python_packages "pkgs[@]"
+
+
+# run py.test, output both junit from unit tests and coverage report (should
+# spit out a coverage.xml file)
+$VENV/py.test -v  --junitxml junit.xml --cov-report xml --cov ceph_installer
