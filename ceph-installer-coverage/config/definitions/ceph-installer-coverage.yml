@@ -1,9 +1,9 @@
 - job:
-    name: ceph-installer-merged
+    name: ceph-installer-coverage
     node: small && (trusty || centos)
     project-type: freestyle
     defaults: global
-    display-name: 'ceph-installer: master merge build'
+    display-name: 'ceph-installer: coverage'
     quiet-period: 5
     block-downstream: false
     block-upstream: false
