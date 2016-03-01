@@ -7,5 +7,6 @@ install_python_packages "pkgs[@]"
 
 # run py.test, output both junit from unit tests and coverage report (should
 # spit out a coverage.xml file)
+cd $WORKSPACE
 $VENV/python setup.py develop
 $VENV/py.test -v  --junitxml junit.xml --cov-report xml --cov ceph_installer
