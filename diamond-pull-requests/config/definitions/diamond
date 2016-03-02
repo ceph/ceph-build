@@ -1,0 +1,84 @@
+# multiple scm requires definition of each scm with `name` so that they can be
+# referenced later in `job`
+# reference: http://docs.openstack.org/infra/jenkins-job-builder/scm.html
+- scm:
+    name: diamond
+    scm:
+      - git:
+          url: https://github.com/ceph/diamond.git
+          branches:
+            - ${sha1}
+          refspec: +refs/pull/*:refs/remotes/origin/pr/*
+          browser: auto
+          timeout: 20
+          skip-tag: true
+          wipe-workspace: false
+          basedir: "diamond"
+
+- scm:
+    name: ceph-build
+    scm:
+      - git:
+          url: https://github.com/ceph/ceph-build.git
+          browser-url: https://github.com/ceph/ceph-build
+          timeout: 20
+          skip-tag: true
+          wipe-workspace: false
+          basedir: "ceph-build"
+
+
+- job:
+    name: diamond-pull-requests
+    node: trusty
+    project-type: freestyle
+    defaults: global
+    concurrent: true
+    display-name: 'diamond: Pull Requests'
+    quiet-period: 5
+    block-downstream: false
+    block-upstream: false
+    retry-count: 3
+    properties:
+      - github:
+          url: https://github.com/ceph/diamond/
+    logrotate:
+      daysToKeep: 15
+      numToKeep: 30
+      artifactDaysToKeep: -1
+      artifactNumToKeep: -1
+
+    parameters:
+      - string:
+          name: sha1
+          description: "A pull request ID, like 'origin/pr/72/head'"
+
+    triggers:
+      - github-pull-request:
+          admin-list:
+            - alfredodeza
+            - ktdreyer
+            - trhoden
+          white-list:
+            - xarses
+            - angdraug
+            - mbroz
+            - ddiss
+            - osynge
+          org-list:
+            - ceph
+          trigger-phrase: ''
+          only-trigger-phrase: false
+          github-hooks: true
+          permit-all: false
+          auto-close-on-fail: false
+
+    scm:
+      - diamond
+      - ceph-build
+
+    builders:
+      - shell:
+          !include-raw:
+            - ../../../scripts/build_utils.sh
+            - ../../build/setup
+      - shell: "cd $WORKSPACE/diamond && $WORKSPACE/venv/bin/tox -rv"

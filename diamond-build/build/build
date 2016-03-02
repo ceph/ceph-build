@@ -1,0 +1,131 @@
+#!/bin/bash
+
+# This is the script that runs inside Jenkins.
+# http://jenkins.ceph.com/job/diamond/
+
+set -x
+set -e
+
+HOST=$(hostname --short)
+echo "Building on ${HOST}"
+echo "  DIST=${DIST}"
+echo "  BPTAG=${BPTAG}"
+echo "  WS=$WORKSPACE"
+echo "  PWD=$(pwd)"
+echo "  BRANCH=$BRANCH"
+
+# FIXME A very naive way to just list the RPM $DIST that we currently support.
+# We should be a bit more lenient to allow any rhel/centos/sles/suse
+rpm_dists="rhel centos6 centos7 centos"
+deb_dists="precise wheezy squeeze trusty jessie"
+
+VENV="$WORKSPACE/venv/bin"
+
+# A helper to match an item in a list of items, like python's `if item in list`
+listcontains() {
+  for word in $2; do
+    [[ $word = $1 ]] && return 0
+  done
+  return 1
+}
+
+if listcontains $DIST "$rpm_dists"
+then
+        # Tag tree and update version number in change log and
+        # in setup.py before building.
+
+        # this exists in scripts/build_utils.sh
+        get_rpm_dist
+
+        REPO=rpm-repo
+        BUILDAREA=./rpmbuild
+        DIST=el6
+        RPM_BUILD=$(lsb_release -s -c)
+
+        [ "$TEST" = true ] && chacra_ref="test" || chacra_ref="$BRANCH"
+        chacra_endpoint="diamond/${chacra_ref}/${DISTRO}/${DISTRO_VERSION}"
+
+        # this exists in scripts/build_utils.sh for diamond, binaries have
+        # no architecture so we POST them to 'noarch' for rpms
+        check_binary_existence $chacra_endpoint/noarch
+
+        if [ ! -e setup.py ] ; then
+            echo "Are we in the right directory"
+            exit 1
+        fi
+
+        # Create Tarball
+        python setup.py sdist --formats=bztar
+
+        # Build RPM
+        mkdir -p rpmbuild/{BUILD,BUILDROOT,RPMS,SOURCES,SPECS,SRPMS}
+        BUILDAREA=`readlink -fn ${BUILDAREA}`   ### rpm wants absolute path
+        cp diamond.spec ${BUILDAREA}/SPECS
+        cp dist/*.tar.bz2 ${BUILDAREA}/SOURCES
+        echo "buildarea is: ${BUILDAREA}"
+        rpmbuild -ba --define "_topdir ${BUILDAREA}" --define "_unpackaged_files_terminate_build 0" ${BUILDAREA}/SPECS/diamond.spec
+
+        [ "$FORCE" = true ] && chacra_flags="--force" || chacra_flags=""
+
+        find ${BUILDAREA}/SRPMS | grep rpm | $VENV/chacractl binary ${chacra_flags} create ${chacra_endpoint}/source
+        find ${BUILDAREA}/RPMS/* | grep rpm | $VENV/chacractl binary ${chacra_flags} create ${chacra_endpoint}/noarch
+
+        exit 0
+
+elif listcontains $DIST "$deb_dists"
+then
+
+    # Tag tree and update version number in change log and
+    # in setup.py before building.
+
+    REPO=debian-repo
+    COMPONENT=main
+    DEB_DIST="sid wheezy squeeze jessie precise raring trusty"
+    DEB_BUILD=$(lsb_release -s -c)
+    #XXX only releases until we fix this
+    RELEASE=1
+    DISTRO=`python -c "exec 'import platform; print platform.linux_distribution()[0].lower()'"`
+
+    [ "$TEST" = true ] && chacra_ref="test" || chacra_ref="$BRANCH"
+    # diamond isn't architecture dependant, so we use 'all' as architecture and
+    # uses 'universal' to signal this is not specific to any distro version
+    chacra_endpoint="diamond/${chacra_ref}/${DISTRO}/universal/all"
+
+    # this exists in scripts/build_utils.sh
+    check_binary_existence $chacra_endpoint
+
+    if [ ! -d debian ] ; then
+        echo "Are we in the right directory"
+        exit 1
+    fi
+
+    # Apply backport tag if release build
+    if [ $RELEASE -eq 1 ] ; then
+        DEB_VERSION=$(dpkg-parsechangelog | sed -rne 's,^Version: (.*),\1, p')
+        BP_VERSION=${DEB_VERSION}${BPTAG}
+        dch -D $DIST --force-distribution -b -v "$BP_VERSION" "$comment"
+        dpkg-source -b .
+    fi
+
+    # Build Package
+    echo "Building for dist: $DEB_BUILD"
+    # we no longer sign the .dsc or .changes files (done by default with
+    # the `-k$KEYID` flag), so explicitly tell the tool not to sign them
+    dpkg-buildpackage -uc -us
+    if [ $? -ne 0 ] ; then
+        echo "Build failed"
+        exit 2
+    fi
+
+    [ "$FORCE" = true ] && chacra_flags="--force" || chacra_flags=""
+
+    # push binaries to chacra
+    # the binaries are created in one directory up from $WORKSPACE
+    find ../ | egrep "*\.(changes|deb|dsc|gz)$" | egrep -v "(Packages|Sources|Contents)" | $VENV/chacractl binary ${chacra_flags} create ${chacra_endpoint}
+
+    echo "Done"
+
+else
+	echo "Can't determine build host type, I suck. Sorry."
+        exit 4
+fi
