@@ -78,6 +78,10 @@
         - libevent-dev
         - libffi-dev
       when: ansible_pkg_mgr  == "apt"
+      
+    - name: correct java version selected
+      alternatives: name=java path=/usr/lib/jvm/java-7-openjdk-amd64/jre/bin/java  
+      when: ansible_distribution == 'Ubuntu' and ansible_distribution_release == 'precise'
 
     - name: install python-jenkins
       sudo: true
