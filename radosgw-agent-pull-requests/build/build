@@ -6,8 +6,15 @@ install_python_packages "pkgs[@]"
 
 
 # run ansible to get this current host to meet our requirements, specifying
-# a local connection and 'localhost' as the host where to execute. This might look
-# odd because we are using ceph-deploy playbooks. But the requirements are the same
+# a local connection and 'localhost' as the host where to execute. This might
+# look odd because we are using ceph-deploy playbooks. But the job-specific
+# requirements are the same: install different versions of Python (including
+# 2.6 and 2.7)
+#
+# These job-specific requirements aren't met by the services in charge of
+# creating slaves (mainly prado.ceph.com) because those slaves have "generic"
+# requirements and usually do not care about specific needs like Python 2.6
+
 cd "$WORKSPACE/ceph-build/ceph-deploy-pull-requests/setup/playbooks"
 $VENV/ansible-playbook -i "localhost," -c local setup.yml
 
