@@ -10,6 +10,7 @@
     with_items:
       - python-software-properties
       - python-dev
+      - python2.6-dev
       - python-setuptools
       - python2.6
       - python2.7
