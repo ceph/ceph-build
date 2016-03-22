@@ -18,8 +18,7 @@
   ignore_errors: yes
 
 - name: reset --hard to upstream
-  command: git fetch
-  command: git reset --hard origin/{{ branch }}
+  command: git reset --hard origin/{{ branch }} chdir=ceph
   ignore_errors: yes
   when: clean
 
