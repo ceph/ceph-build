@@ -11,6 +11,7 @@
 
 - job:
     name: ceph-tag
+    node: trusty
     description: "This job clones from upstream Ceph, sets the right version from the tag and pushes changes to ceph-releases"
     display-name: 'ceph-tag'
     logrotate:
