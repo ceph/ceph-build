@@ -51,6 +51,11 @@ If this is checked, binaries will be pushed to chacra using the $BRANCH-rc name,
 Defaults to un-checked"
           default: false
 
+      - string:
+          name: CEPH_BUILD_VIRTUALENV
+          description: "Base parent path for virtualenv locations, set to avoid issues with extremely long paths that are incompatible with tools like pip. Defaults to '/tmp'."
+          default: "/tmp"
+
     builders:
       - multijob:
           name: 'ceph tag phase'
