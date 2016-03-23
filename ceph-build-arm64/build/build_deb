@@ -16,6 +16,7 @@ get_bptag() {
     [ "$dist" = "wheezy" ] && dver="~bpo70+1"
     [ "$dist" = "squeeze" ] && dver="~bpo60+1"
     [ "$dist" = "lenny" ] && dver="~bpo50+1"
+    [ "$dist" = "xenial" ] && dver="$dist"
     [ "$dist" = "trusty" ] && dver="$dist"
     [ "$dist" = "saucy" ] && dver="$dist"
     [ "$dist" = "precise" ] && dver="$dist"
@@ -38,7 +39,7 @@ distro=`python -c "exec 'import platform; print platform.linux_distribution()[0]
 chacra_endpoint="ceph/${chacra_ref}/${distro}/${DIST}/${ARCH}"
 
 # this exists in scripts/build_utils.sh
-check_binary_existence $chacra_endpoint
+# DJM check_binary_existence $chacra_endpoint
 
 HOST=$(hostname --short)
 echo "Building on $(hostname)"
@@ -170,4 +171,4 @@ echo lintian --allow-root $releasedir/$cephver/*$bpvers*.deb
 [ "$FORCE" = true ] && chacra_flags="--force" || chacra_flags=""
 
 # push binaries to chacra
-# find release/$vers/ | egrep "*\.(changes|deb|dsc|gz)$" | egrep -v "(Packages|Sources|Contents)" | $VENV/chacractl binary ${chacra_flags} create ${chacra_endpoint}
+# DJM find release/$vers/ | egrep "*\.(changes|deb|dsc|gz)$" | egrep -v "(Packages|Sources|Contents)" | $VENV/chacractl binary ${chacra_flags} create ${chacra_endpoint}
