@@ -53,8 +53,8 @@ Defaults to un-checked"
 
       - string:
           name: CEPH_BUILD_VIRTUALENV
-          description: "Base parent path for virtualenv locations, set to avoid issues with extremely long paths that are incompatible with tools like pip. Defaults to '/tmp'."
-          default: "/tmp"
+          description: "Base parent path for virtualenv locations, set to avoid issues with extremely long paths that are incompatible with tools like pip. Defaults to '/tmp/' (note the trailing slash, which is required)."
+          default: "/tmp/"
 
     builders:
       - multijob:
