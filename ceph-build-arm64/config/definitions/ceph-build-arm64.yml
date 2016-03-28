@@ -9,6 +9,10 @@
     properties:
       - github:
           url: https://github.com/ceph/ceph
+    parameters:
+      - string:
+          name: BRANCH
+          description: Branch used by ceph-setup-arm64
     execution-strategy:
       combination-filter: (DIST == "xenial" && ARCH == "arm64")
     axes:
@@ -30,9 +34,10 @@
           rm -rf venv
           rm -rf release
       - copyartifact:
-          project: ceph-setup
+          project: ceph-setup-arm64
           filter: 'dist/**'
-          which-build: last-successful
+          which-build: build-param
+          param: 'BRANCH'
       # general setup
       - shell:
           !include-raw:
