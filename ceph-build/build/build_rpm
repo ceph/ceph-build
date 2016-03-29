@@ -63,8 +63,10 @@ vers=`cat ./dist/version`
 [ "$TEST" = true ] && chacra_ref="test"
 chacra_baseurl="ceph/${chacra_ref}/${DISTRO}/${RELEASE}"
 
-# this exists in scripts/build_utils.sh
-check_binary_existence $chacra_baseurl/$ARCH
+if [ "$THROWAWAY" = false ] ; then
+    # this exists in scripts/build_utils.sh
+    check_binary_existence $chacra_baseurl/$ARCH
+fi
 
 HOST=$(hostname --short)
 echo "Building on $(hostname)"
@@ -114,6 +116,8 @@ cd "$WORKSPACE"
 
 [ "$FORCE" = true ] && chacra_flags="--force" || chacra_flags=""
 
-# push binaries to chacra
-find release/${vers}/rpm/*/SRPMS | grep rpm | $VENV/chacractl binary ${chacra_flags} create ${chacra_baseurl}/source
-find release/${vers}/rpm/*/RPMS/* | grep rpm | $VENV/chacractl binary ${chacra_flags} create ${chacra_baseurl}/${ARCH}
+if [ "$THROWAWAY" = false ] ; then
+    # push binaries to chacra
+    find release/${vers}/rpm/*/SRPMS | grep rpm | $VENV/chacractl binary ${chacra_flags} create ${chacra_baseurl}/source
+    find release/${vers}/rpm/*/RPMS/* | grep rpm | $VENV/chacractl binary ${chacra_flags} create ${chacra_baseurl}/${ARCH}
+fi
