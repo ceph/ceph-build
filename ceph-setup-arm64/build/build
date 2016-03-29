@@ -1,0 +1,144 @@
+#!/bin/bash -ex
+
+HOST=$(hostname --short)
+echo "Building on ${HOST}"
+echo "  DIST=${DIST}"
+echo "  BPTAG=${BPTAG}"
+echo "  WS=$WORKSPACE"
+echo "  PWD=$(pwd)"
+echo "  BRANCH=$BRANCH"
+
+if [ -x "$BRANCH" ] ; then
+    echo "No git branch was supplied"
+    exit 1
+fi
+
+echo "Building version $(git describe) Branch $BRANCH"
+
+rm -rf dist
+rm -rf release
+
+# fix version/release.  Hack needed only for the spec
+# file for rc candidates.
+#export force=force
+#sed -i 's/^Version:.*/Version:        0.80/' ceph.spec.in
+#sed -i 's/^Release:.*/Release:        rc1%{?dist}/' ceph.spec.in
+#sed -i 's/^Source0:.*/Source0:        http:\/\/ceph.com\/download\/%{name}-%{version}-rc1.tar.bz2/' ceph.spec.in
+#sed -i 's/^%setup.*/%setup -q -n %{name}-%{version}-rc1/' ceph.spec.in
+
+# because autogen+configure will check for dependencies, we are forced to install them
+# and ensure they are present in the current host
+if [ -x install-deps.sh ]; then
+  echo "Ensuring dependencies are installed"
+  ./install-deps.sh
+fi
+
+# run submodule updates regardless
+echo "Running submodule update ..."
+git submodule update --init
+
+echo "Running autogen.sh ..."
+./autogen.sh
+echo "Running configure ..."
+./configure \
+  --disable-option-checking \
+  '--prefix=/usr' \
+  '--sbindir=/sbin' \
+  '--localstatedir=/var' \
+  '--sysconfdir=/etc' \
+  '--with-debug' \
+  '--with-nss' \
+  '--with-radosgw' \
+  '--disable-static' \
+  '--without-lttng' \
+  'CFLAGS= -Wno-unused-parameter' \
+  'CXXFLAGS=  -Wno-unused-parameter' \
+  --cache-file=/dev/null \
+  --srcdir=.
+
+mkdir -p release
+
+# Contents below used to come from /srv/release_tarball.sh and
+# was called like::
+#
+#    $bindir/release_tarball.sh release release/version
+
+releasedir='release'
+versionfile='release/version'
+
+if git diff --quiet ; then
+    echo repository is clean
+else
+    echo
+    echo "**** REPOSITORY IS DIRTY ****"
+    echo
+    if [ "$force" != "force" ]; then
+	echo "add 'force' argument if you really want to continue."
+	exit 1
+    fi
+    echo "forcing."
+fi
+
+cephver=`git describe --match "v*" | sed s/^v//`
+echo current version $cephver
+
+srcdir=`pwd`
+
+if [ -d "$releasedir/$cephver" ]; then
+    echo "$releasedir/$cephver already exists; reuse that release tarball"
+else
+    echo building tarball
+    rm ceph-*.tar.gz || true
+    rm ceph-*.tar.bz2 || true
+    make dist
+    make dist-bzip2
+
+    vers=`ls ceph-*.tar.gz | cut -c 6- | sed 's/.tar.gz//'`
+    echo tarball vers $vers
+
+    echo extracting
+    mkdir -p $releasedir/$cephver/rpm
+    cp rpm/*.patch $releasedir/$cephver/rpm || true
+    cd $releasedir/$cephver
+
+    tar zxf $srcdir/ceph-$vers.tar.gz
+    [ "$vers" != "$cephver" ] && mv ceph-$vers ceph-$cephver
+
+    tar zcf ceph_$cephver.orig.tar.gz ceph-$cephver
+    cp -a ceph_$cephver.orig.tar.gz ceph-$cephver.tar.gz
+
+    tar jcf ceph-$cephver.tar.bz2 ceph-$cephver
+
+    # copy debian dir, too
+    cp -a $srcdir/debian debian
+    cd $srcdir
+
+    # copy in spec file, too
+    cp ceph.spec $releasedir/$cephver
+fi
+
+if [ -n "$versionfile" ]; then
+    echo $cephver > $versionfile
+    echo "wrote $cephver to $versionfile"
+fi
+
+vers=`cat release/version`
+
+(
+    cd release/$vers
+    mv debian ceph-$vers/.
+    dpkg-source -b ceph-$vers
+)
+
+mkdir -p dist
+# Debian Source Files
+mv release/$vers/*.dsc dist/.
+mv release/$vers/*.diff.gz dist/.
+mv release/$vers/*.orig.tar.gz dist/.
+# RPM Source Files
+mkdir -p dist/rpm/
+mv release/$vers/rpm/*.patch dist/rpm/ || true
+mv release/$vers/ceph.spec dist/.
+mv release/$vers/*.tar.* dist/.
+# Parameters
+mv release/version dist/.
