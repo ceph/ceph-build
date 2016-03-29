@@ -34,6 +34,19 @@ Defaults to checked."
           default: true
 
       - bool:
+          name: THROWAWAY
+          description: "
+Default: False. When True it will not POST binaries to chacra. Artifacts will not be around for long. Useful to test builds."
+          default: false
+
+      - bool:
+          name: FORCE_VERSION
+          description: "
+Default: False. When True it will force the Debian version (when wanting to release older versions after newer ones have been released.
+Mostly useful for DEBs to append the `-b` flag for dhc."
+          default: false
+
+      - bool:
           name: FORCE
           description: "
 If this is unchecked, then then nothing is built or pushed if they already exist in chacra. This is the default.
