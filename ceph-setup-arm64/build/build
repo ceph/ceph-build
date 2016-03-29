@@ -84,9 +84,6 @@ echo current version $cephver
 
 srcdir=`pwd`
 
-if [ -d "$releasedir/$cephver" ]; then
-    echo "$releasedir/$cephver already exists; reuse that release tarball"
-else
     echo building tarball
     rm ceph-*.tar.gz || true
     rm ceph-*.tar.bz2 || true
@@ -97,25 +94,23 @@ else
     echo tarball vers $vers
 
     echo extracting
-    mkdir -p $releasedir/$cephver/rpm
-    cp rpm/*.patch $releasedir/$cephver/rpm || true
-    cd $releasedir/$cephver
+    mkdir -p $releasedir/$vers/rpm
+    cp rpm/*.patch $releasedir/$vers/rpm || true
+    cd $releasedir/$vers
 
     tar zxf $srcdir/ceph-$vers.tar.gz
-    [ "$vers" != "$cephver" ] && mv ceph-$vers ceph-$cephver
 
-    tar zcf ceph_$cephver.orig.tar.gz ceph-$cephver
-    cp -a ceph_$cephver.orig.tar.gz ceph-$cephver.tar.gz
+    tar zcf ceph_$vers.orig.tar.gz ceph-$vers
+    cp -a ceph_$vers.orig.tar.gz ceph-$vers.tar.gz
 
-    tar jcf ceph-$cephver.tar.bz2 ceph-$cephver
+    tar jcf ceph-$vers.tar.bz2 ceph-$vers
 
     # copy debian dir, too
     cp -a $srcdir/debian debian
     cd $srcdir
 
     # copy in spec file, too
-    cp ceph.spec $releasedir/$cephver
-fi
+    cp ceph.spec $releasedir/$vers
 
 if [ -n "$versionfile" ]; then
     echo $cephver > $versionfile
