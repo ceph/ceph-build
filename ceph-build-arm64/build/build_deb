@@ -39,7 +39,7 @@ distro=`python -c "exec 'import platform; print platform.linux_distribution()[0]
 chacra_endpoint="ceph/${chacra_ref}/${distro}/${DIST}/${ARCH}"
 
 # this exists in scripts/build_utils.sh
-# DJM check_binary_existence $chacra_endpoint
+check_binary_existence $chacra_endpoint
 
 HOST=$(hostname --short)
 echo "Building on $(hostname)"
@@ -171,4 +171,4 @@ echo lintian --allow-root $releasedir/$cephver/*$bpvers*.deb
 [ "$FORCE" = true ] && chacra_flags="--force" || chacra_flags=""
 
 # push binaries to chacra
-# DJM find release/$vers/ | egrep "*\.(changes|deb|dsc|gz)$" | egrep -v "(Packages|Sources|Contents)" | $VENV/chacractl binary ${chacra_flags} create ${chacra_endpoint}
+find release/$vers/ | egrep "*\.(changes|deb|dsc|gz)$" | egrep -v "(Packages|Sources|Contents)" | $VENV/chacractl binary ${chacra_flags} create ${chacra_endpoint}
