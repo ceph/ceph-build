@@ -113,11 +113,9 @@ srcdir=`pwd`
     cp ceph.spec $releasedir/$vers
 
 if [ -n "$versionfile" ]; then
-    echo $cephver > $versionfile
-    echo "wrote $cephver to $versionfile"
+    echo $vers > $versionfile
+    echo "wrote $vers to $versionfile"
 fi
-
-vers=`cat release/version`
 
 (
     cd release/$vers
