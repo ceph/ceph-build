@@ -14,8 +14,7 @@
 
 - job:
     name: ceph-ansible-pull-requests
-    node: small && unique
-    project-type: freestyle
+    project-type: matrix
     defaults: global
     display-name: 'ceph-ansible: Pull Requests'
     quiet-period: 5
@@ -25,6 +24,23 @@
     properties:
       - github:
           url: https://github.com/ceph/ceph-ansible
+    axes:
+      - axis:
+          type: label-expression
+          name: MACHINE_SIZE
+          values:
+            - small
+      - axis:
+          type: label-expression
+          name: UNIQUE
+          values:
+            - unique
+      - axis:
+          type: label-expression
+          name: DIST
+          values:
+            - trusty
+            - centos7
     logrotate:
       daysToKeep: 15
       numToKeep: 30
