@@ -104,7 +104,9 @@
 
     - name: correct java version selected
       alternatives: name=java path=/usr/lib/jvm/java-7-openjdk-amd64/jre/bin/java
-      when: ansible_distribution == 'Ubuntu' and ansible_distribution_release == 'precise'
+      when:
+        (ansible_distribution == 'Ubuntu' and ansible_distribution_release == 'precise') or
+        (ansible_distribution == 'Debian' and ansible_distribution_release == 'wheezy')
 
     - name: ensure the rpmmacros file exists to fix centos builds
       file: path="/home/{{ jenkins_user }}/.rpmmacros" owner="{{ jenkins_user }}" state=touch
