@@ -9,7 +9,7 @@
       - github:
           url: https://github.com/ceph/ceph
     execution-strategy:
-      combination-filter: (ARCH=="x86_64") || (DIST == "trusty" && ARCH == "arm64")
+      combination-filter: (ARCH=="x86_64") || (DIST == "xenial" && ARCH == "arm64")
     axes:
       - axis:
           type: label-expression
@@ -21,6 +21,7 @@
           name: ARCH
           values:
             - x86_64
+            - arm64
       - axis:
           type: label-expression
           name: DIST
@@ -29,6 +30,7 @@
             #- wheezy
             #- precise
             - trusty
+            - xenial
             #- centos6
             - centos7
 
@@ -58,12 +60,6 @@
           !include-raw:
             - ../../../scripts/build_utils.sh
             - ../../build/build_rpm
-
-    publishers:
-      - archive:
-          artifacts: 'dist/**'
-          allow-empty: false
-          latest-only: false
 
     wrappers:
       - inject-passwords:
