@@ -71,7 +71,7 @@ fi
 HOST=$(hostname --short)
 echo "Building on $(hostname)"
 echo "  DIST=${DIST}"
-echo "  BPTAG=${BPTAG}"
+echo "  ARCH=${ARCH}"
 echo "  WS=$WORKSPACE"
 echo "  PWD=$(pwd)"
 echo "  BUILD SOURCE=$COPYARTIFACT_BUILD_NUMBER_CEPH_SETUP"
