@@ -37,7 +37,7 @@ BPTAG=`get_bptag $DIST`
 vers=`cat ./dist/version`
 distro=`python -c "exec 'import platform; print platform.linux_distribution()[0].lower()'"`
 debian_version=${vers}-1
-chacra_endpoint="ceph/${chacra_ref}/${distro}/${DIST}/${ARCH}"
+
 gen_debian_version() {
     raw=$1
     dist=$2
@@ -56,6 +56,9 @@ gen_debian_version() {
 }
 
 bpvers=`gen_debian_version $debian_version $DIST`
+
+# look for a specific package to tell if we can avoid the build
+chacra_endpoint="ceph/${chacra_ref}/${distro}/${DIST}/${ARCH}/librados2_${vers}-${bpvers}_${ARCH}.deb"
 
 if [ "$THROWAWAY" = false ] ; then
     # this exists in scripts/build_utils.sh

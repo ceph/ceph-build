@@ -61,11 +61,11 @@ vers=`cat ./dist/version`
 # slap -rc to the ref if we are doing a release-candidate build
 [ "$RC" = true ] && chacra_ref="$BRANCH-rc" || chacra_ref="$BRANCH"
 [ "$TEST" = true ] && chacra_ref="test"
-chacra_baseurl="ceph/${chacra_ref}/${DISTRO}/${RELEASE}"
+chacra_baseurl="ceph/${chacra_ref}/${DISTRO}/${RELEASE}/${ARCH}/librados2-${vers}-0.${DIST}.${ARCH}.rpm"
 
 if [ "$THROWAWAY" = false ] ; then
     # this exists in scripts/build_utils.sh
-    check_binary_existence $chacra_baseurl/$ARCH
+    check_binary_existence $chacra_baseurl
 fi
 
 HOST=$(hostname --short)
