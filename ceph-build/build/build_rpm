@@ -83,8 +83,6 @@ echo "*****"
 # create a release directory for ceph-build tools
 mkdir -p release
 cp -a dist release/${vers}
-echo $DIST > release/${vers}/debian_dists
-echo "${vers}-1" > release/${vers}/debian_version
 
 echo "Building RPMs"
 
