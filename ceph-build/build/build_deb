@@ -37,6 +37,22 @@ BPTAG=`get_bptag $DIST`
 vers=`cat ./dist/version`
 distro=`python -c "exec 'import platform; print platform.linux_distribution()[0].lower()'"`
 chacra_endpoint="ceph/${chacra_ref}/${distro}/${DIST}/${ARCH}"
+gen_debian_version() {
+    raw=$1
+    dist=$2
+
+    [ "$dist" = "sid" ] && dver="$raw"
+    [ "$dist" = "jessie" ] && dver="$raw~bpo80+1"
+    [ "$dist" = "wheezy" ] && dver="$raw~bpo70+1"
+    [ "$dist" = "squeeze" ] && dver="$raw~bpo60+1"
+    [ "$dist" = "lenny" ] && dver="$raw~bpo50+1"
+    [ "$dist" = "precise" ] && dver="$raw$dist"
+    [ "$dist" = "saucy" ] && dver="$raw$dist"
+    [ "$dist" = "trusty" ] && dver="$raw$dist"
+    [ "$dist" = "xenial" ] && dver="$raw$dist"
+
+    echo $dver
+}
 
 if [ "$THROWAWAY" = false ] ; then
     # this exists in scripts/build_utils.sh
@@ -119,23 +135,6 @@ echo version $cephver
 dvers=`cat $releasedir/$cephver/debian_version`
 echo deb vers $dvers
 
-# This function used to live as /srv/gen_debian_version.sh
-gen_debian_version() {
-    raw=$1
-    dist=$2
-
-    [ "$dist" = "sid" ] && dver="$raw"
-    [ "$dist" = "jessie" ] && dver="$raw~bpo80+1"
-    [ "$dist" = "wheezy" ] && dver="$raw~bpo70+1"
-    [ "$dist" = "squeeze" ] && dver="$raw~bpo60+1"
-    [ "$dist" = "lenny" ] && dver="$raw~bpo50+1"
-    [ "$dist" = "precise" ] && dver="$raw$dist"
-    [ "$dist" = "saucy" ] && dver="$raw$dist"
-    [ "$dist" = "trusty" ] && dver="$raw$dist"
-    [ "$dist" = "xenial" ] && dver="$raw$dist"
-
-    echo $dver
-}
 
 # FIXME this looks exactly like `setup_pbuilder`, we probably don't need this
 # or we need to refactor.
