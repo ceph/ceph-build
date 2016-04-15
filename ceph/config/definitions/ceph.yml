@@ -71,7 +71,7 @@ Defaults to un-checked"
 
       - string:
           name: DIST_VERSIONS
-          description: "Populates the `DIST` environment variable so that it can dynamically alter the Matrix axis"
+          description: "Populates the `DIST` environment variable so that it can dynamically alter the Matrix axis, multiple values should be space-separated."
           default: "jessie trusty xenial centos7"
 
     builders:
