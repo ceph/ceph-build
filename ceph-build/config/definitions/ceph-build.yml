@@ -23,7 +23,7 @@
             - x86_64
             - arm64
       - axis:
-          type: label-expression
+          type: dynamic
           name: DIST
           values:
             - jessie
