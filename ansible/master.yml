@@ -21,6 +21,7 @@
       - 'publish-over-ssh'
       - 'nested-view'
       - 'jenkins-multijob-plugin'
+      - 'dynamic-axis'
       - 'ghprb'
       - 'github'
       - 'github-api'
