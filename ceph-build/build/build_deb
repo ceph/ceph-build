@@ -36,7 +36,29 @@ BPTAG=`get_bptag $DIST`
 [ "$TEST" = true ] && chacra_ref="test"
 vers=`cat ./dist/version`
 distro=`python -c "exec 'import platform; print platform.linux_distribution()[0].lower()'"`
-chacra_endpoint="ceph/${chacra_ref}/${distro}/${DIST}/${ARCH}"
+debian_version=${vers}-1
+
+gen_debian_version() {
+    raw=$1
+    dist=$2
+
+    [ "$dist" = "sid" ] && dver="$raw"
+    [ "$dist" = "jessie" ] && dver="$raw~bpo80+1"
+    [ "$dist" = "wheezy" ] && dver="$raw~bpo70+1"
+    [ "$dist" = "squeeze" ] && dver="$raw~bpo60+1"
+    [ "$dist" = "lenny" ] && dver="$raw~bpo50+1"
+    [ "$dist" = "precise" ] && dver="$raw$dist"
+    [ "$dist" = "saucy" ] && dver="$raw$dist"
+    [ "$dist" = "trusty" ] && dver="$raw$dist"
+    [ "$dist" = "xenial" ] && dver="$raw$dist"
+
+    echo $dver
+}
+
+bpvers=`gen_debian_version $debian_version $DIST`
+
+# look for a specific package to tell if we can avoid the build
+chacra_endpoint="ceph/${chacra_ref}/${distro}/${DIST}/${ARCH}/librados2_${vers}-${bpvers}_${ARCH}.deb"
 
 if [ "$THROWAWAY" = false ] ; then
     # this exists in scripts/build_utils.sh
@@ -58,7 +80,7 @@ echo "*****"
 mkdir -p release
 cp -a dist release/${vers}
 echo $DIST > release/${vers}/debian_dists
-echo "${vers}-1" > release/${vers}/debian_version
+echo "${debian_version}" > release/${vers}/debian_version
 
 cd release/$vers
 
@@ -116,32 +138,11 @@ echo version $cephver
 # it doesn't make sense to have a file that lives in /srv/ that we then
 # concatenate to get its contents.
 
-dvers=`cat $releasedir/$cephver/debian_version`
-echo deb vers $dvers
-
-# This function used to live as /srv/gen_debian_version.sh
-gen_debian_version() {
-    raw=$1
-    dist=$2
-
-    [ "$dist" = "sid" ] && dver="$raw"
-    [ "$dist" = "jessie" ] && dver="$raw~bpo80+1"
-    [ "$dist" = "wheezy" ] && dver="$raw~bpo70+1"
-    [ "$dist" = "squeeze" ] && dver="$raw~bpo60+1"
-    [ "$dist" = "lenny" ] && dver="$raw~bpo50+1"
-    [ "$dist" = "precise" ] && dver="$raw$dist"
-    [ "$dist" = "saucy" ] && dver="$raw$dist"
-    [ "$dist" = "trusty" ] && dver="$raw$dist"
-    [ "$dist" = "xenial" ] && dver="$raw$dist"
-
-    echo $dver
-}
 
 # FIXME this looks exactly like `setup_pbuilder`, we probably don't need this
 # or we need to refactor.
 sudo pbuilder --clean
 
-bpvers=`gen_debian_version $dvers $DIST`
 echo deb vers $bpvers
 
 
@@ -166,7 +167,6 @@ else
 fi
 
 # do lintian checks
-bpvers=`gen_debian_version $dvers $DIST`
 echo lintian checks for $bpvers
 echo lintian --allow-root $releasedir/$cephver/*$bpvers*.deb
 
