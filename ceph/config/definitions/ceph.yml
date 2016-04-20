@@ -69,11 +69,6 @@ Defaults to un-checked"
           description: "Base parent path for virtualenv locations, set to avoid issues with extremely long paths that are incompatible with tools like pip. Defaults to '/tmp/' (note the trailing slash, which is required)."
           default: "/tmp/"
 
-      - string:
-          name: DIST_VERSIONS
-          description: "Populates the `DIST` environment variable so that it can dynamically alter the Matrix axis, multiple values should be space-separated."
-          default: "jessie trusty xenial centos7"
-
     builders:
       - multijob:
           name: 'ceph tag phase'
