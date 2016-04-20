@@ -59,7 +59,8 @@ bpvers=`gen_debian_version $debian_version $DIST`
 
 # look for a specific package to tell if we can avoid the build
 chacra_endpoint="ceph/${chacra_ref}/${distro}/${DIST}/${ARCH}"
-chacra_check_url="${chacra_endpoint}/librados2_${vers}-${bpvers}_${ARCH}.deb"
+DEB_ARCH=`dpkg-architecture | grep DEB_BUILD_ARCH\= | cut -d '=' -f 2`
+chacra_check_url="${chacra_endpoint}/librados2_${bpvers}_${DEB_ARCH}.deb"
 
 if [ "$THROWAWAY" = false ] ; then
     # this exists in scripts/build_utils.sh
