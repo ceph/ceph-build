@@ -23,15 +23,16 @@
             - x86_64
             - arm64
       - axis:
-          # the dynamic axis is implemented **oddly** in jenkins job builder.
-          # It will pick just the first item in `values` and assign that to the
-          # 'variable name' that is where `DIST` would get expanded too. This
-          # is not documented. This means that DIST_VERSIONS will need to exist
-          # as an environment variable passed onto this job.
-          type: dynamic
+          type: label-expression
           name: DIST
           values:
-            - DIST_VERSIONS
+            - jessie
+            #- wheezy
+            #- precise
+            - trusty
+            - xenial
+            #- centos6
+            - centos7
 
     builders:
       - shell: |
