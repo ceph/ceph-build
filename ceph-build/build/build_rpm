@@ -61,11 +61,14 @@ vers=`cat ./dist/version`
 # slap -rc to the ref if we are doing a release-candidate build
 [ "$RC" = true ] && chacra_ref="$BRANCH-rc" || chacra_ref="$BRANCH"
 [ "$TEST" = true ] && chacra_ref="test"
-chacra_baseurl="ceph/${chacra_ref}/${DISTRO}/${RELEASE}/${ARCH}/librados2-${vers}-0.${DIST}.${ARCH}.rpm"
+
+chacra_endpoint="ceph/${chacra_ref}/${DISTRO}/${RELEASE}"
+chacra_check_url="${chacra_endpoint}/${ARCH}/librados2-${vers}-0.${DIST}.${ARCH}.rpm"
+
 
 if [ "$THROWAWAY" = false ] ; then
     # this exists in scripts/build_utils.sh
-    check_binary_existence $chacra_baseurl
+    check_binary_existence $chacra_check_url
 fi
 
 HOST=$(hostname --short)
@@ -116,6 +119,6 @@ cd "$WORKSPACE"
 
 if [ "$THROWAWAY" = false ] ; then
     # push binaries to chacra
-    find release/${vers}/rpm/*/SRPMS | grep rpm | $VENV/chacractl binary ${chacra_flags} create ${chacra_baseurl}/source
-    find release/${vers}/rpm/*/RPMS/* | grep rpm | $VENV/chacractl binary ${chacra_flags} create ${chacra_baseurl}/${ARCH}
+    find release/${vers}/rpm/*/SRPMS | grep rpm | $VENV/chacractl binary ${chacra_flags} create ${chacra_endpoint}/source
+    find release/${vers}/rpm/*/RPMS/* | grep rpm | $VENV/chacractl binary ${chacra_flags} create ${chacra_endpoint}/${ARCH}
 fi
