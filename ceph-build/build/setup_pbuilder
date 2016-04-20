@@ -29,6 +29,7 @@ os="debian"
 [ "$DIST" = "precise" ] && os="ubuntu"
 [ "$DIST" = "saucy" ] && os="ubuntu"
 [ "$DIST" = "trusty" ] && os="ubuntu"
+[ "$DIST" = "xenial" ] && os="ubuntu"
 
 if [ $os = "debian" ]; then
     mirror="http://www.gtlib.gatech.edu/pub/debian"
