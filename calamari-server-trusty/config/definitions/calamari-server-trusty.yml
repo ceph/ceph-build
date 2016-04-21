@@ -10,7 +10,7 @@
       daysToKeep: '-1'
       numToKeep: '-1'
     name: 'calamari-server-trusty'
-    node: vagrant
+    node: small && trusty
     parameters:
     - string:
         default: ''
