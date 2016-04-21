@@ -29,9 +29,3 @@
         only-if-success: false
     - fingerprint:
         files: $BRANCH/*.deb,$BRANCH/calamari-repo-trusty.tar.gz
-    scm:
-    - git:
-        basedir: Diamond
-        branches:
-          - '*/calamari'
-        url: git@github.com:ceph/Diamond
