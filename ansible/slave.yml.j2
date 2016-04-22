@@ -11,6 +11,7 @@
    - api_uri: 'https://jenkins.ceph.com'
    - nodename: '${nodename}'
    - labels: '${labels}'
+   - exclusive: '${exclusive}'
   tasks:
     - name: create a {{ jenkins_user }} user
       user: name={{ jenkins_user }} comment="Jenkins Build Slave User"
@@ -151,3 +152,4 @@
         remoteFS: '/home/{{ jenkins_user }}/build'
         # XXX this should be configurable, not all nodes should have one executor
         executors: 1
+        exclusive: "{{ exclusive }}"
