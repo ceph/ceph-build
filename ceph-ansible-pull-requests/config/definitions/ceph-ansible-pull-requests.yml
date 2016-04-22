@@ -27,20 +27,10 @@
     axes:
       - axis:
           type: label-expression
-          name: MACHINE_SIZE
-          values:
-            - small
-      - axis:
-          type: label-expression
-          name: UNIQUE
-          values:
-            - unique
-      - axis:
-          type: label-expression
           name: DIST
           values:
-            - trusty
-            - centos7
+            - ceph_ansible_pr_trusty
+            - ceph_ansible_pr_centos7
     logrotate:
       daysToKeep: 15
       numToKeep: 30
