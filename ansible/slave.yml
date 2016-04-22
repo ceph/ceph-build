@@ -5,7 +5,7 @@
   user: ubuntu
   vars:
    - jenkins_user: 'jenkins-build'
-   - exclusive: false
+   - exclusive: true
   tasks:
     - name: create a {{ jenkins_user }} user
       user: name={{ jenkins_user }} comment="Jenkins Build Slave User" home="/home/{{ jenkins_user }}"
