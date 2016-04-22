@@ -1,0 +1,20 @@
+- job:
+    name: nightlies-suites
+    node: teuthology
+    #user: teuthology #unsure
+    display-name: 'nightlies-suites'
+    properties:
+      - github:
+          url: https://github.com/ceph/ceph-qa-suites #unsure
+    scm:
+      - git:
+          url: https://github.com/ceph/ceph-qa-suites #unsure
+          branches:
+            - jewel
+          browser: auto
+          skip-tag: true
+          timeout: 20
+
+    builders:
+      - shell:
+          !include-raw ../../build/schedule_nightlies-suites

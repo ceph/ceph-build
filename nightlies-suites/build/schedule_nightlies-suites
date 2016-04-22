@@ -1,0 +1,4 @@
+#!/bin/bash
+
+CEPH_QA_EMAIL=yweinste@redhat.com
+/usr/sbin/sendmail -t $CEPH_QA_EMAIL < ~/yuriw2/text.txt 
