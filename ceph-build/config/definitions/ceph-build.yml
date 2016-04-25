@@ -9,7 +9,7 @@
       - github:
           url: https://github.com/ceph/ceph
     execution-strategy:
-      combination-filter: ARCH=="x86_64" || (ARCH == "arm64" && (DIST == "xenial" || DIST == "centos7"))
+      combination-filter: '(GENERIC_BUILDER=="trusty-pbuilder" && (DIST == ("xenial"||"trusty"||"wheezy"||"jessie")) && ARCH=="x86_64") || (ARCH == "arm64" && (DIST == "xenial" || DIST == "centos7"))'
     axes:
       - axis:
           type: label-expression
