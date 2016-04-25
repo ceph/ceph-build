@@ -13,6 +13,11 @@
     axes:
       - axis:
           type: label-expression
+          name: GENERIC_BUILDER
+          values:
+            - trusty-pbuilder
+      - axis:
+          type: label-expression
           name: MACHINE_SIZE
           values:
             - huge
