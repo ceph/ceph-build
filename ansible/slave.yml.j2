@@ -7,10 +7,10 @@
    - jenkins_user: 'jenkins-build'
    # jenkins API credentials:
    - api_user: 'ceph-jenkins'
-   - token: '${token}'
+   - token: '{{ token }}'
    - api_uri: 'https://jenkins.ceph.com'
-   - nodename: '${nodename}'
-   - labels: '${labels}'
+   - nodename: '{{ nodename }}'
+   - labels: '{{ labels }}'
 
   tasks:
     - name: create a {{ jenkins_user }} user
