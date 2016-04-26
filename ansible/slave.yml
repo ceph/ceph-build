@@ -91,6 +91,7 @@
         - libtool
         - autotools-dev
         - automake
+        - debian-archive-keyring
         # jenkins-job-builder job:
         - libyaml-dev
         # ceph-docs job:
