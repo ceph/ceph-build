@@ -125,6 +125,14 @@
         line: '%dist .el{{ ansible_distribution_major_version }}'
       when: ansible_pkg_mgr  == "yum"
 
+    - name: ensure that the current host is in /etc/hosts. Yes this is a thing.
+      sudo: true
+      replace:
+        backup: yes
+        dest: /etc/hosts
+        regexp: '^(127\.0\.1\.1(?!.*\b{{ ansible_hostname }}\b).*)$'
+        replace: '\1 {{ ansible_hostname }}'
+
     - name: install six, latest one
       sudo: true
       pip: name=six state=latest
