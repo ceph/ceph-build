@@ -65,6 +65,8 @@
         - redhat-rpm-config
         - rpm-build
         - rpmdevtools
+        - openssl-devel
+        - libffi-devel
       when: ansible_pkg_mgr  == "yum"
 
     # Run the equivalent of "apt-get update" as a separate step
@@ -102,6 +104,7 @@
         - libmysqlclient-dev
         - libevent-dev
         - libffi-dev
+        - libssl-dev
       when: ansible_pkg_mgr  == "apt"
 
     - name: Add the Debian Jessie Key
