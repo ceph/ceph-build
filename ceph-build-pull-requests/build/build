@@ -10,6 +10,9 @@ virtualenv venv
 PIP_SDIST_INDEX="$HOME/.cache/pip"
 mkdir -p $PIP_SDIST_INDEX
 
+# upgrade setuptools because the world breaks otherwise :(
+venv/bin/pip install -U setuptools
+
 # Install the package by trying with the cache first, otherwise doing a download only, and then
 # trying to install from the cache again.
 if ! venv/bin/pip install --find-links="file://$PIP_SDIST_INDEX" --no-index jenkins-job-builder; then
