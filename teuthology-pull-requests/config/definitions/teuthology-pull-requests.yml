@@ -1,5 +1,5 @@
 - job:
-    name: teuthology-pull-requests 
+    name: teuthology-pull-requests
     node: trusty && amd64 && small
     project-type: freestyle
     defaults: global
@@ -63,9 +63,13 @@
 
     builders:
       - shell:
-          !include-raw ../../setup/setup
+          !include-raw:
+            - ../../../scripts/build_utils.sh
+            - ../../setup/setup
       - shell:
-          !include-raw ../../build/build
+          !include-raw:
+            - ../../../scripts/build_utils.sh
+            - ../../build/build
 
     publishers:
       - github-notifier

@@ -2,23 +2,12 @@
 
 set -ex
 
-# Create the virtualenv
-virtualenv venv
-. venv/bin/activate
-
-# Define and ensure the PIP cache
-PIP_SDIST_INDEX="$HOME/.cache/pip"
-mkdir -p $PIP_SDIST_INDEX
-
-# Install the package by trying with the cache first, otherwise doing a download only, and then
-# trying to install from the cache again.
-if ! venv/bin/pip install --find-links="file://$PIP_SDIST_INDEX" --no-index tox; then
-    venv/bin/pip install --download-directory="$PIP_SDIST_INDEX" tox
-    venv/bin/pip install --find-links="file://$PIP_SDIST_INDEX" --no-index tox
-fi
-
+# the following two methods exist in scripts/build_utils.sh
+pkgs=( "tox" )
+install_python_packages "pkgs[@]"
 
 # create the docs build with tox
-tox -rv -e docs
+$VENV/tox -rv -e docs
+
 # publish docs to http://docs.ceph.com/docs/teuthology
 rsync -auv --delete .tox/docs/tmp/html/* /var/teuthology/docs/

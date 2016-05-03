@@ -39,7 +39,10 @@ If this is checked, JJB will wipe out its cache and force each job to align with
           timeout: 20
 
     builders:
-      - shell: "bash jenkins-job-builder/build/build"
+      - shell:
+          !include-raw:
+            - ../../../scripts/build_utils.sh
+            - ../../build/build
 
     publishers:
       - postbuildscript:

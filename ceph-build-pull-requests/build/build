@@ -2,23 +2,9 @@
 
 set -e
 
-# Create the virtualenv
-virtualenv venv
-. venv/bin/activate
-
-# Define and ensure the PIP cache
-PIP_SDIST_INDEX="$HOME/.cache/pip"
-mkdir -p $PIP_SDIST_INDEX
-
-# upgrade setuptools because the world breaks otherwise :(
-venv/bin/pip install -U setuptools
-
-# Install the package by trying with the cache first, otherwise doing a download only, and then
-# trying to install from the cache again.
-if ! venv/bin/pip install --find-links="file://$PIP_SDIST_INDEX" --no-index jenkins-job-builder; then
-    venv/bin/pip install --download-directory="$PIP_SDIST_INDEX" jenkins-job-builder
-    venv/bin/pip install --find-links="file://$PIP_SDIST_INDEX" --no-index jenkins-job-builder
-fi
+# the following two methods exist in scripts/build_utils.sh
+pkgs=( "ansible" "jenkins-job-builder" )
+install_python_packages "pkgs[@]"
 
 
 # Test every definition if available in the current repository and update the jobs
@@ -29,22 +15,16 @@ for dir in `find . -maxdepth 1 -path ./.git -prune -o -type d -print`; do
         echo "found definitions directory: $definitions_dir"
 
         # Test the definitions
-        venv/bin/jenkins-jobs test $definitions_dir -o /tmp/output
+        $VENV/jenkins-jobs test $definitions_dir -o /tmp/output
     fi
 done
 
-# Install Ansible
-if ! venv/bin/pip install --find-links="file://$PIP_SDIST_INDEX" --no-index ansible; then
-    venv/bin/pip install --download-directory="$PIP_SDIST_INDEX" ansible
-    venv/bin/pip install --find-links="file://$PIP_SDIST_INDEX" --no-index ansible
-fi
-
 # install ansible-galaxy roles for playbook syntax check
 for reqs in $WORKSPACE/ansible/requirements/*; do
-    ansible-galaxy install -r $reqs -p $WORKSPACE/ansible/roles --force
+    $VENV/ansible-galaxy install -r $reqs -p $WORKSPACE/ansible/roles --force
 done
 
 # Syntax-check each Ansible playbook
 for playbook in $WORKSPACE/ansible/*.yml; do
-    ansible-playbook -i '127.0.0.1,' $playbook --syntax-check
+    $VENV/ansible-playbook -i '127.0.0.1,' $playbook --syntax-check
 done

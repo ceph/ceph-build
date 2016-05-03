@@ -21,6 +21,9 @@ install_python_packages () {
     PIP_SDIST_INDEX="$HOME/.cache/pip"
     mkdir -p $PIP_SDIST_INDEX
 
+    echo "Updating setuptools"
+    $VENV/pip install --upgrade --exists-action=i --download="$PIP_SDIST_INDEX" setuptools
+
     echo "Ensuring latest pip is installed"
     $VENV/pip install --upgrade --exists-action=i --download="$PIP_SDIST_INDEX" pip
     $VENV/pip install --upgrade --exists-action=i --find-links="file://$PIP_SDIST_INDEX" --no-index pip
