@@ -8,23 +8,12 @@
 
 set -ex
 
-# Create the virtualenv
-virtualenv venv
-. venv/bin/activate
+# the following two methods exist in scripts/build_utils.sh
+pkgs=( "jenkins-job-builder" )
+install_python_packages "pkgs[@]"
 
 # Wipe out JJB's cache if $FORCE is set.
 [ "$FORCE" = true ] && rm -rf "$HOME/.cache/jenkins_jobs/"
-
-# Define and ensure the PIP cache
-PIP_SDIST_INDEX="$HOME/.cache/pip"
-mkdir -p $PIP_SDIST_INDEX
-
-# Install the package by trying with the cache first, otherwise doing a download only, and then
-# trying to install from the cache again.
-if ! venv/bin/pip install --find-links="file://$PIP_SDIST_INDEX" --no-index jenkins-job-builder; then
-    venv/bin/pip install --download-directory="$PIP_SDIST_INDEX" jenkins-job-builder
-    venv/bin/pip install --find-links="file://$PIP_SDIST_INDEX" --no-index jenkins-job-builder
-fi
 
 # workaround for https://issues.jenkins-ci.org/browse/JENKINS-16225
 JENKINS_URL=${JENKINS_URL:-"https://jenkins.ceph.com/"}
@@ -46,11 +35,11 @@ for dir in `find . -maxdepth 1 -path ./.git -prune -o -type d -print`; do
         echo "found definitions directory: $definitions_dir"
 
         # Test the definitions first
-        venv/bin/jenkins-jobs --log_level DEBUG --conf $JJB_CONFIG test $definitions_dir -o /tmp/output
+        $VENV/jenkins-jobs --log_level DEBUG --conf $JJB_CONFIG test $definitions_dir -o /tmp/output
 
         # Update Jenkins with the output if they passed the test phase
         # Note that this needs proper permissions with the right credentials to the
         # correct Jenkins instance.
-        venv/bin/jenkins-jobs --log_level DEBUG --conf $JJB_CONFIG update $definitions_dir
+        $VENV/jenkins-jobs --log_level DEBUG --conf $JJB_CONFIG update $definitions_dir
     fi
 done
