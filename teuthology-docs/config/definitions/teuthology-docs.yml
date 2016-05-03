@@ -30,4 +30,6 @@
 
     builders:
       - shell:
-          !include-raw ../../build/build
+          !include-raw:
+            - ../../../scripts/build_utils.sh
+            - ../../build/build
