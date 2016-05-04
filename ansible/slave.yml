@@ -112,6 +112,19 @@
       when: ansible_pkg_mgr  == "apt"
       apt_key: id=2B90D010 url=https://ftp-master.debian.org/keys/archive-key-8.asc keyring=/etc/apt/trusted.gpg.d/jessie.gpg state=present
 
+    - name: Install openjdk-7-jre
+      apt: name=openjdk-7-jre state=present
+      when:
+        ansible_distribution_release in ['precise', 'trusty', 'wheezy', 'jessie']
+
+    - name: Install default openjdk for Xenial only
+      apt: name={{ item }} state=present
+      with_items:
+        - default-jdk
+        - default-jre
+      when:
+        ansible_distribution_release == 'xenial'
+
     - name: correct java version selected
       alternatives: name=java path=/usr/lib/jvm/java-7-openjdk-amd64/jre/bin/java
       when:
