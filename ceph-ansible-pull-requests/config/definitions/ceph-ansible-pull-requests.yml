@@ -30,6 +30,7 @@
           name: DIST
           values:
             - ceph_ansible_pr_trusty
+            - ceph_ansible_pr_xenial
             - ceph_ansible_pr_centos7
     logrotate:
       daysToKeep: 15
