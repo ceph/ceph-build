@@ -86,7 +86,6 @@
         - devscripts
         - pbuilder
         - pkg-config
-        - openjdk-7-jre
         - python-dev
         - python-pip
         - python-virtualenv
