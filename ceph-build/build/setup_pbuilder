@@ -33,10 +33,20 @@ os="debian"
 
 if [ $os = "debian" ]; then
     mirror="http://www.gtlib.gatech.edu/pub/debian"
+    # this assumes that newer Debian releases are being added to
+    # /etc/apt/trusted.gpg that is also the default location for Ubuntu trusted
+    # keys. The slave should ensure that the needed keys are added accordingly
+    # to this location.
+    debootstrapopts='DEBOOTSTRAPOPTS=( "--keyring" "/etc/apt/trusted.gpg" )'
+    components='COMPONENTS="main contrib"'
 elif [ "$ARCH" = "arm64" ]; then
     mirror="http://ports.ubuntu.com/ubuntu-ports"
+    debootstrapopts=""
+    components='COMPONENTS="main universe"'
 else
     mirror="http://us.archive.ubuntu.com/ubuntu"
+    debootstrapopts=""
+    components='COMPONENTS="main universe"'
 fi
 
 # ensure that the tgz is valid, otherwise remove it so that it can be recreated
@@ -61,7 +71,8 @@ fi
 #      pbuilder-satisfydepends-dummy : Depends: python-virtualenv which is a virtual package.
 #                                      Depends: xmlstarlet which is a virtual package.
 #     Unable to resolve dependencies!  Giving up...
-echo 'COMPONENTS="main universe"' > ~/.pbuilderrc
+echo "$components" > ~/.pbuilderrc
+echo "$debootstrapopts" >> ~/.pbuilderrc
 
 sudo pbuilder --clean
 
