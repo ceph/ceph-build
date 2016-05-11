@@ -35,7 +35,21 @@ BPTAG=`get_bptag $DIST`
 [ "$RC" = true ] && chacra_ref="$BRANCH-rc" || chacra_ref="$BRANCH"
 [ "$TEST" = true ] && chacra_ref="test"
 vers=`cat ./dist/version`
-distro=`python -c "exec 'import platform; print platform.linux_distribution()[0].lower()'"`
+
+# We used to detect the $distro variable by inspecting at the host, but this is
+# not accurate because we are using pbuilder and just ubuntu to build
+# everything. That would cause POSTing binaries to incorrect chacra endpoints
+# like project/ref/ubuntu/jessie/.
+distro=""
+case $DIST in
+    jessie|wheezy)
+        distro="debian"
+        ;;
+    *)
+        distro="ubuntu"
+        ;;
+esac
+
 debian_version=${vers}-1
 
 gen_debian_version() {
