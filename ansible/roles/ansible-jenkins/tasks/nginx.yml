@@ -12,6 +12,15 @@
   - name: write nginx.conf
     action: template src=../templates/nginx.conf dest=/etc/nginx/nginx.conf
 
+  - name: write jenkins SSL public cert
+    copy:
+      src: jenkins.ceph.com-bundled.crt
+      dest: /etc/ssl/certs/
+      owner: root
+      group: root
+      mode: 0644
+    when: ansible_pkg_mgr  == 'apt'
+
   - name: create nginx site config
     action: template src=../templates/jenkins.conf dest=/etc/nginx/sites-available/jenkins.conf
     notify:
