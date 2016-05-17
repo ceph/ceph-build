@@ -1,0 +1,62 @@
+- job:
+    name: ceph-build-os
+    project-type: freestyle
+    defaults: global
+    concurrent: true
+    node: huge && (ceph_build_xenial) && rebootable
+    display-name: 'ceph: Build OS'
+    quiet-period: 5
+    block-downstream: false
+    block-upstream: false
+    retry-count: 3
+    properties:
+      - github:
+          url: https://github.com/ceph/ceph/
+    logrotate:
+      daysToKeep: 15
+      numToKeep: 300
+      artifactDaysToKeep: -1
+      artifactNumToKeep: -1
+
+    parameters:
+        - string:
+            name: DIST
+            description: "The distribution codename like xenial,centos,jessie"
+
+        - string:
+            name: DVER
+            description: "The distribution codename like C7.2, U16.04, D8"
+
+        - string:
+            name: VERSION
+            description: "The release of that particular build : 1.0.0, 1.1.0, ..."
+
+        - string:
+            name: REPOSITORY
+            description: "URL of the package repository, like http://debian.mirrors.ovh.net/debian/"
+
+    scm:
+      - git:
+          url: https://github.com/ErwanAliasr1/edeploy.git
+          branches:
+            - ceph-builders
+          refspec: +refs/pull/*:refs/remotes/origin/pr/*
+          browser: auto
+          timeout: 20
+          skip-tag: true
+          wipe-workspace: true
+
+    builders:
+      - shell: "sudo edeploy activate-pkgmngr; cd build; sudo make ceph-builders DIST=${DIST} DVER=${DVER} VERSION=${VERSION} VIRTUALIZED=ceph-builders.virt NO_MGNIDS=True NO_COMPRESSED_FILE=True REPOSITORY=${REPOSITORY} KEEP_PKGMNGR=True && DVER=${DVER} VERSION=${VERSION} upload.sh"
+
+    publishers:
+      - postbuildscript:
+          script-only-if-succeeded: True
+          script-only-if-failed: True
+          builders:
+            - shell: "sudo poweroff"
+
+    wrappers:
+      - inject-passwords:
+          global: true
+          mask-password-params: true
