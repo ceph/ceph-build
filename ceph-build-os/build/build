@@ -18,3 +18,4 @@ if [ -z "$REPOSITORY" ]; then
 fi
 
 sudo make ceph-builders DIST=${DIST} DVER=${DVER} VERSION=${VERSION} VIRTUALIZED=ceph-builders.virt NO_MGNIDS=True NO_COMPRESSED_FILE=True REPOSITORY=${REPOSITORY} KEEP_PKGMNGR=True COMPRESSED=yes && DVER=${DVER} VERSION=${VERSION} upload.sh
+
