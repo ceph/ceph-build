@@ -1,0 +1,48 @@
+- scm:
+    name: mita
+    scm:
+      - git:
+          url: https://github.com/ceph/mita.git
+          branches:
+            - master
+          browser: auto
+          timeout: 20
+          skip-tag: true
+          wipe-workspace: true
+
+- job:
+    name: mita-build
+    description: "This job clones mita and deploys it to its production server based on the BRANCH value"
+    display-name: 'mita-build'
+    logrotate:
+      daysToKeep: -1
+      numToKeep: 25
+      artifactDaysToKeep: -1
+      artifactNumToKeep: -1
+    block-downstream: false
+    block-upstream: false
+    properties:
+      - github:
+          url: https://github.com/ceph/mita
+
+    parameters:
+      - string:
+          name: BRANCH
+          description: "The git branch (or tag) to build, defaults to 'master'"
+          default: "master"
+    scm:
+      - mita
+
+    triggers:
+      - github
+
+    builders:
+      - shell:
+          !include-raw:
+            - ../../../scripts/build_utils.sh
+            - ../../build/build
+
+    wrappers:
+      - inject-passwords:
+          global: true
+          mask-password-params: true
