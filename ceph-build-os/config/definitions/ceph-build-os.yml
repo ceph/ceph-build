@@ -24,7 +24,7 @@
             description: "The distribution codename like xenial,centos,jessie"
 
         - string:
-            name: DVER
+            name: DISTRO_RELEASE
             description: "The distribution codename like C7.2, U16.04, D8"
 
         - string:
@@ -47,7 +47,7 @@
           wipe-workspace: true
 
     builders:
-      - shell: "sudo edeploy activate-pkgmngr; cd build; sudo make ceph-builders DIST=${DIST} DVER=${DVER} VERSION=${VERSION} VIRTUALIZED=ceph-builders.virt NO_MGNIDS=True NO_COMPRESSED_FILE=True REPOSITORY=${REPOSITORY} KEEP_PKGMNGR=True && DVER=${DVER} VERSION=${VERSION} upload.sh"
+        - shell: !include-raw ../../build/build DIST=${DIST} DVER=${DISTRO_RELEASE} VERSION=${VERSION} REPOSITORY=${REPOSITORY}"
 
     publishers:
       - postbuildscript:

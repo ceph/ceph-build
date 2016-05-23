@@ -1,0 +1,20 @@
+#!/bin/bash
+
+sudo edeploy activate-pkgmngr;
+cd build;
+
+if [ -z "$REPOSITORY" ]; then
+    case "$DIST" in
+        "xenial"|"trusty")
+            REPOSITORY="http://ubuntu.mirrors.ovh.net/ubuntu/"
+        ;;
+        "jessie")
+            REPOSITORY="http://debian.mirrors.ovh.net/debian/"
+        ;;
+        "centos")
+            REPOSITORY="http://centos.mirrors.ovh.net/ftp.centos.org/7/os/x86_64/Packages/centos-release-7-2.1511.el7.centos.2.10.x86_64.rpm"
+        ;;
+    esac
+fi
+
+sudo make ceph-builders DIST=${DIST} DVER=${DVER} VERSION=${VERSION} VIRTUALIZED=ceph-builders.virt NO_MGNIDS=True NO_COMPRESSED_FILE=True REPOSITORY=${REPOSITORY} KEEP_PKGMNGR=True COMPRESSED=yes && DVER=${DVER} VERSION=${VERSION} upload.sh
