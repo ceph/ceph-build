@@ -32,8 +32,8 @@
             description: "The release of that particular build : 1.0.0, 1.1.0, ..."
 
         - string:
-            name: REPOSITORY
-            description: "URL of the package repository, like http://debian.mirrors.ovh.net/debian/"
+            name: REPO_URL
+            description: "Optional URL of a package repository to override the default one like (http://debian.mirrors.ovh.net/debian/ or http://centos.mirrors.ovh.net/ftp.centos.org/7/os/x86_64/Packages/centos-release-7-2.1511.el7.centos.2.10.x86_64.rpm"
 
     scm:
       - git:
@@ -47,7 +47,7 @@
           wipe-workspace: true
 
     builders:
-        - shell: !include-raw ../../build/build DIST=${DIST} DVER=${DISTRO_RELEASE} VERSION=${VERSION} REPOSITORY=${REPOSITORY}"
+        - shell: !include-raw ../../build/build DIST=${DIST} DVER=${DISTRO_RELEASE} VERSION=${VERSION} REPOSITORY=${REPO_URL}"
 
     publishers:
       - postbuildscript:
