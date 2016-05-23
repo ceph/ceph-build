@@ -16,6 +16,9 @@
     - name: create a {{ jenkins_user }} user
       user: name={{ jenkins_user }} comment="Jenkins Build Slave User"
 
+    - name: ensure the user dir is tied to the jenkins_user
+      file: path=/home/{{ jenkins_user }}/ state=directory owner={{ jenkins_user }} recurse=yes
+
     - name: Create .ssh directory
       file: path=/home/{{ jenkins_user }}/.ssh
             state=directory
@@ -32,9 +35,6 @@
         validate: 'visudo -cf %s'
 
     - name: ensure the build dir exists
-      file: path=/home/{{ jenkins_user }}/build state=directory owner={{ jenkins_user }}
-
-    - name: ensure the build dir has the right owner permissions
       file: path=/home/{{ jenkins_user }}/build state=directory owner={{ jenkins_user }}
 
     - name: Install RPM requirements
