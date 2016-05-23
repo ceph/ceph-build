@@ -11,9 +11,9 @@
           wipe-workspace: true
 
 - job:
-    name: mita-build
+    name: mita-deploy
     description: "This job clones mita and deploys it to its production server based on the BRANCH value"
-    display-name: 'mita-build'
+    display-name: 'mita-deploy'
     logrotate:
       daysToKeep: -1
       numToKeep: 25
