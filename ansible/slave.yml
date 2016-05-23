@@ -34,8 +34,8 @@
     - name: ensure the build dir exists
       file: path=/home/{{ jenkins_user }}/build state=directory owner={{ jenkins_user }}
 
-    - name: ensure the build dir has the right owner permissions
-      file: path=/home/{{ jenkins_user }}/build state=directory owner={{ jenkins_user }}
+    - name: ensure the home dir has the right owner permissions
+      file: path=/home/{{ jenkins_user }} state=directory owner={{ jenkins_user }} group={{ jenkins_user }} recurse=yes
 
     - name: Install RPM requirements
       sudo: yes
