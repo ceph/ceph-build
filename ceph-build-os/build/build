@@ -1,5 +1,24 @@
 #!/bin/bash
 
+set +x
+
+if [ -z $DIST ]; then
+    echo "build: No DIST found, exiting !"
+    exit 1
+fi
+
+if [ -z $DVER ]; then
+    echo "build: No DVER found, exiting !"
+    exit 1
+fi
+
+if [ -z $VERSION ]; then
+    echo "build: No VERSION found, exiting !"
+    exit 1
+fi
+
+echo "build: Environment is correct"
+
 if [ -z "$REPOSITORY" ]; then
     case "$DIST" in
         "xenial"|"trusty")
@@ -11,7 +30,11 @@ if [ -z "$REPOSITORY" ]; then
         "centos")
             REPOSITORY="http://centos.mirrors.ovh.net/ftp.centos.org/7/os/x86_64/Packages/centos-release-7-2.1511.el7.centos.2.10.x86_64.rpm"
         ;;
+        *)
+            echo "build: no known favorite repository for $DIST"
+        ;;
     esac
+    echo "build: Using repository $REPOSITORY"
 fi
 
 sudo make ceph-builders DIST=${DIST} DVER=${DVER} VERSION=${VERSION} VIRTUALIZED=ceph-builders.virt NO_MGNIDS=True NO_COMPRESSED_FILE=True REPOSITORY=${REPOSITORY} KEEP_PKGMNGR=True COMPRESSED=yes && DVER=${DVER} VERSION=${VERSION} upload.sh
