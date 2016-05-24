@@ -7,4 +7,4 @@ pkgs=( "ansible" )
 install_python_packages "pkgs[@]"
 
 cd "$WORKSPACE/deploy/playbooks/"
-$VENV/ansible-playbook -i "jenkins.ceph.com," deploy.yml --extra-vars="branch=$BRANCH jenkins_prado_token=$JENKINS_PRADO_TOKEN prado_token=$PRADO_TOKEN"
+$VENV/ansible-playbook -i "localhost," -c local local_deploy.yml --extra-vars="branch=$BRANCH jenkins_prado_token=$JENKINS_PRADO_TOKEN prado_token=$PRADO_TOKEN"
