@@ -46,7 +46,7 @@
           wipe-workspace: true
 
     builders:
-      - shell: "export NPROC=$(nproc); timeout 7200 ./run-make-check.sh"
+      - shell: "ccache -M 5G; export NPROC=$(nproc); timeout 7200 ./run-make-check.sh"
 
     publishers:
       - github-notifier
