@@ -64,7 +64,7 @@
       - edeploy
 
     builders:
-      - shell: "cd edeploy/build; DIST=${DIST} DVER=${DISTRO_RELEASE} VERSION=${VERSION} REPOSITORY=${REPO_URL} ../../ceph-build/ceph-build-os/build/build"
+      - shell: "cd edeploy/build; DIST=${DIST} DISTRO_RELEASE=${DISTRO_RELEASE} VERSION=${VERSION} REPO_URL=${REPO_URL} ../../ceph-build/ceph-build-os/build/build"
 
     publishers:
       - postbuildscript:

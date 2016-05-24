@@ -7,8 +7,8 @@ if [ -z $DIST ]; then
     exit 1
 fi
 
-if [ -z $DVER ]; then
-    echo "build: No DVER found, exiting !"
+if [ -z $DISTRO_RELEASE ]; then
+    echo "build: No DISTRO_RELEASE found, exiting !"
     exit 1
 fi
 
@@ -19,23 +19,23 @@ fi
 
 echo "build: Environment is correct"
 
-if [ -z "$REPOSITORY" ]; then
+if [ -z "$REPO_URL" ]; then
     case "$DIST" in
         "xenial"|"trusty")
-            REPOSITORY="http://ubuntu.mirrors.ovh.net/ubuntu/"
+            REPO_URL="http://ubuntu.mirrors.ovh.net/ubuntu/"
         ;;
         "jessie")
-            REPOSITORY="http://debian.mirrors.ovh.net/debian/"
+            REPO_URL="http://debian.mirrors.ovh.net/debian/"
         ;;
         "centos")
-            REPOSITORY="http://centos.mirrors.ovh.net/ftp.centos.org/7/os/x86_64/Packages/centos-release-7-2.1511.el7.centos.2.10.x86_64.rpm"
+            REPO_URL="http://centos.mirrors.ovh.net/ftp.centos.org/7/os/x86_64/Packages/centos-release-7-2.1511.el7.centos.2.10.x86_64.rpm"
         ;;
         *)
             echo "build: no known favorite repository for $DIST"
         ;;
     esac
-    echo "build: Using repository $REPOSITORY"
+    echo "build: Using repository $REPO_URL"
 fi
 
-sudo make ceph-builders DIST=${DIST} DVER=${DVER} VERSION=${VERSION} VIRTUALIZED=ceph-builders.virt NO_MGNIDS=True NO_COMPRESSED_FILE=True REPOSITORY=${REPOSITORY} KEEP_PKGMNGR=True COMPRESSED=yes && DVER=${DVER} VERSION=${VERSION} upload.sh
+sudo make ceph-builders DIST=${DIST} DVER=${DISTRO_RELEASE} VERSION=${VERSION} VIRTUALIZED=ceph-builders.virt NO_MGNIDS=True NO_COMPRESSED_FILE=True REPOSITORY=${REPO_URL} KEEP_PKGMNGR=True COMPRESSED=yes && DVER=${DISTRO_RELEASE} VERSION=${VERSION} upload.sh
 
