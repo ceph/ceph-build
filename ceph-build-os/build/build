@@ -1,8 +1,5 @@
 #!/bin/bash
 
-sudo edeploy activate-pkgmngr; 
-cd build; 
-
 if [ -z "$REPOSITORY" ]; then
     case "$DIST" in
         "xenial"|"trusty")
