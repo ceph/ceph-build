@@ -55,6 +55,3 @@
     - shell:
         # Note that we're including the main "takora" job's build steps here.
         !include-raw ../../../takora/build/build
-
-    publishers:
-      - github-notifier

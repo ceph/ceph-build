@@ -62,6 +62,3 @@
           !include-raw:
             - ../../../scripts/build_utils.sh
             - ../../build/build
-
-    publishers:
-      - github-notifier

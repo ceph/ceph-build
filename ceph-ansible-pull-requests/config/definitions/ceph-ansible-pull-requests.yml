@@ -68,7 +68,6 @@
             - ../../build/build
 
     publishers:
-      - github-notifier
       - postbuildscript:
           script-only-if-succeeded: False
           script-only-if-failed: False
