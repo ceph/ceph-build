@@ -37,5 +37,7 @@ if [ -z "$REPO_URL" ]; then
     echo "build: Using repository $REPO_URL"
 fi
 
+sudo edeploy activate-pkgmngr
+
 sudo make ceph-builders DIST=${DIST} DVER=${DISTRO_RELEASE} VERSION=${VERSION} VIRTUALIZED=ceph-builders.virt NO_MGNIDS=True NO_COMPRESSED_FILE=True REPOSITORY=${REPO_URL} KEEP_PKGMNGR=True COMPRESSED=yes && DVER=${DISTRO_RELEASE} VERSION=${VERSION} upload.sh
 
