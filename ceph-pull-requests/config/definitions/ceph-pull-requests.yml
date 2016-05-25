@@ -49,7 +49,6 @@
       - shell: "ccache -M 5G; ccache -z; export NPROC=$(nproc); timeout 7200 ./run-make-check.sh; ccache -s"
 
     publishers:
-      - github-notifier
       - postbuildscript:
           script-only-if-succeeded: False
           script-only-if-failed: True
