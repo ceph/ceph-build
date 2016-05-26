@@ -1,6 +1,32 @@
 #!/bin/bash
 
+upload() {
+	IMAGE=$(ls /var/lib/debootstrap/install/$DISTRO_RELEASE-$VERSION/*qcow2)
+	if [ -z "$IMAGE" ]; then
+	   echo "upload: No IMAGE found in /var/lib/debootstrap/install/$DISTRO_RELEASE-$VERSION/, Exiting"
+	   exit 1
+	fi
+
+	IMAGE_NAME=$(basename `echo $IMAGE | sed -e "s/\.img\.qcow2//g"`)
+
+	echo "upload: About to upload $IMAGE as $IMAGE_NAME"
+
+	# If the same image already exists, let's delete it
+	openstack image list -f csv | grep -qw "$IMAGE_NAME" && echo "upload: Deleting remote image" && openstack image delete "$IMAGE_NAME"
+
+	# Upload the image
+	echo "upload: Uploading $IMAGE"
+	openstack image create $IMAGE_NAME --disk-format qcow2 --container-format bare --file $IMAGE
+}
+
 set +x
+
+export OS_AUTH_URL="$OVH_AUTH_URL"
+export OS_TENANT_ID="$OVH_TENANT_ID"
+export OS_TENANT_NAME="$OVH_TENANT_NAME"
+export OS_USERNAME="$OVH_USERNAME"
+export OS_PASSWORD="$OVH_PASSWORD"
+export OS_REGION_NAME="$OVH_REGION"
 
 if [ -z $DIST ]; then
     echo "build: No DIST found, exiting !"
@@ -14,6 +40,36 @@ fi
 
 if [ -z $VERSION ]; then
     echo "build: No VERSION found, exiting !"
+    exit 1
+fi
+
+if [ -z "$OS_AUTH_URL" ]; then
+    echo "upload: Cannot find any valid OS_AUTH_URL"
+    exit 1
+fi
+
+if [ -z "$OS_TENANT_ID" ]; then
+    echo "build: Cannot find any valid OS_TENANT_ID"
+    exit 1
+fi
+
+if [ -z "$OS_TENANT_NAME" ]; then
+    echo "build: Cannot find any valid OS_TENANT_NAME"
+    exit 1
+fi
+
+if [ -z "$OS_USERNAME" ]; then
+    echo "build: Cannot find any valid OS_USERNAME"
+    exit 1
+fi
+
+if [ -z "$OS_PASSWORD" ]; then
+    echo "build: Cannot find any valid OS_PASSWORD"
+    exit 1
+fi
+
+if [ -z "$OS_REGION_NAME" ]; then
+    echo "build: Cannot find any valid OS_REGION_NAME"
     exit 1
 fi
 
@@ -37,7 +93,7 @@ if [ -z "$REPO_URL" ]; then
     echo "build: Using repository $REPO_URL"
 fi
 
+
 sudo edeploy activate-pkgmngr
 
-sudo make ceph-builders DIST=${DIST} DVER=${DISTRO_RELEASE} VERSION=${VERSION} VIRTUALIZED=ceph-builders.virt NO_MGNIDS=True NO_COMPRESSED_FILE=True REPOSITORY=${REPO_URL} KEEP_PKGMNGR=True COMPRESSED=yes && DVER=${DISTRO_RELEASE} VERSION=${VERSION} upload.sh
-
+sudo make ceph-builders DIST=${DIST} DVER=${DISTRO_RELEASE} VERSION=${VERSION} VIRTUALIZED=ceph-builders.virt NO_MGNIDS=True NO_COMPRESSED_FILE=True REPOSITORY=${REPO_URL} KEEP_PKGMNGR=True COMPRESSED=yes && upload
