@@ -68,10 +68,10 @@
 
     publishers:
       - postbuildscript:
-          script-only-if-succeeded: True
+          script-only-if-succeeded: False
           script-only-if-failed: True
           builders:
-            - shell: "sudo poweroff"
+            - shell: "sudo reboot"
 
     wrappers:
       - inject-passwords:
