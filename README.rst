@@ -224,11 +224,15 @@ https://jenkins.ceph.com/user/ktdreyer/configure)
 
 Let's say this git branch makes a change in the ``my-cool-job`` job.
 
-4. Run JJB to push your changes live to job on the master::
+4. Run JJB to test the syntax of your changes::
 
     jenkins-jobs --conf ~/.jenkins_jobs.ini test my-cool-job/config/definitions/my-cool-job.yml
 
-5. Run a throwaway build with your change, and verify that your change didn't
+5. Run JJB to push your changes live to job on the master::
+
+    jenkins-jobs --conf ~/.jenkins_jobs.ini update my-cool-job/config/definitions/my-cool-job.yml
+
+6. Run a throwaway build with your change, and verify that your change didn't
    break anything and does what you want it to do.
 
 (Note: if anyone merges anything to master during this time, Jenkins will reset
