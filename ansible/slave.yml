@@ -99,11 +99,6 @@
         - doxygen
         - ditaa
         - ant
-        # teuthology-docs job:
-        - libmysqlclient-dev
-        - libevent-dev
-        - libffi-dev
-        - libssl-dev
       when: ansible_pkg_mgr  == "apt"
 
     - name: Add the Debian Jessie Key

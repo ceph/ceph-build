@@ -1,0 +1,6 @@
+#!/bin/bash
+
+set -ex
+
+APT_DEPS="libmysqlclient-dev libevent-dev libffi-dev libssl-dev"
+sudo apt install $APT_DEPS
