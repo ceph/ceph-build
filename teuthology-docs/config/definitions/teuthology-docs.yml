@@ -32,4 +32,5 @@
       - shell:
           !include-raw:
             - ../../../scripts/build_utils.sh
+            - ../../setup/setup
             - ../../build/build
