@@ -21,7 +21,16 @@ function do_build {
 
 function do_failure {
     ps -auxf
-    dmesg | grep segfault 
+    # Extracting crash info from segfault
+    while read i; do
+	    file=$(echo $i |sed -e 's/.* in \(.*\)\[.*/\1/g');
+	    ip=$(echo $i |sed -e 's/.*ip \(.*\) sp .*/\1/g');
+	    real_file=$(find -type f -name "$file" |tail -1);
+	    echo "Detected segfault: $i"
+	    echo -n "Extracting fault :"
+	    addr2line -e $real_file $ip
+	    echo "---------------------"
+    done < <(dmesg |grep segfault)
     sudo reboot
 }
 
