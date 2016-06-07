@@ -1,3 +1,30 @@
+- scm:
+    name: ceph-build
+    scm:
+      - git:
+          url: https://github.com/ceph/ceph-build.git
+          browser-url: https://github.com/ceph/ceph-build
+          branches:
+                  - evelu-build
+          timeout: 20
+          skip-tag: true
+          wipe-workspace: false
+          basedir: "ceph-build"
+
+- scm:
+    name: ceph
+    scm:
+      - git:
+          url: https://github.com/ceph/ceph.git
+          branches:
+                - ${sha1}
+          refspec: +refs/pull/*:refs/remotes/origin/pr/*
+          browser: auto
+          timeout: 20
+          skip-tag: true
+          wipe-workspace: true
+          basedir: "ceph"
+
 - job:
     name: ceph-pull-requests
     project-type: freestyle
@@ -35,22 +62,15 @@
           auto-close-on-fail: false
 
     scm:
-      - git:
-          url: https://github.com/ceph/ceph.git
-          branches:
-            - ${sha1}
-          refspec: +refs/pull/*:refs/remotes/origin/pr/*
-          browser: auto
-          timeout: 20
-          skip-tag: true
-          wipe-workspace: true
+      - ceph-build
+      - ceph
 
     builders:
-      - shell: "ccache -M 5G; ccache -z; export NPROC=$(nproc); timeout 7200 ./run-make-check.sh; ccache -s"
+      - shell: "cd ceph; ../ceph-build/ceph-pull-requests/build/build build"
 
     publishers:
       - postbuildscript:
           script-only-if-succeeded: False
           script-only-if-failed: True
           builders:
-            - shell: "sudo reboot"
+            - shell: "cd ceph; ../ceph-build/ceph-pull-requests/build/build failure"

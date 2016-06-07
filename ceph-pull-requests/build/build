@@ -1,0 +1,50 @@
+#!/bin/bash
+set -e
+
+BEFORE_FILE=/dev/shm/before
+AFTER_FILE=/dev/shm/after
+
+function detect_files {
+    sudo find / -xdev -not \( -path /home -prune \) -not \( -path /prado\* -prune \) -not \( -path /tmp/hudson\* \)
+}
+
+function do_build {
+    export NPROC=$(nproc)
+
+    detect_files > $BEFORE_FILE
+
+    ccache -M 5G
+    ccache -z
+    timeout 7200 ./run-make-check.sh
+    ccache -s
+}
+
+function do_failure {
+    ps -auxf
+    dmesg | grep segfault 
+    sudo reboot
+}
+
+case "$1" in
+    "build")
+        do_build;
+    ;;
+esac
+
+detect_files > $AFTER_FILE
+
+# Starting here, any failure is not fatal
+set +e 
+echo 'Leftover files '
+diff  --changed-group-format='%>'  --unchanged-group-format='' $BEFORE_FILE $AFTER_FILE
+
+echo 'Deleted files'
+diff  --changed-group-format='%<'  --unchanged-group-format='' $BEFORE_FILE $AFTER_FILE
+
+rm -f $BEFORE_FILE $AFTER_FILE 
+
+case "$1" in
+    "failure")
+        do_failure;
+    ;;
+esac
