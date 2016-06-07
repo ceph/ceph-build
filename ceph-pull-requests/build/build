@@ -15,6 +15,7 @@ function do_build {
 
     ccache -M 5G
     ccache -z
+    sudo dmesg -c > /dev/null
     timeout 7200 ./run-make-check.sh
     ccache -s
 }
@@ -25,9 +26,14 @@ function do_failure {
     while read i; do
 	    file=$(echo $i |sed -e 's/.* in \(.*\)\[.*/\1/g');
 	    ip=$(echo $i |sed -e 's/.*ip \(.*\) sp .*/\1/g');
-	    real_file=$(find -type f -name "$file" |tail -1);
+	    real_file=$(find -type f -name "$file" 2>/dev/null |tail -1);
+	    if [ -z "$real_file" ]; then
+		    echo "Cannot find a binary for $file"
+		    echo "---------------------"
+		    continue
+	    fi
 	    echo "Detected segfault: $i"
-	    echo -n "Extracting fault :"
+	    echo -n "Extracting fault on $real_file:"
 	    addr2line -e $real_file $ip
 	    echo "---------------------"
     done < <(dmesg |grep segfault)
