@@ -21,6 +21,7 @@ do
     os="debian"
     [ "$dist" = "raring" ] && os="ubuntu"
     [ "$dist" = "saucy" ] && os="ubuntu"
+    [ "$dist" = "xenial" ] && os="ubuntu"
     [ "$dist" = "trusty" ] && os="ubuntu"
     [ "$dist" = "precise" ] && os="ubuntu"
     [ "$dist" = "oneiric" ] && os="ubuntu"
