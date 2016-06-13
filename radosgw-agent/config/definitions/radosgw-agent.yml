@@ -14,10 +14,12 @@
       - string:
           name: BRANCH
           description: "The git branch or tag to build"
+          default: master
 
       - bool:
           name: RELEASE
           description: "If checked, it will use the key for releases, otherwise it will use the autosign one."
+          default: true
 
       - bool:
           name: TEST
@@ -32,6 +34,7 @@ If this is checked, then the builds will be pushed to chacra under the 'test' re
 If this is unchecked, then then nothing is built or pushed if they already exist in chacra. This is the default.
 
 If this is checked, then the binaries will be built and pushed to chacra even if they already exist in chacra."
+          default: true
 
     scm:
       - git:
