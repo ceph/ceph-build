@@ -13,6 +13,7 @@ echo "  BPTAG=${BPTAG}"
 echo "  WS=$WORKSPACE"
 echo "  PWD=$(pwd)"
 echo "  BRANCH=$BRANCH"
+echo "  SHA1=$SHA1"
 
 # FIXME A very naive way to just list the RPM $DIST that we currently support.
 # We should be a bit more lenient to allow any rhel/centos/sles/suse
@@ -43,7 +44,7 @@ then
         RPM_BUILD=$(lsb_release -s -c)
 
         [ "$TEST" = true ] && chacra_ref="test" || chacra_ref="$BRANCH"
-        chacra_endpoint="ceph-deploy/${chacra_ref}/${DISTRO}/${DISTRO_VERSION}"
+        chacra_endpoint="ceph-deploy/${chacra_ref}/${SHA1}/${DISTRO}/${DISTRO_VERSION}"
 
         # this exists in scripts/build_utils.sh for ceph-deploy, binaries have
         # no architecture so we POST them to 'noarch' for rpms
@@ -89,7 +90,7 @@ then
     [ "$TEST" = true ] && chacra_ref="test" || chacra_ref="$BRANCH"
     # ceph-deploy isn't architecture dependant, so we use 'all' as architecture and
     # uses 'universal' to signal this is not specific to any distro version
-    chacra_endpoint="ceph-deploy/${chacra_ref}/${DISTRO}/universal/all"
+    chacra_endpoint="ceph-deploy/${chacra_ref}/${SHA1}/${DISTRO}/universal/all"
 
     # this exists in scripts/build_utils.sh
     check_binary_existence $chacra_endpoint

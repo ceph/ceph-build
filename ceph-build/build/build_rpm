@@ -62,7 +62,7 @@ vers=`cat ./dist/version`
 [ "$RC" = true ] && chacra_ref="$BRANCH-rc" || chacra_ref="$BRANCH"
 [ "$TEST" = true ] && chacra_ref="test"
 
-chacra_endpoint="ceph/${chacra_ref}/${DISTRO}/${RELEASE}"
+chacra_endpoint="ceph/${chacra_ref}/${SHA1}/${DISTRO}/${RELEASE}"
 chacra_check_url="${chacra_endpoint}/${ARCH}/librados2-${vers}-0.${DIST}.${ARCH}.rpm"
 
 
