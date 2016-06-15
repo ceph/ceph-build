@@ -8,6 +8,8 @@
           skip-tag: true
           wipe-workspace: true
           basedir: "ceph-build"
+          branches:
+            - origin/master
 
 - job:
     name: ceph-tag
