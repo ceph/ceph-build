@@ -44,6 +44,8 @@
           project: ceph-setup
           filter: 'dist/**'
           which-build: last-successful
+      - inject:
+          properties-file: ${WORKSPACE}/dist/sha1
       # general setup
       - shell:
           !include-raw:
