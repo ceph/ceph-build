@@ -7,6 +7,7 @@ echo "  BPTAG=${BPTAG}"
 echo "  WS=$WORKSPACE"
 echo "  PWD=$(pwd)"
 echo "  BRANCH=$BRANCH"
+echo "  SHA1=$GIT_COMMIT"
 
 if [ -x "$BRANCH" ] ; then
     echo "No git branch was supplied"
