@@ -143,3 +143,7 @@ mv release/$vers/ceph.spec dist/.
 mv release/$vers/*.tar.* dist/.
 # Parameters
 mv release/version dist/.
+
+cat > dist/sha1 << EOF
+SHA1=${GIT_COMMIT}
+EOF
