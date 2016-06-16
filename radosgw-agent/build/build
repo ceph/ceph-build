@@ -9,7 +9,7 @@ echo "  BPTAG=${BPTAG}"
 echo "  WS=$WORKSPACE"
 echo "  PWD=$(pwd)"
 echo "  BRANCH=$BRANCH"
-echo "  SHA1=$SHA1"
+echo "  SHA1=$GIT_COMMIT"
 ls -l
 
 
