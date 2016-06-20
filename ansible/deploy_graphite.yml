@@ -1,0 +1,11 @@
+---
+
+- hosts: all
+  user: vagrant
+  roles:
+    - graphite
+  vars:
+     fqdn: "graphite.local"
+     app_name: "graphite"
+     development_server: true
+     graphite_api_key: "secret"
