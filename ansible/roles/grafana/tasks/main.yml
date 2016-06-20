@@ -1,0 +1,61 @@
+---
+- name: update apt cache
+  apt:
+    update_cache: yes
+  sudo: yes
+
+- name: install ssl system requirements
+  sudo: yes
+  apt:
+    name: "{{ item }}"
+    state: present
+  with_items: ssl_requirements
+  tags:
+    - packages
+
+- name: install system packages
+  sudo: yes
+  apt:
+    name: "{{ item }}"
+    state: present
+  with_items: system_packages
+  tags:
+    - packages
+
+- name: generate pseudo-random password for admin user
+  shell: python -c "exec 'import os; print os.urandom(30).encode(\'base64\')[:${length}]'"
+  register: admin_password
+  changed_when: false
+
+- name: generate pseudo-random password for the database connection
+  shell: python -c "exec 'import os; print os.urandom(30).encode(\'base64\')[:${length}]'"
+  register: db_password
+  changed_when: false
+
+- name: configure grafana
+  template:
+    src: ../templates/grafana.ini.j2
+    dest: "/etc/grafana/grafana.ini"
+  notify:
+    - restart app
+  sudo: true
+
+- include: postgresql.yml
+  tags:
+    - postgresql
+
+- include: nginx.yml
+
+- name: ensure nginx is running
+  sudo: true
+  service:
+    name: nginx
+    state: started
+    enabled: yes
+
+- name: ensure grafana is restarted
+  sudo: true
+  service:
+    name: grafana-server
+    state: restarted
+    enabled: yes
