@@ -1,0 +1,73 @@
+---
+- name: ensure sites-available for nginx
+  file:
+    path: /etc/nginx/sites-available
+    state: directory
+  sudo: true
+
+- name: ensure there is an nginx user
+  user:
+    name: nginx
+    comment: "Nginx user"
+  sudo: true
+
+- name: ensure sites-enable for nginx
+  file:
+    path: /etc/nginx/sites-enabled
+    state: directory
+  sudo: true
+
+- name: remove default nginx site
+  file:
+    path: /etc/nginx/sites-enabled/default
+    state: absent
+  sudo: true
+
+- name: write nginx.conf
+  template:
+    src: ../templates/nginx.conf
+    dest: /etc/nginx/nginx.conf
+  sudo: true
+
+- name: enable nginx
+  sudo: true
+  service:
+    name: nginx
+    enabled: true
+
+- name: ensure ssl certs directory
+  file:
+    dest: /etc/ssl/certs
+    state: directory
+  sudo: true
+
+- name: ensure ssl private directory
+  file:
+    dest: /etc/ssl/private
+    state: directory
+  sudo: true
+
+- name: check for SSL cert
+  stat:
+    path: /etc/ssl/certs/{{ fqdn }}-bundled.crt
+  ignore_errors: true
+  register: ssl_cert
+
+- name: create self-signed SSL cert
+  command: openssl req -new -nodes -x509 -subj "/C=US/ST=Oregon/L=Portland/O=IT/CN={{ app_name }}" -days 3650 -keyout /etc/ssl/private/{{ fqdn }}.key -out /etc/ssl/certs/{{ fqdn }}-bundled.crt -extensions v3_ca creates=/etc/nginx/ssl/{{ fqdn }}-bundled.crt
+  when: development_server and ssl_cert.stat.exists == false
+  sudo: true
+  notify: restart nginx
+
+- name: make sure permissions are correct for crt
+  file:
+    path: /etc/ssl/certs/{{ fqdn }}-bundled.crt
+    mode: 0777
+  when: development_server
+  sudo: true
+
+- name: ensure nginx is restarted
+  sudo: true
+  service:
+    name: nginx
+    state: restarted
