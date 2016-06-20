@@ -1,0 +1,49 @@
+---
+
+- name: enable carbon
+  lineinfile:
+    dest: /etc/default/graphite-carbon
+    regexp: "^CARBON_CACHE_ENABLED=false"
+    line: "CARBON_CACHE_ENABLED=true"
+    state: present
+  sudo: true
+
+- name: enable whitelisting in carbon
+  lineinfile:
+    dest: /etc/carbon/carbon.conf
+    regexp: "^# USE_WHITELIST = False"
+    line: "USE_WHITELIST = True"
+    state: present
+    backrefs: true
+  sudo: true
+
+- name: create the rewrite config with the secret api key
+  template:
+    src: ../templates/rewrite-rules.conf.j2
+    dest: "/etc/carbon/rewrite-rules.conf"
+  notify:
+    - restart carbon
+  sudo: true
+
+- name: create the whitelist/blacklist config allowing the api key only
+  template:
+    src: ../templates/whitelist.conf.j2
+    dest: "/etc/carbon/whitelist.conf"
+  notify:
+    - restart carbon
+  sudo: true
+
+- name: define the storage schemas
+  template:
+    src: ../templates/storage-schemas.conf.j2
+    dest: "/etc/carbon/storage-schemas.conf"
+  notify:
+    - restart carbon
+  sudo: true
+
+- name: ensure database service is up
+  service:
+    name: carbon-cache
+    state: restarted
+    enabled: yes
+  sudo: yes

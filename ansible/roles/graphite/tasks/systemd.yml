@@ -1,0 +1,25 @@
+---
+
+- name: ensure /var/log/graphite dir exists
+  sudo: true
+  file: 
+    path: /var/log/graphite 
+    state: directory 
+    owner: _graphite 
+    group: _graphite 
+    recurse: yes
+
+- name: install the systemd unit file for graphite
+  template: 
+    src: systemd/graphite.service.j2 
+    dest: /etc/systemd/system/graphite.service
+  sudo: true
+  notify:
+     - reload systemd
+
+- name: ensure graphite is enabled and running
+  sudo: true
+  service: 
+    name: graphite 
+    state: running 
+    enabled: yes
