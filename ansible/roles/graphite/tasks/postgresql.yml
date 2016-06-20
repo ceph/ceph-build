@@ -1,0 +1,71 @@
+---
+- name: ensure database service is up
+  service:
+    name: postgresql
+    state: started
+    enabled: yes
+  sudo: yes
+
+- name: allow users to connect locally
+  sudo: yes
+  lineinfile:
+     # TODO: should not hardcode that version
+     dest: /etc/postgresql/9.5/main/pg_hba.conf
+     regexp: '^host\s+all\s+all\s+127.0.0.1/32'
+     line: 'host    all             all             127.0.0.1/32            md5'
+     backrefs: yes
+  register: pg_hba_conf
+
+- service:
+    name: postgresql
+    state: restarted
+  sudo: true
+  when: pg_hba_conf.changed
+
+- name: generate pseudo-random password for the database connection
+  shell: python -c "exec 'import os; print os.urandom(30).encode(\'base64\')[:${length}]'"
+  register: db_password
+  changed_when: false
+
+- name: make {{ app_name }} user
+  postgresql_user:
+    name: "{{ app_name }}"
+    password: "{{ db_password.stdout }}"
+    role_attr_flags: SUPERUSER
+    login_user: postgres
+  become_user: postgres
+  become: yes
+
+- name: Make {{ app_name }} database
+  postgresql_db:
+    name: "{{ app_name }}"
+    owner: "{{ app_name }}"
+    state: present
+    login_user: postgres
+  sudo_user: postgres
+  sudo: yes
+
+- name: ensure database service is up
+  service:
+    name: postgresql
+    state: started
+    enabled: yes
+  sudo: yes
+
+- name: create the config file with the db password
+  template:
+    src: ../templates/local_settings.py.j2
+    dest: "/etc/graphite/local_settings.py"
+  notify:
+    - restart app
+  sudo: true
+
+  # there is a bug where if you don't migrate auth first only it will fail
+  # with "ProgrammingError: relation "auth_user" does not exist"
+- name: run migrate for auth first
+  command: graphite-manage migrate --noinput auth
+  sudo: true
+
+- name: run migrate to ensure database schema
+  command: graphite-manage migrate --noinput
+  sudo: true

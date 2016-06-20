@@ -1,0 +1,25 @@
+---
+
+system_packages:
+  - grafana
+  - graphite-web
+  - graphite-api
+  - graphite-carbon
+  - git
+  - g++
+  - gcc
+  - libpq-dev
+  - postgresql
+  - postgresql-common
+  - postgresql-contrib
+  - python-psycopg2
+  - nginx
+  - vim
+  # needed for the ansible apt_repository module
+  - python-apt
+  - python
+  - gunicorn
+
+ssl_requirements:
+  - openssl
+  - libssl-dev

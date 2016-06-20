@@ -1,0 +1,20 @@
+---
+
+- name: reload systemd
+  sudo: yes
+  command: systemctl daemon-reload
+
+- name: restart app
+  sudo: true
+  service: 
+    name: graphite 
+    state: restarted 
+    enabled: yes
+
+- name: restart carbon
+  service:
+    name: carbon-cache
+    state: restarted
+    enabled: yes
+  sudo: yes
+
