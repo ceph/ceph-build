@@ -1,0 +1,14 @@
+---
+
+- hosts: all
+  user: vagrant
+  roles:
+    - grafana
+    - nginx
+  vars:
+     fqdn: "grafana.local"
+     app_name: "grafana"
+     development_server: true
+     # only needed when enabling Github Auth
+     # github_client_id: "111aaa222"
+     # github_client_secret: "qwerty1234"
