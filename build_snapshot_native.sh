@@ -22,18 +22,28 @@ numproc=`cat /proc/cpuinfo |grep -c processor`
 cephver=`git describe | cut -c 2-`
 echo current version $cephver
 
-rm ceph-*.tar.gz || true
-make dist
+rm ceph-*.tar.* || true
 
-tarver=`ls ceph-*.tar.gz | cut -c 6- | sed 's/.tar.gz//'`
-echo tarball vers $tarver
+if [ -x make-dist ]; then
+    ./make-dist
+    test -e ceph-$cephver.tar.bz2  # our $cephver should match make-dist's
+    mkdir -p $outdir
+    cd $outdir
+    tar jxf $srcdir/ceph-$cephver.tar.bz2
+else
+    make dist
 
-echo extracting
-mkdir -p $outdir
-cd $outdir
+    tarver=`ls ceph-*.tar.gz | cut -c 6- | sed 's/.tar.gz//'`
+    echo tarball vers $tarver
 
-tar zxf $srcdir/ceph-$tarver.tar.gz 
-[ "$tarver" != "$cephver" ] && mv ceph-$tarver ceph-$cephver
+    echo extracting
+    mkdir -p $outdir
+    cd $outdir
+
+    tar zxf $srcdir/ceph-$tarver.tar.gz
+    [ "$tarver" != "$cephver" ] && mv ceph-$tarver ceph-$cephver
+fi
+
 
 cd ceph-$cephver
 cp -av $srcdir/debian debian
