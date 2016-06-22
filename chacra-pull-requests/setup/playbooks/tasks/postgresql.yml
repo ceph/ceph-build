@@ -1,0 +1,40 @@
+---
+- name: update apt cache
+  apt:
+    update_cache: yes
+  sudo: yes
+
+- name: install postgresql requirements
+  sudo: yes
+  apt:
+    name: "{{ item }}"
+    state: present
+  with_items: 
+    - postgresql
+    - postgresql-common
+    - postgresql-contrib
+  tags:
+    - packages
+
+- name: ensure database service is up
+  service:
+    name: postgresql
+    state: started
+    enabled: yes
+  sudo: yes
+
+- name: allow users to connect locally
+  sudo: yes
+  lineinfile:
+     # TODO: should not hardcode that version
+     dest: /etc/postgresql/9.5/main/pg_hba.conf
+     regexp: '^host\s+all\s+all\s+127.0.0.1/32'
+     line: 'host    all             all             127.0.0.1/32            md5'
+     backrefs: yes
+  register: pg_hba_conf
+
+- service:
+    name: postgresql
+    state: restarted
+  sudo: true
+  when: pg_hba_conf.changed
