@@ -31,7 +31,7 @@
      # 9.3 is available on trusty, 9.5 on Xenial
      dest: /etc/postgresql/9.3/main/pg_hba.conf
      regexp: '^host\s+all\s+all\s+127.0.0.1/32'
-     line: 'host    all             all             127.0.0.1/32            md5'
+     line: 'host    all             all             127.0.0.1/32            trust'
      backrefs: yes
   register: pg_hba_conf
 
