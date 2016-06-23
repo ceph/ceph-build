@@ -13,6 +13,7 @@
     - postgresql
     - postgresql-common
     - postgresql-contrib
+    - postgresql-server-dev-9.3
   tags:
     - packages
 
