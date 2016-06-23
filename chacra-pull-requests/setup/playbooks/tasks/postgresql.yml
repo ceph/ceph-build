@@ -39,4 +39,3 @@
     name: postgresql
     state: restarted
   sudo: true
-  when: pg_hba_conf.changed
