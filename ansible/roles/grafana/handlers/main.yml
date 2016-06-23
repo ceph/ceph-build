@@ -1,0 +1,19 @@
+---
+
+- name: reload systemd
+  sudo: yes
+  command: systemctl daemon-reload
+
+- name: restart app
+  sudo: true
+  service:
+    name: grafana-server
+    state: restarted
+    enabled: yes
+
+- name: restart nginx
+  sudo: true
+  service:
+    name: nginx
+    state: restarted
+    enabled: yes
