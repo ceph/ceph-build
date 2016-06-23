@@ -9,4 +9,5 @@ install_python_packages "pkgs[@]"
 cd "$WORKSPACE/ceph-build/chacra-pull-requests/setup/playbooks"
 $VENV/ansible-playbook -i "localhost," -c local setup.yml
 
+cd "$WORKSPACE/chacra"
 $VENV/tox -rv

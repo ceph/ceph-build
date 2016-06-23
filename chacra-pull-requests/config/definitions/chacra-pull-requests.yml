@@ -8,6 +8,7 @@
           refspec: +refs/pull/*:refs/remotes/origin/pr/*
           browser: auto
           timeout: 20
+          basedir: "chacra"
           skip-tag: true
           wipe-workspace: true
 
