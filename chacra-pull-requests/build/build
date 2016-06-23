@@ -1,0 +1,13 @@
+#!/bin/bash
+
+# the following two methods exist in scripts/build_utils.sh
+pkgs=( "ansible" "tox" )
+install_python_packages "pkgs[@]"
+
+# run ansible to get this current host to meet our requirements, specifying
+# a local connection and 'localhost' as the host where to execute
+cd "$WORKSPACE/ceph-build/chacra-pull-requests/setup/playbooks"
+$VENV/ansible-playbook -i "localhost," -c local setup.yml
+
+cd "$WORKSPACE/chacra"
+$VENV/tox -rv
