@@ -1,0 +1,34 @@
+- job:
+    name: diamond-docs
+    node: docs
+    project-type: freestyle
+    defaults: global
+    display-name: 'diamond: docs build'
+    quiet-period: 5
+    block-downstream: false
+    block-upstream: false
+    retry-count: 3
+    properties:
+      - github:
+          url: https://github.com/ceph/diamond
+    logrotate:
+      daysToKeep: -1
+      numToKeep: 10
+      artifactDaysToKeep: -1
+      artifactNumToKeep: -1
+
+    triggers:
+      - github
+
+    scm:
+      - git:
+          url: https://github.com/ceph/diamond
+          branches:
+            - master
+          browser: auto
+          skip-tag: true
+          timeout: 20
+
+    builders:
+      - shell:
+          !include-raw ../../build/build

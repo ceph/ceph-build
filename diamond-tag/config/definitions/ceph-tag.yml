@@ -1,0 +1,51 @@
+- scm:
+    name: ceph-build
+    scm:
+      - git:
+          url: https://github.com/ceph/ceph-build.git
+          browser: auto
+          timeout: 20
+          skip-tag: true
+          wipe-workspace: true
+          basedir: "ceph-build"
+
+- job:
+    name: diamond-tag
+    description: "This job clones diamond and sets the right version from the tag, pushing back to diamond.git"
+    display-name: 'diamond-tag'
+    logrotate:
+      daysToKeep: -1
+      numToKeep: 25
+      artifactDaysToKeep: -1
+      artifactNumToKeep: -1
+    block-downstream: false
+    block-upstream: false
+    properties:
+      - github:
+          url: https://github.com/ceph/diamond
+
+    parameters:
+      - string:
+          name: BRANCH
+          description: "The git branch (or tag) to build"
+          default: "master"
+      - string:
+          name: VERSION
+          description: "The version for release, e.g. 1.5.30"
+    scm:
+      - ceph-build
+
+    builders:
+      - shell:
+          !include-raw:
+            - ../../../scripts/build_utils.sh
+            - ../../build/build
+
+    wrappers:
+      - inject-passwords:
+          global: true
+          mask-password-params: true
+      - ssh-agent-credentials:
+          # "jenkins-build" SSH key, needed so we can push to
+          # diamond.git
+          user: '39fa150b-b2a1-416e-b334-29a9a2c0b32d'
