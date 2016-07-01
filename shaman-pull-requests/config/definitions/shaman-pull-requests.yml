@@ -1,0 +1,78 @@
+- scm:
+    name: shaman 
+    scm:
+      - git:
+          url: https://github.com/ceph/shaman
+          branches:
+            - ${sha1}
+          refspec: +refs/pull/*:refs/remotes/origin/pr/*
+          browser: auto
+          timeout: 20
+          basedir: "shaman"
+          skip-tag: true
+          wipe-workspace: true
+
+- scm:
+    name: ceph-build
+    scm:
+      - git:
+          url: https://github.com/ceph/ceph-build.git
+          browser-url: https://github.com/ceph/ceph-build
+          timeout: 20
+          skip-tag: true
+          wipe-workspace: false
+          basedir: "ceph-build"
+          branches:
+            - origin/master
+
+
+- job:
+    name: shaman-pull-requests
+    description: Runs tox tests for shaman on each GitHub PR
+    project-type: freestyle
+    node: trusty && small
+    block-downstream: false
+    block-upstream: false
+    defaults: global
+    display-name: 'shaman: Pull Requests'
+    quiet-period: 5
+    retry-count: 3
+
+    logrotate:
+      daysToKeep: 15
+      numToKeep: 30
+      artifactDaysToKeep: 15
+      artifactNumToKeep: 15
+
+    properties:
+      - github:
+          url: https://github.com/ceph/shaman/
+
+    parameters:
+      - string:
+          name: sha1
+          description: "A pull request ID, like 'origin/pr/72/head'"
+
+    triggers:
+      - github-pull-request:
+          admin-list:
+            - alfredodeza
+            - dmick
+            - ktdreyer
+            - andrewschoen
+          org-list:
+            - ceph
+          only-trigger-phrase: false
+          github-hooks: true
+          permit-all: false
+          auto-close-on-fail: false
+
+    scm:
+      - shaman 
+      - ceph-build
+
+    builders:
+      - shell:
+          !include-raw:
+            - ../../../scripts/build_utils.sh
+            - ../../build/build
