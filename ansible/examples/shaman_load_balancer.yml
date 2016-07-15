@@ -1,0 +1,15 @@
+---
+
+- hosts: all
+  user: vagrant
+  roles:
+    - nginx
+  vars_files:
+    - vars/load-balance-vars.yml
+  vars:
+     app_name: "shaman"
+     fqdn: "shaman.ceph.com"
+     development_server: true
+     # only needed when enabling Github Auth
+     # github_client_id: "111aaa222"
+     # github_client_secret: "qwerty1234"
