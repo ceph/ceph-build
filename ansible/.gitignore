@@ -2,3 +2,7 @@
 files/ssl/dev
 files/ssl/prod
 tmp
+
+# Top level YAML files are ignored, so that users can simply copy
+# from examples/* to the top level dir and not worry about committing them
+/*.yml
