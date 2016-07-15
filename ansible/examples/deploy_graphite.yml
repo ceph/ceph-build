@@ -5,19 +5,7 @@
   roles:
     - graphite
   vars:
-     fqdn: "graphite.local"
+     fqdn: "graphite.ceph.com"
      app_name: "graphite"
      development_server: true
      graphite_api_key: "secret"
-
-     # This has nothing to do with grafana, but uses nginx templating that is
-     # deployed on the same server. To prevent overwriting we set these here
-     # too. It also means that you must pass in both shaman node IPs
-     nginx_upstreams:
-      - name: shaman
-        fqdn: "shaman.ceph.com"
-        strategy: "least_conn"
-        servers: {
-          "{{ shaman_node1_ip }}",
-          "{{ shaman_node2_ip }}",
-        }
