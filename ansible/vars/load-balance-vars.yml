@@ -1,0 +1,11 @@
+---
+
+# These values make the nginx role configure `nginx.conf` for load balancing
+# the shaman IPs.
+nginx_upstreams:
+  - name: "shaman"
+    fqdn: "shaman.ceph.com"
+    strategy: "least_conn"
+    servers:
+      - "{{ shaman_node1_ip }}"
+      - "{{ shaman_node2_ip }}"
