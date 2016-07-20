@@ -3,7 +3,7 @@
 set -e
 
 # the following two methods exist in scripts/build_utils.sh
-pkgs=( "ansible" "jenkins-job-builder" )
+pkgs=( "ansible" "jenkins-job-builder" "urllib3" "pyopenssl" "ndg-httpsclient" "pyasn1" )
 install_python_packages "pkgs[@]"
 
 
