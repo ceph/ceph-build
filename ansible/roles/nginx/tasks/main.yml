@@ -35,6 +35,23 @@
     name: nginx
     enabled: true
 
+- name: create nginx site config
+  template:
+    src: "../templates/nginx_balancer.conf"
+    dest: "/etc/nginx/sites-available/{{ item.name }}.conf"
+  sudo: true
+  with_items: nginx_upstreams
+  notify:
+    - restart nginx
+
+- name: link nginx config
+  file:
+    src: "/etc/nginx/sites-available/{{ item.name }}.conf"
+    dest: "/etc/nginx/sites-enabled/{{ item.name }}.conf"
+    state: link
+  sudo: true
+  with_items: nginx_upstreams
+
 - name: ensure ssl certs directory
   file:
     dest: /etc/ssl/certs
@@ -53,18 +70,24 @@
   ignore_errors: true
   register: ssl_cert
 
-- name: create self-signed SSL cert
-  command: openssl req -new -nodes -x509 -subj "/C=US/ST=Oregon/L=Portland/O=IT/CN={{ app_name }}" -days 3650 -keyout /etc/ssl/private/{{ fqdn }}.key -out /etc/ssl/certs/{{ fqdn }}-bundled.crt -extensions v3_ca creates=/etc/nginx/ssl/{{ fqdn }}-bundled.crt
-  when: development_server and ssl_cert.stat.exists == false
+- name: copy SSL cert
+  copy:
+    src: {{ item.ssl_cert }}
+    dest: /etc/ssl/certs/{{ item.hostname }}-bundled.crt
+    mode: 0777
+  when: ssl_hosts is defined
+  with_items: ssl_hosts
   sudo: true
   notify: restart nginx
 
-- name: make sure permissions are correct for crt
-  file:
-    path: /etc/ssl/certs/{{ fqdn }}-bundled.crt
-    mode: 0777
-  when: development_server
+- name: copy SSL key
+  copy:
+    src: {{ item.ssl_key }}
+    dest: /etc/ssl/private/{{ item.hostname }}.key
+  when: ssl_hosts is defined
+  with_items: ssl_hosts
   sudo: true
+  notify: restart nginx
 
 - name: ensure nginx is restarted
   sudo: true

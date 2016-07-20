@@ -3,7 +3,7 @@
 set -e
 
 # the following two methods exist in scripts/build_utils.sh
-pkgs=( "ansible" "jenkins-job-builder" )
+pkgs=( "ansible" "jenkins-job-builder" "urllib3" "pyopenssl" "ndg-httpsclient" "pyasn1" )
 install_python_packages "pkgs[@]"
 
 
@@ -23,6 +23,10 @@ done
 for reqs in $WORKSPACE/ansible/requirements/*; do
     $VENV/ansible-galaxy install -r $reqs -p $WORKSPACE/ansible/roles --force
 done
+
+# To avoid moving everything into examples, including stuff that is not relevant
+# as an example, we copy them on the fly here
+cp -r $WORKSPACE/ansible/vars $WORKSPACE/ansible/examples/
 
 # Syntax-check each Ansible playbook
 for playbook in $WORKSPACE/ansible/*.yml; do

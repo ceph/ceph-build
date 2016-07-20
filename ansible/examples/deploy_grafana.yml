@@ -1,0 +1,26 @@
+---
+
+- hosts: all
+  user: vagrant
+  roles:
+    - nginx
+    - grafana
+  vars_files:
+    - vars/load-balance-vars.yml
+  vars:
+     fqdn: "grafana.ceph.com"
+     app_name: "grafana"
+     development_server: true
+     # ssl hosts need to be defined so that all required ssl certs are put into
+     # place. This is specially important when one host responds for multiple
+     # other domains.
+     ssl_hosts:
+       - hostname: "grafana.ceph.com"
+         ssl_cert: "files/ssl/dev/ssl/ssl.crt"
+         ssl_key: "files/ssl/dev/ssl/ssl.key"
+       - hostname: "shaman.ceph.com"
+         ssl_cert: "files/ssl/dev/ssl/ssl.crt"
+         ssl_key: "files/ssl/dev/ssl/ssl.key"
+     # only needed when enabling Github Auth
+     # github_client_id: "111aaa222"
+     # github_client_secret: "qwerty1234"

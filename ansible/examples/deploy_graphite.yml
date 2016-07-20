@@ -5,7 +5,7 @@
   roles:
     - graphite
   vars:
-     fqdn: "graphite.local"
+     fqdn: "graphite.ceph.com"
      app_name: "graphite"
      development_server: true
      graphite_api_key: "secret"
