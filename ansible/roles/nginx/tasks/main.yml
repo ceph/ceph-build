@@ -66,14 +66,14 @@
 
 - name: check for SSL cert
   stat:
-    path: /etc/ssl/certs/{{ fqdn }}-bundled.crt
+    path: "/etc/ssl/certs/{{ fqdn }}-bundled.crt"
   ignore_errors: true
   register: ssl_cert
 
 - name: copy SSL cert
   copy:
-    src: {{ item.ssl_cert }}
-    dest: /etc/ssl/certs/{{ item.hostname }}-bundled.crt
+    src: "{{ item.ssl_cert }}"
+    dest: "/etc/ssl/certs/{{ item.hostname }}-bundled.crt"
     mode: 0777
   when: ssl_hosts is defined
   with_items: ssl_hosts
@@ -82,8 +82,8 @@
 
 - name: copy SSL key
   copy:
-    src: {{ item.ssl_key }}
-    dest: /etc/ssl/private/{{ item.hostname }}.key
+    src: "{{ item.ssl_key }}"
+    dest: "/etc/ssl/private/{{ item.hostname }}.key"
   when: ssl_hosts is defined
   with_items: ssl_hosts
   sudo: true
