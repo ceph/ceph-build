@@ -36,6 +36,16 @@
               regexp='^AC_INIT\(\[ceph\],'
               line='AC_INIT([ceph], [{{ version }}], [ceph-devel@vger.kernel.org])'
 
+- name: check if CMakeLists.txt exists
+  stat: path=ceph/CMakeLists.txt
+  register: cmake_lists
+
+- name: replace the version in CMakeLists.txt
+  lineinfile: dest=ceph/CMakeLists.txt
+              regexp='^set\(VERSION '
+              line='set(VERSION {{ version }})'
+  when: cmake_lists.stat.exists
+
 - include: release/candidate.yml
   when: "release in ['candidate', 'rc']"
 
