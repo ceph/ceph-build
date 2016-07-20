@@ -3,7 +3,7 @@
 set -e
 
 # the following two methods exist in scripts/build_utils.sh
-pkgs=( "ansible" "jenkins-job-builder" )
+pkgs=( "ansible" "jenkins-job-builder" "urllib3" "pyopenssl" "ndg-httpsclient" "pyasn1" )
 install_python_packages "pkgs[@]"
 
 
@@ -25,6 +25,6 @@ for reqs in $WORKSPACE/ansible/requirements/*; do
 done
 
 # Syntax-check each Ansible playbook
-for playbook in $WORKSPACE/ansible/*.yml; do
+for playbook in $WORKSPACE/ansible/examples/*.yml; do
     $VENV/ansible-playbook -i '127.0.0.1,' $playbook --syntax-check
 done
