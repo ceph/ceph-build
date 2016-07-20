@@ -27,8 +27,11 @@ done
 # To avoid moving everything into examples, including stuff that is not relevant
 # as an example, we copy them on the fly here
 cp -r $WORKSPACE/ansible/vars $WORKSPACE/ansible/examples/
+cp -r $WORKSPACE/ansible/roles $WORKSPACE/ansible/examples/
+cp -r $WORKSPACE/ansible/files $WORKSPACE/ansible/examples/
+cp -r $WORKSPACE/ansible/library $WORKSPACE/ansible/examples/
 
 # Syntax-check each Ansible playbook
-for playbook in $WORKSPACE/ansible/*.yml; do
+for playbook in $WORKSPACE/ansible/examples/*.yml; do
     $VENV/ansible-playbook -i '127.0.0.1,' $playbook --syntax-check
 done
