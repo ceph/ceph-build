@@ -24,6 +24,10 @@ for reqs in $WORKSPACE/ansible/requirements/*; do
     $VENV/ansible-galaxy install -r $reqs -p $WORKSPACE/ansible/roles --force
 done
 
+# To avoid moving everything into examples, including stuff that is not relevant
+# as an example, we copy them on the fly here
+cp -r $WORKSPACE/ansible/vars $WORKSPACE/ansible/examples/
+
 # Syntax-check each Ansible playbook
 for playbook in $WORKSPACE/ansible/*.yml; do
     $VENV/ansible-playbook -i '127.0.0.1,' $playbook --syntax-check
