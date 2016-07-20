@@ -29,6 +29,6 @@ done
 cp -r $WORKSPACE/ansible/vars $WORKSPACE/ansible/examples/
 
 # Syntax-check each Ansible playbook
-for playbook in $WORKSPACE/ansible/*.yml; do
+for playbook in $WORKSPACE/ansible/examples/*.yml; do
     $VENV/ansible-playbook -i '127.0.0.1,' $playbook --syntax-check
 done
