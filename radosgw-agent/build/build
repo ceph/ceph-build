@@ -8,6 +8,8 @@ echo "  DIST=${DIST}"
 echo "  BPTAG=${BPTAG}"
 echo "  WS=$WORKSPACE"
 echo "  PWD=$(pwd)"
+echo "  BRANCH=$BRANCH"
+echo "  SHA1=$GIT_COMMIT"
 ls -l
 
 
@@ -33,7 +35,7 @@ if [[ -f /etc/redhat-release || -f /usr/bin/zypper ]] ; then
         # get_rpm_dist is located in scripts/build_utils.sh
         get_rpm_dist
 
-        chacra_endpoint="radosgw-agent/${chacra_ref}/${DISTRO}/${DISTRO_VERSION}"
+        chacra_endpoint="radosgw-agent/${chacra_ref}/${GIT_COMMIT}/${DISTRO}/${DISTRO_VERSION}"
 
         check_binary_existence $chacra_endpoint/noarch
 
@@ -71,7 +73,7 @@ else
         DEB_BUILD=$(lsb_release -s -c)
         DISTRO=`python -c "exec 'import platform; print platform.linux_distribution()[0].lower()'"`
 
-        chacra_endpoint="radosgw-agent/${chacra_ref}/${DISTRO}/${DEB_BUILD}/noarch"
+        chacra_endpoint="radosgw-agent/${chacra_ref}/${GIT_COMMIT}/${DISTRO}/${DEB_BUILD}/noarch"
 
         check_binary_existence $chacra_endpoint
 
