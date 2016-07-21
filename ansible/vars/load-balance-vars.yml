@@ -1,11 +1,16 @@
 ---
 
-# These values make the nginx role configure `nginx.conf` for load balancing
-# the shaman IPs.
-nginx_upstreams:
-  - name: "shaman"
-    fqdn: "shaman.ceph.com"
-    strategy: "least_conn"
-    servers:
-      - "{{ shaman_node1_ip }}"
-      - "{{ shaman_node2_ip }}"
+# These values allow the nginx role to fully configure load balancing and
+# regular hosts.
+nginx_hosts:
+  - fqdn: "grafana.ceph.com"
+    app_name: "grafana"
+    proxy_pass: "http://127.0.0.1:3000"
+  - fqdn: "shaman.ceph.com"
+    app_name: "shaman"
+    upstreams:
+      name: "shaman"
+      strategy: "least_conn"
+      servers:
+        - "1.shaman.ceph.com"
+        - "2.shaman.ceph.com"
