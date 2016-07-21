@@ -25,7 +25,7 @@
 
 - name: write nginx.conf
   template:
-    src: ../templates/nginx.conf
+    src: nginx.conf
     dest: /etc/nginx/nginx.conf
   sudo: true
 
@@ -37,57 +37,26 @@
 
 - name: create nginx site config
   template:
-    src: "../templates/nginx_balancer.conf"
-    dest: "/etc/nginx/sites-available/{{ item.name }}.conf"
+    src: "nginx_site.conf"
+    dest: "/etc/nginx/sites-available/{{ item.app_name }}.conf"
   sudo: true
-  with_items: nginx_upstreams
+  with_items: nginx_hosts
   notify:
     - restart nginx
 
+- include: ssl.yml
+  when: development_server == true
+
+- include: letsencrypt.yml
+  when: development_server == false
+
 - name: link nginx config
   file:
-    src: "/etc/nginx/sites-available/{{ item.name }}.conf"
-    dest: "/etc/nginx/sites-enabled/{{ item.name }}.conf"
+    src: "/etc/nginx/sites-available/{{ item.app_name }}.conf"
+    dest: "/etc/nginx/sites-enabled/{{ item.app_name }}.conf"
     state: link
   sudo: true
-  with_items: nginx_upstreams
-
-- name: ensure ssl certs directory
-  file:
-    dest: /etc/ssl/certs
-    state: directory
-  sudo: true
-
-- name: ensure ssl private directory
-  file:
-    dest: /etc/ssl/private
-    state: directory
-  sudo: true
-
-- name: check for SSL cert
-  stat:
-    path: "/etc/ssl/certs/{{ fqdn }}-bundled.crt"
-  ignore_errors: true
-  register: ssl_cert
-
-- name: copy SSL cert
-  copy:
-    src: "{{ item.ssl_cert }}"
-    dest: "/etc/ssl/certs/{{ item.hostname }}-bundled.crt"
-    mode: 0777
-  when: ssl_hosts is defined
-  with_items: ssl_hosts
-  sudo: true
-  notify: restart nginx
-
-- name: copy SSL key
-  copy:
-    src: "{{ item.ssl_key }}"
-    dest: "/etc/ssl/private/{{ item.hostname }}.key"
-  when: ssl_hosts is defined
-  with_items: ssl_hosts
-  sudo: true
-  notify: restart nginx
+  with_items: nginx_hosts
 
 - name: ensure nginx is restarted
   sudo: true
