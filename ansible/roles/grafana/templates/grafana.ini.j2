@@ -149,6 +149,7 @@ org_name = Ceph
 # specify role for unauthenticated users
 ;org_role = Viewer
 
+{% if github_client_id is defined %}
 #################################### Github Auth ##########################
 [auth.github]
 enabled = false
@@ -161,7 +162,7 @@ scopes = user:email,read:org
 ;api_url = https://api.github.com/user
 ;team_ids =
 allowed_organizations = ceph
-
+{% endif %}
 #################################### Google Auth ##########################
 [auth.google]
 ;enabled = false
