@@ -1,0 +1,56 @@
+---
+
+- name: install system packages
+  sudo: yes
+  apt:
+    name: "letsencrypt"
+    state: present
+
+- name: ensure letsencrypt acme-challenge path
+  file:
+    path: "{{ ssl_webroot_base_path }}/{{ item.fqdn }}"
+    state: "directory"
+    mode: 0755
+  sudo: yes
+  with_items: nginx_hosts
+
+- name: unlink nginx configs
+  file:
+    path: "/etc/nginx/sites-enabled/{{ item.app_name }}.conf"
+    state: "absent"
+  sudo: true
+  with_items: nginx_hosts
+
+- name: create temporary nginx config
+  template:
+    src: "nginx_tmp_site.conf"
+    dest: "/etc/nginx/sites-enabled/{{ item.app_name }}.conf"
+  sudo: true
+  with_items: nginx_hosts
+
+- name: restart nginx
+  sudo: yes
+  service:
+    name: nginx
+    state: restarted
+
+- name: create (or renew) letsencrypt ssl cert
+  command: "letsencrypt certonly --webroot -w {{ ssl_webroot_base_path }}/{{ item.fqdn }} -d {{ item.fqdn }} --email {{ ssl_support_email }} --agree-tos --renew-by-default"
+  sudo: yes
+  with_items: nginx_hosts
+
+- name: setup a cron to renew the SSL cert every day
+  cron:
+    name: "renew letsencrypt cert for {{ item.app_name }}"
+    minute: "0"
+    hour: "6,18"
+    job: "letsencrypt certonly --webroot -w {{ ssl_webroot_base_path }}/{{ item.fqdn }} -d {{ item.fqdn }} --email {{ ssl_support_email }} --agree-tos --renew-by-default"
+  sudo: yes
+  with_items: nginx_hosts
+
+- name: unlink tmp nginx config
+  file:
+    path: "/etc/nginx/sites-enabled/{{ item.app_name }}.conf"
+    state: "absent"
+  sudo: true
+  with_items: nginx_hosts

@@ -11,16 +11,23 @@
      fqdn: "grafana.ceph.com"
      app_name: "grafana"
      development_server: true
-     # ssl hosts need to be defined so that all required ssl certs are put into
-     # place. This is specially important when one host responds for multiple
-     # other domains.
-     ssl_hosts:
-       - hostname: "grafana.ceph.com"
-         ssl_cert: "files/ssl/dev/ssl/ssl.crt"
-         ssl_key: "files/ssl/dev/ssl/ssl.key"
-       - hostname: "shaman.ceph.com"
-         ssl_cert: "files/ssl/dev/ssl/ssl.crt"
-         ssl_key: "files/ssl/dev/ssl/ssl.key"
+     ansible_ssh_port: 22
+     # These are defined in `vars/load-balance-vars.yml` but defaulting to what
+     # is used in production. For local development, update these to match the
+     # hosts used in your local development environment
+     #nginx_hosts:
+     #  - fqdn: "grafana.ceph.com"
+     #    app_name: "grafana"
+     #    proxy_pass: "http://127.0.0.1:3000"
+     #  - fqdn: "shaman.ceph.com"
+     #    app_name: "shaman"
+     #    upstreams:
+     #      - name: "shaman"
+     #        strategy: "least_conn"
+     #        servers:
+     #          - "1.shaman.ceph.com"
+     #          - "2.shaman.ceph.com"
+
      # only needed when enabling Github Auth
      # github_client_id: "111aaa222"
      # github_client_secret: "qwerty1234"

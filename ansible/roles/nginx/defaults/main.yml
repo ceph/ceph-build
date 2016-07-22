@@ -1,0 +1,6 @@
+---
+ssl_support_email: "adeza@redhat.com"
+ssl_webroot_base_path: "/var/www"
+
+ssl_cert: "files/ssl/dev/ssl/ssl.crt"
+ssl_key: "files/ssl/dev/ssl/ssl.key"
