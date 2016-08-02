@@ -40,8 +40,14 @@ install_python_packages () {
 
 make_chacractl_config () {
     # create the .chacractl config file
+    if [ -z "$1" ]                           # Is parameter #1 zero length?
+    then
+      url=$CHACRACTL_URL
+    else
+      url=$1
+    fi
     cat > $HOME/.chacractl << EOF
-url = "$CHACRACTL_URL"
+url = "$url"
 user = "$CHACRACTL_USER"
 key = "$CHACRACTL_KEY"
 EOF
