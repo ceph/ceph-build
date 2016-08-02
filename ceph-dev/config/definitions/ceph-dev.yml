@@ -22,13 +22,6 @@
           default: master
 
       - bool:
-          name: TEST
-          description: "
-If this is unchecked, then the builds will be pushed to chacra with the correct ref. This is the default.
-
-If this is checked, then the builds will be pushed to chacra under the 'test' ref."
-
-      - bool:
           name: THROWAWAY
           description: "
 Default: False. When True it will not POST binaries to chacra. Artifacts will not be around for long. Useful to test builds."
