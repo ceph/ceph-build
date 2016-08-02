@@ -1,0 +1,71 @@
+- job:
+    name: ceph-dev
+    description: 'This is the main ceph build task which builds for testing purposes.'
+    project-type: multijob
+    defaults: global
+    display-name: 'ceph-dev'
+    logrotate:
+      daysToKeep: -1
+      numToKeep: 25
+      artifactDaysToKeep: 25
+      artifactNumToKeep: 25
+    block-downstream: false
+    block-upstream: false
+    properties:
+      - github:
+          url: https://github.com/ceph/ceph
+
+    parameters:
+      - string:
+          name: BRANCH
+          description: "The git branch (or tag) to build"
+          default: master
+
+      - bool:
+          name: TEST
+          description: "
+If this is unchecked, then the builds will be pushed to chacra with the correct ref. This is the default.
+
+If this is checked, then the builds will be pushed to chacra under the 'test' ref."
+
+      - bool:
+          name: THROWAWAY
+          description: "
+Default: False. When True it will not POST binaries to chacra. Artifacts will not be around for long. Useful to test builds."
+          default: false
+
+      - bool:
+          name: FORCE
+          description: "
+If this is unchecked, then then nothing is built or pushed if they already exist in chacra. This is the default.
+
+If this is checked, then the binaries will be built and pushed to chacra even if they already exist in chacra."
+      - string:
+          name: VERSION
+          description: "The version for release, e.g. 0.94.4"
+
+      - string:
+          name: CEPH_BUILD_VIRTUALENV
+          description: "Base parent path for virtualenv locations, set to avoid issues with extremely long paths that are incompatible with tools like pip. Defaults to '/tmp/' (note the trailing slash, which is required)."
+          default: "/tmp/"
+
+    builders:
+      - multijob:
+          name: 'ceph dev setup phase'
+          condition: SUCCESSFUL
+          projects:
+            - name: ceph-dev-setup
+              current-parameters: true
+              exposed-scm: false
+      - multijob:
+          name: 'ceph dev build phase'
+          condition: SUCCESSFUL
+          projects:
+            - name: ceph-dev-build
+              current-parameters: true
+              exposed-scm: false
+
+    wrappers:
+      - inject-passwords:
+          global: true
+          mask-password-params: true
