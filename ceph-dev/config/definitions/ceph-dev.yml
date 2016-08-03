@@ -21,6 +21,11 @@
           description: "The git branch (or tag) to build"
           default: master
 
+      - string:
+          name: DISTROS
+          description: "A list of distros to build for"
+          default: "xenial centos7"
+
       - bool:
           name: THROWAWAY
           description: "
