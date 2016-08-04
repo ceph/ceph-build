@@ -2,7 +2,7 @@
 
 set -ex
 
-VENV="$WORKSPACE/venv/bin"
+VENV="/tmp/jenkins-venv/bin"
 
 install_python_packages () {
     # Use this function to create a virtualenv and install
@@ -14,8 +14,8 @@ install_python_packages () {
     #   install_python_packages "to_install[@]"
 
     # Create the virtualenv
-    rm -rf "$WORKSPACE/venv"
-    virtualenv $WORKSPACE/venv
+    rm -rf "/tmp/jenkins-venv"
+    virtualenv /tmp/jenkins-venv
 
     # Define and ensure the PIP cache
     PIP_SDIST_INDEX="$HOME/.cache/pip"
