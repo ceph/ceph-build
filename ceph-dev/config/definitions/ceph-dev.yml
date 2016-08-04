@@ -38,9 +38,6 @@ Default: False. When True it will not POST binaries to chacra. Artifacts will no
 If this is unchecked, then then nothing is built or pushed if they already exist in chacra. This is the default.
 
 If this is checked, then the binaries will be built and pushed to chacra even if they already exist in chacra."
-      - string:
-          name: VERSION
-          description: "The version for release, e.g. 0.94.4"
 
       - string:
           name: CEPH_BUILD_VIRTUALENV
