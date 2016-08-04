@@ -134,7 +134,7 @@ vers=`cat release/version`
 mkdir -p dist
 # Debian Source Files
 mv release/$vers/*.dsc dist/.
-mv release/$vers/*.diff.gz dist/.
+mv release/$vers/*.diff.gz dist/. || true
 mv release/$vers/*.orig.tar.gz dist/.
 # RPM Source Files
 mkdir -p dist/rpm/
