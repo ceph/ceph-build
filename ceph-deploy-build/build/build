@@ -20,8 +20,6 @@ echo "  SHA1=$GIT_COMMIT"
 rpm_dists="rhel centos6 centos7 centos"
 deb_dists="precise wheezy squeeze trusty jessie"
 
-VENV="$WORKSPACE/venv/bin"
-
 # A helper to match an item in a list of items, like python's `if item in list`
 listcontains() {
   for word in $2; do

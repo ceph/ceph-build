@@ -5,8 +5,6 @@ if [[ ! -f /etc/redhat-release && ! -f /usr/bin/zypper ]] ; then
     exit 0
 fi
 
-VENV="$WORKSPACE/venv/bin"
-
 get_rpm_dist() {
     LSB_RELEASE=/usr/bin/lsb_release
     [ ! -x $LSB_RELEASE ] && echo unknown && exit
