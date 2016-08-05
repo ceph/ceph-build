@@ -80,4 +80,4 @@
           !include-raw:
             - ../../../scripts/build_utils.sh
             - ../../build/setup
-      - shell: "cd $WORKSPACE/ceph-deploy && $WORKSPACE/venv/bin/tox -rv"
+            - ../../build/build

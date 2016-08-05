@@ -1,0 +1,1 @@
+cd $WORKSPACE/ceph-deploy && $VENV/tox -rv
