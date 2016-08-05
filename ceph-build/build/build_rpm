@@ -5,8 +5,6 @@ if [[ ! -f /etc/redhat-release && ! -f /usr/bin/zypper ]] ; then
     exit 0
 fi
 
-VENV="$WORKSPACE/venv/bin"
-
 get_rpm_dist() {
     LSB_RELEASE=/usr/bin/lsb_release
     [ ! -x $LSB_RELEASE ] && echo unknown && exit
@@ -121,4 +119,6 @@ if [ "$THROWAWAY" = false ] ; then
     # push binaries to chacra
     find release/${vers}/rpm/*/SRPMS | grep rpm | $VENV/chacractl binary ${chacra_flags} create ${chacra_endpoint}/source
     find release/${vers}/rpm/*/RPMS/* | grep rpm | $VENV/chacractl binary ${chacra_flags} create ${chacra_endpoint}/${ARCH}
+    # start repo creation
+    $VENV/chacractl repo update ${chacra_endpoint}
 fi
