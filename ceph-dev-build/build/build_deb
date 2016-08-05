@@ -69,6 +69,7 @@ bpvers=`gen_debian_version $debian_version $DIST`
 
 # look for a specific package to tell if we can avoid the build
 chacra_endpoint="ceph/${chacra_ref}/${SHA1}/${distro}/${DIST}/${ARCH}"
+chacra_repo_endpoint="ceph/${chacra_ref}/${SHA1}/${distro}/${DIST}"
 DEB_ARCH=`dpkg-architecture | grep DEB_BUILD_ARCH\= | cut -d '=' -f 2`
 chacra_check_url="${chacra_endpoint}/librados2_${bpvers}_${DEB_ARCH}.deb"
 
@@ -187,4 +188,6 @@ echo lintian --allow-root $releasedir/$cephver/*$bpvers*.deb
 if [ "$THROWAWAY" = false ] ; then
     # push binaries to chacra
     find release/$vers/ | egrep "*\.(changes|deb|dsc|gz)$" | egrep -v "(Packages|Sources|Contents)" | $VENV/chacractl binary ${chacra_flags} create ${chacra_endpoint}
+    # start repo creation
+    $VENV/chacractl repo update ${chacra_repo_endpoint}
 fi
