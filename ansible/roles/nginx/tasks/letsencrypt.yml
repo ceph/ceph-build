@@ -44,7 +44,7 @@
     name: "renew letsencrypt cert for {{ item.app_name }}"
     minute: "21"
     hour: "6,18"
-    job: "letsencrypt renew"
+    job: "letsencrypt renew --agree-tos  --email {{ ssl_support_email }}"
   sudo: yes
   with_items: nginx_hosts
 
