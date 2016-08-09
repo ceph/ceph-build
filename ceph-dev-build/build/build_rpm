@@ -96,6 +96,9 @@ cephver=$vers
 
 cd $releasedir/$cephver || exit 1
 
+# modify the spec file so that it understands we are dealing with a different directory
+sed -i "s/^%setup.*/%setup -q -n %{name}-$vers/" ceph.spec
+
 # Set up build area
 BUILDAREA=./rpm/$dist
 mkdir -p ${BUILDAREA}/{SOURCES,SRPMS,SPECS,RPMS,BUILD}
