@@ -50,21 +50,18 @@
           which-build: last-successful
       - inject:
           properties-file: ${WORKSPACE}/dist/sha1
-      # general setup
-      - shell:
-          !include-raw:
-            - ../../../scripts/build_utils.sh
-            - ../../build/setup
       # debian build scripts
       - shell:
           !include-raw:
             - ../../../scripts/build_utils.sh
+            - ../../build/setup
             - ../../build/setup_pbuilder
             - ../../build/build_deb
       # rpm build scripts
       - shell:
           !include-raw:
             - ../../../scripts/build_utils.sh
+            - ../../build/setup
             - ../../build/build_rpm
 
     wrappers:
