@@ -93,6 +93,7 @@ echo "Building RPMs"
 
 releasedir="./release"
 cephver=$vers
+raw_version=`echo $vers | cut -d '-' -f 1`
 
 cd $releasedir/$cephver || exit 1
 
@@ -102,7 +103,7 @@ sed -i "s/^%setup.*/%setup -q -n %{name}-$vers/" ceph.spec
 # Set up build area
 BUILDAREA=./rpm/$dist
 mkdir -p ${BUILDAREA}/{SOURCES,SRPMS,SPECS,RPMS,BUILD}
-cp -a ceph-*.tar.bz2 ${BUILDAREA}/SOURCES/.
+cp -a ceph-$vers.tar.bz2 ${BUILDAREA}/SOURCES/ceph-$raw_version.tar.bz2
 cp -a ceph.spec ${BUILDAREA}/SPECS/.
 cp -a rpm/*.patch ${BUILDAREA}/SOURCES/. || true
 
