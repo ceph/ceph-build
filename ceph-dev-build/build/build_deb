@@ -167,7 +167,7 @@ if [ `dpkg-architecture -qDEB_BUILD_ARCH` = "i386" ] ; then
         --basetgz $pbuilddir/$DIST.tgz \
         --buildresult $releasedir/$cephver \
         --debbuildopts "-j`grep -c processor /proc/cpuinfo`" \
-        $releasedir/$cephver/ceph_$bpvers.dsc
+        $releasedir/$cephver/ceph_$vers-1.dsc
 else
     #  Binary only architecture dependent
     sudo pbuilder build \
@@ -176,7 +176,7 @@ else
         --basetgz $pbuilddir/$DIST.tgz \
         --buildresult $releasedir/$cephver \
         --debbuildopts "-j`grep -c processor /proc/cpuinfo`" \
-        $releasedir/$cephver/ceph_$bpvers.dsc
+        $releasedir/$cephver/ceph_$vers-1.dsc
 fi
 
 # do lintian checks
