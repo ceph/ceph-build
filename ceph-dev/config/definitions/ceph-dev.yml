@@ -3,6 +3,7 @@
     description: 'This is the main ceph build task which builds for testing purposes.'
     project-type: multijob
     defaults: global
+    concurrent: true
     display-name: 'ceph-dev'
     logrotate:
       daysToKeep: -1
