@@ -42,9 +42,9 @@
 - name: setup a cron to renew the SSL cert every day
   cron:
     name: "renew letsencrypt cert for {{ item.app_name }}"
-    minute: "0"
+    minute: "21"
     hour: "6,18"
-    job: "letsencrypt certonly --webroot -w {{ ssl_webroot_base_path }}/{{ item.fqdn }} -d {{ item.fqdn }} --email {{ ssl_support_email }} --agree-tos --renew-by-default"
+    job: "letsencrypt renew --agree-tos  --email {{ ssl_support_email }}"
   sudo: yes
   with_items: nginx_hosts
 
