@@ -88,6 +88,8 @@ srcdir=`pwd`
 if [ -d "$releasedir/$cephver" ]; then
     echo "$releasedir/$cephver already exists; reuse that release tarball"
 else
+    dch -v $cephver-1 'autobuilder'
+
     echo building tarball
     rm ceph-*.tar.gz || true
     rm ceph-*.tar.bz2 || true
