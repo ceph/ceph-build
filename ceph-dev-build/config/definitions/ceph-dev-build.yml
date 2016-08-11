@@ -9,7 +9,7 @@
       - github:
           url: https://github.com/ceph/ceph
     execution-strategy:
-       combination-filter: DIST==AVAILABLE_DIST && (ARCH=="x86_64" || (ARCH == "arm64" && (DIST == "xenial" || DIST == "centos7")))
+       combination-filter: DIST==AVAILABLE_DIST && ARCH==AVAILABLE_ARCH && (ARCH=="x86_64" || (ARCH == "arm64" && (DIST == "xenial" || DIST == "centos7")))
     axes:
       - axis:
           type: label-expression
@@ -18,7 +18,7 @@
             - huge
       - axis:
           type: label-expression
-          name: ARCH
+          name: AVAILABLE_ARCH
           values:
             - x86_64
             - arm64
@@ -35,6 +35,11 @@
           name: DIST
           values:
             - DISTROS
+      - axis:
+          type: dynamic
+          name: ARCH
+          values:
+            - ARCHS
 
 
 
