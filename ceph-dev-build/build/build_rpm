@@ -60,9 +60,8 @@ echo dist $dist
 vers=`cat ./dist/version`
 chacra_ref="$BRANCH"
 
-# FIXME: this needs flavor support
 chacra_endpoint="ceph/${chacra_ref}/${SHA1}/${DISTRO}/${RELEASE}"
-chacra_check_url="${chacra_endpoint}/${ARCH}/librados2-${vers}-0.${DIST}.${ARCH}.rpm"
+chacra_check_url="${chacra_endpoint}/${ARCH}/flavors/${FLAVOR}/librados2-${vers}-0.${DIST}.${ARCH}.rpm"
 
 
 if [ "$THROWAWAY" = false ] ; then
@@ -118,7 +117,6 @@ rpmbuild -ba --define "_topdir ${BUILDAREA}" ceph.spec
 # that will be built and served later.
 # Create and build an RPM for the repository
 
-# FIXME: this needs flavor support
 cat <<EOF > ${BUILDAREA}/SPECS/ceph-release.spec
 Name:           ceph-release
 Version:        1
@@ -126,7 +124,7 @@ Release:        0%{?dist}
 Summary:        Ceph Development repository configuration
 Group:          System Environment/Base
 License:        GPLv2
-URL:            $chacra_url/r/ceph/${chacra_ref}/${SHA1}/${DISTRO}/${RELEASE}/
+URL:            ${chacra_url}r/ceph/${chacra_ref}/${SHA1}/${DISTRO}/${RELEASE}/flavors/$FLAVOR/
 Source0:        ceph.repo
 #Source0:        RPM-GPG-KEY-CEPH
 #Source1:        ceph.repo
@@ -191,7 +189,7 @@ EOF
 cat <<EOF > $BUILDAREA/SOURCES/ceph.repo
 [Ceph]
 name=Ceph packages for \$basearch
-baseurl=$chacra_url/r/ceph/${chacra_ref}/${SHA1}/${DISTRO}/${RELEASE}/\$basearch
+baseurl=${chacra_url}/r/ceph/${chacra_ref}/${SHA1}/${DISTRO}/${RELEASE}/flavors/${FLAVOR}/\$basearch
 enabled=1
 gpgcheck=0
 type=rpm-md
@@ -199,7 +197,7 @@ gpgkey=https://download.ceph.com/keys/autobuild.asc
 
 [Ceph-noarch]
 name=Ceph noarch packages
-baseurl=$chacra_url/r/ceph/${chacra_ref}/${SHA1}/${DISTRO}/${RELEASE}/noarch
+baseurl=${chacra_url}/r/ceph/${chacra_ref}/${SHA1}/${DISTRO}/${RELEASE}/flavors/${FLAVOR}/noarch
 enabled=1
 gpgcheck=0
 type=rpm-md
@@ -207,7 +205,7 @@ gpgkey=https://download.ceph.com/keys/autobuild.asc
 
 [ceph-source]
 name=Ceph source packages
-baseurl=$chacra_url/r/ceph/${chacra_ref}/${SHA1}/${DISTRO}/${RELEASE}/SRPMS
+baseurl=${chacra_url}/r/ceph/${chacra_ref}/${SHA1}/${DISTRO}/${RELEASE}/flavors/${FLAVOR}/SRPMS
 enabled=1
 gpgcheck=0
 type=rpm-md

@@ -24,13 +24,18 @@
 
       - string:
           name: DISTROS
-          description: "A list of distros to build for. Available options are: xenial, centos7, trusty and jessie"
+          description: "A list of distros to build for. Available options are: xenial, centos7, trusty, and jessie"
           default: "xenial centos7"
 
       - string:
           name: ARCHS
-          description: "A list of architectures to build for. Available options are: x86_64 and arm64"
+          description: "A list of architectures to build for. Available options are: x86_64, and arm64"
           default: "x86_64"
+
+      - string:
+          name: FLAVOR
+          description: "The flavor/type of build to run, defaults to 'default' (a.k.a. 'basic'). Available options are: notcmalloc, blkin"
+          default: "default"
 
       - bool:
           name: THROWAWAY
