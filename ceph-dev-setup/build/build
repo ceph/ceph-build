@@ -38,6 +38,28 @@ fi
 echo "Running submodule update ..."
 git submodule update --init
 
+# Flavor Builds support
+# TODO: enable CMAKE
+#export CEPH_EXTRA_CMAKE_ARGS
+
+FLAVOR_FLAGS="--without-cryptopp"
+
+if [ "${FLAVOR}" == "notcmalloc" ]
+then
+    echo "Detected notcmalloc flavor: will use flag: --without-tcmalloc"
+    FLAVOR_FLAGS="$FLAVOR_FLAGS --without-tcmalloc"
+    #export CEPH_EXTRA_CMAKE_ARGS="$CEPH_EXTRA_CMAKE_ARGS -DALLOCATOR=libc"
+else
+    FLAVOR_FLAGS="$FLAVOR_FLAGS --with-tcmalloc"
+    #export CEPH_EXTRA_CMAKE_ARGS="$CEPH_EXTRA_CMAKE_ARGS -DALLOCATOR=tcmalloc"
+fi
+
+if [ "${FLAVOR}" == "blkin" ]
+then
+    echo "Detected bklin flavor: will use flag: --with-blkin"
+    FLAVOR_FLAGS="$FLAVOR_FLAGS --with-blkin"
+fi
+
 echo "Running autogen.sh ..."
 ./autogen.sh
 echo "Running configure ..."
@@ -52,6 +74,7 @@ echo "Running configure ..."
   '--with-radosgw' \
   '--disable-static' \
   '--without-lttng' \
+  $FLAVOR_FLAGS \
   'CFLAGS= -Wno-unused-parameter' \
   'CXXFLAGS=  -Wno-unused-parameter' \
   --cache-file=/dev/null \
