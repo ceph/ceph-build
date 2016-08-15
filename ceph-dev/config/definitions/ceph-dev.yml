@@ -55,6 +55,13 @@ If this is checked, then the binaries will be built and pushed to chacra even if
           description: "Base parent path for virtualenv locations, set to avoid issues with extremely long paths that are incompatible with tools like pip. Defaults to '/tmp/' (note the trailing slash, which is required)."
           default: "/tmp/"
 
+      - choice:
+          name: FLAVOR
+          choices:
+            - notcmalloc
+            - blkin
+          description: "Type of Ceph build, choices are: notcmalloc, and blkin"
+
     builders:
       - multijob:
           name: 'ceph dev setup phase'
