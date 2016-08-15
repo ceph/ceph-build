@@ -13,6 +13,7 @@
     name: ceph-deploy-tag
     description: "This job clones ceph-deploy and sets the right version from the tag, pushing back to ceph-deploy.git"
     display-name: 'ceph-deploy-tag'
+    node: 'trusty&&small'
     logrotate:
       daysToKeep: -1
       numToKeep: 25
