@@ -223,8 +223,8 @@ cd "$WORKSPACE"
 
 if [ "$THROWAWAY" = false ] ; then
     # push binaries to chacra
-    find release/${vers}/rpm/*/SRPMS | grep rpm | $VENV/chacractl binary ${chacra_flags} create ${chacra_endpoint}/source
-    find release/${vers}/rpm/*/RPMS/* | grep rpm | $VENV/chacractl binary ${chacra_flags} create ${chacra_endpoint}/${ARCH}
+    find release/${vers}/rpm/*/SRPMS | grep rpm | $VENV/chacractl binary ${chacra_flags} create ${chacra_endpoint}/source/flavors/${FLAVOR}
+    find release/${vers}/rpm/*/RPMS/* | grep rpm | $VENV/chacractl binary ${chacra_flags} create ${chacra_endpoint}/${ARCH}/flavors/${FLAVOR}
     # start repo creation
-    $VENV/chacractl repo update ${chacra_endpoint}
+    $VENV/chacractl repo update ${chacra_endpoint}/flavors/${FLAVOR}
 fi

@@ -32,11 +32,6 @@
           description: "A list of architectures to build for. Available options are: x86_64, and arm64"
           default: "x86_64"
 
-      - string:
-          name: FLAVOR
-          description: "The flavor/type of build to run, defaults to 'default' (a.k.a. 'basic'). Available options are: notcmalloc, blkin"
-          default: "default"
-
       - bool:
           name: THROWAWAY
           description: "
@@ -54,6 +49,15 @@ If this is checked, then the binaries will be built and pushed to chacra even if
           name: CEPH_BUILD_VIRTUALENV
           description: "Base parent path for virtualenv locations, set to avoid issues with extremely long paths that are incompatible with tools like pip. Defaults to '/tmp/' (note the trailing slash, which is required)."
           default: "/tmp/"
+
+      - choice:
+          name: FLAVOR
+          choices:
+            - default
+            - notcmalloc
+            - blkin
+          default: "default"
+          description: "Type of Ceph build, choices are: notcmalloc, and blkin. Defaults to: 'default'"
 
     builders:
       - multijob:
