@@ -10,8 +10,7 @@ wget -q -O- 'https://download.ceph.com/keys/release.asc' | sudo apt-key add -
 ssh-keyscan $(hostname -f)| sudo tee -a /root/.ssh/known_hosts
 sudo apt-get -y install salt-minion salt-common python-jinja2 multitee
 
-sudo salt-call --local --file-root=$(pwd)/vagrant/trusty-build/salt/roots state.highstate | multitee 0-1,4 4>/tmp/${BUILD_TAG}.out
-
+sudo -E salt-call --local --file-root=$(pwd)/vagrant/trusty-build/salt/roots state.highstate | multitee 0-1,4 4>/tmp/${BUILD_TAG}.out
 
 errs=$(sed --regexp-extended -n 's/^Failed:[[:space:]]+([[:digit:]]+)/\1/p' < /tmp/${BUILD_TAG}.out)
 rm /tmp/${BUILD_TAG}.out
@@ -19,4 +18,4 @@ if [ $errs != 0 ] ; then echo "$errs HIGHSTATE ERRORS, BUILD FAILED"; exit 1; fi
 cd $WORKSPACE
 rm -rf $BRANCH
 mkdir $BRANCH
-mv *deb $BRANCH
+mv pkgs/*deb $BRANCH
