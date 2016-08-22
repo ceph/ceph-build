@@ -116,10 +116,23 @@ else
     echo building tarball
     rm ceph-*.tar.gz || true
     rm ceph-*.tar.bz2 || true
-    make dist
-    make dist-bzip2
 
-    vers=`ls ceph-*.tar.gz | cut -c 6- | sed 's/.tar.gz//'`
+    if [ -x make-dist ]
+    then
+      ./make-dist $cephver
+      vers=`ls ceph-*.tar.bz2 | cut -c 6- | sed 's/.tar.bz2//'`
+      extension="tar.bz2"
+      extract_flags="jxf"
+      compress_flags="jcf"
+    else
+      make dist
+      make dist-bzip2
+      vers=`ls ceph-*.tar.gz | cut -c 6- | sed 's/.tar.gz//'`
+      extension="tar.gz"
+      extract_flags="zxf"
+      compress_flags="zcf"
+    fi
+
     echo tarball vers $vers
 
     echo extracting
@@ -127,7 +140,8 @@ else
     cp rpm/*.patch $releasedir/$cephver/rpm || true
     cd $releasedir/$cephver
 
-    tar zxf $srcdir/ceph-$vers.tar.gz
+    tar $extract_flags $srcdir/ceph-$vers.$extension
+
     [ "$vers" != "$cephver" ] && mv ceph-$vers ceph-$cephver
 
     tar zcf ceph_$cephver.orig.tar.gz ceph-$cephver
@@ -135,13 +149,15 @@ else
 
     tar jcf ceph-$cephver.tar.bz2 ceph-$cephver
 
-    # copy debian dir, too
-    cp -a $srcdir/debian debian
+    # copy debian dir, too. Prevent errors with `true` when using cmake
+    cp -a $srcdir/debian debian || true
     cd $srcdir
 
-    # copy in spec file, too
-    cp ceph.spec $releasedir/$cephver
+    # copy in spec file, too. If using cmake, the spec file
+    # will already exist.
+    cp ceph.spec $releasedir/$cephver || true
 fi
+
 
 if [ -n "$versionfile" ]; then
     echo $cephver > $versionfile
@@ -150,9 +166,10 @@ fi
 
 vers=`cat release/version`
 
+
 (
     cd release/$vers
-    mv debian ceph-$vers/.
+    cp -r debian/* ceph-$vers/debian/
     dpkg-source -b ceph-$vers
 )
 
