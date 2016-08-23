@@ -1,4 +1,11 @@
 set -e
+
+pkgs=( "chacractl>=0.0.4" )
+install_python_packages "pkgs[@]"
+
+# create the .chacractl config file using global variables
+make_chacractl_config
+
 echo "Building ${BRANCH}"
 rm -f ${WORKSPACE}/*.deb ${WORKSPACE}/calamari-repo-trusty.tar.gz
 cd ${WORKSPACE}/
@@ -19,3 +26,12 @@ cd $WORKSPACE
 rm -rf $BRANCH
 mkdir $BRANCH
 mv pkgs/*deb $BRANCH
+
+[ "$TEST" = true ] && chacra_ref="test" || chacra_ref="$BRANCH"
+DISTRO=`python -c "exec 'import platform; print platform.linux_distribution()[0].lower()'"`
+chacra_endpoint="calamari-server/${chacra_ref}/${GIT_COMMIT}/${DISTRO}/universal/all"
+
+[ "$FORCE" = true ] && chacra_flags="--force" || chacra_flags=""
+
+# push binaries to chacra
+find "$BRANCH" | grep 'deb$' | $VENV/chacractl binary ${chacra_flags} create ${chacra_endpoint}
