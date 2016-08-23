@@ -2,7 +2,10 @@
     block-downstream: false
     block-upstream: false
     builders:
-    - shell: !include-raw ../../build/build
+    - shell:
+          !include-raw:
+            - ../../../scripts/build_utils.sh
+            - ../../build/build
     description: ''
     logrotate:
       artifactDaysToKeep: '-1'
