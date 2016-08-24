@@ -169,6 +169,7 @@ vers=`cat release/version`
 
 (
     cd release/$vers
+    mkdir -p ceph-$vers/debian
     cp -r debian/* ceph-$vers/debian/
     dpkg-source -b ceph-$vers
 )
