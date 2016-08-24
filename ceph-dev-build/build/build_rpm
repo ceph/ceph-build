@@ -227,4 +227,6 @@ if [ "$THROWAWAY" = false ] ; then
     find release/${vers}/rpm/*/RPMS/* | grep rpm | $VENV/chacractl binary ${chacra_flags} create ${chacra_endpoint}/${ARCH}/flavors/${FLAVOR}
     # start repo creation
     $VENV/chacractl repo update ${chacra_endpoint}/flavors/${FLAVOR}
+
+    echo Check the status of the repo at: https://shaman.ceph.com/api/repos/${chacra_endpoint}/flavors/${FLAVOR}/
 fi
