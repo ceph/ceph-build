@@ -187,4 +187,6 @@ if [ "$THROWAWAY" = false ] ; then
     find release/$vers/ | egrep "*\.(changes|deb|dsc|gz)$" | egrep -v "(Packages|Sources|Contents)" | $VENV/chacractl binary ${chacra_flags} create ${chacra_endpoint}
     # start repo creation
     $VENV/chacractl repo update ${chacra_repo_endpoint}
+
+    echo Check the status of the repo at: https://shaman.ceph.com/api/repos/${chacra_repo_endpoint}/
 fi
