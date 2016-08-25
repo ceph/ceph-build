@@ -6,6 +6,8 @@ if test -f /etc/redhat-release ; then
     exit 0
 fi
 
+cd $WORKSPACE
+
 get_bptag() {
     dist=$1
 
