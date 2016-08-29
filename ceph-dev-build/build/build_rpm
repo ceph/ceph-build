@@ -225,8 +225,21 @@ if [ "$THROWAWAY" = false ] ; then
     # push binaries to chacra
     find release/${vers}/rpm/*/SRPMS | grep rpm | $VENV/chacractl binary ${chacra_flags} create ${chacra_endpoint}/source/flavors/${FLAVOR}
     find release/${vers}/rpm/*/RPMS/* | grep rpm | $VENV/chacractl binary ${chacra_flags} create ${chacra_endpoint}/${ARCH}/flavors/${FLAVOR}
+    # write json file with build info
+    cat > $WORKSPACE/repo-extra.json << EOF
+{
+    "version":"$vers",
+    "build_url":"$BUILD_URL",
+    "root_build_cause":"$ROOT_BUILD_CAUSE",
+    "node_name":"$NODE_NAME",
+    "job_name":"$JOB_NAME",
+}
+EOF
+    chacra_repo_endpoint="${chacra_endpoint}/flavors/${FLAVOR}"
+    # post the json to repo-extra json to chacra
+    curl -X POST -H "Content-Type:application/json" --data "@$WORKSPACE/repo-extra.json" -u $CHACRACTL_USER:$CHACRACTL_KEY ${chacra_url}${chacra_repo_endpoint}/extra/
     # start repo creation
-    $VENV/chacractl repo update ${chacra_endpoint}/flavors/${FLAVOR}
+    $VENV/chacractl repo update ${chacra_repo_endpoint}
 
     echo Check the status of the repo at: https://shaman.ceph.com/api/repos/${chacra_endpoint}/flavors/${FLAVOR}/
 fi
