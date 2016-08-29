@@ -56,7 +56,7 @@
       - copyartifact:
           project: ceph-dev-setup
           filter: 'dist/**'
-          which-build: last-successful
+          which-build: multijob-build
       - inject:
           properties-file: ${WORKSPACE}/dist/sha1
       # debian build scripts
