@@ -5,6 +5,7 @@
     display-name: 'ceph-dev-build'
     block-downstream: false
     block-upstream: false
+    concurrent: true
     properties:
       - github:
           url: https://github.com/ceph/ceph
