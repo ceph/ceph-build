@@ -12,6 +12,7 @@
       artifactNumToKeep: -1
     block-downstream: false
     block-upstream: false
+    concurrent: true
     properties:
       - github:
           url: https://github.com/ceph/ceph

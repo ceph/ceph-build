@@ -5,6 +5,7 @@
     display-name: 'ceph-dev-build'
     block-downstream: false
     block-upstream: false
+    concurrent: true
     properties:
       - github:
           url: https://github.com/ceph/ceph
@@ -55,7 +56,7 @@
       - copyartifact:
           project: ceph-dev-setup
           filter: 'dist/**'
-          which-build: last-successful
+          which-build: multijob-build
       - inject:
           properties-file: ${WORKSPACE}/dist/sha1
       # debian build scripts
