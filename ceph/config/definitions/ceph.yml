@@ -69,6 +69,16 @@ Defaults to un-checked"
           description: "Base parent path for virtualenv locations, set to avoid issues with extremely long paths that are incompatible with tools like pip. Defaults to '/tmp/' (note the trailing slash, which is required)."
           default: "/tmp/"
 
+      - string:
+          name: DISTROS
+          description: "A list of distros to build for. Available options are: xenial, centos7, centos6, trusty, precise, wheezy, and jessie"
+          default: "xenial centos7"
+
+      - string:
+          name: ARCHS
+          description: "A list of architectures to build for. Available options are: x86_64, and arm64"
+          default: "x86_64"
+
     builders:
       - multijob:
           name: 'ceph tag phase'
