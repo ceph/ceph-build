@@ -59,6 +59,7 @@
       # debian build scripts
       - shell:
           !include-raw:
+            - ../../build/validate_deb
             - ../../../scripts/build_utils.sh
             - ../../build/setup
             - ../../build/setup_pbuilder
@@ -66,6 +67,7 @@
       # rpm build scripts
       - shell:
           !include-raw:
+            - ../../build/validate_rpm
             - ../../../scripts/build_utils.sh
             - ../../build/setup
             - ../../build/build_rpm
