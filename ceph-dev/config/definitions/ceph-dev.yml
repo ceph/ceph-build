@@ -24,7 +24,7 @@
 
       - string:
           name: DISTROS
-          description: "A list of distros to build for. Available options are: xenial, centos7, trusty, and jessie"
+          description: "A list of distros to build for. Available options are: xenial, centos7, centos6, trusty, precise, wheezy, and jessie"
           default: "xenial centos7"
 
       - string:
