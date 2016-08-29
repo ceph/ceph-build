@@ -30,6 +30,9 @@
             - xenial
             - centos7
             - jessie
+            - precise
+            - centos6
+            - wheezy
       - axis:
           type: dynamic
           name: DIST
