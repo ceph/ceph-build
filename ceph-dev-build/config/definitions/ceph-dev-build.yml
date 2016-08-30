@@ -1,5 +1,6 @@
 - job:
     name: ceph-dev-build
+    node: trusty || centos7 || xenial || master
     project-type: matrix
     defaults: global
     display-name: 'ceph-dev-build'
