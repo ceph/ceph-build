@@ -232,7 +232,7 @@ if [ "$THROWAWAY" = false ] ; then
     "build_url":"$BUILD_URL",
     "root_build_cause":"$ROOT_BUILD_CAUSE",
     "node_name":"$NODE_NAME",
-    "job_name":"$JOB_NAME",
+    "job_name":"$JOB_NAME"
 }
 EOF
     chacra_repo_endpoint="${chacra_endpoint}/flavors/${FLAVOR}"
