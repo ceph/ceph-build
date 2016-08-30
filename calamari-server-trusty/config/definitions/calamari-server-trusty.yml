@@ -41,3 +41,8 @@
           skip-tag: true
           timeout: 20
           wipe-workspace: true
+
+    wrappers:
+      - inject-passwords:
+          global: true
+          mask-password-params: true
