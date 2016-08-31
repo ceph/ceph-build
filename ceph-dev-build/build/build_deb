@@ -189,6 +189,7 @@ if [ "$THROWAWAY" = false ] ; then
     cat > $WORKSPACE/repo-extra.json << EOF
 {
     "version":"$vers",
+    "package_manager_version":"$dver",
     "build_url":"$BUILD_URL",
     "root_build_cause":"$ROOT_BUILD_CAUSE",
     "node_name":"$NODE_NAME",
