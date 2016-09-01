@@ -96,6 +96,7 @@ else
     echo
     echo "**** REPOSITORY IS DIRTY ****"
     echo
+    git diff
     if [ "$force" != "force" ]; then
 	echo "add 'force' argument if you really want to continue."
 	exit 1
