@@ -1,6 +1,6 @@
 - job:
     name: teuthology-pull-requests
-    node: trusty && amd64 && small
+    node: trusty && huge
     project-type: freestyle
     defaults: global
     concurrent: true
