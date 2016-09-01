@@ -1,5 +1,7 @@
 #!/bin/bash -ex
 
+BRANCH=`echo $GIT_BRANCH | cut -d '/' -f 2`
+
 HOST=$(hostname --short)
 echo "Building on ${HOST}"
 echo "  DIST=${DIST}"
@@ -190,4 +192,8 @@ mv release/version dist/.
 
 cat > dist/sha1 << EOF
 SHA1=${GIT_COMMIT}
+EOF
+
+cat > dist/branch << EOF
+BRANCH=${BRANCH}
 EOF
