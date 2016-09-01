@@ -112,7 +112,17 @@
     - name: Add the Debian Jessie Key
       sudo: yes
       when: ansible_pkg_mgr  == "apt"
-      apt_key: id=2B90D010 url=https://ftp-master.debian.org/keys/archive-key-8.asc keyring=/etc/apt/trusted.gpg.d/jessie.gpg state=present
+      apt_key: id=2B90D010 url=https://ftp-master.debian.org/keys/archive-key-8.asc keyring=/etc/apt/trusted.gpg state=present
+
+    - name: Add the Debian Security Jessie Key
+      sudo: yes
+      when: ansible_pkg_mgr  == "apt"
+      apt_key: id=C857C906 url=https://ftp-master.debian.org/keys/archive-key-8-security.asc keyring=/etc/apt/trusted.gpg state=present
+
+    - name: Add the Debian Jessie Stable Key
+      sudo: yes
+      when: ansible_pkg_mgr  == "apt"
+      apt_key: id=518E17E1 url=http://download.ceph.com/keys/jessie-stable-release.asc keyring=/etc/apt/trusted.gpg state=present
 
     - name: Install openjdk-7-jre
       apt: name=openjdk-7-jre state=present
