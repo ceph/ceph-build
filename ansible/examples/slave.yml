@@ -16,9 +16,17 @@
     - name: create a {{ jenkins_user }} user
       user: name={{ jenkins_user }} comment="Jenkins Build Slave User"
 
+    - name: create a {{ jenkins_user }} home directory
+      file:
+        path: "/home/{{ jenkins_user }}/"
+        state: directory
+        owner: "{{ jenkins_user }}"
+
     - name: Create .ssh directory
-      file: path=/home/{{ jenkins_user }}/.ssh
-            state=directory
+      file:
+        path: "/home/{{ jenkins_user }}/.ssh"
+        state: directory
+        owner: "{{ jenkins_user }}"
 
     - name: set the authorized keys
       authorized_key: user={{ jenkins_user }} key="{{ lookup('file', 'playbook/files/ssh/keys/jenkins_build.pub') }}"
