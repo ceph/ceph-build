@@ -153,6 +153,14 @@
         line: '%dist .el{{ ansible_distribution_major_version }}'
       when: ansible_pkg_mgr  == "yum"
 
+    - name: ensure the gitconfig file exists
+      shell: printf "[user]\name=Ceph CI\nemail=ceph-release-team@redhat.com\n" > /home/{{ jenkins_user }}/.gitconfig
+
+    - name: ensure the gitconfig file has right permissions
+      file:
+        path: "/home/{{ jenkins_user }}/.gitconfig"
+        owner: "{{ jenkins_user }}"
+
     - name: ensure that the current host is in /etc/hosts. Yes this is a thing.
       sudo: true
       replace:
