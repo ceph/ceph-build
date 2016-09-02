@@ -1,0 +1,30 @@
+#!/bin/bash -ex
+
+HOST=$(hostname --short)
+echo "Building on ${HOST}"
+echo "  DIST=${DIST}"
+echo "  BPTAG=${BPTAG}"
+echo "  WS=$WORKSPACE"
+echo "  PWD=$(pwd)"
+echo "  BRANCH=$BRANCH"
+echo "  SHA1=$GIT_COMMIT"
+
+if [ -x "$BRANCH" ] ; then
+    echo "No git branch was supplied"
+    exit 1
+fi
+
+echo "Building version $(git describe) Branch $BRANCH"
+
+rm -rf dist
+
+if [ -x install-deps.sh ]; then
+  echo "Ensuring dependencies are installed"
+  ./install-deps.sh
+fi
+
+echo "Cleaning up the repo"
+git clean -fxd
+
+echo "Building source distribution"
+python setup.py sdist
