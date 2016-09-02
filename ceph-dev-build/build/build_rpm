@@ -99,6 +99,8 @@ cd $releasedir/$cephver || exit 1
 
 # modify the spec file so that it understands we are dealing with a different directory
 sed -i "s/^%setup.*/%setup -q -n %{name}-$vers/" ceph.spec
+# it is entirely possible that `%setup` is not even used, but rather, autosetup
+sed -i "s/^%autosetup.*/%autosetup -p1 -n %{name}-$vers/" ceph.spec
 
 # This is needed because the 'version' this job gets from upstream contains chars
 # that are not legal for an RPM file. These are already converted in the spec file whic
