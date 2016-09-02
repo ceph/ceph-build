@@ -1,6 +1,16 @@
 #!/bin/bash -ex
 
-BRANCH=`echo $GIT_BRANCH | cut -d '/' -f 2-`
+branch_slashes=$(grep -o "/" <<< ${GIT_BRANCH} | wc -l)
+BRANCH=`echo ${GIT_BRANCH} | rev | cut -d '/' -f 1 | rev`
+
+# Prevent building branches that have slashes in their name
+if [ "$((branch_slashes))" -gt 1 ] ; then
+    echo "Will refuse to build branch: ${GIT_BRANCH}"
+    echo "Invalid branch name (contains slashes): ${BRANCH}"
+    exit 1
+fi
+
+# split on '/' to get just 'wip-mybranch' when input is like: origin/wip-mybranch
 
 HOST=$(hostname --short)
 echo "Building on ${HOST}"
