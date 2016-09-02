@@ -1,7 +1,7 @@
 - job:
     name: ceph-dev
     description: 'This is the main ceph build task which builds for testing purposes.'
-    node: trusty || centos7 || xenial || master
+    node: huge_xenial_builder
     project-type: multijob
     defaults: global
     concurrent: true
