@@ -100,6 +100,14 @@ cd $releasedir/$cephver || exit 1
 # modify the spec file so that it understands we are dealing with a different directory
 sed -i "s/^%setup.*/%setup -q -n %{name}-$vers/" ceph.spec
 
+# This is needed because the 'version' this job gets from upstream contains chars
+# that are not legal for an RPM file. These are already converted in the spec file whic
+# is what is consumed to create the RPM binary. Parse these values there so that they can
+# be reported as part of the build metadata
+RPM_RELEASE=`grep Release ceph.spec | sed 's/Release:[ \t]*//g' | cut -d '%' -f 1`
+RPM_VERSION=`grep Version ceph.spec | sed 's/Version:[ \t]*//g'`
+PACKAGE_MANAGER_VERSION="$RPM_VERSION-$RPM_RELEASE"
+
 # Set up build area
 BUILDAREA=./rpm/$dist
 mkdir -p ${BUILDAREA}/{SOURCES,SRPMS,SPECS,RPMS,BUILD}
@@ -229,7 +237,7 @@ if [ "$THROWAWAY" = false ] ; then
     cat > $WORKSPACE/repo-extra.json << EOF
 {
     "version":"$vers",
-    "package_manager_version":"$vers",
+    "package_manager_version":"$PACKAGE_MANAGER_VERSION",
     "build_url":"$BUILD_URL",
     "root_build_cause":"$ROOT_BUILD_CAUSE",
     "node_name":"$NODE_NAME",
