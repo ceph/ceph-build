@@ -16,7 +16,7 @@
           type: label-expression
           name: MACHINE_SIZE
           values:
-            - huge
+            - small
       - axis:
           type: label-expression
           name: AVAILABLE_ARCH
@@ -54,6 +54,10 @@
           which-build: last-successful
       - inject:
           properties-file: ${WORKSPACE}/dist/sha1
+      - inject:
+          properties-file: ${WORKSPACE}/dist/branch
+      - inject:
+          properties-file: ${WORKSPACE}/dist/version
       # rpm build scripts
       - shell:
           !include-raw:
