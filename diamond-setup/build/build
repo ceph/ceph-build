@@ -26,6 +26,9 @@ if [ -x install-deps.sh ]; then
   ./install-deps.sh
 fi
 
+# Get the version
+VERSION=$(./version.sh)
+
 # Make sure the repo is clean
 echo "Cleaning up the repo"
 git clean -fxd
@@ -34,7 +37,7 @@ echo "Building source distribution"
 python setup.py sdist
 
 # Prepare the spec file for build
-sed -e "s/@VERSION@/${vers}/g" < diamond.spec.in > dist/diamond.spec
+sed -e "s/@VERSION@/${VERSION}/g" < diamond.spec.in > dist/diamond.spec
 
 # Save these so that we can later inject them into the build script
 cat > dist/sha1 << EOF
@@ -46,5 +49,5 @@ BRANCH=${BRANCH}
 EOF
 
 cat > dist/version << EOF
-VERSION=$(./version.sh)
+VERSION=${VERSION}
 EOF
