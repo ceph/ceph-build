@@ -16,15 +16,35 @@ fi
 
 echo "Building version $(git describe) Branch $BRANCH"
 
+# Make sure the dist directory is clean
 rm -rf dist
+mkdir -p dist
 
+# Install any setup-time deps
 if [ -x install-deps.sh ]; then
   echo "Ensuring dependencies are installed"
   ./install-deps.sh
 fi
 
+# Make sure the repo is clean
 echo "Cleaning up the repo"
 git clean -fxd
 
 echo "Building source distribution"
 python setup.py sdist
+
+# Prepare the spec file for build
+sed -e "s/@VERSION@/${vers}/g" < diamond.spec.in > dist/diamond.spec
+
+# Save these so that we can later inject them into the build script
+cat > dist/sha1 << EOF
+SHA1=${GIT_COMMIT}
+EOF
+
+cat > dist/branch << EOF
+BRANCH=${BRANCH}
+EOF
+
+cat > dist/version << EOF
+VERSION=$(./version.sh)
+EOF

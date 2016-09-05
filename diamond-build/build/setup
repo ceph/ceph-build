@@ -47,7 +47,6 @@ CentOS|Fedora|SUSE*|RedHatEnterpriseServer)
                 $SUDO yum install -y yum-utils mock
                 ;;
         esac
-	_vers=$(./version.sh)
         ;;
 *)
         echo "$(lsb_release -si) is unknown, dependencies will have to be installed manually."
