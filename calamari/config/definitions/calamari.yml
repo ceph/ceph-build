@@ -1,0 +1,72 @@
+- job:
+    name: calamari
+    description: 'This is the main calamari build task which builds for testing purposes.'
+    project-type: multijob
+    defaults: global
+    concurrent: true
+    display-name: 'calamari'
+    logrotate:
+      daysToKeep: -1
+      numToKeep: 25
+      artifactDaysToKeep: 25
+      artifactNumToKeep: 25
+    block-downstream: false
+    block-upstream: false
+    properties:
+      - github:
+          url: https://github.com/ceph/calamari
+
+    parameters:
+      - string:
+          name: BRANCH
+          description: "The git branch (or tag) to build"
+          default: master
+
+      - string:
+          name: DISTROS
+          description: "A list of distros to build for. Available options are: xenial, centos7, centos6, trusty, precise, wheezy, and jessie"
+          default: "centos6 centos7"
+
+      - string:
+          name: ARCHS
+          description: "A list of architectures to build for. Available options are: x86_64, and arm64"
+          default: "x86_64"
+
+      - bool:
+          name: THROWAWAY
+          description: "
+Default: False. When True it will not POST binaries to chacra. Artifacts will not be around for long. Useful to test builds."
+          default: false
+
+      - bool:
+          name: FORCE
+          description: "
+If this is unchecked, then nothing is built or pushed if they already exist in chacra. This is the default.
+
+If this is checked, then the binaries will be built and pushed to chacra even if they already exist in chacra."
+
+      - string:
+          name: CALAMARI_BUILD_VIRTUALENV
+          description: "Base parent path for virtualenv locations, set to avoid issues with extremely long paths that are incompatible with tools like pip. Defaults to '/tmp/' (note the trailing slash, which is required)."
+          default: "/tmp/"
+
+    builders:
+      - multijob:
+          name: 'calamari setup phase'
+          condition: SUCCESSFUL
+          projects:
+            - name: calamari-setup
+              current-parameters: true
+              exposed-scm: false
+      - multijob:
+          name: 'calamari build phase'
+          condition: SUCCESSFUL
+          projects:
+            - name: calamari-build
+              current-parameters: true
+              exposed-scm: false
+
+    wrappers:
+      - inject-passwords:
+          global: true
+          mask-password-params: true
