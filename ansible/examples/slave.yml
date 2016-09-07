@@ -16,9 +16,17 @@
     - name: create a {{ jenkins_user }} user
       user: name={{ jenkins_user }} comment="Jenkins Build Slave User"
 
+    - name: create a {{ jenkins_user }} home directory
+      file:
+        path: "/home/{{ jenkins_user }}/"
+        state: directory
+        owner: "{{ jenkins_user }}"
+
     - name: Create .ssh directory
-      file: path=/home/{{ jenkins_user }}/.ssh
-            state=directory
+      file:
+        path: "/home/{{ jenkins_user }}/.ssh"
+        state: directory
+        owner: "{{ jenkins_user }}"
 
     - name: set the authorized keys
       authorized_key: user={{ jenkins_user }} key="{{ lookup('file', 'playbook/files/ssh/keys/jenkins_build.pub') }}"
@@ -104,7 +112,17 @@
     - name: Add the Debian Jessie Key
       sudo: yes
       when: ansible_pkg_mgr  == "apt"
-      apt_key: id=2B90D010 url=https://ftp-master.debian.org/keys/archive-key-8.asc keyring=/etc/apt/trusted.gpg.d/jessie.gpg state=present
+      apt_key: id=2B90D010 url=https://ftp-master.debian.org/keys/archive-key-8.asc keyring=/etc/apt/trusted.gpg state=present
+
+    - name: Add the Debian Security Jessie Key
+      sudo: yes
+      when: ansible_pkg_mgr  == "apt"
+      apt_key: id=C857C906 url=https://ftp-master.debian.org/keys/archive-key-8-security.asc keyring=/etc/apt/trusted.gpg state=present
+
+    - name: Add the Debian Jessie Stable Key
+      sudo: yes
+      when: ansible_pkg_mgr  == "apt"
+      apt_key: id=518E17E1 url=http://download.ceph.com/keys/jessie-stable-release.asc keyring=/etc/apt/trusted.gpg state=present
 
     - name: Install openjdk-7-jre
       apt: name=openjdk-7-jre state=present
@@ -134,6 +152,14 @@
         regexp: '^%dist'
         line: '%dist .el{{ ansible_distribution_major_version }}'
       when: ansible_pkg_mgr  == "yum"
+
+    - name: ensure the gitconfig file exists
+      shell: printf "[user]\name=Ceph CI\nemail=ceph-release-team@redhat.com\n" > /home/{{ jenkins_user }}/.gitconfig
+
+    - name: ensure the gitconfig file has right permissions
+      file:
+        path: "/home/{{ jenkins_user }}/.gitconfig"
+        owner: "{{ jenkins_user }}"
 
     - name: ensure that the current host is in /etc/hosts. Yes this is a thing.
       sudo: true
