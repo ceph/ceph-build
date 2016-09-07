@@ -238,7 +238,7 @@ def main():
         # requests, can be properly translated into meaningful errors so that
         # Ansible can report those back.
         if ex.__class__.__name__ == 'HTTPError':
-            msg = "HTTPError %s: %s" % (exc_obj.code, exc_obj.url)
+            msg = "HTTPError %s: %s" % (ex.code, ex.url)
         else:
             message = getattr(ex, 'message', None)
             msg = getattr(ex, 'msg', message)
