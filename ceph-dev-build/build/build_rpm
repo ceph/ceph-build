@@ -113,7 +113,7 @@ PACKAGE_MANAGER_VERSION="$RPM_VERSION-$RPM_RELEASE"
 # Set up build area
 BUILDAREA=./rpm/$dist
 mkdir -p ${BUILDAREA}/{SOURCES,SRPMS,SPECS,RPMS,BUILD}
-cp -a ceph-$vers.tar.bz2 ${BUILDAREA}/SOURCES/ceph-$raw_version.tar.bz2
+cp -a ceph-*.tar.bz2 ${BUILDAREA}/SOURCES/.
 cp -a ceph.spec ${BUILDAREA}/SPECS/.
 cp -a rpm/*.patch ${BUILDAREA}/SOURCES/. || true
 
