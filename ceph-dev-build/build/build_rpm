@@ -1,6 +1,9 @@
 #!/bin/bash
 set -ex
 
+BRANCH=`branch_slash_filter $BRANCH`
+
+
 if [[ ! -f /etc/redhat-release && ! -f /usr/bin/zypper ]] ; then
     exit 0
 fi
