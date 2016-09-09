@@ -11,6 +11,7 @@
    - api_uri: 'https://jenkins.ceph.com'
    - nodename: '{{ nodename }}'
    - labels: '{{ labels }}'
+   - use_jnlp: '{{ use_jnlp|default(false) }}'
 
   tasks:
     - name: create a {{ jenkins_user }} user
@@ -194,7 +195,7 @@
         # github.com.pub is the output of `ssh-keyscan github.com`
         key: "{{ lookup('file', 'playbook/files/ssh/hostkeys/github.com.pub') }}"
 
-    - name: register the new slave to jenkins master
+    - name: register the new slave to jenkins master with ssh
       jenkins-node:
         username: "{{ api_user }}"
         uri: "{{ api_uri }}"
@@ -209,3 +210,23 @@
         remoteFS: '/home/{{ jenkins_user }}/build'
         executors: '{{ executors|default(1) }}'
         exclusive: true
+      when: not use_jnlp
+
+    - name: register the new slave to jenkins master with jnlp
+      jenkins-node:
+        username: "{{ api_user }}"
+        uri: "{{ api_uri }}"
+        password: "{{ token }}"
+        # relies on a convention to set a unique name that allows a reverse
+        # mapping from Jenkins back to whatever service created the current
+        # node
+        name: "{{ ansible_default_ipv4.address }}+{{ nodename }}"
+        labels: "{{ labels }}"
+        host: "{{ ansible_default_ipv4.address }}"
+        credentialsId: '39fa150b-b2a1-416e-b334-29a9a2c0b32d'
+        launcher: 'hudson.slaves.JNLPLauncher'
+        remoteFS: '/home/{{ jenkins_user }}/build'
+        # XXX this should be configurable, not all nodes should have one executor
+        executors: '{{ executors|default(1) }}'
+        exclusive: true
+      when: use_jnlp
