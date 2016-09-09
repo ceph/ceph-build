@@ -207,6 +207,5 @@
         host: "{{ ansible_default_ipv4.address }}"
         credentialsId: '39fa150b-b2a1-416e-b334-29a9a2c0b32d'
         remoteFS: '/home/{{ jenkins_user }}/build'
-        # XXX this should be configurable, not all nodes should have one executor
-        executors: 1
+        executors: '{{ executors|default(1) }}'
         exclusive: true
