@@ -1,6 +1,9 @@
 #!/bin/bash
 set -ex
 
+BRANCH=`branch_slash_filter $BRANCH`
+
+
 cd $WORKSPACE
 
 get_bptag() {
