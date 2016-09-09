@@ -1,6 +1,6 @@
 - job:
     name: ceph-dev-trigger
-    node: huge_xenial_builder
+    node: master
     project-type: freestyle
     defaults: global
     quiet-period: 5

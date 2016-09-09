@@ -1,6 +1,6 @@
 - job:
     name: ceph-dev-build
-    node: huge_xenial_builder
+    node: master
     project-type: matrix
     defaults: global
     display-name: 'ceph-dev-build'
