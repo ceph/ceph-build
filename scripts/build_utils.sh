@@ -5,6 +5,24 @@ set -ex
 TEMPVENV=$(mktemp -td venv.XXXXXXXXXX)
 VENV="$TEMPVENV/bin"
 
+branch_slash_filter() {
+    # The build system relies on an HTTP binary store that uses branches/refs
+    # as URL parts.  A literal extra slash in the branch name is considered
+    # illegal, so this function performs a check *and* prunes the common
+    # `origin/branch-name` scenario (which is OK to have).
+    RAW_BRANCH=$1
+    branch_slashes=$(grep -o "/" <<< ${RAW_BRANCH} | wc -l)
+    FILTERED_BRANCH=`echo ${RAW_BRANCH} | rev | cut -d '/' -f 1 | rev`
+
+    # Prevent building branches that have slashes in their name
+    if [ "$((branch_slashes))" -gt 1 ] ; then
+        echo "Will refuse to build branch: ${RAW_BRANCH}"
+        echo "Invalid branch name (contains slashes): ${FILTERED_BRANCH}"
+        exit 1
+    fi
+    echo $FILTERED_BRANCH
+}
+
 install_python_packages () {
     # Use this function to create a virtualenv and install
     # python packages. Pass a list of package names.
