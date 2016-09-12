@@ -3,7 +3,7 @@
     description: "This job step checks out the branch and builds the tarballs, diffs, and dsc that are passed to the calamari-build step.\r\n\r\nNotes:\r\nJob needs to run on a releatively recent debian system.  The Restrict where run feature is used to specifiy an appropriate label.\r\nThe clear workspace before checkout box for the git plugin is used."
     # we do not need to pin this to trusty anymore for the new jenkins instance
     # FIXME: unpin when this gets ported over
-    node: huge && trusty
+    node: small && trusty
     display-name: 'calamari-setup'
     logrotate:
       daysToKeep: -1
