@@ -1,0 +1,114 @@
+#!/bin/bash
+set -ex
+
+if [[ ! -f /etc/redhat-release && ! -f /usr/bin/zypper ]] ; then
+    exit 0
+fi
+
+cd $WORKSPACE
+
+get_rpm_dist() {
+    LSB_RELEASE=/usr/bin/lsb_release
+    [ ! -x $LSB_RELEASE ] && echo unknown && exit
+
+    ID=`$LSB_RELEASE --short --id`
+
+    case $ID in
+    RedHatEnterpriseServer)
+        RELEASE=`$LSB_RELEASE --short --release | cut -d. -f1`
+        DIST=rhel$RELEASE
+        DISTRO=rhel
+        ;;
+    CentOS)
+        RELEASE=`$LSB_RELEASE --short --release | cut -d. -f1`
+        DIST=el$RELEASE
+        DISTRO=centos
+        ;;
+    Fedora)
+        RELEASE=`$LSB_RELEASE --short --release`
+        DIST=fc$RELEASE
+        DISTRO=fedora
+        ;;
+    SUSE\ LINUX)
+        DESC=`$LSB_RELEASE --short --description`
+        RELEASE=`$LSB_RELEASE --short --release`
+        case $DESC in
+        *openSUSE*)
+                DIST=opensuse$RELEASE
+                DISTRO=opensuse
+            ;;
+        *Enterprise*)
+                DIST=sles$RELEASE
+                DISTRO=sles
+                ;;
+            esac
+        ;;
+    *)
+        DIST=unknown
+        DISTRO=unknown
+        ;;
+    esac
+
+    echo $DIST
+}
+
+get_rpm_dist
+dist=$DIST
+[ -z "$dist" ] && echo no dist && exit 1
+echo dist $dist
+
+chacra_endpoint="calamari-clients/${BRANCH}/${SHA1}/${DISTRO}/${RELEASE}"
+chacra_check_url="${chacra_endpoint}/${ARCH}/calamari-clients-${VERSION}-${RPM_RELEASE}.${DIST}.${ARCH}.rpm"
+
+if [ "$THROWAWAY" = false ] ; then
+    # this exists in scripts/build_utils.sh
+    check_binary_existence $chacra_check_url
+fi
+
+HOST=$(hostname --short)
+echo "Building on $(hostname)"
+echo "  DIST=${DIST}"
+echo "  ARCH=${ARCH}"
+echo "  WS=$WORKSPACE"
+echo "  PWD=$(pwd)"
+echo "  BUILD SOURCE=$COPYARTIFACT_BUILD_NUMBER_CEPH_SETUP"
+echo "*****"
+env
+echo "*****"
+
+# Install the dependencies
+sudo yum-builddep -y dist/calamari-clients.spec
+
+# Create the source rpm
+echo "Building SRPM"
+rpmbuild \
+	--define "_sourcedir ./dist" \
+	--define "_specdir ." \
+	--define "_builddir ." \
+	--define "_srcrpmdir ." \
+	--define "_rpmdir ." \
+	--define "dist .any" \
+	--define "fedora 21" \
+	--define "rhel 7" \
+	--nodeps -bs dist/calamari-clients.spec
+SRPM=$(readlink -f *.src.rpm)
+
+# Build the binaries
+echo "Building RPMs"
+sudo mock -r epel-${RELEASE}-${ARCH} --resultdir=./dist/rpm/"%(dist)s"/"%(target_arch)s"/ ${SRPM}
+
+# Make sure we execute at the top level directory
+cd "$WORKSPACE"
+
+[ "$FORCE" = true ] && chacra_flags="--force" || chacra_flags=""
+
+if [ "$THROWAWAY" = false ] ; then
+    # push binaries to chacra
+    echo "$SRPM" | $VENV/chacractl binary ${chacra_flags} create ${chacra_endpoint}/source/
+    find dist/rpm/$DIST/ | egrep '\.rpm$' | $VENV/chacractl binary ${chacra_flags} create ${chacra_endpoint}/$ARCH/
+
+    # start repo creation
+    $VENV/chacractl repo update ${chacra_endpoint}
+
+    echo Check the status of the repo at: https://shaman.ceph.com/api/repos/${chacra_endpoint}
+fi

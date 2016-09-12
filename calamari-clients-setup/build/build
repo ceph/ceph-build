@@ -1,0 +1,60 @@
+#!/bin/bash -ex
+
+HOST=$(hostname --short)
+echo "Building on ${HOST}"
+echo "  DIST=${DIST}"
+echo "  BPTAG=${BPTAG}"
+echo "  WS=$WORKSPACE"
+echo "  PWD=$(pwd)"
+echo "  BRANCH=$BRANCH"
+echo "  SHA1=$GIT_COMMIT"
+
+if [ -x "$BRANCH" ] ; then
+    echo "No git branch was supplied"
+    exit 1
+fi
+
+# Make sure the repo is clean
+echo "Cleaning up the repo"
+git clean -fxd
+
+# Make sure the dist directory is clean
+rm -rf dist
+mkdir -p dist
+
+echo "Building version $(git describe) Branch $BRANCH"
+
+# Install any setup-time deps
+if [ -x install-deps.sh ]; then
+  echo "Ensuring dependencies are installed"
+  ./install-deps.sh
+fi
+# These two should be in install-deps.sh
+sudo yum -y install npm
+sudo npm install --global grunt-cli
+
+# Get the version
+eval $(./get-versions.sh)
+RPM_RELEASE=$(echo $REVISION | tr '-' '_')
+
+# Create the source tarball and move it to dist
+echo "Building source distribution"
+make dist
+mv ../calamari-clients_*.tar.gz dist/
+
+# Prepare the spec file for build
+sed -e "s/@VERSION@/${VERSION}/g" -e "s/@RELEASE@/${RPM_RELEASE}/g" < calamari-clients.spec.in > dist/calamari-clients.spec
+
+# Save these so that we can later inject them into the build script
+cat > dist/sha1 << EOF
+SHA1=${GIT_COMMIT}
+EOF
+
+cat > dist/branch << EOF
+BRANCH=${BRANCH}
+EOF
+
+cat > dist/version << EOF
+VERSION=${VERSION}
+RPM_RELEASE=${RPM_RELEASE}
+EOF
