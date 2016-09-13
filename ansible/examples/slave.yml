@@ -40,6 +40,24 @@
         line: '{{ jenkins_user }}   ALL=(ALL:ALL) NOPASSWD:ALL'
         validate: 'visudo -cf %s'
 
+    - name: set utf-8 for LC_ALL
+      lineinfile:
+        dest: "/home/{{ jenkins_user }}/.profile"
+        regexp: '^export LC_ALL='
+        line: "export LC_ALL=en_US.UTF-8"
+
+    - name: set utf-8 for LANG
+      lineinfile:
+        dest: "/home/{{ jenkins_user }}/.profile"
+        regexp: '^export LANG='
+        line: "export LANG=en_US.UTF-8"
+
+    - name: set utf-8 for LANGUAGE
+      lineinfile:
+        dest: "/home/{{ jenkins_user }}/.profile"
+        regexp: '^export LANGUAGE='
+        line: "export LANGUAGE=en_US.UTF-8"
+
     - name: ensure the build dir exists
       file: path=/home/{{ jenkins_user }}/build state=directory owner={{ jenkins_user }}
 
