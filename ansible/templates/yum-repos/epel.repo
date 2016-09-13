@@ -1,0 +1,4 @@
+[epel]
+baseurl = http://download.fedoraproject.org/pub/epel/$releasever/$basearch/
+gpgkey = https://dl.fedoraproject.org/pub/epel/RPM-GPG-KEY-EPEL-7
+name = EPEL YUM repo
