@@ -42,19 +42,21 @@
 
     - name: set utf-8 for LC_ALL
       lineinfile:
-        dest: "/home/{{ jenkins_user }}/.profile"
+        dest: "/home/{{ jenkins_user }}/.bashrc"
         regexp: '^export LC_ALL='
         line: "export LC_ALL=en_US.UTF-8"
+        create: true
+        state: present
 
     - name: set utf-8 for LANG
       lineinfile:
-        dest: "/home/{{ jenkins_user }}/.profile"
+        dest: "/home/{{ jenkins_user }}/.bashrc"
         regexp: '^export LANG='
         line: "export LANG=en_US.UTF-8"
 
     - name: set utf-8 for LANGUAGE
       lineinfile:
-        dest: "/home/{{ jenkins_user }}/.profile"
+        dest: "/home/{{ jenkins_user }}/.bashrc"
         regexp: '^export LANGUAGE='
         line: "export LANGUAGE=en_US.UTF-8"
 
