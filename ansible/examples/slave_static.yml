@@ -24,8 +24,8 @@
    - api_user: 'ceph-jenkins'
    - token: '{{ token }}'
    - api_uri: 'https://jenkins.ceph.com'
-   # this is set in the hosts file
-   # - nodename: '{{ nodename }}'
+   # this is also set in the example/hosts-static file
+   - nodename: '{{ ansible_hostname }}'
    - labels: '{{ labels }}'
    - use_jnlp: true 
 
