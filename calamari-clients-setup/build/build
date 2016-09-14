@@ -19,8 +19,8 @@ echo "Cleaning up the repo"
 git clean -fxd
 
 # Make sure the dist directory is clean
-rm -rf dist
-mkdir -p dist
+rm -rf dist build
+mkdir -p dist build
 
 echo "Building version $(git describe) Branch $BRANCH"
 
@@ -29,9 +29,6 @@ if [ -x install-deps.sh ]; then
   echo "Ensuring dependencies are installed"
   ./install-deps.sh
 fi
-# These two should be in install-deps.sh
-sudo yum -y install npm
-sudo npm install --global grunt-cli
 
 # Get the version
 eval $(./get-versions.sh)
@@ -39,8 +36,8 @@ RPM_RELEASE=$(echo $REVISION | tr '-' '_')
 
 # Create the source tarball and move it to dist
 echo "Building source distribution"
-make dist
-mv ../calamari-clients_*.tar.gz dist/
+make DESTDIR=build/ REAL_BUILD=y VERSION=$VERSION REVISION=$REVISION RPM_REVISION=$RPM_RELEASE install
+tar -cvzf dist/calamari-clients-$VERSION-$RPM_RELEASE.tar.gz -C build opt
 
 # Prepare the spec file for build
 sed -e "s/@VERSION@/${VERSION}/g" -e "s/@RELEASE@/${RPM_RELEASE}/g" < calamari-clients.spec.in > dist/calamari-clients.spec
@@ -56,5 +53,6 @@ EOF
 
 cat > dist/version << EOF
 VERSION=${VERSION}
+REVISION=${REVISION}
 RPM_RELEASE=${RPM_RELEASE}
 EOF
