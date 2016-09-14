@@ -79,6 +79,9 @@ echo "*****"
 # Install the dependencies
 sudo yum-builddep -y dist/calamari-clients.spec
 
+# Remove old source rpms
+rm -f *.src.rpm
+
 # Create the source rpm
 echo "Building SRPM"
 rpmbuild \
@@ -95,7 +98,13 @@ SRPM=$(readlink -f *.src.rpm)
 
 # Build the binaries
 echo "Building RPMs"
-sudo mock -r epel-${RELEASE}-${ARCH} --resultdir=./dist/rpm/"%(dist)s"/"%(target_arch)s"/ ${SRPM}
+if ! sudo mock -r epel-${RELEASE}-${ARCH} --resultdir=./dist/rpm/"%(dist)s"/"%(target_arch)s"/ ${SRPM}; then
+	for log in dist/rpm/*/*/*.log; do
+		echo -e "\nLOG: $(basename $log)"
+		cat "$log"
+	done
+	echo "ERROR: mock failed, see the build logs above"
+fi
 
 # Make sure we execute at the top level directory
 cd "$WORKSPACE"
@@ -104,7 +113,6 @@ cd "$WORKSPACE"
 
 if [ "$THROWAWAY" = false ] ; then
     # push binaries to chacra
-    echo "$SRPM" | $VENV/chacractl binary ${chacra_flags} create ${chacra_endpoint}/source/
     find dist/rpm/$DIST/ | egrep '\.rpm$' | $VENV/chacractl binary ${chacra_flags} create ${chacra_endpoint}/$ARCH/
 
     # start repo creation
