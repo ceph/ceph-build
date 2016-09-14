@@ -73,6 +73,9 @@ fi
 #     Unable to resolve dependencies!  Giving up...
 echo "$components" > ~/.pbuilderrc
 echo "$debootstrapopts" >> ~/.pbuilderrc
+# Newer pbuilder versions set $HOME to /nonexistent which breaks all kinds of
+# things that rely on a proper (writable) home directory
+echo "BUILD_HOME=/home/`whoami`/.pbuilderrc" >> ~/.pbuilderrc
 
 sudo pbuilder --clean
 
