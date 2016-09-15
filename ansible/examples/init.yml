@@ -5,6 +5,17 @@
 # one. This should be run against newly brought up hosts when they are going to
 # be publicly accessible.
 
+# install python2.7 on xenial nodes
+- hosts: all
+  sudo: yes
+  user: admin 
+  gather_facts: false
+  tasks:
+    - name: install python-simplejson
+      raw: sudo apt-get -y install python-simplejson
+      # so that this is ignored on rpm nodes
+      failed_when: false
+
 - hosts: all
   user: admin
   sudo: true
