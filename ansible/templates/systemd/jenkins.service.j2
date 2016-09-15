@@ -1,0 +1,21 @@
+# {{ ansible_managed }}
+[Unit]
+Description=Jenkins Slave
+Wants=network.target
+After=network.target
+
+[Install]
+WantedBy=multi-user.target
+
+[Service]
+Type=simple
+User={{ jenkins_user }}
+ExecStart=/usr/bin/java \
+          -jar /home/{{ jenkins_user }}/slave.jar \
+          -jnlpUrl {{ api_uri }}/computer/{{ ansible_default_ipv4.address }}+{{ nodename }}/slave-agent.jnlp \
+          -jnlpCredentials {{ api_user }}:{{ token }}
+StandardOutput=journal
+StandardError=journal
+Restart=always
+RestartSec=30
+StartLimitInterval=0

@@ -30,6 +30,7 @@ cp -r $WORKSPACE/ansible/vars $WORKSPACE/ansible/examples/
 cp -r $WORKSPACE/ansible/roles $WORKSPACE/ansible/examples/
 cp -r $WORKSPACE/ansible/files $WORKSPACE/ansible/examples/
 cp -r $WORKSPACE/ansible/library $WORKSPACE/ansible/examples/
+cp -r $WORKSPACE/ansible/templates $WORKSPACE/ansible/examples/
 cp $WORKSPACE/ansible/release.yml $WORKSPACE/ansible/examples/
 
 

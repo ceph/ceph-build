@@ -1,0 +1,304 @@
+---
+# This playbook is used to configure static jenkins slaves. It uses
+# a hosts file so that nodename can be set per host.
+#
+# install python2.7 on xenial nodes
+- hosts: all
+  sudo: yes
+# this will most likely need changed
+  user: admin 
+  gather_facts: false
+  tasks:
+    - name: install python-simplejson
+      raw: sudo apt-get -y install python-simplejson
+      # so that this is ignored on rpm nodes
+      failed_when: false
+
+- hosts: all
+  sudo: true
+# this will most likely need changed
+  user: admin 
+  vars:
+   - jenkins_user: 'jenkins-build'
+   # jenkins API credentials:
+   - api_user: 'ceph-jenkins'
+   - token: '{{ token }}'
+   - api_uri: 'https://jenkins.ceph.com'
+   # this is also set in the example/hosts-static file
+   - nodename: '{{ ansible_hostname }}'
+   - labels: '{{ labels }}'
+   - use_jnlp: true 
+
+  tasks:
+    - name: create a {{ jenkins_user }} user
+      user: name={{ jenkins_user }} comment="Jenkins Build Slave User"
+
+    - name: create a {{ jenkins_user }} home directory
+      file:
+        path: "/home/{{ jenkins_user }}/"
+        state: directory
+        owner: "{{ jenkins_user }}"
+
+    - name: Create .ssh directory
+      file:
+        path: "/home/{{ jenkins_user }}/.ssh"
+        state: directory
+        owner: "{{ jenkins_user }}"
+
+    - name: set the authorized keys
+      authorized_key: user={{ jenkins_user }} key="{{ lookup('file', 'files/ssh/keys/jenkins_build.pub') }}"
+
+    - name: ensure {{ jenkins_user }} can sudo without a prompt
+      sudo: yes
+      lineinfile:
+        dest: /etc/sudoers
+        regexp: '^{{ jenkins_user }} ALL'
+        line: '{{ jenkins_user }}   ALL=(ALL:ALL) NOPASSWD:ALL'
+        validate: 'visudo -cf %s'
+
+    - name: set utf-8 for LC_ALL
+      lineinfile:
+        dest: "/home/{{ jenkins_user }}/.bashrc"
+        regexp: '^export LC_ALL='
+        line: "export LC_ALL=en_US.UTF-8"
+        create: true
+        state: present
+
+    - name: set utf-8 for LANG
+      lineinfile:
+        dest: "/home/{{ jenkins_user }}/.bashrc"
+        regexp: '^export LANG='
+        line: "export LANG=en_US.UTF-8"
+
+    - name: set utf-8 for LANGUAGE
+      lineinfile:
+        dest: "/home/{{ jenkins_user }}/.bashrc"
+        regexp: '^export LANGUAGE='
+        line: "export LANGUAGE=en_US.UTF-8"
+
+    - name: ensure the build dir exists
+      file: path=/home/{{ jenkins_user }}/build state=directory owner={{ jenkins_user }}
+
+    - name: ensure the home dir has the right owner permissions
+      file: path=/home/{{ jenkins_user }} state=directory owner={{ jenkins_user }} group={{ jenkins_user }} recurse=yes
+
+    # smithi nodes do not have epel repos
+    - name: install an yum epel repo
+      sudo: yes
+      template:
+        src: "templates/yum-repos/epel.repo"
+        dest: "/etc/yum.repos.d/epel.repo"
+        owner: root
+        group: root
+        mode: 0644
+      when: ansible_pkg_mgr  == "yum"
+
+    - name: Install RPM requirements
+      sudo: yes
+      yum:
+        name: "{{ item }}"
+        state: present
+        update_cache: yes
+      with_items:
+        - createrepo
+        - epel-release
+        - java-1.7.0-openjdk
+        - git
+        - python-pip
+        - python-virtualenv
+        - libtool
+        #- rpm-sign
+        - autoconf
+        - redhat-lsb-core
+        - automake
+        - binutils
+        - bison
+        - flex
+        - gcc
+        - gcc-c++
+        - gettext
+        - libtool
+        - make
+        - patch
+        - pkgconfig
+        - redhat-rpm-config
+        - rpm-build
+        - rpmdevtools
+        - openssl-devel
+        - libffi-devel
+      when: ansible_pkg_mgr  == "yum"
+
+    # Run the equivalent of "apt-get update" as a separate step
+    - apt: update_cache=yes
+      when: ansible_pkg_mgr  == "apt"
+
+    - name: Install DEB requirements
+      sudo: yes
+      apt: name={{ item }} state=present
+      with_items:
+        - git
+        - fakeroot
+        - fakeroot-ng
+        - debhelper
+        - reprepro
+        - dchroot
+        - devscripts
+        - pbuilder
+        - pkg-config
+        - python-dev
+        - python-pip
+        - python-virtualenv
+        - libtool
+        - autotools-dev
+        - automake
+        - debian-archive-keyring
+        # jenkins-job-builder job:
+        - libyaml-dev
+        # ceph-docs job:
+        - doxygen
+        - ditaa
+        - ant
+        - curl
+      when: ansible_pkg_mgr  == "apt"
+
+    - name: Add the Debian Jessie Key
+      sudo: yes
+      when: ansible_pkg_mgr  == "apt"
+      apt_key: id=2B90D010 url=https://ftp-master.debian.org/keys/archive-key-8.asc keyring=/etc/apt/trusted.gpg state=present
+
+    - name: Add the Debian Security Jessie Key
+      sudo: yes
+      when: ansible_pkg_mgr  == "apt"
+      apt_key: id=C857C906 url=https://ftp-master.debian.org/keys/archive-key-8-security.asc keyring=/etc/apt/trusted.gpg state=present
+
+    - name: Add the Debian Jessie Stable Key
+      sudo: yes
+      when: ansible_pkg_mgr  == "apt"
+      apt_key: id=518E17E1 url=http://download.ceph.com/keys/jessie-stable-release.asc keyring=/etc/apt/trusted.gpg state=present
+
+    - name: Install openjdk-7-jre
+      apt: name=openjdk-7-jre state=present
+      when:
+        ansible_distribution_release in ['precise', 'trusty', 'wheezy', 'jessie']
+
+    - name: Install default openjdk for Xenial only
+      apt: name={{ item }} state=present
+      with_items:
+        - default-jdk
+        - default-jre
+      when:
+        ansible_distribution_release == 'xenial'
+
+    - name: correct java version selected
+      alternatives: name=java path=/usr/lib/jvm/java-7-openjdk-amd64/jre/bin/java
+      when:
+        (ansible_distribution == 'Ubuntu' and ansible_distribution_release == 'precise') or
+        (ansible_distribution == 'Debian' and ansible_distribution_release == 'wheezy')
+
+    - name: ensure the rpmmacros file exists to fix centos builds
+      file: path="/home/{{ jenkins_user }}/.rpmmacros" owner="{{ jenkins_user }}" state=touch
+
+    - name: write the rpmmacros needed in centos
+      lineinfile:
+        dest: "/home/{{ jenkins_user }}/.rpmmacros"
+        regexp: '^%dist'
+        line: '%dist .el{{ ansible_distribution_major_version }}'
+      when: ansible_pkg_mgr  == "yum"
+
+    - name: ensure the gitconfig file exists
+      shell: printf "[user]\name=Ceph CI\nemail=ceph-release-team@redhat.com\n" > /home/{{ jenkins_user }}/.gitconfig
+
+    - name: ensure the gitconfig file has right permissions
+      file:
+        path: "/home/{{ jenkins_user }}/.gitconfig"
+        owner: "{{ jenkins_user }}"
+
+    - name: ensure that the current host is in /etc/hosts. Yes this is a thing.
+      sudo: true
+      replace:
+        backup: yes
+        dest: /etc/hosts
+        regexp: '^(127\.0\.1\.1(?!.*\b{{ ansible_hostname }}\b).*)$'
+        replace: '\1 {{ ansible_hostname }}'
+
+    - name: ensure that 127.0.1.1 is present with an actual hostname
+      sudo: true
+      lineinfile:
+        dest: /etc/hosts
+        regexp: '^(127\.0\.1\.1(?!.*\b{{ ansible_hostname }}\b).*)$'
+        line: '127.0.1.1 {{ ansible_hostname }}'
+
+    - name: install six, latest one
+      sudo: true
+      pip: name=six state=latest
+
+    - name: install python-jenkins
+      sudo: true
+      # https://bugs.launchpad.net/python-jenkins/+bug/1500898
+      pip: name=python-jenkins version=0.4.7
+
+    - name: add github.com host key
+      sudo: true
+      known_hosts:
+        path: '/etc/ssh/ssh_known_hosts'
+        # we need to use 'host' here because prado currently uses ansible-playbook==1.9.1
+        host: 'github.com'
+        # github.com.pub is the output of `ssh-keyscan github.com`
+        key: "{{ lookup('file', 'files/ssh/hostkeys/github.com.pub') }}"
+
+    - name: register the new slave to jenkins master with ssh
+      jenkins-node:
+        username: "{{ api_user }}"
+        uri: "{{ api_uri }}"
+        password: "{{ token }}"
+        # relies on a convention to set a unique name that allows a reverse
+        # mapping from Jenkins back to whatever service created the current
+        # node
+        name: "{{ ansible_default_ipv4.address }}+{{ nodename }}"
+        labels: "{{ labels }}"
+        host: "{{ ansible_default_ipv4.address }}"
+        credentialsId: '39fa150b-b2a1-416e-b334-29a9a2c0b32d'
+        remoteFS: '/home/{{ jenkins_user }}/build'
+        executors: '{{ executors|default(1) }}'
+        exclusive: true
+      when: not use_jnlp
+
+    - name: register the new slave to jenkins master with jnlp
+      jenkins-node:
+        username: "{{ api_user }}"
+        uri: "{{ api_uri }}"
+        password: "{{ token }}"
+        # relies on a convention to set a unique name that allows a reverse
+        # mapping from Jenkins back to whatever service created the current
+        # node
+        name: "{{ ansible_default_ipv4.address }}+{{ nodename }}"
+        labels: "{{ labels }}"
+        host: "{{ ansible_default_ipv4.address }}"
+        credentialsId: '39fa150b-b2a1-416e-b334-29a9a2c0b32d'
+        launcher: 'hudson.slaves.JNLPLauncher'
+        remoteFS: '/home/{{ jenkins_user }}/build'
+        # XXX this should be configurable, not all nodes should have one executor
+        executors: '{{ executors|default(1) }}'
+        exclusive: true
+      when: use_jnlp
+
+    - name: Download slave.jar
+      get_url:
+        url: "{{ api_uri }}/jnlpJars/slave.jar"
+        dest: "/home/{{ jenkins_user }}/slave.jar"
+      when: use_jnlp
+
+    - name: install the systemd unit file for jenkins 
+      template:
+        src: "templates/systemd/jenkins.service.j2"
+        dest: "/etc/systemd/system/jenkins.service"
+      sudo: true
+      when: use_jnlp
+
+    - name: start jenkins service
+      service:
+        name: jenkins
+        state: started
+        enabled: yes
+      sudo: yes
+      when: use_jnlp
