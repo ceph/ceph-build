@@ -56,9 +56,8 @@ If this is checked, then the binaries will be built and pushed to chacra even if
           choices:
             - default
             - notcmalloc
-            - blkin
           default: "default"
-          description: "Type of Ceph build, choices are: notcmalloc, and blkin. Defaults to: 'default'"
+          description: "Type of Ceph build, choices are: notcmalloc, default (i.e. with tcmalloc). Defaults to: 'default'"
 
     builders:
       - multijob:

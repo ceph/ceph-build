@@ -81,6 +81,7 @@
         - autoconf
         - redhat-lsb-core
         - automake
+        - cmake
         - binutils
         - bison
         - flex
