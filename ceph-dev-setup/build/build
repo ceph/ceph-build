@@ -43,25 +43,43 @@ echo "Running submodule update ..."
 git submodule update --init
 
 # Flavor Builds support
-# TODO: enable CMAKE
-#export CEPH_EXTRA_CMAKE_ARGS
 
-FLAVOR_FLAGS="--without-cryptopp"
+#cryptopp is not default for CMake
+AUTOCONF_FLAVOR_FLAGS="--without-cryptopp"
 
 if [ "${FLAVOR}" == "notcmalloc" ]
 then
-    echo "Detected notcmalloc flavor: will use flag: --without-tcmalloc"
-    FLAVOR_FLAGS="$FLAVOR_FLAGS --without-tcmalloc"
-    #export CEPH_EXTRA_CMAKE_ARGS="$CEPH_EXTRA_CMAKE_ARGS -DALLOCATOR=libc"
+    echo "Detected notcmalloc flavor: will use flag: --without-tcmalloc or -DALLOCATOR=libc"
+    AUTOCONF_FLAVOR_FLAGS="$AUTOCONF_FLAVOR_FLAGS --without-tcmalloc"
+    export CEPH_EXTRA_CMAKE_ARGS="$CEPH_EXTRA_CMAKE_ARGS -DALLOCATOR=libc"
 else
-    FLAVOR_FLAGS="$FLAVOR_FLAGS --with-tcmalloc"
-    #export CEPH_EXTRA_CMAKE_ARGS="$CEPH_EXTRA_CMAKE_ARGS -DALLOCATOR=tcmalloc"
+    AUTOCONF_FLAVOR_FLAGS="$AUTOCONF_FLAVOR_FLAGS --with-tcmalloc"
+    export CEPH_EXTRA_CMAKE_ARGS="$CEPH_EXTRA_CMAKE_ARGS -DALLOCATOR=tcmalloc"
 fi
 
-if [ "${FLAVOR}" == "blkin" ]
-then
-    echo "Detected bklin flavor: will use flag: --with-blkin"
-    FLAVOR_FLAGS="$FLAVOR_FLAGS --with-blkin"
+
+# make-dist does not exist for autotools builds
+if [ ! -x make-dist ]
+    echo "Using autotools build system"
+    echo "Running autogen.sh ..."
+    ./autogen.sh
+    echo "Running configure ..."
+    ./configure \
+      --disable-option-checking \
+      '--prefix=/usr' \
+      '--sbindir=/sbin' \
+      '--localstatedir=/var' \
+      '--sysconfdir=/etc' \
+      '--with-debug' \
+      '--with-nss' \
+      '--with-radosgw' \
+      '--disable-static' \
+      '--without-lttng' \
+      $AUTOCONF_FLAVOR_FLAGS \
+      'CFLAGS= -Wno-unused-parameter' \
+      'CXXFLAGS=  -Wno-unused-parameter' \
+      --cache-file=/dev/null \
+      --srcdir=.
 fi
 
 mkdir -p release
@@ -104,38 +122,18 @@ else
 
     if [ -x make-dist ]
     then
-      ./make-dist $cephver
-      vers=`ls ceph-*.tar.bz2 | cut -c 6- | sed 's/.tar.bz2//'`
-      extension="tar.bz2"
-      extract_flags="jxf"
-      compress_flags="jcf"
+        ./make-dist $cephver
+        vers=`ls ceph-*.tar.bz2 | cut -c 6- | sed 's/.tar.bz2//'`
+        extension="tar.bz2"
+        extract_flags="jxf"
+        compress_flags="jcf"
     else
-      echo "Running autogen.sh ..."
-      ./autogen.sh
-      echo "Running configure ..."
-      ./configure \
-        --disable-option-checking \
-        '--prefix=/usr' \
-        '--sbindir=/sbin' \
-        '--localstatedir=/var' \
-        '--sysconfdir=/etc' \
-        '--with-debug' \
-        '--with-nss' \
-        '--with-radosgw' \
-        '--disable-static' \
-        '--without-lttng' \
-        $FLAVOR_FLAGS \
-        'CFLAGS= -Wno-unused-parameter' \
-        'CXXFLAGS=  -Wno-unused-parameter' \
-        --cache-file=/dev/null \
-        --srcdir=.
-
-      make dist
-      make dist-bzip2
-      vers=`ls ceph-*.tar.gz | cut -c 6- | sed 's/.tar.gz//'`
-      extension="tar.gz"
-      extract_flags="zxf"
-      compress_flags="zcf"
+        make dist
+        make dist-bzip2
+        vers=`ls ceph-*.tar.gz | cut -c 6- | sed 's/.tar.gz//'`
+        extension="tar.gz"
+        extract_flags="zxf"
+        compress_flags="zcf"
     fi
 
     echo tarball vers $vers
