@@ -213,6 +213,11 @@
         path: "/home/{{ jenkins_user }}/.gitconfig"
         owner: "{{ jenkins_user }}"
 
+    - name: Set Hostname with hostname command
+      sudo: yes
+      hostname:
+        name: "{{ ansible_hostname }}"
+
     - name: ensure that the current host is in /etc/hosts. Yes this is a thing.
       sudo: true
       replace:
