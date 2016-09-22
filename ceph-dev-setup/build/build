@@ -59,7 +59,7 @@ fi
 
 
 # make-dist does not exist for autotools builds
-if [ ! -x make-dist ]
+if [ ! -x make-dist ]; then
     echo "Using autotools build system"
     echo "Running autogen.sh ..."
     ./autogen.sh
