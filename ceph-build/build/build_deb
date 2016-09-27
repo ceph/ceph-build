@@ -164,24 +164,13 @@ echo deb vers $bpvers
 
 
 echo building debs for $DIST
-if [ `dpkg-architecture -qDEB_BUILD_ARCH` = "i386" ] ; then
-    #  Architecture dependent, independent and source
-    sudo pbuilder build \
-        --distribution $DIST \
-        --basetgz $pbuilddir/$DIST.tgz \
-        --buildresult $releasedir/$cephver \
-        --debbuildopts "-j`grep -c processor /proc/cpuinfo`" \
-        $releasedir/$cephver/ceph_$bpvers.dsc
-else
-    #  Binary only architecture dependent
-    sudo pbuilder build \
-        --binary-arch \
-        --distribution $DIST \
-        --basetgz $pbuilddir/$DIST.tgz \
-        --buildresult $releasedir/$cephver \
-        --debbuildopts "-j`grep -c processor /proc/cpuinfo`" \
-        $releasedir/$cephver/ceph_$bpvers.dsc
-fi
+#  Binary only architecture dependent
+sudo pbuilder build \
+    --distribution $DIST \
+    --basetgz $pbuilddir/$DIST.tgz \
+    --buildresult $releasedir/$cephver \
+    --debbuildopts "-j`grep -c processor /proc/cpuinfo`" \
+    $releasedir/$cephver/ceph_$bpvers.dsc
 
 # do lintian checks
 echo lintian checks for $bpvers
