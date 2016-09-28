@@ -1,0 +1,91 @@
+#!/bin/sh -x
+# This file will set the tgz images needed for pbuilder on a given host. It has
+# some hard-coded values like `/srv/debian-base` because it gets built every
+# time this file is executed - completely ephemeral.  If a Debian host will use
+# pbuilder, then it will need this. Since it is not idempotent it makes
+# everything a bit slower. ## FIXME ##
+
+set -e
+
+# Only run when we are a Debian or Debian-based distro
+if test -f /etc/redhat-release ; then
+    exit 0
+fi
+
+basedir="/srv/debian-base"
+
+# Ensure that the basedir directory exists
+sudo mkdir -p "$basedir"
+
+# This used to live in a *file* on /srv/ceph-build as
+# /srv/ceph-build/update_pbuilder.sh Now it lives here because it doesn't make
+# sense to have a file that lives in /srv/ that we then concatenate to get its
+# contents.  what.
+# By using $DIST we are narrowing down to updating only the distro image we
+# need, unlike before where we updated everything on every server on every
+# build.
+
+os="debian"
+[ "$DIST" = "precise" ] && os="ubuntu"
+[ "$DIST" = "saucy" ] && os="ubuntu"
+[ "$DIST" = "trusty" ] && os="ubuntu"
+[ "$DIST" = "xenial" ] && os="ubuntu"
+
+if [ $os = "debian" ]; then
+    mirror="http://www.gtlib.gatech.edu/pub/debian"
+    # this assumes that newer Debian releases are being added to
+    # /etc/apt/trusted.gpg that is also the default location for Ubuntu trusted
+    # keys. The slave should ensure that the needed keys are added accordingly
+    # to this location.
+    debootstrapopts='DEBOOTSTRAPOPTS=( "--keyring" "/etc/apt/trusted.gpg" )'
+    components='COMPONENTS="main contrib"'
+elif [ "$ARCH" = "arm64" ]; then
+    mirror="http://ports.ubuntu.com/ubuntu-ports"
+    debootstrapopts=""
+    components='COMPONENTS="main universe"'
+else
+    mirror="http://us.archive.ubuntu.com/ubuntu"
+    debootstrapopts=""
+    components='COMPONENTS="main universe"'
+fi
+
+# ensure that the tgz is valid, otherwise remove it so that it can be recreated
+# again
+pbuild_tar="$basedir/$DIST.tgz"
+is_not_tar=`python -c "exec 'try: import tarfile;print int(not int(tarfile.is_tarfile(\"$pbuild_tar\")))\nexcept IOError: print 1'"`
+file_size_kb=`du -k "$pbuild_tar" | cut -f1`
+
+if $is_not_tar; then
+    sudo rm -f "$pbuild_tar"
+fi
+
+if [ $file_size_kb -lt 1 ]; then
+    sudo rm -f "$pbuild_tar"
+fi
+
+# Ordinarily pbuilder only pulls packages from "main".  ceph depends on
+# packages like python-virtualenv which are in "universe". We have to configure
+# pbuilder to look in "universe". Otherwise the build would fail with a message similar
+# to:
+#    The following packages have unmet dependencies:
+#      pbuilder-satisfydepends-dummy : Depends: python-virtualenv which is a virtual package.
+#                                      Depends: xmlstarlet which is a virtual package.
+#     Unable to resolve dependencies!  Giving up...
+echo "$components" > ~/.pbuilderrc
+echo "$debootstrapopts" >> ~/.pbuilderrc
+
+sudo pbuilder --clean
+
+if [ -e $basedir/$DIST.tgz ]; then
+    echo updating $DIST base.tgz
+    sudo pbuilder update \
+    --basetgz $basedir/$DIST.tgz \
+    --distribution $DIST \
+    --mirror "$mirror"
+else
+    echo building $DIST base.tgz
+    sudo pbuilder create \
+    --basetgz $basedir/$DIST.tgz \
+    --distribution $DIST \
+    --mirror "$mirror"
+fi

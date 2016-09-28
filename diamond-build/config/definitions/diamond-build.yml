@@ -29,6 +29,14 @@
           values:
             - centos6
             - centos7
+            - trusty
+            - xenial
+            - jessie
+            - precise
+            - wheezy
+      - axis:
+          type: dynamic
+          name: DIST
       - axis:
           type: dynamic
           name: DIST
@@ -58,6 +66,14 @@
           properties-file: ${WORKSPACE}/dist/branch
       - inject:
           properties-file: ${WORKSPACE}/dist/version
+      # debian build scripts
+      - shell:
+          !include-raw:
+            - ../../build/validate_deb
+            - ../../../scripts/build_utils.sh
+            - ../../build/setup
+            - ../../build/setup_pbuilder
+            - ../../build/build_deb
       # rpm build scripts
       - shell:
           !include-raw:
