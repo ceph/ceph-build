@@ -1,0 +1,8 @@
+#!/bin/bash -ex
+
+# note: the failed_build_status call relies on normalized variable names that
+# are infered by the builds themselves. If the build fails before these are
+# set, they will be posted with empty values
+
+# update shaman with the failed build status
+failed_build_status "ceph" $NORMAL_DISTRO $NORMAL_DISTRO_VERSION $NORMAL_ARCH
