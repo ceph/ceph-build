@@ -1,5 +1,6 @@
 #!/bin/bash -ex
 
+## Get the basic setup/info
 HOST=$(hostname --short)
 echo "Building on ${HOST}"
 echo "  DIST=${DIST}"
@@ -16,30 +17,47 @@ fi
 
 echo "Building version $(git describe) Branch $BRANCH"
 
+## Make sure the repo is clean
+# Remove all untracked files
+echo "Cleaning up the repo"
+git clean -fxd
+
 # Make sure the dist directory is clean
 rm -rf dist
 mkdir -p dist
 
-# Install any setup-time deps
+## Install any setup-time deps
+# We need this for mk-build-deps
+sudo apt-get install equivs
+# Run the install-deps.sh upstream script if it exists
 if [ -x install-deps.sh ]; then
   echo "Ensuring dependencies are installed"
   ./install-deps.sh
 fi
 
-# Get the version
+## Get the version
 VERSION=$(./version.sh)
 
-# Make sure the repo is clean
-echo "Cleaning up the repo"
-git clean -fxd
-
+## Build the source tarball
 echo "Building source distribution"
 python setup.py sdist
 
-# Prepare the spec file for build
+## Prepare the spec file for build
 sed -e "s/@VERSION@/${VERSION}/g" < diamond.spec.in > dist/diamond.spec
 
-# Save these so that we can later inject them into the build script
+## Prepare the debian files
+# Bump the changelog
+dch -v "$VERSION" "New release ($VERSION)"
+
+# Install build-time dependencies
+yes | sudo mk-build-deps --install debian/control
+
+# Create .dsc and source tarball
+sudo dpkg-buildpackage -S -us -uc
+
+cp ../diamond_$VERSION* dist/deb/
+
+## Save these so that we can later inject them into the build script
 cat > dist/sha1 << EOF
 SHA1=${GIT_COMMIT}
 EOF
