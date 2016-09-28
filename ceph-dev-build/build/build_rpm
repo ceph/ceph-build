@@ -56,6 +56,15 @@ get_rpm_dist() {
 }
 
 get_rpm_dist
+
+# Normalize variables across rpm/deb builds
+NORMAL_DISTRO=$DISTRO
+NORMAL_DISTRO_VERSION=$RELEASE
+NORMAL_ARCH=$ARCH
+
+# create build status in shaman
+create_build_status "started" "ceph" $NORMAL_DISTRO $NORMAL_DISTRO_VERSION $NORMAL_ARCH
+
 dist=$DIST
 [ -z "$dist" ] && echo no dist && exit 1
 echo dist $dist
@@ -261,3 +270,6 @@ EOF
 
     echo Check the status of the repo at: https://shaman.ceph.com/api/repos/${chacra_endpoint}/flavors/${FLAVOR}/
 fi
+
+# update shaman with the completed build status
+update_build_status "completed" "ceph" $NORMAL_DISTRO $NORMAL_DISTRO_VERSION $NORMAL_ARCH
