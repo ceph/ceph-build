@@ -55,7 +55,7 @@ yes | sudo mk-build-deps --install debian/control
 # Create .dsc and source tarball
 sudo dpkg-buildpackage -S -us -uc
 
-cp ../diamond_$VERSION* dist/deb/
+cp ../diamond_$VERSION* dist/
 
 ## Save these so that we can later inject them into the build script
 cat > dist/sha1 << EOF
