@@ -44,6 +44,14 @@
           allow-empty: false
           latest-only: false
 
+      - postbuildscript:
+          script-only-if-failed: True
+          builders:
+            - shell:
+                !include-raw:
+                  - ../../../scripts/build_utils.sh
+                  - ../../build/failure
+
     wrappers:
       - inject-passwords:
           global: true
