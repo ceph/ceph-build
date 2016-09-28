@@ -11,7 +11,7 @@
    - api_uri: 'https://jenkins.ceph.com'
    - nodename: '{{ nodename }}'
    - labels: '{{ labels }}'
-   - use_jnlp: '{{ use_jnlp|default(false) }}'
+   - use_jnlp: false
 
   tasks:
     - name: create a {{ jenkins_user }} user
