@@ -254,7 +254,7 @@
         key: "{{ lookup('file', 'files/ssh/hostkeys/github.com.pub') }}"
 
     - name: register the new slave to jenkins master with ssh
-      jenkins-node:
+      jenkins_node:
         username: "{{ api_user }}"
         uri: "{{ api_uri }}"
         password: "{{ token }}"
@@ -271,7 +271,7 @@
       when: not use_jnlp
 
     - name: register the new slave to jenkins master with jnlp
-      jenkins-node:
+      jenkins_node:
         username: "{{ api_user }}"
         uri: "{{ api_uri }}"
         password: "{{ token }}"
