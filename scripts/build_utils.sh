@@ -128,3 +128,98 @@ check_binary_existence () {
     fi
 
 }
+
+
+submit_build_status() {
+    # A helper script to post (create) the status of a build in shaman
+    # 'state' can be either 'failed' or 'started'
+    # 'project' is used to post to the right url in shaman
+    http_method=$1
+    state=$2
+    project=$3
+    distro=$4
+    distro_version=$5
+    distro_arch=$6
+    cat > $WORKSPACE/build_status.json << EOF
+{
+    "extra":{
+        "version":"$vers",
+        "root_build_cause":"$ROOT_BUILD_CAUSE",
+        "node_name":"$NODE_NAME",
+        "job_name":"$JOB_NAME",
+        "build_user":"$BUILD_USER"
+    },
+    "url":"$BUILD_URL",
+    "log_url":"$BUILD_URL/consoleFull",
+    "state":"$state",
+    "distro":"$distro",
+    "distro_version":"$distro_version",
+    "distro_arch":"$distro_arch",
+    "branch":"$BRANCH",
+    "sha1":"$SHA1",
+    "flavor":"$FLAVOR"
+}
+EOF
+
+    SHAMAN_URL="https://shaman.ceph.com/api/builds/$project/"
+    # post the build information as JSON to shaman
+    curl -X $http_method -H "Content-Type:application/json" --data "@$WORKSPACE/build_status.json" -u $SHAMAN_API_USER:$SHAMAN_API_KEY ${SHAMAN_URL}
+
+
+}
+
+
+update_build_status() {
+    # A proxy script to PUT (update) the status of a build in shaman
+    # 'state' can be either of: 'started', 'completed', or 'failed'
+    # 'project' is used to post to the right url in shaman
+
+    # required
+    state=$1
+    project=$2
+
+    # optional
+    distro=$3
+    distro_version=$4
+    distro_arch=$5
+
+    submit_build_status "PUT" $state $project $distro $distro_version $distro_arch
+}
+
+
+create_build_status() {
+    # A proxy script to POST (create) the status of a build in shaman for
+    # a normal/initial build
+    # 'state' can be either of: 'started', 'completed', or 'failed'
+    # 'project' is used to post to the right url in shaman
+
+    # required
+    state=$1
+    project=$2
+
+    # optional
+    distro=$3
+    distro_version=$4
+    distro_arch=$5
+
+    submit_build_status "POST" $state $project $distro $distro_version $distro_arch
+}
+
+
+failed_build_status() {
+    # A helper script to POST (create) the status of a build in shaman as
+    # a failed build. The only required argument is the 'project', so that it
+    # can be used post to the right url in shaman
+
+    # required
+    project=$1
+
+    state="failed"
+
+    # optional
+    distro=$2
+    distro_version=$3
+    distro_arch=$4
+
+    submit_build_status "POST" $state $project $distro $distro_version $distro_arch
+}

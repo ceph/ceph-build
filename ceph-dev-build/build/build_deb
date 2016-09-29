@@ -67,6 +67,14 @@ gen_debian_version() {
 
 bpvers=`gen_debian_version $debian_version $DIST`
 
+# Normalize variables across rpm/deb builds
+NORMAL_DISTRO=$distro
+NORMAL_DISTRO_VERSION=$DIST
+NORMAL_ARCH=$ARCH
+
+# create build status in shaman
+create_build_status "started" "ceph" $NORMAL_DISTRO $NORMAL_DISTRO_VERSION $NORMAL_ARCH
+
 # look for a specific package to tell if we can avoid the build
 chacra_endpoint="ceph/${chacra_ref}/${SHA1}/${distro}/${DIST}/${ARCH}/flavors/${FLAVOR}"
 chacra_repo_endpoint="ceph/${chacra_ref}/${SHA1}/${distro}/${DIST}/flavors/${FLAVOR}"
@@ -194,3 +202,6 @@ EOF
 
     echo Check the status of the repo at: https://shaman.ceph.com/api/repos/${chacra_repo_endpoint}/
 fi
+
+# update shaman with the completed build status
+update_build_status "completed" "ceph" $NORMAL_DISTRO $NORMAL_DISTRO_VERSION $NORMAL_ARCH
