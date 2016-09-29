@@ -151,11 +151,11 @@ submit_build_status() {
     },
     "url":"$BUILD_URL",
     "log_url":"$BUILD_URL/consoleFull",
-    "state":"$state",
+    "status":"$state",
     "distro":"$distro",
     "distro_version":"$distro_version",
     "distro_arch":"$distro_arch",
-    "branch":"$BRANCH",
+    "ref":"$BRANCH",
     "sha1":"$SHA1",
     "flavor":"$FLAVOR"
 }
