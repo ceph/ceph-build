@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 DOCUMENTATION = """
-module: jenkins-node
+module: jenkins_node
 short_decription: Manage Jenkins nodes
 description:
   - This module provides some management features to control Jenkins
@@ -92,12 +92,12 @@ author:
 EXAMPLES = """
 # Create new node
 - name: Create new node
-  jenkins-node: uri={{ jenkins_uri }} username={{ user }} password={{ password }}
+  jenkins_node: uri={{ jenkins_uri }} username={{ user }} password={{ password }}
            name={{ node_name }} operation=create
 
 # Delete an existing node
 - name: Delete a node
-  jenkins-node: uri={{ jenkins_uri }} username={{ user }} password={{ password }}
+  jenkins_node: uri={{ jenkins_uri }} username={{ user }} password={{ password }}
            name={{ node_name }} operation=delete
 """
 
