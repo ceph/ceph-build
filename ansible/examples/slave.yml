@@ -186,22 +186,29 @@
     - name: Set Hostname with hostname command
       sudo: yes
       hostname:
-        name: "{{ ansible_hostname }}"
-
-    - name: ensure that the current host is in /etc/hosts. Yes this is a thing.
-      sudo: true
-      replace:
-        backup: yes
-        dest: /etc/hosts
-        regexp: '^(127\.0\.1\.1(?!.*\b{{ ansible_hostname }}\b).*)$'
-        replace: '\1 {{ ansible_hostname }} ceph-builders'
+        name: "ceph-builders"
 
     - name: ensure that 127.0.1.1 is present with an actual hostname
       sudo: true
       lineinfile:
         dest: /etc/hosts
-        regexp: '^(127\.0\.1\.1(?!.*\b{{ ansible_hostname }}\b).*)$'
-        line: '127.0.1.1 {{ ansible_hostname }} ceph-builders'
+        line: '127.0.1.1 ceph-builders'
+
+    # we need to update the cloud templates because 'manage_etc_hosts' is
+    # set to true on the image we use in OVH and some jobs will reboot
+    # these nodes causing the /etc/hosts file to be replace with these
+    # templates making jobs fail because the hostname is not resolvable
+    - name: update the etc cloud templates for debian /etc/hosts
+      sudo: true
+      lineinfile:
+        dest: /etc/cloud/templates/hosts.debian.tmpl
+        line: '127.0.1.1 ceph-builders'
+
+    - name: update the etc cloud templates for debian /etc/hosts
+      sudo: true
+      lineinfile:
+        dest: /etc/cloud/templates/hosts.redhat.tmpl
+        line: '127.0.1.1 ceph-builders'
 
     - name: install six, latest one
       sudo: true
