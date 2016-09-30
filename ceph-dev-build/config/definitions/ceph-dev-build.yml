@@ -81,6 +81,7 @@
     publishers:
       - postbuildscript:
           script-only-if-failed: True
+          script-only-if-succeeded: False 
           builders:
             - shell:
                 !include-raw:
