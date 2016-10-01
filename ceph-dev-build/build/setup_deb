@@ -115,7 +115,7 @@ pkgs=( "chacractl>=0.0.4" )
 install_python_packages "pkgs[@]"
 
 # ask shaman which chacra instance to use
-chacra_url=`curl -f -u $SHAMAN_API_USER:$SHAMAN_API_KEY https://shaman.ceph.com/api/nodes/next/`
+chacra_url=`curl -u $SHAMAN_API_USER:$SHAMAN_API_KEY https://shaman.ceph.com/api/nodes/next/`
 # create the .chacractl config file using global variables
 make_chacractl_config $chacra_url
 
