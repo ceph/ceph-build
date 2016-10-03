@@ -107,15 +107,6 @@ NORMAL_DISTRO=$DISTRO
 NORMAL_DISTRO_VERSION=$RELEASE
 NORMAL_ARCH=$ARCH
 
-# Write these values to a file so the failure
-# script can consume them if the build fails
-cat > $WORKSPACE/build_info << EOF
-NORMAL_DISTRO=$DISTRO
-NORMAL_DISTRO_VERSION=$RELEASE
-NORMAL_ARCH=$ARCH
-SHA1=$SHA1
-EOF
-
 # create build status in shaman
 create_build_status "started" "ceph" $NORMAL_DISTRO $NORMAL_DISTRO_VERSION $NORMAL_ARCH
 
