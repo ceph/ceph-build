@@ -183,7 +183,7 @@ update_build_status() {
     distro_version=$4
     distro_arch=$5
 
-    submit_build_status "PUT" $state $project $distro $distro_version $distro_arch
+    submit_build_status "POST" $state $project $distro $distro_version $distro_arch
 }
 
 
