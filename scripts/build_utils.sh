@@ -161,6 +161,16 @@ submit_build_status() {
 }
 EOF
 
+    # these variables are saved in this jenkins
+    # properties file so that other scripts
+    # in the same job can inject them
+    cat > $WORKSPACE/build_info << EOF
+NORMAL_DISTRO=$distro
+NORMAL_DISTRO_VERSION=$distro_version
+NORMAL_ARCH=$distro_arch
+SHA1=$SHA1
+EOF
+
     SHAMAN_URL="https://shaman.ceph.com/api/builds/$project/"
     # post the build information as JSON to shaman
     curl -X $http_method -H "Content-Type:application/json" --data "@$WORKSPACE/build_status.json" -u $SHAMAN_API_USER:$SHAMAN_API_KEY ${SHAMAN_URL}
