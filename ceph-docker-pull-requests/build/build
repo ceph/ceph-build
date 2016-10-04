@@ -2,7 +2,7 @@
 
 set -ex
 
-sudo apt-get install -y --force-yes docker
+sudo apt-get install -y --force-yes docker.io
 docker --version
 sudo apt-get install -y --force-yes xfsprogs
 sudo "$WORKSPACE"/travis-builds/purge_cluster.sh
