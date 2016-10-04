@@ -1,0 +1,70 @@
+- scm:
+    name: ceph-docker
+    scm:
+      - git:
+          url: https://github.com/ceph/ceph-docker.git
+          branches:
+            - ${sha1}
+          refspec: +refs/pull/*:refs/remotes/origin/pr/*
+          browser: auto
+          timeout: 20
+          skip-tag: true
+          wipe-workspace: false
+          basedir: "ceph-docker"
+
+- job:
+    name: ceph-docker-pull-requests
+    node: huge
+    project-type: freestyle
+    defaults: global
+    display-name: 'ceph-docker: Pull Requests'
+    concurrent: true
+    quiet-period: 5
+    block-downstream: false
+    block-upstream: false
+    retry-count: 3
+    properties:
+      - github:
+          url: https://github.com/ceph/ceph-docker
+    logrotate:
+      daysToKeep: 15
+      numToKeep: 30
+      artifactDaysToKeep: -1
+      artifactNumToKeep: -1
+
+    parameters:
+      - string:
+          name: sha1
+          description: "A pull request ID, like 'origin/pr/72/head'"
+
+    triggers:
+      - github-pull-request:
+          allow-whitelist-orgs-as-admins: true
+          org-list:
+            - ceph
+          trigger-phrase: ''
+          only-trigger-phrase: false
+          github-hooks: true
+          permit-all: true
+          auto-close-on-fail: false
+          status-context: "docker image"
+          started-status: "creating docker image(s)"
+          success-status: "OK - image(s) created"
+          failure-status: "docker image failed with errors"
+
+    scm:
+      - ceph-docker
+
+    builders:
+      - shell:
+          !include-raw:
+            - ../../../scripts/build_utils.sh
+            - ../../build/build
+            - ../../build/teardown
+
+    publishers:
+      - postbuildscript:
+          script-only-if-succeeded: False
+          script-only-if-failed: True
+          builders:
+            - shell: !include-raw ../../build/failure

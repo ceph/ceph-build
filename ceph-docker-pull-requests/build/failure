@@ -1,0 +1,17 @@
+#!/bin/bash
+
+set -ex
+
+# on failure:
+sudo docker images
+sudo docker ps
+sudo docker ps -a
+sudo docker logs ceph-mon
+sudo docker logs ceph-osd
+sudo docker logs ceph-mds
+sudo docker logs ceph-rgw
+sudo docker logs ceph-demo
+sudo docker exec ceph-mon ceph -s
+sudo docker exec ceph-demo ceph -s
+
+
