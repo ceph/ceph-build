@@ -135,7 +135,8 @@ else
     cp rpm/*.patch $releasedir/$cephver/rpm || true
     cd $releasedir/$cephver
 
-    tar zxf $srcdir/ceph-$vers.tar.gz
+    tar $extract_flags $srcdir/ceph-$vers.$extension
+
     [ "$vers" != "$cephver" ] && mv ceph-$vers ceph-$cephver
 
     tar zcf ceph_$cephver.orig.tar.gz ceph-$cephver
@@ -143,12 +144,13 @@ else
 
     tar jcf ceph-$cephver.tar.bz2 ceph-$cephver
 
-    # copy debian dir, too
-    cp -a $srcdir/debian debian
+    # copy debian dir, too. Prevent errors with `true` when using cmake
+    cp -a $srcdir/debian debian || true
     cd $srcdir
 
-    # copy in spec file, too
-    cp ceph.spec $releasedir/$cephver
+    # copy in spec file, too. If using cmake, the spec file
+    # will already exist.
+    cp ceph.spec $releasedir/$cephver || true
 fi
 
 if [ -n "$versionfile" ]; then
