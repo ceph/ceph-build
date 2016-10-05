@@ -14,7 +14,7 @@
 
 - job:
     name: ceph-docker-pull-requests
-    node: xenial&&huge
+    node: xenial&&huge&&amd64
     project-type: freestyle
     defaults: global
     display-name: 'ceph-docker: Pull Requests'
