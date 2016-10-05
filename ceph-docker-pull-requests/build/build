@@ -4,7 +4,15 @@ set -ex
 
 sudo apt-get install -y --force-yes docker.io
 docker --version
-cd "$WORKSPACE"
+
+# build scripts in project use this directory as reference
+cd "$WORKSPACE"/ceph-docker
+
+# pull requests tests should never have these directories here, but branches
+# do, so for the build scripts to work correctly, these neeed to be removed
+rm -rf "$WORKSPACE"/ceph-docker/{daemon,demo,base}
+
+
 sudo apt-get install -y --force-yes xfsprogs
 sudo "$WORKSPACE"/ceph-docker/travis-builds/purge_cluster.sh
 sudo "$WORKSPACE"/ceph-docker/travis-builds/build_imgs.sh
