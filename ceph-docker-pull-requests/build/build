@@ -10,8 +10,8 @@ cd "$WORKSPACE"/ceph-docker
 
 # pull requests tests should never have these directories here, but branches
 # do, so for the build scripts to work correctly, these neeed to be removed
-rm -rf "$WORKSPACE"/ceph-docker/{daemon,demo,base}
-
+# XXX It requires sudo because these will appear with `root` ownership
+sudo rm -rf "$WORKSPACE"/ceph-docker/{daemon,demo,base}
 
 sudo apt-get install -y --force-yes xfsprogs
 sudo "$WORKSPACE"/ceph-docker/travis-builds/purge_cluster.sh
