@@ -3,4 +3,4 @@
 set -ex
 
 # This will stop all running containers
-sudo "$WORKSPACE"/travis-builds/purge_cluster.sh
+sudo "$WORKSPACE"/ceph-docker/travis-builds/purge_cluster.sh
