@@ -36,3 +36,4 @@
         - project: 'ceph-dev'
           predefined-parameters:
             BRANCH=${GIT_BRANCH}
+            FORCE=True
