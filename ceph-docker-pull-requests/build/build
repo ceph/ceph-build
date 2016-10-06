@@ -15,6 +15,10 @@ sudo rm -rf "$WORKSPACE"/ceph-docker/{daemon,demo,base}
 
 sudo apt-get install -y --force-yes xfsprogs
 sudo "$WORKSPACE"/ceph-docker/travis-builds/purge_cluster.sh
+# XXX purge_cluster only stops containers, it doesn't really remove them so try to
+# remove them for real
+sudo docker rm -f $@ $(sudo docker ps -a -q)
+
 sudo "$WORKSPACE"/ceph-docker/travis-builds/build_imgs.sh
 
 # NOTE(leseb): somehow putting everything in a 'script' task does not work
