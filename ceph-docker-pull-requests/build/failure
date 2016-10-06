@@ -2,6 +2,12 @@
 
 set -ex
 
+# The below calls can be so verbose that using a header will make it
+# easier to track the actual failure point
+printf '=%.0s' {1..100}
+echo "ON FAILURE BUILD STEP"
+printf '=%.0s' {1..100}
+
 # on failure:
 sudo docker images
 sudo docker ps
