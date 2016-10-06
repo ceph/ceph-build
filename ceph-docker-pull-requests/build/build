@@ -36,5 +36,4 @@ sudo docker run -d --name ceph-demo --net=host -v /etc/ceph:/etc/ceph -v /var/li
 sudo "$WORKSPACE"/ceph-docker/travis-builds/validate_demo_cluster.sh
 
 # on success
-sudo docker exec ceph-mon ceph -s
 sudo docker exec ceph-demo ceph -s
