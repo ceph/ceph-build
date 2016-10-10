@@ -41,3 +41,8 @@
           predefined-parameters: |
             BRANCH=${GIT_BRANCH}
             FORCE=True
+        - project: 'ceph-dev'
+          predefined-parameters: |
+            BRANCH=${GIT_BRANCH}
+            FORCE=True
+            FLAVOR=notcmalloc
