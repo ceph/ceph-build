@@ -31,10 +31,15 @@
 - name: git submodule update
   command: git submodule update --init chdir=ceph
 
-- name: replace the version in configure.ac
+- name: check if configure.ac exists (pre-kraken)
+  stat: path=ceph/configure.ac
+  register: configure_ac
+
+- name: replace the version in configure.ac (pre-kraken)
   lineinfile: dest=ceph/configure.ac
               regexp='^AC_INIT\(\[ceph\],'
               line='AC_INIT([ceph], [{{ version }}], [ceph-devel@vger.kernel.org])'
+  when: configure_ac.stat.exists
 
 - name: check if CMakeLists.txt exists
   stat: path=ceph/CMakeLists.txt
