@@ -23,6 +23,48 @@ branch_slash_filter() {
     echo $FILTERED_BRANCH
 }
 
+
+install_python_packages_no_binary () {
+    # Use this function to create a virtualenv and install python packages
+    # without compiling (or using wheels). Pass a list of package names.  If
+    # the virtualenv exists it will get re-used since this function can be used
+    # along with install_python_packages
+    #
+    # Usage:
+    #
+    #   to_install=( "ansible" "chacractl>=0.0.4" )
+    #   install_python_packages_no_binary "to_install[@]"
+
+    # Create the virtualenv
+    if [ "$(ls -A $TEMPVENV)" ]; then
+        echo "Will reuse existing virtual env: $TEMPVENV"
+    else
+        virtualenv $TEMPVENV
+    fi
+
+
+    # Define and ensure the PIP cache
+    PIP_SDIST_INDEX="$HOME/.cache/pip"
+    mkdir -p $PIP_SDIST_INDEX
+
+    echo "Updating setuptools"
+    $VENV/pip install --upgrade --exists-action=i --download="$PIP_SDIST_INDEX" setuptools
+
+    echo "Ensuring latest pip is installed"
+    $VENV/pip install --upgrade --exists-action=i --download="$PIP_SDIST_INDEX" pip
+    $VENV/pip install --upgrade --exists-action=i --find-links="file://$PIP_SDIST_INDEX" --no-index pip
+
+    pkgs=("${!1}")
+    for package in ${pkgs[@]}; do
+        echo $package
+        # download packages to the local pip cache
+        $VENV/pip install --no-binary=:all: --upgrade --exists-action=i --download="$PIP_SDIST_INDEX" $package
+        # install packages from the local pip cache, ignoring pypi
+        $VENV/pip install --no-binary=:all: --upgrade --exists-action=i --find-links="file://$PIP_SDIST_INDEX" --no-index $package
+    done
+}
+
+
 install_python_packages () {
     # Use this function to create a virtualenv and install
     # python packages. Pass a list of package names.
