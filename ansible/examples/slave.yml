@@ -141,10 +141,10 @@
       when: ansible_pkg_mgr  == "apt"
       apt_key: id=C857C906 url=https://ftp-master.debian.org/keys/archive-key-8-security.asc keyring=/etc/apt/trusted.gpg state=present
 
-    - name: Add the Debian Jessie Stable Key
+    - name: Add the Debian Jessie Stable Release Key
       sudo: yes
       when: ansible_pkg_mgr  == "apt"
-      apt_key: id=518E17E1 url=http://download.ceph.com/keys/jessie-stable-release.asc keyring=/etc/apt/trusted.gpg state=present
+      apt_key: keyserver=pgp.mit.edu id=75DDC3C4A499F1A18CB5F3C8CBF8D6FD518E17E1 state=present
 
     - name: Install openjdk-7-jre
       apt: name=openjdk-7-jre state=present
