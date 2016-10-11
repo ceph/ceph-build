@@ -198,17 +198,21 @@
     # set to true on the image we use in OVH and some jobs will reboot
     # these nodes causing the /etc/hosts file to be replace with these
     # templates making jobs fail because the hostname is not resolvable
+    # not all our images have this setting though, so ignore failures on
+    # those nodes
     - name: update the etc cloud templates for debian /etc/hosts
       sudo: true
       lineinfile:
         dest: /etc/cloud/templates/hosts.debian.tmpl
         line: '127.0.1.1 ceph-builders'
+      failed_when: false
 
     - name: update the etc cloud templates for debian /etc/hosts
       sudo: true
       lineinfile:
         dest: /etc/cloud/templates/hosts.redhat.tmpl
         line: '127.0.1.1 ceph-builders'
+      failed_when: false
 
     - name: install six, latest one
       sudo: true
