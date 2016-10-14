@@ -25,8 +25,12 @@
           browser: auto
           # The default is to build and publish every branch.
           # Uncomment this for testing:
-          #branches:
-          #  - 'origin/master'
+          branches:
+            - 'origin/master'
+            - 'origin/jewel'
+            - 'origin/kraken'
+            - 'origin/hammer'
+            - 'origin/wip-*'
           skip-tag: true
           timeout: 20
           wipe-workspace: true
