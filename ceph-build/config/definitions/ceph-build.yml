@@ -72,6 +72,18 @@
             - ../../build/setup
             - ../../build/build_rpm
 
+    publishers:
+      - postbuildscript:
+          script-only-if-failed: True
+          script-only-if-succeeded: False
+          builders:
+            - inject:
+                properties-file: ${WORKSPACE}/build_info
+            - shell:
+                !include-raw:
+                  - ../../../scripts/build_utils.sh
+                  - ../../build/failure
+
     wrappers:
       - inject-passwords:
           global: true
