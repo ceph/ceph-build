@@ -69,7 +69,7 @@
           !include-raw:
             - ../../build/validate_rpm
             - ../../../scripts/build_utils.sh
-            - ../../build/setup
+            - ../../build/setup_rpm
             - ../../build/build_rpm
 
     publishers:

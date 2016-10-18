@@ -1,88 +1,6 @@
 #!/bin/bash
 set -ex
 
-if [[ ! -f /etc/redhat-release && ! -f /usr/bin/zypper ]] ; then
-    exit 0
-fi
-
-cd "$WORKSPACE"
-
-get_rpm_dist() {
-    LSB_RELEASE=/usr/bin/lsb_release
-    [ ! -x $LSB_RELEASE ] && echo unknown && exit
-
-    ID=`$LSB_RELEASE --short --id`
-
-    case $ID in
-    RedHatEnterpriseServer)
-        RELEASE=`$LSB_RELEASE --short --release | cut -d. -f1`
-        DIST=rhel$RELEASE
-        DISTRO=rhel
-        ;;
-    CentOS)
-        RELEASE=`$LSB_RELEASE --short --release | cut -d. -f1`
-        DIST=el$RELEASE
-        DISTRO=centos
-        ;;
-    Fedora)
-        RELEASE=`$LSB_RELEASE --short --release`
-        DIST=fc$RELEASE
-        DISTRO=fedora
-        ;;
-    SUSE\ LINUX)
-        DESC=`$LSB_RELEASE --short --description`
-        RELEASE=`$LSB_RELEASE --short --release`
-        case $DESC in
-        *openSUSE*)
-                DIST=opensuse$RELEASE
-                DISTRO=opensuse
-            ;;
-        *Enterprise*)
-                DIST=sles$RELEASE
-                DISTRO=sles
-                ;;
-            esac
-        ;;
-    *)
-        DIST=unknown
-        DISTRO=unknown
-        ;;
-    esac
-
-    echo $DIST
-}
-
-get_rpm_dist
-dist=$DIST
-[ -z "$dist" ] && echo no dist && exit 1
-echo dist $dist
-
-vers=`cat ./dist/version`
-# slap -rc to the ref if we are doing a release-candidate build
-[ "$RC" = true ] && chacra_ref="$BRANCH-rc" || chacra_ref="$BRANCH"
-[ "$TEST" = true ] && chacra_ref="test"
-
-chacra_endpoint="ceph/${chacra_ref}/${SHA1}/${DISTRO}/${RELEASE}"
-chacra_check_url="${chacra_endpoint}/${ARCH}/librados2-${vers}-0.${DIST}.${ARCH}.rpm"
-
-
-if [ "$THROWAWAY" = false ] ; then
-    # this exists in scripts/build_utils.sh
-    check_binary_existence $chacra_check_url
-fi
-
-HOST=$(hostname --short)
-echo "Building on $(hostname)"
-echo "  DIST=${DIST}"
-echo "  ARCH=${ARCH}"
-echo "  WS=$WORKSPACE"
-echo "  PWD=$(pwd)"
-echo "  BUILD SOURCE=$COPYARTIFACT_BUILD_NUMBER_CEPH_SETUP"
-echo "*****"
-env
-echo "*****"
-
-
 # create a release directory for ceph-build tools
 mkdir -p release
 cp -a dist release/${vers}
@@ -146,3 +64,6 @@ EOF
     # start repo creation
     $VENV/chacractl repo update ${chacra_endpoint}
 fi
+
+# update shaman with the completed build status
+update_build_status "completed" "ceph" $NORMAL_DISTRO $NORMAL_DISTRO_VERSION $NORMAL_ARCH
