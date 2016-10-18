@@ -61,7 +61,7 @@
           !include-raw:
             - ../../build/validate_deb
             - ../../../scripts/build_utils.sh
-            - ../../build/setup
+            - ../../build/setup_deb
             - ../../build/setup_pbuilder
             - ../../build/build_deb
       # rpm build scripts
