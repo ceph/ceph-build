@@ -61,7 +61,7 @@
           !include-raw:
             - ../../build/validate_deb
             - ../../../scripts/build_utils.sh
-            - ../../build/setup
+            - ../../build/setup_deb
             - ../../build/setup_pbuilder
             - ../../build/build_deb
       # rpm build scripts
@@ -69,8 +69,20 @@
           !include-raw:
             - ../../build/validate_rpm
             - ../../../scripts/build_utils.sh
-            - ../../build/setup
+            - ../../build/setup_rpm
             - ../../build/build_rpm
+
+    publishers:
+      - postbuildscript:
+          script-only-if-failed: True
+          script-only-if-succeeded: False
+          builders:
+            - inject:
+                properties-file: ${WORKSPACE}/build_info
+            - shell:
+                !include-raw:
+                  - ../../../scripts/build_utils.sh
+                  - ../../build/failure
 
     wrappers:
       - inject-passwords:
