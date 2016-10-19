@@ -107,6 +107,8 @@ install_python_packages "pkgs[@]"
 
 make_chacractl_config
 
+FLAVOR="default"
+
 # look for a specific package to tell if we can avoid the build
 chacra_endpoint="ceph/${chacra_ref}/${SHA1}/${distro}/${DIST}/${ARCH}/flavors/${FLAVOR}"
 chacra_repo_endpoint="ceph/${chacra_ref}/${SHA1}/${distro}/${DIST}/flavors/${FLAVOR}"

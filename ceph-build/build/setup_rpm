@@ -123,6 +123,8 @@ echo dist $dist
 vers=`cat ./dist/version`
 chacra_ref="$BRANCH"
 
+FLAVOR="default"
+
 chacra_endpoint="ceph/${chacra_ref}/${SHA1}/${DISTRO}/${RELEASE}"
 chacra_check_url="${chacra_endpoint}/${ARCH}/flavors/${FLAVOR}/librados2-${vers}-0.${DIST}.${ARCH}.rpm"
 
