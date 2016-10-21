@@ -62,7 +62,7 @@ EOF
     # post the json to repo-extra json to chacra
     curl -X POST -H "Content-Type:application/json" --data "@$WORKSPACE/repo-extra.json" -u $CHACRACTL_USER:$CHACRACTL_KEY https://chacra.ceph.com/repos/${chacra_repo_endpoint}/extra/
     # start repo creation
-    $VENV/chacractl repo update ${chacra_endpoint}
+    $VENV/chacractl repo update ${chacra_repo_endpoint}
 fi
 
 # update shaman with the completed build status
