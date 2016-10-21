@@ -35,10 +35,14 @@ else
     echo building tarball
     rm ceph-*.tar.gz || true
     rm ceph-*.tar.bz2 || true
-    make dist
-    make dist-bzip2
 
-    vers=`ls ceph-*.tar.gz | cut -c 6- | sed 's/.tar.gz//'`
+    if [ -x make-dist ]; then
+        ./make-dist
+    else
+        make dist-bzip2
+    fi
+
+    vers=`ls ceph-*.tar.bz2 | cut -c 6- | sed 's/.tar.bz2//'`
     echo tarball vers $vers
 
     echo extracting
@@ -46,7 +50,7 @@ else
     cp rpm/*.patch $releasedir/$cephver/rpm || true
     cd $releasedir/$cephver
 
-    tar zxf $srcdir/ceph-$vers.tar.gz 
+    tar jxf $srcdir/ceph-$vers.tar.bz2
     [ "$vers" != "$cephver" ] && mv ceph-$vers ceph-$cephver
 
     tar zcf ceph_$cephver.orig.tar.gz ceph-$cephver
