@@ -25,7 +25,7 @@
     retry-count: 3
     properties:
       - github:
-          url: https://github.com/ceph/ceph-build
+          url: https://github.com/ceph/ceph-ansible
     logrotate:
       daysToKeep: 15
       numToKeep: 30
