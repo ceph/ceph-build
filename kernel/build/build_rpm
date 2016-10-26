@@ -55,7 +55,7 @@ get_rpm_dist() {
 
 get_rpm_dist
 
-chacra_endpoint="kernel/${BRANCH}/${SHA1}/${DISTRO}/${RELEASE}"
+chacra_endpoint="kernel/${BRANCH}/${GIT_COMMIT}/${DISTRO}/${RELEASE}"
 chacra_check_url="${chacra_endpoint}/${ARCH}/kernel-${VERSION}-${RPM_RELEASE}.${DIST}.${ARCH}.rpm"
 
 if [ "$THROWAWAY" = false ] ; then
@@ -73,13 +73,12 @@ echo "*****"
 env
 echo "*****"
 
-# Clean the git repo
-git clean -fxd
-
 # Prep the config
-echo "Preparing the kernel config"
-cp "$(dirname $0)/kernel-config-rpm.basic" .config
+echo "Updating the default kernel config for rpm-based distros"
 yes "" | make oldconfig # Update with defaults for new options
+
+# Clean rpmbuild structure
+rm -rf ~/rpmbuild/
 
 # Build the rpms
 echo "Building RPMs"
@@ -92,7 +91,7 @@ cd "$WORKSPACE"
 
 if [ "$THROWAWAY" = false ] ; then
     # push binaries to chacra
-    find ./ | egrep '\.rpm$' | $VENV/chacractl binary ${chacra_flags} create ${chacra_endpoint}/$ARCH/
+    find ~/rpmbuild/ | egrep '\.rpm$' | $VENV/chacractl binary ${chacra_flags} create ${chacra_endpoint}/$ARCH/
 
     # start repo creation
     $VENV/chacractl repo update ${chacra_endpoint}

@@ -35,7 +35,7 @@ chacra_ref="$BRANCH"
 [ "$RC" = true ] && chacra_ref="$BRANCH-rc"
 [ "$TEST" = true ] && chacra_ref="test"
 
-ARCH=$(dpkg-architecture -qDEB_BUILD_ARCH)
+DEB_ARCH=$(dpkg-architecture -qDEB_BUILD_ARCH)
 DISTRO=""
 case $DIST in
     jessie|wheezy)
@@ -67,8 +67,8 @@ gen_debian_version() {
 
 BPVER=`gen_debian_version $debian_version $DIST`
 
-chacra_endpoint="kernel/${BRANCH}/${SHA1}/${DISTRO}/${DIST}"
-chacra_check_url="${chacra_endpoint}/kernel_${BPVER}_${ARCH}.deb"
+chacra_endpoint="kernel/${BRANCH}/${GIT_COMMIT}/${DISTRO}/${DIST}"
+chacra_check_url="${chacra_endpoint}/kernel_${BPVER}_${DEB_ARCH}.deb"
 
 if [ "$THROWAWAY" = false ] ; then
     # this exists in scripts/build_utils.sh
@@ -78,20 +78,22 @@ fi
 HOST=$(hostname --short)
 echo "Building on $(hostname)"
 echo "  DIST=${DIST}"
-echo "  ARCH=${ARCH}"
+echo "  DEB_ARCH=${DEB_ARCH}"
 echo "  WS=$WORKSPACE"
 echo "  PWD=$(pwd)"
 echo "*****"
 env
 echo "*****"
 
-# Clean the git repo
-git clean -fxd
+# Install build dependencies
+sudo apt-get install -y bc
 
 # Prep the config
-echo "Preparing the kernel config"
-cp "$(dirname $0)/kernel-config-deb.basic" .config
+echo "Updating the default debian kernel config"
 yes "" | make oldconfig # Update with defaults for new options
+
+# Clean the upper level debs
+rm -f ../*.deb
 
 # Build the rpms
 echo "Building DEBs"
@@ -104,7 +106,7 @@ cd "$WORKSPACE"
 
 if [ "$THROWAWAY" = false ] ; then
     # push binaries to chacra
-    find ./ | egrep "*\.(changes|deb|dsc|gz)$" | egrep -v "(Packages|Sources|Contents)" | $VENV/chacractl binary ${chacra_flags} create ${chacra_endpoint}/${ARCH}/
+    find ../*.deb | $VENV/chacractl binary ${chacra_flags} create ${chacra_endpoint}/${DEB_ARCH}/
 
     # start repo creation
     $VENV/chacractl repo update ${chacra_endpoint}
