@@ -1,0 +1,115 @@
+- job:
+    name: kernel
+    project-type: matrix
+    defaults: global
+    display-name: 'kernel'
+    block-downstream: false
+    block-upstream: false
+    concurrent: true
+    parameters:
+      - string:
+          name: BRANCH
+          description: "The git branch (or tag) to build"
+
+      - string:
+          name: DISTROS
+          description: "A list of distros to build for. Available options are: xenial, centos7, centos6, trusty, precise, wheezy, and jessie"
+          default: "centos7 precise xenial"
+
+      - string:
+          name: ARCHS
+          description: "A list of architectures to build for. Available options are: x86_64, and arm64"
+          default: "x86_64"
+
+      - bool:
+          name: THROWAWAY
+          description: "
+Default: False. When True it will not POST binaries to chacra. Artifacts will not be around for long. Useful to test builds."
+          default: false
+
+      - bool:
+          name: FORCE
+          description: "
+If this is unchecked, then nothing is built or pushed if they already exist in chacra. This is the default.
+
+If this is checked, then the binaries will be built and pushed to chacra even if they already exist in chacra."
+
+      - string:
+          name: BUILD_VIRTUALENV
+          description: "Base parent path for virtualenv locations, set to avoid issues with extremely long paths that are incompatible with tools like pip. Defaults to '/tmp/' (note the trailing slash, which is required)."
+          default: "/tmp/"
+
+    execution-strategy:
+       combination-filter: DIST==AVAILABLE_DIST && ARCH==AVAILABLE_ARCH && (ARCH=="x86_64" || (ARCH == "arm64" && (DIST == "xenial" || DIST == "centos7")))
+    axes:
+      - axis:
+          type: label-expression
+          name: MACHINE_SIZE
+          values:
+            - huge
+      - axis:
+          type: label-expression
+          name: AVAILABLE_ARCH
+          values:
+            - x86_64
+            - arm64
+      - axis:
+          type: label-expression
+          name: AVAILABLE_DIST
+          values:
+            - centos6
+            - centos7
+            - trusty
+            - xenial
+            - jessie
+            - precise
+            - wheezy
+      - axis:
+          type: dynamic
+          name: DIST
+      - axis:
+          type: dynamic
+          name: DIST
+          values:
+            - DISTROS
+      - axis:
+          type: dynamic
+          name: ARCH
+          values:
+            - ARCHS
+
+    scm:
+      - git:
+          url: git@github.com:ceph/ceph-client.git
+          # Use the SSH key attached to the ceph-jenkins GitHub account.
+          credentials-id: '39fa150b-b2a1-416e-b334-29a9a2c0b32d'
+          branches:
+            - $BRANCH
+          skip-tag: true
+          wipe-workspace: true
+
+    builders:
+      - shell: |
+          echo "Cleaning up top-level workarea (shared among workspaces)"
+          rm -rf dist
+          rm -rf venv
+          rm -rf release
+      # debian build scripts
+      - shell:
+          !include-raw:
+            - ../../build/validate_deb
+            - ../../../scripts/build_utils.sh
+            - ../../build/setup
+            - ../../build/build_deb
+      # rpm build scripts
+      - shell:
+          !include-raw:
+            - ../../build/validate_rpm
+            - ../../../scripts/build_utils.sh
+            - ../../build/setup
+            - ../../build/build_rpm
+
+    wrappers:
+      - inject-passwords:
+          global: true
+          mask-password-params: true

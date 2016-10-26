@@ -1,0 +1,101 @@
+#!/bin/bash
+set -ex
+
+# Only do actual work when we are an RPM distro
+if [[ ! -f /etc/redhat-release && ! -f /usr/bin/zypper ]] ; then
+    exit 0
+fi
+
+cd $WORKSPACE
+
+get_rpm_dist() {
+    LSB_RELEASE=/usr/bin/lsb_release
+    [ ! -x $LSB_RELEASE ] && echo unknown && exit
+
+    ID=`$LSB_RELEASE --short --id`
+
+    case $ID in
+    RedHatEnterpriseServer)
+        RELEASE=`$LSB_RELEASE --short --release | cut -d. -f1`
+        DIST=rhel$RELEASE
+        DISTRO=rhel
+        ;;
+    CentOS)
+        RELEASE=`$LSB_RELEASE --short --release | cut -d. -f1`
+        DIST=el$RELEASE
+        DISTRO=centos
+        ;;
+    Fedora)
+        RELEASE=`$LSB_RELEASE --short --release`
+        DIST=fc$RELEASE
+        DISTRO=fedora
+        ;;
+    SUSE\ LINUX)
+        DESC=`$LSB_RELEASE --short --description`
+        RELEASE=`$LSB_RELEASE --short --release`
+        case $DESC in
+        *openSUSE*)
+                DIST=opensuse$RELEASE
+                DISTRO=opensuse
+            ;;
+        *Enterprise*)
+                DIST=sles$RELEASE
+                DISTRO=sles
+                ;;
+            esac
+        ;;
+    *)
+        DIST=unknown
+        DISTRO=unknown
+        ;;
+    esac
+
+    echo $DIST
+}
+
+get_rpm_dist
+
+chacra_endpoint="kernel/${BRANCH}/${SHA1}/${DISTRO}/${RELEASE}"
+chacra_check_url="${chacra_endpoint}/${ARCH}/kernel-${VERSION}-${RPM_RELEASE}.${DIST}.${ARCH}.rpm"
+
+if [ "$THROWAWAY" = false ] ; then
+    # this exists in scripts/build_utils.sh
+    check_binary_existence $chacra_check_url
+fi
+
+HOST=$(hostname --short)
+echo "Building on $(hostname)"
+echo "  DIST=${DIST}"
+echo "  ARCH=${ARCH}"
+echo "  WS=$WORKSPACE"
+echo "  PWD=$(pwd)"
+echo "*****"
+env
+echo "*****"
+
+# Clean the git repo
+git clean -fxd
+
+# Prep the config
+echo "Preparing the kernel config"
+cp "$(dirname $0)/kernel-config-rpm.basic" .config
+yes "" | make oldconfig # Update with defaults for new options
+
+# Build the rpms
+echo "Building RPMs"
+make rpm-pkg
+
+# Make sure we execute at the top level directory
+cd "$WORKSPACE"
+
+[ "$FORCE" = true ] && chacra_flags="--force" || chacra_flags=""
+
+if [ "$THROWAWAY" = false ] ; then
+    # push binaries to chacra
+    find ./ | egrep '\.rpm$' | $VENV/chacractl binary ${chacra_flags} create ${chacra_endpoint}/$ARCH/
+
+    # start repo creation
+    $VENV/chacractl repo update ${chacra_endpoint}
+
+    echo Check the status of the repo at: https://shaman.ceph.com/api/repos/${chacra_endpoint}
+fi

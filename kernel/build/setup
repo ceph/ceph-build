@@ -1,0 +1,62 @@
+#!/bin/bash
+#
+# Ceph distributed storage system
+#
+# Copyright (C) 2016 Red Hat <contact@redhat.com>
+#
+# Author: Boris Ranto <branto@redhat.com>
+#
+#  This library is free software; you can redistribute it and/or
+#  modify it under the terms of the GNU Lesser General Public
+#  License as published by the Free Software Foundation; either
+#  version 2.1 of the License, or (at your option) any later version.
+#
+set -ex
+HOST=$(hostname --short)
+echo "Building on $(hostname)"
+echo "  DIST=${DIST}"
+echo "  BPTAG=${BPTAG}"
+echo "  KEYID=${KEYID}"
+echo "  WS=$WORKSPACE"
+echo "  PWD=$(pwd)"
+echo "  BUILD SOURCE=$COPYARTIFACT_BUILD_NUMBER_CEPH_SETUP"
+echo "*****"
+env
+echo "*****"
+
+if test $(id -u) != 0 ; then
+    SUDO=sudo
+fi
+export LC_ALL=C # the following is vulnerable to i18n
+
+if test -f /etc/redhat-release ; then
+    $SUDO yum install -y redhat-lsb-core
+fi
+
+if which apt-get > /dev/null ; then
+    $SUDO apt-get install -y lsb-release
+fi
+
+case $(lsb_release -si) in
+CentOS|Fedora|SUSE*|RedHatEnterpriseServer)
+        case $(lsb_release -si) in
+            SUSE*)
+                $SUDO zypper -y yum-utils
+                ;;
+            *)
+                $SUDO yum install -y yum-utils mock
+                ;;
+        esac
+        ;;
+*)
+        echo "$(lsb_release -si) is unknown, dependencies will have to be installed manually."
+        ;;
+esac
+
+pkgs=( "chacractl>=0.0.4" )
+install_python_packages "pkgs[@]"
+
+# ask shaman which chacra instance to use
+chacra_url=`curl -f -u $SHAMAN_API_USER:$SHAMAN_API_KEY https://shaman.ceph.com/api/nodes/next/`
+# create the .chacractl config file using global variables
+make_chacractl_config $chacra_url
