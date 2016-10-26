@@ -1,3 +1,6 @@
+#! /usr/bin/env bash
+
+cat > debug.config << EOF
 #
 # Automatically generated make config: don't edit
 # Linux/x86_64 2.6.38 Kernel Configuration
@@ -4976,3 +4979,4 @@ CONFIG_CHECK_SIGNATURE=y
 CONFIG_NLATTR=y
 CONFIG_LRU_CACHE=m
 CONFIG_AVERAGE=y
+EOF

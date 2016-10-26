@@ -100,6 +100,7 @@ If this is checked, then the binaries will be built and pushed to chacra even if
             - ../../build/validate_deb
             - ../../../scripts/build_utils.sh
             - ../../build/setup
+            - ../../build/kernel-config-deb.basic.sh
             - ../../build/build_deb
       # rpm build scripts
       - shell:
@@ -107,6 +108,7 @@ If this is checked, then the binaries will be built and pushed to chacra even if
             - ../../build/validate_rpm
             - ../../../scripts/build_utils.sh
             - ../../build/setup
+            - ../../build/kernel-config-rpm.basic.sh
             - ../../build/build_rpm
 
     wrappers:

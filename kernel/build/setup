@@ -60,3 +60,9 @@ install_python_packages "pkgs[@]"
 chacra_url=`curl -f -u $SHAMAN_API_USER:$SHAMAN_API_KEY https://shaman.ceph.com/api/nodes/next/`
 # create the .chacractl config file using global variables
 make_chacractl_config $chacra_url
+
+# Make sure we execute at the top level directory
+cd "$WORKSPACE"
+
+# Clean the git repo
+git clean -fxd
