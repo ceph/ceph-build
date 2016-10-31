@@ -1,0 +1,86 @@
+#! /usr/bin/bash
+set -ex
+
+# Only do actual work when we are a DEB distro
+if test "$DISTRO" != "debian" -a "$DISTRO" != "ubuntu"; then
+    exit 0
+fi
+
+
+## Install any setup-time deps
+# TODO -- upload install-deps.sh script that installs the setup time deps
+# to upstream repo or update this section to install these packages
+
+# We need this for mk-build-deps
+sudo apt-get install equivs
+
+# Run the install-deps.sh upstream script if it exists
+if [ -x install-deps.sh ]; then
+    echo "Ensuring dependencies are installed"
+    ./install-deps.sh
+fi
+
+
+## Setup the pbuilder
+# TODO remove if you do not want to use pbuilders
+setup_pbuilder
+
+
+## Get some basic information about the system and the repository
+# TODO -- update this to get the proper VERSION/REVISION
+DEB_ARCH=$(dpkg-architecture -qDEB_BUILD_ARCH)
+VERSION="$(./get-version.sh)"
+REVISION="$(./get-revision.sh)"
+
+
+## Build the source tarball
+# TODO -- upload make-dist script that stores the tarball in dist/ to upstream repo or update this section
+echo "Building source distribution"
+if [ -x make-dist ]; then
+    echo "Ensuring dependencies are installed"
+    ./make-dist
+fi
+
+
+## Prepare the debian files
+# TODO -- Make sure the debian folder is tracked upstream
+# Bump the changelog
+dch -v "$VERSION" "New release ($VERSION)"
+
+# Install debian build-time dependencies
+yes | sudo mk-build-deps --install debian/control
+
+# Create .dsc and source tarball
+sudo dpkg-buildpackage -S -us -uc
+
+
+## Build with pbuilder
+echo "Building debs"
+
+PBUILDDIR="/srv/debian-base"
+
+sudo pbuilder --clean
+
+mkdir -p dist/deb
+
+echo "Building debs for $DIST"
+sudo pbuilder build \
+    --distribution $DIST \
+    --basetgz $PBUILDDIR/$DIST.tgz \
+    --buildresult dist/deb/ \
+    --debbuildopts "-j`grep -c processor /proc/cpuinfo`" \
+    dist/PROJECT_$VERSION.dsc
+
+
+## Upload the created RPMs to chacra
+chacra_endpoint="PROJECT/${BRANCH}/${GIT_COMMIT}/${DISTRO}/${DIST}"
+
+[ "$FORCE" = true ] && chacra_flags="--force" || chacra_flags=""
+
+# push binaries to chacra
+find ../*.deb | $VENV/chacractl binary ${chacra_flags} create ${chacra_endpoint}/${DEB_ARCH}/
+
+# start repo creation
+$VENV/chacractl repo update ${chacra_endpoint}
+
+echo Check the status of the repo at: https://shaman.ceph.com/api/repos/${chacra_endpoint}
