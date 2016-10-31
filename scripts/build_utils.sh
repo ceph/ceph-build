@@ -275,3 +275,32 @@ failed_build_status() {
 
     submit_build_status "POST" $state $project $distro $distro_version $distro_arch
 }
+
+
+get_distro_and_target() {
+    # Get distro from DIST for chacra uploads
+    DISTRO=""
+    case $DIST in
+        jessie|wheezy)
+            DISTRO="debian"
+            ;;
+        xenial|precise|trusty)
+            DISTRO="ubuntu"
+            ;;
+        centos*)
+            DISTRO="centos"
+            MOCK_TARGET="epel"
+            ;;
+        rhel*)
+            DISTRO="rhel"
+            MOCK_TARGET="epel"
+            ;;
+        fedora*)
+            DISTRO="fedora"
+            MOCK_TARGET="fedora"
+            ;;
+        *)
+            DISTRO="unknown"
+            ;;
+    esac
+}
