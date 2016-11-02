@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -ex
+set -x
 
 # The below calls can be so verbose that using a header will make it
 # easier to track the actual failure point
