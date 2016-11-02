@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # the following two methods exist in scripts/build_utils.sh
-pkgs=( "ansible" )
+pkgs=( "ansible==2.1" )
 install_python_packages "pkgs[@]"
 
 # ceph-ansible does a check on the installed version of ansible and
