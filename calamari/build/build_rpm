@@ -9,12 +9,12 @@ fi
 
 ## Install any setup-time deps (to make dist package)
 # We need this to get the major version from lsb_release
-yum install -y redhat-lsb-core
+sudo yum install -y redhat-lsb-core mock
 
 # Run the install-deps.sh upstream script if it exists
 if [ -x install-deps.sh ]; then
     echo "Ensuring dependencies are installed"
-    ./install-deps.sh
+    sudo ./install-deps.sh
 fi
 
 
@@ -36,7 +36,7 @@ sed -e "s/@VERSION@/${VERSION}/g" -e "s/@RELEASE@/${RPM_RELEASE}/g" < calamari-s
 
 
 ## Install the build-time dependencies (for rpmbuild -bs)
-sudo yum-builddep -y dist/calamari.spec
+sudo yum-builddep -y dist/calamari-server.spec
 
 
 ## Create the source rpm
@@ -56,7 +56,7 @@ SRPM=$(readlink -f *.src.rpm)
 
 ## Build the binaries with mock
 echo "Building RPMs"
-sudo mock -r ${MOCK_TARGET}-${RELEASE}-${ARCH} --resultdir=./dist/rpm/"%(dist)s"/"%(target_arch)s"/ ${SRPM}
+sudo mock -r ${MOCK_TARGET}-${RELEASE}-${ARCH} --resultdir=./dist/rpm/ ${SRPM}
 
 
 ## Upload the created RPMs to chacra
@@ -65,7 +65,7 @@ chacra_endpoint="calamari/${BRANCH}/${GIT_COMMIT}/${DISTRO}/${RELEASE}"
 [ "$FORCE" = true ] && chacra_flags="--force" || chacra_flags=""
 
 # push binaries to chacra
-find ~/rpmbuild/ | egrep '\.rpm$' | $VENV/chacractl binary ${chacra_flags} create ${chacra_endpoint}/$ARCH/
+find ./dist/rpm/ | egrep '\.rpm$' | $VENV/chacractl binary ${chacra_flags} create ${chacra_endpoint}/$ARCH/
 
 # start repo creation
 $VENV/chacractl repo update ${chacra_endpoint}
