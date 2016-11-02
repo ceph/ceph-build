@@ -9,12 +9,12 @@ fi
 
 ## Install any setup-time deps
 # We need this for mk-build-deps
-sudo apt-get install equivs
+sudo apt-get install -y equivs
 
 # Run the install-deps.sh upstream script if it exists
 if [ -x install-deps.sh ]; then
     echo "Ensuring dependencies are installed"
-    ./install-deps.sh
+    sudo ./install-deps.sh
 fi
 
 
