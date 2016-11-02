@@ -1,9 +1,0 @@
-set -e
-rm -f ${WORKSPACE}/calamari-clients*deb
-rm -f ${WORKSPACE}/calamari-clients-build-output.tar.gz
-cd $WORKSPACE
-sudo -E salt-call --local --file-root $WORKSPACE/calamari-clients/vagrant/salt/roots -l debug state.highstate
-rm -rf $BRANCH
-mkdir $BRANCH
-mv *deb $BRANCH
-mv calamari-clients-build-output.tar.gz $BRANCH
