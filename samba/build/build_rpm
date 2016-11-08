@@ -1,0 +1,79 @@
+#! /usr/bin/bash
+set -ex
+
+# Only do actual work when we are an RPM distro
+if test "$DISTRO" != "fedora" -a "$DISTRO" != "centos" -a "$DISTRO" != "rhel"; then
+    exit 0
+fi
+
+
+## Install any setup-time deps (to make dist package)
+# TODO -- upload install-deps.sh script that installs the setup time deps
+# to upstream repo or update this section to install these packages
+
+# We need this to get the major version from lsb_release
+yum install -y redhat-lsb-core mock
+
+# Run the install-deps.sh upstream script if it exists
+if [ -x install-deps.sh ]; then
+    echo "Ensuring dependencies are installed"
+    sudo ./install-deps.sh
+fi
+
+
+## Get some basic information about the system and the repository
+# TODO -- update this to get the proper VERSION/REVISION
+RELEASE="$(lsb_release --short -r | cut -d '.' -f 1)" # sytem release
+VERSION="$(./get-version.sh)"
+REVISION="$(./get-revision.sh)"
+RPM_RELEASE=$(echo $REVISION | tr '-' '_') # the '-' has a special meaning
+
+
+## Build the source tarball
+# TODO -- upload make-dist script that stores the tarball in dist/ to upstream repo or update this section
+echo "Building source distribution"
+if [ -x make-dist ]; then
+    echo "Ensuring dependencies are installed"
+    ./make-dist
+fi
+
+
+## Prepare the spec file for build
+# TODO -- Make sure the spec(.in) file is tracked upstream
+sed -e "s/@VERSION@/${VERSION}/g" -e "s/@RELEASE@/${RPM_RELEASE}/g" < samba.spec.in > dist/samba.spec
+
+
+## Create the source rpm
+# TODO -- update the paths to match the location of source package (dist/ by
+# default) and the spec file (PWD by default)
+echo "Building SRPM"
+rpmbuild \
+    --define "_sourcedir ./dist" \
+    --define "_specdir ." \
+    --define "_builddir ." \
+    --define "_srcrpmdir ." \
+    --define "_rpmdir ." \
+    --define "dist .any" \
+    --define "fedora 21" \
+    --define "rhel 7" \
+    --nodeps -bs dist/samba.spec
+SRPM=$(readlink -f *.src.rpm)
+
+
+## Build the binaries with mock
+echo "Building RPMs"
+sudo mock -r ${MOCK_TARGET}-${RELEASE}-${ARCH} --resultdir=./dist/rpm/ ${SRPM}
+
+
+## Upload the created RPMs to chacra
+chacra_endpoint="samba/${BRANCH}/${GIT_COMMIT}/${DISTRO}/${RELEASE}"
+
+[ "$FORCE" = true ] && chacra_flags="--force" || chacra_flags=""
+
+# push binaries to chacra
+find ./dist/rpm/ | egrep '\.rpm$' | $VENV/chacractl binary ${chacra_flags} create ${chacra_endpoint}/$ARCH/
+
+# start repo creation
+$VENV/chacractl repo update ${chacra_endpoint}
+
+echo Check the status of the repo at: https://shaman.ceph.com/api/repos/${chacra_endpoint}
