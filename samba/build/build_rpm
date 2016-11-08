@@ -12,7 +12,7 @@ fi
 # to upstream repo or update this section to install these packages
 
 # We need this to get the major version from lsb_release
-yum install -y redhat-lsb-core mock
+sudo yum install -y redhat-lsb-core mock
 
 # Run the install-deps.sh upstream script if it exists
 if [ -x install-deps.sh ]; then
