@@ -106,7 +106,7 @@ cd "$WORKSPACE"
 
 if [ "$THROWAWAY" = false ] ; then
     # push binaries to chacra
-    find ../*.deb | $VENV/chacractl binary ${chacra_flags} create ${chacra_endpoint}/${DEB_ARCH}/
+    find ../*.deb | $VENV/chacractl binary ${chacra_flags} create ${chacra_endpoint}/${ARCH}/
 
     # start repo creation
     $VENV/chacractl repo update ${chacra_endpoint}
