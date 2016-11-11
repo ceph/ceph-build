@@ -88,7 +88,7 @@ rm -f ../*.deb
 
 # Build the debs
 echo "Building DEBs"
-make deb-pkg
+make bindeb-pkg
 
 # Make sure we execute at the top level directory
 cd "$WORKSPACE"

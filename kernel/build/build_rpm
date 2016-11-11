@@ -73,7 +73,7 @@ rm -rf ~/rpmbuild/
 
 # Build the rpms
 echo "Building RPMs"
-make rpm-pkg
+make binrpm-pkg
 
 # Make sure we execute at the top level directory
 cd "$WORKSPACE"
