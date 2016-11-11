@@ -1,0 +1,18 @@
+#!/bin/bash
+set -ex
+
+# Prep the config
+echo "Updating the kernel config"
+make olddefconfig
+
+# This way we get the commit hash embedded into the package metadata
+# and 'uname -r' in all cases - whether it's some random commit or an
+# annotated tag.  Example package names:
+# uname -r: 4.9.0-rc4-ceph-g156db39ecfbd
+# deb: linux-image-4.9.0-rc4-ceph-g156db39ecfbd_4.9.0-rc4-ceph-g156db39ecfbd-1_amd64.deb
+# rpm: kernel-4.9.0_rc4_ceph_g156db39ecfbd-2.x86_64.rpm
+if ! grep -q "^CONFIG_LOCALVERSION_AUTO=y" .config; then
+    echo "CONFIG_LOCALVERSION_AUTO is not set, check kernel-config-*.sh"
+    exit 1
+fi
+printf -- '-ceph-g%s' ${GIT_COMMIT:0:12} > .scmversion

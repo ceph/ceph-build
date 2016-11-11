@@ -73,10 +73,6 @@ echo "*****"
 env
 echo "*****"
 
-# Prep the config
-echo "Updating the default kernel config for rpm-based distros"
-yes "" | make oldconfig # Update with defaults for new options
-
 # Clean rpmbuild structure
 rm -rf ~/rpmbuild/
 

@@ -88,14 +88,10 @@ echo "*****"
 # Install build dependencies
 sudo apt-get install -y bc
 
-# Prep the config
-echo "Updating the default debian kernel config"
-yes "" | make oldconfig # Update with defaults for new options
-
 # Clean the upper level debs
 rm -f ../*.deb
 
-# Build the rpms
+# Build the debs
 echo "Building DEBs"
 make deb-pkg
 
