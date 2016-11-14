@@ -1,11 +1,6 @@
 #!/bin/bash
 set -ex
 
-# Only do actual work when we are an RPM distro
-if [[ ! -f /etc/redhat-release && ! -f /usr/bin/zypper ]] ; then
-    exit 0
-fi
-
 cd $WORKSPACE
 
 get_rpm_dist() {
@@ -73,16 +68,12 @@ echo "*****"
 env
 echo "*****"
 
-# Prep the config
-echo "Updating the default kernel config for rpm-based distros"
-yes "" | make oldconfig # Update with defaults for new options
-
 # Clean rpmbuild structure
 rm -rf ~/rpmbuild/
 
 # Build the rpms
 echo "Building RPMs"
-make rpm-pkg
+make -j$(getconf _NPROCESSORS_ONLN) binrpm-pkg
 
 # Make sure we execute at the top level directory
 cd "$WORKSPACE"
