@@ -198,3 +198,7 @@ EOF
 cat > dist/branch << EOF
 BRANCH=${BRANCH}
 EOF
+
+cat > dist/other_envvars << EOF
+CEPH_EXTRA_CMAKE_ARGS="${CEPH_EXTRA_CMAKE_ARGS}"
+EOF

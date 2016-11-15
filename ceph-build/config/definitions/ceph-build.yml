@@ -57,6 +57,8 @@
           which-build: multijob-build
       - inject:
           properties-file: ${WORKSPACE}/dist/sha1
+      - inject:
+          properties-file: ${WORKSPACE}/dist/other_envvars
       # debian build scripts
       - shell:
           !include-raw:
