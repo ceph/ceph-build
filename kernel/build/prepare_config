@@ -16,3 +16,5 @@ if ! grep -q "^CONFIG_LOCALVERSION_AUTO=y" .config; then
     exit 1
 fi
 printf -- '-ceph-g%s' ${GIT_COMMIT:0:12} > .scmversion
+
+kernelrelease=$(make -s kernelrelease)
