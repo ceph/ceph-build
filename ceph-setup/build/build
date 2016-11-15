@@ -183,3 +183,7 @@ mv release/version dist/.
 cat > dist/sha1 << EOF
 SHA1=${GIT_COMMIT}
 EOF
+
+cat > dist/other_envvars << EOF
+CEPH_EXTRA_CMAKE_ARGS="${CEPH_EXTRA_CMAKE_ARGS}"
+EOF
