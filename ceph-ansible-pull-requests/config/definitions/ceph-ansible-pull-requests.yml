@@ -14,6 +14,8 @@
 
 - job:
     name: ceph-ansible-pull-requests
+    # disabling for now, until libvirt/vagrant tests are in place
+    disabled: true
     project-type: matrix
     defaults: global
     display-name: 'ceph-ansible: Pull Requests'
