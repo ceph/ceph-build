@@ -391,3 +391,79 @@ setup_pbuilder() {
         --mirror "$mirror"
     fi
 }
+
+
+chacra_post_deb_packages() {
+    if test $# -lt 2; then
+        echo "ERROR: Incorrect usage"
+        echo "Usage: <function> <chacra_endpoint> <package> [package...]"
+        exit 1
+    fi
+
+    local chacra_endpoint="$1"
+    shift
+    local arch=$(dpkg-architecture -qDEB_BUILD_ARCH)
+    local pkg pkg_version chacra_flags
+    test "$FORCE" = true && chacra_flags="--force"
+
+    for pkg in $@; do
+        pkg_version=$(dpkg-deb -f "$pkg" Version)
+        $VENV/chacractl binary ${chacra_flags} create ${chacra_endpoint}/${arch}/ "$pkg"
+    done
+
+    # write json file with build info
+    cat > $WORKSPACE/repo-extra.json << EOF
+{
+    "package_manager_version":"$pkg_version",
+    "build_url":"$BUILD_URL",
+    "root_build_cause":"$ROOT_BUILD_CAUSE",
+    "node_name":"$NODE_NAME",
+    "job_name":"$JOB_NAME"
+}
+EOF
+    # post the json to repo-extra json to chacra
+    curl -X POST -H "Content-Type:application/json" --data "@$WORKSPACE/repo-extra.json" -u $CHACRACTL_USER:$CHACRACTL_KEY https://chacra.ceph.com/repos/${chacra_endpoint}/extra/
+
+    # start repo creation
+    $VENV/chacractl repo update ${chacra_endpoint}
+
+    echo Check the status of the repo at: https://shaman.ceph.com/api/repos/${chacra_endpoint}
+}
+
+
+chacra_post_rpm_packages() {
+    if test $# -lt 2; then
+        echo "ERROR: Incorrect usage"
+        echo "Usage: <function> <chacra_endpoint> <package> [package...]"
+        exit 1
+    fi
+
+    local chacra_endpoint="$1"
+    shift
+    local arch=${ARCH}
+    local pkg pkg_version chacra_flags
+    test "$FORCE" = true && chacra_flags="--force"
+
+    for pkg in $@; do
+        pkg_version=$(rpm --queryformat '%{VERSION}-%{RELEASE}\n' -qp "$pkg")
+        $VENV/chacractl binary ${chacra_flags} create ${chacra_endpoint}/${arch}/ "$pkg"
+    done
+
+    # write json file with build info
+    cat > $WORKSPACE/repo-extra.json << EOF
+{
+    "package_manager_version":"$pkg_version",
+    "build_url":"$BUILD_URL",
+    "root_build_cause":"$ROOT_BUILD_CAUSE",
+    "node_name":"$NODE_NAME",
+    "job_name":"$JOB_NAME"
+}
+EOF
+    # post the json to repo-extra json to chacra
+    curl -X POST -H "Content-Type:application/json" --data "@$WORKSPACE/repo-extra.json" -u $CHACRACTL_USER:$CHACRACTL_KEY https://chacra.ceph.com/repos/${chacra_endpoint}/extra/
+
+    # start repo creation
+    $VENV/chacractl repo update ${chacra_endpoint}
+
+    echo Check the status of the repo at: https://shaman.ceph.com/api/repos/${chacra_endpoint}
+}
