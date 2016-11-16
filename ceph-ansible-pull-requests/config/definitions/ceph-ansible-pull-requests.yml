@@ -2,7 +2,8 @@
     name: ceph-ansible-pull-requests
     # disabling for now, until libvirt/vagrant tests are in place
     disabled: false
-    project-type: matrix
+    # ties it to the one node that has this labels
+    node: vagrant&&ceph-ansible
     defaults: global
     display-name: 'ceph-ansible: Pull Requests'
     quiet-period: 5
@@ -12,14 +13,6 @@
     properties:
       - github:
           url: https://github.com/ceph/ceph-ansible
-    axes:
-      - axis:
-          type: label-expression
-          name: DIST
-          values:
-            - ceph_ansible_pr_trusty
-            - ceph_ansible_pr_xenial
-            - ceph_ansible_pr_centos7
     logrotate:
       daysToKeep: 15
       numToKeep: 30
