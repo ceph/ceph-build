@@ -1,7 +1,13 @@
 #!/bin/bash
+# There has to be a better way to do this than this script which just looks
+# for every Vagrantfile in scenarios and then just destroys whatever is left.
 
-NODE=$(echo $NODE_NAME | awk -F'__' '{print $2}')
-# The "delay" means that mita will wait these many seconds before proceeding
-# with the deletion of the node
-echo "curl -k  -d '{"delay": 5}' -X POST https://mita.ceph.com/api/nodes/${NODE}/delete/"
-curl -k  -d '{"delay": 5}' -X POST https://mita.ceph.com/api/nodes/${NODE}/delete/
+cd $WORKSPACE
+
+scenarios=$(find . | grep Vagrantfile | xargs dirname)
+
+for scenario in $scenarios; do
+    cd $scenario
+    vagrant destroy -f
+    cd -
+done
