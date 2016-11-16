@@ -83,11 +83,13 @@ cd "$WORKSPACE"
 if [ "$THROWAWAY" = false ] ; then
     # push binaries to chacra
     find ~/rpmbuild/ | egrep '\.rpm$' | $VENV/chacractl binary ${chacra_flags} create ${chacra_endpoint}/$ARCH/
+    PACKAGE_MANAGER_VERSION=$(rpm --queryformat '%{VERSION}-%{RELEASE}\n' -qp $(find ~/rpmbuild/ | egrep "\.$ARCH\.rpm" | head -1))
 
     # write json file with build info
     cat > $WORKSPACE/repo-extra.json << EOF
 {
     "version":"$kernelrelease",
+    "package_manager_version":"$PACKAGE_MANAGER_VERSION",
     "build_url":"$BUILD_URL",
     "root_build_cause":"$ROOT_BUILD_CAUSE",
     "node_name":"$NODE_NAME",
