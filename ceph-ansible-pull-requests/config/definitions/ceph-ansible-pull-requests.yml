@@ -1,21 +1,7 @@
-- scm:
-    name: ceph-ansible
-    scm:
-      - git:
-          url: https://github.com/ceph/ceph-ansible.git
-          branches:
-            - ${sha1}
-          refspec: +refs/pull/*:refs/remotes/origin/pr/*
-          browser: auto
-          timeout: 20
-          skip-tag: true
-          wipe-workspace: false
-          basedir: "ceph-ansible"
-
 - job:
     name: ceph-ansible-pull-requests
     # disabling for now, until libvirt/vagrant tests are in place
-    disabled: true
+    disabled: false
     project-type: matrix
     defaults: global
     display-name: 'ceph-ansible: Pull Requests'
@@ -55,13 +41,21 @@
           github-hooks: true
           permit-all: true
           auto-close-on-fail: false
-          status-context: "Testing Playbooks"
-          started-status: "Running ansible playbook"
+          status-context: "Testing cluster scenarios"
+          started-status: "Running ansible playbooks"
           success-status: "OK - Run completed"
           failure-status: "Playbook run failed with errors"
 
     scm:
-      - ceph-ansible
+      - git:
+          url: https://github.com/ceph/ceph-ansible.git
+          branches:
+            - ${sha1}
+          refspec: +refs/pull/*:refs/remotes/origin/pr/*
+          browser: auto
+          timeout: 20
+          skip-tag: true
+          wipe-workspace: false
 
     builders:
       - shell:
