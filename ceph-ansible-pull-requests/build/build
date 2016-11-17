@@ -1,40 +1,10 @@
 #!/bin/bash
 
 # the following two methods exist in scripts/build_utils.sh
-pkgs=( "ansible==2.1" )
+pkgs=( "tox" )
 install_python_packages "pkgs[@]"
 
-# ceph-ansible does a check on the installed version of ansible and
-# without our virtualenv activated it can not find it and fails
+# XXX this might not be needed
 source $VENV/activate
 
-devices='["/dev/vdb"]'
-ceph_stable="true"
-journal_collocation="true"
-journal_size=1024
-# both our trusty and centos nodes created in OVH use eth0
-monitor_interface="eth0"
-if [[ "$DIST" == "ceph_ansible_pr_xenial" ]]; then
-    monitor_interface="ens3"
-fi
-cluster_network="127.0.0.1/0"
-public_network="127.0.0.1/0"
-fsid="4a158d27-f750-41d5-9e7f-26ce4c9d2d45"
-monitor_secret="AQAWqilTCDh7CBAAawXt6kyTgLFCxSvJhTEmuw=="
-
-cat > $HOME/test-vars.json << EOF
-{
-    "devices":$devices,
-    "ceph_stable":$ceph_stable,
-    "journal_collocation":$journal_collocation,
-    "journal_size":$journal_size,
-    "monitor_interface":"$monitor_interface",
-    "cluster_network":"$cluster_network",
-    "public_network":"$cluster_network",
-    "fsid":"$fsid",
-    "monitor_secret":"$monitor_secret"
-}
-EOF
-
-cd "$WORKSPACE"/ceph-ansible
-$VENV/ansible-playbook -vvv -i tests/inventories/single-machine.yml -c local test.yml --extra-vars "@$HOME/test-vars.json"
+$VENV/tox -rv -- --provider=libvirt
