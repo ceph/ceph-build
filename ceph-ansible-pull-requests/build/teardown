@@ -2,7 +2,7 @@
 # There has to be a better way to do this than this script which just looks
 # for every Vagrantfile in scenarios and then just destroys whatever is left.
 
-cd $WORKSPACE
+cd $WORKSPACE/tests
 
 scenarios=$(find . | grep Vagrantfile | xargs dirname)
 
