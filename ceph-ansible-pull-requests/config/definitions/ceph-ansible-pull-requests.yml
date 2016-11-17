@@ -59,6 +59,6 @@
     publishers:
       - postbuildscript:
           script-only-if-succeeded: False
-          script-only-if-failed: False
+          script-only-if-failed: True
           builders:
             - shell: !include-raw ../../build/teardown
