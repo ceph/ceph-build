@@ -60,6 +60,8 @@ install_python_packages "pkgs[@]"
 chacra_url=`curl -u $SHAMAN_API_USER:$SHAMAN_API_KEY https://shaman.ceph.com/api/nodes/next/`
 make_chacractl_config $chacra_url
 
+BRANCH=$(branch_slash_filter $BRANCH)
+
 # Make sure we execute at the top level directory
 cd "$WORKSPACE"
 

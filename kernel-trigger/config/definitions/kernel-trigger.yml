@@ -1,0 +1,38 @@
+- job:
+    name: kernel-trigger
+    node: master
+    project-type: freestyle
+    defaults: global
+    quiet-period: 5
+    block-downstream: false
+    block-upstream: false
+    properties:
+      - github:
+          url: https://github.com/ceph/ceph-client
+    discard-old-builds: true
+    logrotate:
+      daysToKeep: 1
+      numToKeep: 10
+      artifactDaysToKeep: -1
+      artifactNumToKeep: -1
+
+    triggers:
+      - github
+
+    scm:
+      - git:
+          url: https://github.com/ceph/ceph-client.git
+          branches:
+            - 'origin/testing*'
+            - 'origin/master*'
+            - 'origin/for-linus'
+          skip-tag: true
+          timeout: 20
+          wipe-workspace: true
+
+    builders:
+      - trigger-builds:
+        - project: 'kernel'
+          predefined-parameters: |
+            BRANCH=${GIT_BRANCH}
+            FORCE=True
