@@ -1,0 +1,12 @@
+#!/bin/bash
+
+cd "$WORKSPACE"
+modified_submodules=$(git submodule foreach 'cd $toplevel; git diff --ignore-submodules=dirty origin/master -- $path')
+
+if [[ $modified_submodules ]]; then
+    echo "Project has modified submodules!"
+    echo $modified_submodules
+    exit 1
+fi
+
+exit 0
