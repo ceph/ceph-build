@@ -1,6 +1,12 @@
 #!/bin/bash
 
 cd "$WORKSPACE"
+
+# The command below has access to the variables $name, $path, $sha1 and $toplevel:
+# $name is the name of the relevant submodule section in .gitmodules, $path is
+# the name of the submodule directory relative to the superproject, $sha1 is
+# the commit as recorded in the superproject, and $toplevel is the absolute
+# path to the top-level of the superproject.
 modified_submodules=$(git submodule foreach 'cd $toplevel; git diff --ignore-submodules=dirty origin/master -- $path')
 
 if [[ $modified_submodules ]]; then
