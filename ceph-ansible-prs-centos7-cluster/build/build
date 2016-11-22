@@ -7,4 +7,4 @@ install_python_packages "pkgs[@]"
 # XXX this might not be needed
 source $VENV/activate
 
-$VENV/tox -rv -e=ansible2.2-xenial-cluster -- --provider=libvirt
+$VENV/tox -rv -e=ansible2.2-centos7-cluster -- --provider=libvirt
