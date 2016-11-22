@@ -4,6 +4,7 @@
     disabled: false
     # ties it to the one node that has this labels
     node: vagrant&&ceph-ansible
+    concurrent: true
     defaults: global
     display-name: 'ceph-ansible: Pull Requests'
     quiet-period: 5
