@@ -9,7 +9,7 @@
 
 - job-template:
     name: 'ceph-ansible-prs-{scenario}'
-    node: vagrant&&ceph-ansible
+    node: vagrant&&libvirt
     concurrent: true
     defaults: global
     display-name: 'ceph-ansible: Pull Requests [{scenario}]'
