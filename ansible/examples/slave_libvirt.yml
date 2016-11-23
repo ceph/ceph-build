@@ -38,6 +38,8 @@
         - python-pip
         - python-virtualenv
         - libtool
+        - libssl-dev
+        - libffi-dev
         - debian-archive-keyring
         # jenkins-job-builder job:
         - libyaml-dev
