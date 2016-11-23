@@ -1,0 +1,81 @@
+- job:
+    name: ceph-dev
+    description: 'This is the main ceph-ci build task which builds for testing purposes.'
+    node: master
+    project-type: multijob
+    defaults: global
+    concurrent: true
+    display-name: 'ceph-ci-dev'
+    logrotate:
+      daysToKeep: -1
+      numToKeep: 25
+      artifactDaysToKeep: 25
+      artifactNumToKeep: 25
+    block-downstream: false
+    block-upstream: false
+    properties:
+      - github:
+          url: https://github.com/ceph/ceph-ci
+
+    parameters:
+      - string:
+          name: BRANCH
+          description: "The git branch (or tag) to build"
+          default: master
+
+      - string:
+          name: DISTROS
+          description: "A list of distros to build for. Available options are: xenial, centos7, centos6, trusty, precise, wheezy, and jessie"
+          default: "xenial trusty centos7"
+
+      - string:
+          name: ARCHS
+          description: "A list of architectures to build for. Available options are: x86_64, and arm64"
+          default: "x86_64"
+
+      - bool:
+          name: THROWAWAY
+          description: "
+Default: False. When True it will not POST binaries to chacra. Artifacts will not be around for long. Useful to test builds."
+          default: false
+
+      - bool:
+          name: FORCE
+          description: "
+If this is unchecked, then then nothing is built or pushed if they already exist in chacra. This is the default.
+
+If this is checked, then the binaries will be built and pushed to chacra even if they already exist in chacra."
+
+      - string:
+          name: CEPH_BUILD_VIRTUALENV
+          description: "Base parent path for virtualenv locations, set to avoid issues with extremely long paths that are incompatible with tools like pip. Defaults to '/tmp/' (note the trailing slash, which is required)."
+          default: "/tmp/"
+
+      - choice:
+          name: FLAVOR
+          choices:
+            - default
+            - notcmalloc
+          default: "default"
+          description: "Type of Ceph build, choices are: notcmalloc, default (i.e. with tcmalloc). Defaults to: 'default'"
+
+    builders:
+      - multijob:
+          name: 'ceph dev setup phase'
+          condition: SUCCESSFUL
+          projects:
+            - name: ceph-dev-setup
+              current-parameters: true
+              exposed-scm: false
+      - multijob:
+          name: 'ceph dev build phase'
+          condition: SUCCESSFUL
+          projects:
+            - name: ceph-dev-build
+              current-parameters: true
+              exposed-scm: false
+
+    wrappers:
+      - inject-passwords:
+          global: true
+          mask-password-params: true
