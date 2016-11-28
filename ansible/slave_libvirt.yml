@@ -200,6 +200,18 @@
         # github.com.pub is the output of `ssh-keyscan github.com`
         key: "{{ lookup('file', 'playbook/files/ssh/hostkeys/github.com.pub') }}"
 
+    - name: start the libvirt-bin service
+      sudo: true
+      service:
+        name: libvirt-bin
+        state: started
+
+    - name: start the libvirt-guests service
+      sudo: true
+      service:
+        name: libvirt-guests
+        state: started
+
     - name: register the new slave to jenkins master with ssh
       jenkins_node:
         username: "{{ api_user }}"
