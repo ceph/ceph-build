@@ -21,9 +21,8 @@
     - name: add the vagrant repository
       sudo: yes
       apt_repository:
-        repo: "deb [trusted=yes] https://chacra.ceph.com/r/vagrant/latest/HEAD/ubuntu/xenial/flavors/default/ main"
+        repo: "deb [trusted=yes] https://chacra.ceph.com/r/vagrant/latest/HEAD/ubuntu/xenial/flavors/default/ xenial main"
         state: present
-        filename: "vagrant"
 
     # Run the equivalent of "apt-get update" as a separate step
     - apt: update_cache=yes
@@ -43,9 +42,9 @@
         - debian-archive-keyring
         # jenkins-job-builder job:
         - libyaml-dev
-        - libvirt
         - qemu-kvm
         - libvirt-bin
+        - libvirt-dev
         - vagrant
       when: ansible_pkg_mgr  == "apt"
 
@@ -74,7 +73,7 @@
       become_user: "{{ jenkins_user }}"
 
     - name: set the authorized keys
-      authorized_key: user={{ jenkins_user }} key="{{ lookup('file', 'files/ssh/keys/jenkins_build.pub') }}"
+      authorized_key: user={{ jenkins_user }} key="{{ lookup('file', 'playbook/files/ssh/keys/jenkins_build.pub') }}"
 
     - name: ensure {{ jenkins_user }} can sudo without a prompt
       sudo: yes
@@ -199,7 +198,7 @@
         # we need to use 'host' here because prado currently uses ansible-playbook==1.9.1
         host: 'github.com'
         # github.com.pub is the output of `ssh-keyscan github.com`
-        key: "{{ lookup('file', 'files/ssh/hostkeys/github.com.pub') }}"
+        key: "{{ lookup('file', 'playbook/files/ssh/hostkeys/github.com.pub') }}"
 
     - name: register the new slave to jenkins master with ssh
       jenkins_node:
