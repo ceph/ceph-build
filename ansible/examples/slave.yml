@@ -120,10 +120,10 @@
         - python-pip
         - python-virtualenv
         - libtool
-        - libssl-dev
-        - libffi-dev
         - autotools-dev
         - automake
+        - libssl-dev
+        - libffi-dev
         - debian-archive-keyring
         # jenkins-job-builder job:
         - libyaml-dev
@@ -131,7 +131,6 @@
         - doxygen
         - ditaa
         - ant
-        - curl
       when: ansible_pkg_mgr  == "apt"
 
     - name: Add the Debian Jessie Key
@@ -144,10 +143,10 @@
       when: ansible_pkg_mgr  == "apt"
       apt_key: id=C857C906 url=https://ftp-master.debian.org/keys/archive-key-8-security.asc keyring=/etc/apt/trusted.gpg state=present
 
-    - name: Add the Debian Jessie Stable Release Key
+    - name: Add the Debian Jessie Stable Key
       sudo: yes
       when: ansible_pkg_mgr  == "apt"
-      apt_key: keyserver=pgp.mit.edu id=75DDC3C4A499F1A18CB5F3C8CBF8D6FD518E17E1 state=present
+      apt_key: keyserver=pgp.mit.edu id=518E17E1
 
     - name: Install openjdk-7-jre
       apt: name=openjdk-7-jre state=present
@@ -194,28 +193,23 @@
     - name: ensure that 127.0.1.1 is present with an actual hostname
       sudo: true
       lineinfile:
+        backup: yes
         dest: /etc/hosts
         line: '127.0.1.1 ceph-builders'
 
-    # we need to update the cloud templates because 'manage_etc_hosts' is
-    # set to true on the image we use in OVH and some jobs will reboot
-    # these nodes causing the /etc/hosts file to be replace with these
-    # templates making jobs fail because the hostname is not resolvable
-    # not all our images have this setting though, so ignore failures on
-    # those nodes
-    - name: update the etc cloud templates for debian /etc/hosts
+    - name: update etc cloud templates for debian /etc/hosts
       sudo: true
       lineinfile:
+        backup: yes
         dest: /etc/cloud/templates/hosts.debian.tmpl
         line: '127.0.1.1 ceph-builders'
-      failed_when: false
 
-    - name: update the etc cloud templates for debian /etc/hosts
+    - name: update etc cloud templates for red hat /etc/hosts
       sudo: true
       lineinfile:
+        backup: yes
         dest: /etc/cloud/templates/hosts.redhat.tmpl
         line: '127.0.1.1 ceph-builders'
-      failed_when: false
 
     - name: install six, latest one
       sudo: true
