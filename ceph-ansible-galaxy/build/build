@@ -2,4 +2,4 @@
 
 # propagates the change in the necessary Ansible Galaxy repos.
 # i.e. https://github.com/ceph/ansible-ceph-common
-bash "$WORKSPACE"/contrib/push-roles-to-ansible-galaxy.sh
+bash "$WORKSPACE"/ceph-ansible/contrib/push-roles-to-ansible-galaxy.sh
