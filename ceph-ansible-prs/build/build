@@ -7,7 +7,8 @@ install_python_packages "pkgs[@]"
 # XXX this might not be needed
 source $VENV/activate
 
+WORKDIR=$(mktemp -td tox.XXXXXXXXXX)
 
 # the $SCENARIO var is injected by the job template. It maps
 # to an actual, defined, tox environment
-$VENV/tox -rv -e=$SCENARIO -- --provider=libvirt
+$VENV/tox -rv -e=$SCENARIO --workdir=$WORKDIR -- --provider=libvirt
