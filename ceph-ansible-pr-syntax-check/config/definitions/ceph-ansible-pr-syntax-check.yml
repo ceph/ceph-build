@@ -14,7 +14,7 @@
 
 - job:
     name: ceph-ansible-pr-syntax-check
-    node: centos7 || trusty
+    node: (centos7 || trusty) && x86_64
     project-type: freestyle
     defaults: global
     concurrent: true
