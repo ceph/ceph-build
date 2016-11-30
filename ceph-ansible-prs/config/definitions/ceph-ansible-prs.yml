@@ -6,6 +6,7 @@
       - ansible2.2-journal_collocation
       - ansible2.2-dmcrypt_journal
       - ansible2.2-dmcrypt_journal_collocation
+      - ansible2.2-docker_cluster
     jobs:
         - 'ceph-ansible-prs-{scenario}'
 
