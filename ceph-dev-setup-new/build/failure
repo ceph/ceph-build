@@ -1,0 +1,9 @@
+#!/bin/bash -ex
+
+# update shaman with the failed build status. At this point there aren't any
+# architectures or distro information, so we just report this with the current
+# (ceph-dev-setup) build information that includes log and build urls
+BRANCH=`branch_slash_filter $BRANCH`
+SHA1=${GIT_COMMIT}
+
+failed_build_status "ceph"
