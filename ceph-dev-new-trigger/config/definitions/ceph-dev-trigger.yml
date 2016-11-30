@@ -1,0 +1,40 @@
+- job:
+    name: ceph-dev-new-trigger
+    node: master
+    project-type: freestyle
+    defaults: global
+    quiet-period: 5
+    block-downstream: false
+    block-upstream: false
+    properties:
+      - github:
+          url: https://github.com/ceph/ceph-ci
+    discard-old-builds: true
+    logrotate:
+      daysToKeep: 1
+      numToKeep: 10
+      artifactDaysToKeep: -1
+      artifactNumToKeep: -1
+
+    triggers:
+      - github
+
+    scm:
+      - git:
+          url: https://github.com/ceph/ceph-ci
+          browser: auto
+          skip-tag: true
+          timeout: 20
+          wipe-workspace: true
+
+    builders:
+      - trigger-builds:
+        - project: 'ceph-dev-new'
+          predefined-parameters: |
+            BRANCH=${GIT_BRANCH}
+            FORCE=True
+        - project: 'ceph-dev-new'
+          predefined-parameters: |
+            BRANCH=${GIT_BRANCH}
+            FORCE=True
+            FLAVOR=notcmalloc
