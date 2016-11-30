@@ -37,15 +37,6 @@
 
     builders:
       - trigger-builds:
-        - project: 'ceph-dev-new'
-          predefined-parameters: |
-            BRANCH=${GIT_BRANCH}
-            FORCE=True
-        - project: 'ceph-dev-new'
-          predefined-parameters: |
-            BRANCH=${GIT_BRANCH}
-            FORCE=True
-            FLAVOR=notcmalloc
         - project: 'ceph-dev'
           predefined-parameters: |
             BRANCH=${GIT_BRANCH}
