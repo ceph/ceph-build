@@ -1,11 +1,11 @@
 - job:
-    name: ceph-dev
+    name: ceph-dev-new
     description: 'This is the main ceph-ci build task which builds for testing purposes.'
     node: master
     project-type: multijob
     defaults: global
     concurrent: true
-    display-name: 'ceph-ci-dev'
+    display-name: 'ceph-dev-new'
     logrotate:
       daysToKeep: -1
       numToKeep: 25
