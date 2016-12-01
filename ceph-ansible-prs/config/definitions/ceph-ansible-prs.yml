@@ -3,8 +3,6 @@
     scenario:
       - ansible2.2-centos7_cluster
       - ansible2.2-xenial_cluster
-      - ansible2.2-xenial_conf_tests
-      - ansible2.2-xenial_mon_osd
       - ansible2.2-journal_collocation
       - ansible2.2-dmcrypt_journal
       - ansible2.2-dmcrypt_journal_collocation
