@@ -7,6 +7,8 @@ pkgs=( "ansible")
 install_python_packages "pkgs[@]"
 
 cd $WORKSPACE/ceph-ansible
+cp ./sites/site.yml.sample site.yml.sample
+cp ./sites/site-docker.yml.sample site-docker.yml.sample
 
 $VENV/ansible-playbook -i '127.0.0.1,' site.yml.sample --syntax-check --list-tasks -vv
 $VENV/ansible-playbook -i '127.0.0.1,' site-docker.yml.sample --syntax-check --list-tasks -vv
