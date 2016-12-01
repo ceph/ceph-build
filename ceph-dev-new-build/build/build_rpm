@@ -1,0 +1,184 @@
+#!/bin/bash
+set -ex
+
+
+# create a release directory for ceph-build tools
+mkdir -p release
+cp -a dist release/${vers}
+
+echo "Building RPMs"
+
+# The below contents ported from /srv/ceph-build/build_rpms.sh ::
+#     $bindir/build_rpms.sh ./release $vers
+#
+
+releasedir="./release"
+cephver=$vers
+raw_version=`echo $vers | cut -d '-' -f 1`
+
+cd $releasedir/$cephver || exit 1
+
+# modify the spec file so that it understands we are dealing with a different directory
+sed -i "s/^%setup.*/%setup -q -n %{name}-$vers/" ceph.spec
+# it is entirely possible that `%setup` is not even used, but rather, autosetup
+sed -i "s/^%autosetup.*/%autosetup -p1 -n %{name}-$vers/" ceph.spec
+# This is a fallback to the spec rules that may have altered sections that want
+# to force a non-sha1 naming. This is only needed in development binary
+# building.
+sed -i "s/%{name}-%{version}/ceph-$vers/" ceph.spec
+
+# This is needed because the 'version' this job gets from upstream contains chars
+# that are not legal for an RPM file. These are already converted in the spec file whic
+# is what is consumed to create the RPM binary. Parse these values there so that they can
+# be reported as part of the build metadata
+RPM_RELEASE=`grep Release ceph.spec | sed 's/Release:[ \t]*//g' | cut -d '%' -f 1`
+RPM_VERSION=`grep Version ceph.spec | sed 's/Version:[ \t]*//g'`
+PACKAGE_MANAGER_VERSION="$RPM_VERSION-$RPM_RELEASE"
+
+# Set up build area
+BUILDAREA=./rpm/$dist
+mkdir -p ${BUILDAREA}/{SOURCES,SRPMS,SPECS,RPMS,BUILD}
+cp -a ceph-*.tar.bz2 ${BUILDAREA}/SOURCES/.
+cp -a ceph.spec ${BUILDAREA}/SPECS/.
+cp -a rpm/*.patch ${BUILDAREA}/SOURCES/. || true
+
+# Build RPMs
+BUILDAREA=`readlink -fn ${BUILDAREA}`   ### rpm wants absolute path
+cd ${BUILDAREA}/SPECS
+rpmbuild -ba --define "_topdir ${BUILDAREA}" ceph.spec
+
+# The following was copied from autobuild-ceph/build-ceph-rpm.sh
+# which creates the ceph-release rpm meant to create the repository file for the repo
+# that will be built and served later.
+# Create and build an RPM for the repository
+
+cat <<EOF > ${BUILDAREA}/SPECS/ceph-release.spec
+Name:           ceph-release
+Version:        1
+Release:        0%{?dist}
+Summary:        Ceph Development repository configuration
+Group:          System Environment/Base
+License:        GPLv2
+URL:            ${chacra_url}r/ceph/${chacra_ref}/${SHA1}/${DISTRO}/${RELEASE}/flavors/$FLAVOR/
+Source0:        ceph.repo
+#Source0:        RPM-GPG-KEY-CEPH
+#Source1:        ceph.repo
+BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
+BuildArch:	noarch
+
+%description
+This package contains the Ceph repository GPG key as well as configuration
+for yum and up2date.
+
+%prep
+
+%setup -q  -c -T
+install -pm 644 %{SOURCE0} .
+#install -pm 644 %{SOURCE1} .
+
+%build
+
+%install
+rm -rf %{buildroot}
+#install -Dpm 644 %{SOURCE0} \
+#    %{buildroot}/%{_sysconfdir}/pki/rpm-gpg/RPM-GPG-KEY-CEPH
+%if 0%{defined suse_version}
+install -dm 755 %{buildroot}/%{_sysconfdir}/zypp
+install -dm 755 %{buildroot}/%{_sysconfdir}/zypp/repos.d
+install -pm 644 %{SOURCE0} \
+    %{buildroot}/%{_sysconfdir}/zypp/repos.d
+%else
+install -dm 755 %{buildroot}/%{_sysconfdir}/yum.repos.d
+install -pm 644 %{SOURCE0} \
+    %{buildroot}/%{_sysconfdir}/yum.repos.d
+%endif
+
+%clean
+#rm -rf %{buildroot}
+
+%post
+
+%postun
+
+%files
+%defattr(-,root,root,-)
+#%doc GPL
+%if 0%{defined suse_version}
+/etc/zypp/repos.d/*
+%else
+/etc/yum.repos.d/*
+%endif
+#/etc/pki/rpm-gpg/*
+
+%changelog
+* Fri Aug 12 2016 Alfredo Deza <adeza@redhat.com> 1-1
+- Initial Package
+EOF
+#  End of ceph-release.spec file.
+
+# GPG Key
+#gpg --export --armor $keyid > ${BUILDAREA}/SOURCES/RPM-GPG-KEY-CEPH
+#chmod 644 ${BUILDAREA}/SOURCES/RPM-GPG-KEY-CEPH
+
+# Install ceph.repo file
+cat <<EOF > $BUILDAREA/SOURCES/ceph.repo
+[Ceph]
+name=Ceph packages for \$basearch
+baseurl=${chacra_url}/r/ceph/${chacra_ref}/${SHA1}/${DISTRO}/${RELEASE}/flavors/${FLAVOR}/\$basearch
+enabled=1
+gpgcheck=0
+type=rpm-md
+gpgkey=https://download.ceph.com/keys/autobuild.asc
+
+[Ceph-noarch]
+name=Ceph noarch packages
+baseurl=${chacra_url}/r/ceph/${chacra_ref}/${SHA1}/${DISTRO}/${RELEASE}/flavors/${FLAVOR}/noarch
+enabled=1
+gpgcheck=0
+type=rpm-md
+gpgkey=https://download.ceph.com/keys/autobuild.asc
+
+[ceph-source]
+name=Ceph source packages
+baseurl=${chacra_url}/r/ceph/${chacra_ref}/${SHA1}/${DISTRO}/${RELEASE}/flavors/${FLAVOR}/SRPMS
+enabled=1
+gpgcheck=0
+type=rpm-md
+gpgkey=https://download.ceph.com/keys/autobuild.asc
+EOF
+# End of ceph.repo file
+
+rpmbuild -bb --define "_topdir ${BUILDAREA}" ${BUILDAREA}/SPECS/ceph-release.spec
+
+
+# Make sure we execute at the top level directory
+cd "$WORKSPACE"
+
+[ "$FORCE" = true ] && chacra_flags="--force" || chacra_flags=""
+
+if [ "$THROWAWAY" = false ] ; then
+    # push binaries to chacra
+    find release/${vers}/rpm/*/SRPMS | grep rpm | $VENV/chacractl binary ${chacra_flags} create ${chacra_endpoint}/source/flavors/${FLAVOR}
+    find release/${vers}/rpm/*/RPMS/* | grep rpm | $VENV/chacractl binary ${chacra_flags} create ${chacra_endpoint}/${ARCH}/flavors/${FLAVOR}
+    # write json file with build info
+    cat > $WORKSPACE/repo-extra.json << EOF
+{
+    "version":"$vers",
+    "package_manager_version":"$PACKAGE_MANAGER_VERSION",
+    "build_url":"$BUILD_URL",
+    "root_build_cause":"$ROOT_BUILD_CAUSE",
+    "node_name":"$NODE_NAME",
+    "job_name":"$JOB_NAME"
+}
+EOF
+    chacra_repo_endpoint="${chacra_endpoint}/flavors/${FLAVOR}"
+    # post the json to repo-extra json to chacra
+    curl -X POST -H "Content-Type:application/json" --data "@$WORKSPACE/repo-extra.json" -u $CHACRACTL_USER:$CHACRACTL_KEY ${chacra_url}repos/${chacra_repo_endpoint}/extra/
+    # start repo creation
+    $VENV/chacractl repo update ${chacra_repo_endpoint}
+
+    echo Check the status of the repo at: https://shaman.ceph.com/api/repos/${chacra_endpoint}/flavors/${FLAVOR}/
+fi
+
+# update shaman with the completed build status
+update_build_status "completed" "ceph" $NORMAL_DISTRO $NORMAL_DISTRO_VERSION $NORMAL_ARCH

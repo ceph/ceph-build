@@ -1,0 +1,136 @@
+#!/bin/bash
+
+set -ex
+HOST=$(hostname --short)
+echo "Building on $(hostname)"
+echo "  DIST=${DIST}"
+echo "  BPTAG=${BPTAG}"
+echo "  KEYID=${KEYID}"
+echo "  WS=$WORKSPACE"
+echo "  PWD=$(pwd)"
+echo "  BUILD SOURCE=$COPYARTIFACT_BUILD_NUMBER_CEPH_SETUP"
+echo "*****"
+env
+echo "*****"
+
+DIR=/tmp/install-deps.$$
+trap "rm -fr $DIR" EXIT
+mkdir -p $DIR
+if test $(id -u) != 0 ; then
+    SUDO=sudo
+fi
+export LC_ALL=C # the following is vulnerable to i18n
+
+$SUDO yum install -y redhat-lsb-core
+
+# unpack the tar.gz that contains the debian dir
+cd dist
+tar xzf *.orig.tar.gz
+cd ceph-*
+pwd
+
+case $(lsb_release -si) in
+CentOS|Fedora|SUSE*|RedHatEnterpriseServer)
+        case $(lsb_release -si) in
+            SUSE*)
+                $SUDO zypper -y yum-utils
+                ;;
+            *)
+                $SUDO yum install -y yum-utils
+                ;;
+        esac
+        sed -e 's/@//g' < ceph.spec.in > $DIR/ceph.spec
+        $SUDO yum-builddep -y $DIR/ceph.spec
+        ;;
+*)
+        echo "$(lsb_release -si) is unknown, dependencies will have to be installed manually."
+        ;;
+esac
+
+BRANCH=`branch_slash_filter $BRANCH`
+
+if [[ ! -f /etc/redhat-release && ! -f /usr/bin/zypper ]] ; then
+    exit 0
+fi
+
+cd $WORKSPACE
+
+get_rpm_dist() {
+    LSB_RELEASE=/usr/bin/lsb_release
+    [ ! -x $LSB_RELEASE ] && echo unknown && exit
+
+    ID=`$LSB_RELEASE --short --id`
+
+    case $ID in
+    RedHatEnterpriseServer)
+        RELEASE=`$LSB_RELEASE --short --release | cut -d. -f1`
+        DIST=rhel$RELEASE
+        DISTRO=rhel
+        ;;
+    CentOS)
+        RELEASE=`$LSB_RELEASE --short --release | cut -d. -f1`
+        DIST=el$RELEASE
+        DISTRO=centos
+        ;;
+    Fedora)
+        RELEASE=`$LSB_RELEASE --short --release`
+        DIST=fc$RELEASE
+        DISTRO=fedora
+        ;;
+    SUSE\ LINUX)
+        DESC=`$LSB_RELEASE --short --description`
+        RELEASE=`$LSB_RELEASE --short --release`
+        case $DESC in
+        *openSUSE*)
+                DIST=opensuse$RELEASE
+                DISTRO=opensuse
+            ;;
+        *Enterprise*)
+                DIST=sles$RELEASE
+                DISTRO=sles
+                ;;
+            esac
+        ;;
+    *)
+        DIST=unknown
+        DISTRO=unknown
+        ;;
+    esac
+
+    echo $DIST
+}
+
+get_rpm_dist
+
+# Normalize variables across rpm/deb builds
+NORMAL_DISTRO=$DISTRO
+NORMAL_DISTRO_VERSION=$RELEASE
+NORMAL_ARCH=$ARCH
+
+# create build status in shaman
+create_build_status "started" "ceph" $NORMAL_DISTRO $NORMAL_DISTRO_VERSION $NORMAL_ARCH
+
+pkgs=( "chacractl>=0.0.4" )
+install_python_packages "pkgs[@]"
+
+# ask shaman which chacra instance to use
+chacra_url=`curl -u $SHAMAN_API_USER:$SHAMAN_API_KEY https://shaman.ceph.com/api/nodes/next/`
+# create the .chacractl config file using global variables
+make_chacractl_config $chacra_url
+
+dist=$DIST
+[ -z "$dist" ] && echo no dist && exit 1
+echo dist $dist
+
+vers=`cat ./dist/version`
+chacra_ref="$BRANCH"
+
+chacra_endpoint="ceph/${chacra_ref}/${SHA1}/${DISTRO}/${RELEASE}"
+chacra_check_url="${chacra_endpoint}/${ARCH}/flavors/${FLAVOR}/librados2-${vers}-0.${DIST}.${ARCH}.rpm"
+
+
+if [ "$THROWAWAY" = false ] ; then
+    # this exists in scripts/build_utils.sh
+    # TODO if this exits we need to post to shaman a success
+    check_binary_existence $chacra_check_url
+fi

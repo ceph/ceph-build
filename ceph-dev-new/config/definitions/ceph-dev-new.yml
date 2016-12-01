@@ -64,14 +64,14 @@ If this is checked, then the binaries will be built and pushed to chacra even if
           name: 'ceph dev setup phase'
           condition: SUCCESSFUL
           projects:
-            - name: ceph-dev-setup-new
+            - name: ceph-dev-new-setup
               current-parameters: true
               exposed-scm: false
       - multijob:
           name: 'ceph dev build phase'
           condition: SUCCESSFUL
           projects:
-            - name: ceph-dev-build
+            - name: ceph-dev-new-build
               current-parameters: true
               exposed-scm: false
 
