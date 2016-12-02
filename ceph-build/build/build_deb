@@ -72,8 +72,10 @@ echo deb vers $bpvers
 
 
 echo building debs for $DIST
-#  Binary only architecture dependent
-sudo pbuilder build \
+# pass only those env vars specifically noted
+sudo \
+    CEPH_EXTRA_CMAKE_ARGS=$CEPH_EXTRA_CMAKE_ARGS \
+    pbuilder build \
     --distribution $DIST \
     --basetgz $pbuilddir/$DIST.tgz \
     --buildresult $releasedir/$cephver \
