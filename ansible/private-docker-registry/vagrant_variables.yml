@@ -1,0 +1,7 @@
+---
+provision_test_client_vm: true 
+memory: 1024
+vagrant_box: centos/atomic-host
+# The sync directory changes based on vagrant box
+# Set to /home/vagrant/sync for Centos/7, /home/{ user }/vagrant for openstack and defaults to /vagrant
+vagrant_sync_dir: /home/vagrant/sync

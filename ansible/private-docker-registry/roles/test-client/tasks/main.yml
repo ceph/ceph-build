@@ -1,0 +1,17 @@
+---
+- name: create directory for self-signed cert of docker-registry
+  file: path=/etc/docker/certs.d/{{ hostvars['docker-registry']['ansible_default_ipv4']['address'] }}:5000 state=directory
+
+- name: copy self-signed cert of docker-registry
+  copy:
+    src: fetch/certs/self.crt
+    dest: /etc/docker/certs.d/{{ hostvars['docker-registry']['ansible_default_ipv4']['address'] }}:5000/ca.crt
+
+- name: pull a small image from docker hub
+  command: docker pull busybox
+
+- name: tag image
+  command: docker tag busybox {{ hostvars['docker-registry']['ansible_default_ipv4']['address'] }}:5000/mybusybox
+
+- name: push tagged image to private registry
+  command: docker push {{ hostvars['docker-registry']['ansible_default_ipv4']['address'] }}:5000/mybusybox

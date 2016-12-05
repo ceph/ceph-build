@@ -1,0 +1,12 @@
+---
+# Defines deployment design and assigns role to server groups
+
+- hosts: registry
+  become: True
+  roles:
+  - docker-registry
+
+- hosts: testclient
+  become: True
+  roles:
+  - test-client

@@ -1,0 +1,46 @@
+---
+- name: create directory for self-signed SSL cert
+  file: path=/var/registry/certs state=directory
+
+- name: create self-signed cfssl json file
+  template:
+     src: "{{ role_path }}/templates/self-csr.json.j2"
+     dest: ./self-csr.json
+
+- name: get cfssl
+  get_url:
+    url: https://pkg.cfssl.org/R1.2/cfssl_linux-amd64
+    dest: ./cfssl
+    mode: 0755
+
+- name: get cfssljson
+  get_url:
+    url: https://pkg.cfssl.org/R1.2/cfssljson_linux-amd64
+    dest: ./cfssljson
+    mode: 0755
+
+- name: gencert
+  shell: ./cfssl gencert -initca self-csr.json | ./cfssljson -bare ca
+
+- name: push self-signed cfssl cert to the ansible server
+  fetch:
+    src: ca.pem
+    dest: fetch/certs/self.crt 
+    flat: yes
+
+- name: mv the cert to be accessible by container
+  command: mv ca.pem /var/registry/certs/self.crt
+
+- name: mv the key to be accessible by container
+  command: mv ca-key.pem /var/registry/certs/self.key
+
+- name: start registry container
+  command: docker run -d --name=docker-registry \
+    -p 5000:5000 \
+    --privileged=true \
+    --restart=unless-stopped \
+    -v /var/registry:/var/registry \
+    -e STORAGE_PATH=/var/registry/data \
+    -e REGISTRY_HTTP_TLS_CERTIFICATE=/var/registry/certs/self.crt \
+    -e REGISTRY_HTTP_TLS_KEY=/var/registry/certs/self.key \
+    registry
