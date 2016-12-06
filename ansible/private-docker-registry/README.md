@@ -17,7 +17,7 @@ push an image to the private docker registry on the other node.
 ## Running Vagrant to Provision and Test
 
 * Edit vagrant_variables.yml and change the `vagrant_box` variable if needed
-* Use `vsgrant up` command to deploy and provision the VMs
+* Use `vagrant up` command to deploy and provision the VMs
 
 When the playbook completes successfully, it will have started the private
 docker registry container and used the other VM to test pushing a test image
@@ -28,7 +28,7 @@ to that private docker container.
 When you are ready to provision onto an existing machine, first make sure
 that docker is installed on that machine.
 
-In the top directory of this playbook where the site.yml file exist, add
+In the top directory of this playbook where the `site.yml` file exist, add
 an `ansible-hosts` file to specify the machine you want to provision.  It
 should look something like this:
 

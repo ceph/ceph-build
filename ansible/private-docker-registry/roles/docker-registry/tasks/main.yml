@@ -1,6 +1,8 @@
 ---
 - name: create directory for self-signed SSL cert
-  file: path=/var/registry/certs state=directory
+  file: 
+    path: /var/registry/certs 
+    state: directory
 
 - name: create self-signed cfssl json file
   template:
