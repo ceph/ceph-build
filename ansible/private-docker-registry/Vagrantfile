@@ -1,0 +1,68 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+require 'yaml'
+VAGRANTFILE_API_VERSION = '2'
+
+config_file=File.expand_path(File.join(File.dirname(__FILE__), 'vagrant_variables.yml'))
+settings=YAML.load_file(config_file)
+
+BOX            = settings['vagrant_box']
+SYNC_DIR       = settings['vagrant_sync_dir']
+MEMORY         = settings['memory']
+TEST_CLIENT_VM = settings['provision_test_client_vm']
+
+ansible_provision = proc do |ansible|
+  ansible.playbook = 'site.yml'
+  ansible.groups = {
+    "registry" => ["docker-registry"]
+  }
+  if TEST_CLIENT_VM then
+    ansible.groups['testclient'] = "docker-reg-test"
+  end
+
+  ansible.limit = 'all'
+end
+
+Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
+  config.vm.box = BOX
+  config.ssh.insert_key = false # workaround for https://github.com/mitchellh/vagrant/issues/5048
+
+  # Faster bootup.  Disable if you need this for libvirt
+  config.vm.provider :libvirt do |v,override|
+    override.vm.synced_folder '.', SYNC_DIR, disabled: true
+  end
+
+  if TEST_CLIENT_VM then
+    config.vm.define "docker-reg-test" do |regtest|
+      regtest.vm.hostname = "docker-reg-test"
+    end
+  end
+
+  config.vm.define "docker-registry" do |registry|
+    registry.vm.hostname = "docker-registry"
+    # Virtualbox
+    registry.vm.provider :virtualbox do |vb|
+      vb.customize ['modifyvm', :id, '--memory', "#{MEMORY}"]
+    end
+
+    # VMware
+    registry.vm.provider :vmware_fusion do |v|
+      v.vmx['memsize'] = "#{MEMORY}"
+    end
+
+    # Libvirt
+    registry.vm.provider :libvirt do |lv|
+      lv.memory = MEMORY
+    end
+
+    # Parallels
+    registry.vm.provider "parallels" do |prl|
+      prl.name = "docker-registry"
+      prl.memory = "#{MEMORY}"
+    end
+
+    # Run the provisioner after the machine comes up
+    registry.vm.provision 'ansible', &ansible_provision 
+  end
+end
