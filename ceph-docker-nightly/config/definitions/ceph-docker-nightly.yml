@@ -1,0 +1,35 @@
+- job:
+    name: ceph-docker-nightly
+    node: small && trusty
+    project-type: freestyle
+    defaults: global
+    display-name: 'ceph-docker: Nightly tests for released containers'
+    quiet-period: 5
+    block-downstream: false
+    block-upstream: false
+    retry-count: 3
+    properties:
+      - github:
+          url: https://github.com/ceph/ceph-docker
+    logrotate:
+      daysToKeep: -1
+      numToKeep: -1
+      artifactDaysToKeep: -1
+      artifactNumToKeep: -1
+
+    triggers:
+      - timed: '@daily'
+
+    scm:
+      - git:
+          url: https://github.com/ceph/ceph-docker.git
+          branches:
+            - master
+          browser: auto
+          timeout: 20
+
+    builders:
+      - shell:
+          !include-raw:
+            - ../../../scripts/build_utils.sh
+            - ../../build/build

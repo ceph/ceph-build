@@ -1,0 +1,14 @@
+#!/bin/bash
+
+# the following two methods exist in scripts/build_utils.sh
+pkgs=( "pytest" )
+install_python_packages "pkgs[@]"
+
+sudo apt-get install docker.io
+
+sudo gpasswd -a ${USER} docker
+sudo systemctl restart docker
+newgrp docker
+
+cd tests
+py.test -v
