@@ -9,8 +9,7 @@ fi
 
 ## Install any setup-time deps
 # We need these for the build
-sudo yum remove -y lttng-ust-devel # HACK: This package fails the build if installed :-/
-sudo yum install -y gnutls-devel libacl-devel openldap-devel rubygems ruby-devel docbook-xsl lttng-ust-devel
+sudo yum install -y gnutls-devel libacl-devel openldap-devel rubygems ruby-devel
 
 # We use fpm to create the deb package
 sudo gem install fpm
@@ -20,7 +19,7 @@ sudo gem install fpm
 # Prepare the build
 DESTDIR="install.tmp"
 install -d -m0755 -- "$DESTDIR"
-./configure
+./configure --without-lttng
 
 # Perform the build and install the files to DESTDIR
 NCPU=$(grep -c processor /proc/cpuinfo)

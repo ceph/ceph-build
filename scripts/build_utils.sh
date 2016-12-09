@@ -281,10 +281,24 @@ get_distro_and_target() {
     # Get distro from DIST for chacra uploads
     DISTRO=""
     case $DIST in
-        jessie|wheezy)
+        jessie*)
+            DIST=jessie
             DISTRO="debian"
             ;;
-        xenial|precise|trusty)
+        wheezy*)
+            DIST=wheezy
+            DISTRO="debian"
+            ;;
+        xenial*)
+            DIST=xenial
+            DISTRO="ubuntu"
+            ;;
+        precise*)
+            DIST=precise
+            DISTRO="ubuntu"
+            ;;
+        trusty*)
+            DIST=trusty
             DISTRO="ubuntu"
             ;;
         centos*)
