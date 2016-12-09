@@ -19,7 +19,7 @@ sudo gem install fpm
 # Prepare the build
 DESTDIR="install.tmp"
 install -d -m0755 -- "$DESTDIR"
-./configure
+./configure --without-lttng
 
 # Perform the build and install the files to DESTDIR
 NCPU=$(grep -c processor /proc/cpuinfo)
