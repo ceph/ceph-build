@@ -1,11 +1,11 @@
 - job:
-    name: ceph-installer-rpm
+    name: ceph-ansible-rpm
     node: 'centos7 && x86_64 && small'
     project-type: freestyle
     defaults: global
     disabled: false
-    display-name: 'ceph-installer: RPMs'
-    description: 'Build RPMs for every ceph-installer Git branch'
+    display-name: 'ceph-ansible: RPMs'
+    description: 'Build RPMs for every ceph-ansible Git branch'
     concurrent: true
     quiet-period: 5
     block-downstream: false
@@ -13,7 +13,7 @@
     retry-count: 3
     properties:
       - github:
-          url: https://github.com/ceph/ceph-installer
+          url: https://github.com/ceph/ceph-ansible
     discard-old-builds: true
     logrotate:
       daysToKeep: 1
@@ -26,7 +26,7 @@
 
     scm:
       - git:
-          url: https://github.com/ceph/ceph-installer
+          url: https://github.com/ceph/ceph-ansible
           browser: auto
           skip-tag: true
           timeout: 20
@@ -35,8 +35,8 @@
     builders:
       - shell:
           !include-raw:
-            - ../../scripts/build_utils.sh
-            - ../build/build
+            - ../../../scripts/build_utils.sh
+            - ../../build/build
 
     wrappers:
       - inject-passwords:
