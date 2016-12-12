@@ -50,6 +50,21 @@ chacra_endpoint="samba/${BRANCH}/${GIT_COMMIT}/${DISTRO}/${RELEASE}"
 
 # push binaries to chacra
 find *.rpm | $VENV/chacractl binary ${chacra_flags} create ${chacra_endpoint}/$ARCH/
+PACKAGE_MANAGER_VERSION=$(rpm --queryformat '%{VERSION}-%{RELEASE}\n' -qp $(find *.rpm | egrep "\.$ARCH\.rpm" | head -1))
+
+# write json file with build info
+cat > $WORKSPACE/repo-extra.json << EOF
+{
+    "version":"$VERSION",
+    "package_manager_version":"$PACKAGE_MANAGER_VERSION",
+    "build_url":"$BUILD_URL",
+    "root_build_cause":"$ROOT_BUILD_CAUSE",
+    "node_name":"$NODE_NAME",
+    "job_name":"$JOB_NAME"
+}
+EOF
+# post the json to repo-extra json to chacra
+curl -X POST -H "Content-Type:application/json" --data "@$WORKSPACE/repo-extra.json" -u $CHACRACTL_USER:$CHACRACTL_KEY ${chacra_url}repos/${chacra_endpoint}/extra/
 
 # start repo creation
 $VENV/chacractl repo update ${chacra_endpoint}
