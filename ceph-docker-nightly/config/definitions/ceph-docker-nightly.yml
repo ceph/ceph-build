@@ -1,6 +1,6 @@
 - job:
     name: ceph-docker-nightly
-    node: small && trusty
+    node: xenial && x86_64
     project-type: freestyle
     defaults: global
     display-name: 'ceph-docker: Nightly tests for released containers'
