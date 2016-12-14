@@ -53,6 +53,28 @@ else
     export CEPH_EXTRA_CMAKE_ARGS="$CEPH_EXTRA_CMAKE_ARGS -DALLOCATOR=tcmalloc"
 fi
 
+
+# When using autotools/autoconf it is possible to see output from `git diff`
+# since some macros can be copied over to the ceph source, triggering this
+# check. This is why this check now is done just before running autogen.sh
+# which calls `aclocal -I m4 --install` that copies a system version of
+# ltsugar.m4 that can be different from the one included in the ceph source
+# tree.
+if git diff --quiet ; then
+    echo repository is clean
+else
+    echo
+    echo "**** REPOSITORY IS DIRTY ****"
+    echo
+    git diff
+    if [ "$force" != "force" ]; then
+	echo "add 'force' argument if you really want to continue."
+	exit 1
+    fi
+    echo "forcing."
+fi
+
+
 # make-dist does not exist for autotools builds
 if [ ! -x make-dist ]; then
     echo "Using autotools build system"
@@ -86,20 +108,6 @@ mkdir -p release
 
 releasedir='release'
 versionfile='release/version'
-
-if git diff --quiet ; then
-    echo repository is clean
-else
-    echo
-    echo "**** REPOSITORY IS DIRTY ****"
-    echo
-    git diff
-    if [ "$force" != "force" ]; then
-	echo "add 'force' argument if you really want to continue."
-	exit 1
-    fi
-    echo "forcing."
-fi
 
 cephver=`git describe --match "v*" | sed s/^v//`
 echo current version $cephver
