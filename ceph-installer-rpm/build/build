@@ -14,10 +14,9 @@ sudo yum -y install fedpkg
 
 # Add the Jenkins slave UID to the mock group.
 sudo usermod -a -G mock $(whoami)
-newgrp mock
 
 # Attempt the build. If it fails, print the mock logs to STDOUT.
-make rpm || ( tail -n +1 {root,build}.log && exit 1 )
+sg mock -c "make rpm" || ( tail -n +1 {root,build}.log && exit 1 )
 
 # Chacra time
 
