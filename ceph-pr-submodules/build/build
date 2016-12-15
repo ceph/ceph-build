@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -ex
+
 cd "$WORKSPACE"
 
 # The command below has access to the variables $name, $path, $sha1 and $toplevel:
