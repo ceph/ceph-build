@@ -1,0 +1,85 @@
+#! /usr/bin/bash
+set -ex
+
+# Only do actual work when we are a DEB distro
+if test "$DISTRO" != "debian" -a "$DISTRO" != "ubuntu"; then
+    exit 0
+fi
+
+
+## Install any setup-time deps
+# TODO -- upload install-deps.sh script that installs the setup time deps
+# to upstream repo or update this section to install these packages
+
+# We need this for mk-build-deps
+sudo apt-get install -y equivs cmake git
+
+## Setup the pbuilder
+# TODO remove if you do not want to use pbuilders
+setup_pbuilder
+
+
+## Build the source tarball
+
+cd $WORKSPACE/nfs-ganesha
+
+git submodule update --init || git submodule sync
+
+mkdir build
+cd build
+
+# make source tarball
+cmake -DCMAKE_BUILDER_TYPE=Maintainer $WORKSPACE/nfs-ganesha/src && make dist || exit 0
+
+## Get some basic information about the system and the repository
+DEB_ARCH=$(dpkg-architecture -qDEB_BUILD_ARCH)
+VERSION=`grep -om 1 "[0-9]\.[0-9]-dev-[0-9]" include/config.h`
+
+# terrible hack
+cd $WORKSPACE/nfs-ganesha-debian
+mv $WORKSPACE/nfs-ganesha/build/nfs-ganesha-*.tar.gz .
+tar -xvf nfs-ganesha-*.tar.gz
+rm *.tar.gz
+mv nfs-ganesha* src
+
+## Prepare the debian files
+# Bump the changelog
+dch -v "$VERSION" "New release ($VERSION)"
+
+# Create .dsc and source tarball
+sudo dpkg-buildpackage -S -us -uc
+
+## Build with pbuilder
+echo "Building debs"
+
+PBUILDDIR="/srv/debian-base"
+
+sudo pbuilder --clean
+
+mkdir -p dist/deb
+
+REPO_URL="https://shaman.ceph.com/api/repos/ceph/$CEPH_BRANCH/$CEPH_SHA1/$DISTRO/$DIST/repo"
+echo "EXTRAPACKAGES=\"libcephfs-dev\"" >> ~/.pbuilderrc
+echo "OTHERMIRROR=deb ${REPO_URL}" >> ~/.pbuildrrc
+
+echo "Building debs for $DIST"
+sudo pbuilder build \
+    --distribution $DIST \
+    --basetgz $PBUILDDIR/$DIST.tgz \
+    --buildresult dist/deb/ \
+    --debbuildopts "-j`grep -c processor /proc/cpuinfo`" \
+    dist/nfs-ganesha_$VERSION.dsc
+
+
+## Upload the created RPMs to chacra
+chacra_endpoint="nfs-ganesha/${NFS_GANESHA_BRANCH}/${GIT_COMMIT}/${DISTRO}/${DIST}"
+
+[ "$FORCE" = true ] && chacra_flags="--force" || chacra_flags=""
+
+# push binaries to chacra
+find ../*.deb | $VENV/chacractl binary ${chacra_flags} create ${chacra_endpoint}/${DEB_ARCH}/
+
+# start repo creation
+$VENV/chacractl repo update ${chacra_endpoint}
+
+echo Check the status of the repo at: https://shaman.ceph.com/api/repos/${chacra_endpoint}

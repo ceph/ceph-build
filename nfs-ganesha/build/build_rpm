@@ -1,0 +1,74 @@
+#! /usr/bin/bash
+set -ex
+
+# Only do actual work when we are an RPM distro
+if test "$DISTRO" != "fedora" -a "$DISTRO" != "centos" -a "$DISTRO" != "rhel"; then
+    exit 0
+fi
+
+## Get some basic information about the system and the repository
+RELEASE="$(lsb_release --short -r | cut -d '.' -f 1)" # sytem release
+
+# Get .repo file from appropriate shaman build
+REPO_URL="https://shaman.ceph.com/api/repos/ceph/$CEPH_BRANCH/$CEPH_SHA1/$DISTRO/$RELEASE/flavors/default/repo"
+if `curl --fail -L $REPO_URL > $WORKSPACE/libcephfs.repo`; then
+  echo "Ceph repo file has been added from shaman"
+else
+  echo "Ceph repo file was NOT added from shaman"
+  exit 0
+fi
+
+## Install any setup-time deps (to make dist package)
+# We need this to get the major version from lsb_release
+# ALI TO DO: find out if all these packages are necessary
+xargs sudo yum install -y <<< "
+redhat-lsb-core 
+mock 
+cmake 
+git
+"
+
+cd $WORKSPACE/nfs-ganesha
+
+git submodule update --init || git submodule sync
+
+mkdir build
+cd build
+
+# generate .spec file and make source tarball
+cmake -DCMAKE_BUILDER_TYPE=Maintainer $WORKSPACE/nfs-ganesha/src && make dist || exit 0
+
+## Create the source rpm
+echo "Building SRPM"
+rpmbuild \
+    --define "_sourcedir ./dist" \
+    --define "_specdir ." \
+    --define "_builddir ." \
+    --define "_srcrpmdir ." \
+    --define "_rpmdir ." \
+    --nodeps -bs ../src/nfs-ganesha.spec
+SRPM=$(readlink -f *.src.rpm)
+
+# add repo file to mock config
+sudo head -n -1 /etc/mock/${MOCK_TARGET}-${RELEASE}-${ARCH}.cfg > temp.cfg
+echo >> temp
+sudo cat temp.cfg $WORKSPACE/libcephfs.repo > nfs-ganesha.cfg
+echo "\"\"\"" >> nfs-ganesha.cfg
+
+## Build the binaries with mock
+echo "Building RPMs"
+sudo mock -r nfs-ganesha.cfg --resultdir=./dist/rpm/ ${SRPM}
+
+
+## Upload the created RPMs to chacra
+chacra_endpoint="nfs-ganesha/${NFS_GANESHA_BRANCH}/${GIT_COMMIT}/${DISTRO}/${RELEASE}"
+
+[ "$FORCE" = true ] && chacra_flags="--force" || chacra_flags=""
+
+# push binaries to chacra
+find ./dist/rpm/ | egrep '\.rpm$' | $VENV/chacractl binary ${chacra_flags} create ${chacra_endpoint}/$ARCH/
+
+# start repo creation
+$VENV/chacractl repo update ${chacra_endpoint}
+
+echo Check the status of the repo at: https://shaman.ceph.com/api/repos/${chacra_endpoint}
