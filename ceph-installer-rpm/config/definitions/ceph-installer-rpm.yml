@@ -1,6 +1,6 @@
 - job:
     name: ceph-installer-rpm
-    node: 'centos7 && x86_64 && small'
+    node: 'centos7 && x86_64 && small && !sepia'
     project-type: freestyle
     defaults: global
     disabled: false
