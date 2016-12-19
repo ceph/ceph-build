@@ -1,0 +1,50 @@
+- job:
+    name: ceph-installer-nightly
+    node: vagrant && libvirt 
+    project-type: freestyle
+    defaults: global
+    display-name: 'ceph-installer: Nightly tests for ceph-installer and ceph-ansible integration'
+    quiet-period: 5
+    block-downstream: false
+    block-upstream: false
+    retry-count: 3
+    properties:
+      - github:
+          url: https://github.com/ceph/ceph-installer
+    logrotate:
+      daysToKeep: -1
+      numToKeep: -1
+      artifactDaysToKeep: -1
+      artifactNumToKeep: -1
+
+    parameters:
+      - string:
+          name: INSTALLER_BRANCH
+          description: "The ceph-installer branch (or tag) to test"
+          default: master
+
+      - string:
+          name: CEPH_ANSIBLE_BRANCH
+          description: "The ceph-ansible branch (or tag) to test"
+          default: master
+
+    triggers:
+      - timed: '@daily'
+
+    scm:
+      - git:
+          url: https://github.com/ceph/ceph-installer.git
+          branches:
+            - $INSTALLER_BRANCH 
+          browser: auto
+          timeout: 20
+
+    builders:
+      - shell:
+          !include-raw:
+            - ../../../scripts/build_utils.sh
+            - ../../build/build
+
+    publishers:
+      - email:
+          recipients: aschoen@redhat.com adeza@redhat.com
