@@ -30,7 +30,6 @@
             - 'origin/jewel'
             - 'origin/kraken'
             - 'origin/hammer'
-            - 'origin/wip-*'
           skip-tag: true
           timeout: 20
           wipe-workspace: true
