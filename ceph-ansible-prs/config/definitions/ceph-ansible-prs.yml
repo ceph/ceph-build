@@ -1,22 +1,24 @@
 - project:
     name: ceph-ansible-prs
+    ansible:
+      - ansible2.2
     scenario:
-      - ansible2.2-centos7_cluster
-      - ansible2.2-xenial_cluster
-      - ansible2.2-journal_collocation
-      - ansible2.2-dmcrypt_journal
-      - ansible2.2-dmcrypt_journal_collocation
-      - ansible2.2-docker_cluster
+      - centos7_cluster
+      - xenial_cluster
+      - journal_collocation
+      - dmcrypt_journal
+      - dmcrypt_journal_collocation
+      - docker_cluster
     jobs:
-        - 'ceph-ansible-prs-{scenario}'
+        - 'ceph-ansible-prs-{ansible}-{scenario}'
 
 
 - job-template:
-    name: 'ceph-ansible-prs-{scenario}'
+    name: 'ceph-ansible-prs-{ansible}-{scenario}'
     node: vagrant&&libvirt
     concurrent: true
     defaults: global
-    display-name: 'ceph-ansible: Pull Requests [{scenario}]'
+    display-name: 'ceph-ansible: Pull Requests [{ansible}-{scenario}]'
     quiet-period: 5
     block-downstream: false
     block-upstream: false
@@ -40,15 +42,15 @@
           allow-whitelist-orgs-as-admins: true
           org-list:
             - ceph
-          trigger-phrase: 'jenkins test {scenario}'
+          trigger-phrase: 'jenkins test {ansible}-{scenario}'
           only-trigger-phrase: false
           github-hooks: true
           permit-all: true
           auto-close-on-fail: false
-          status-context: "Testing: {scenario}"
-          started-status: "Running: {scenario}"
-          success-status: "OK - {scenario}"
-          failure-status: "FAIL - {scenario}"
+          status-context: "Testing: {ansible}-{scenario}"
+          started-status: "Running: {ansible}-{scenario}"
+          success-status: "OK - {ansible}-{scenario}"
+          failure-status: "FAIL - {ansible}-{scenario}"
 
     scm:
       - git:
@@ -64,7 +66,7 @@
     builders:
       - inject:
           properties-content: |
-            SCENARIO={scenario}
+            SCENARIO={ansible}-{scenario}
       - shell:
           !include-raw-escape:
             - ../../../scripts/build_utils.sh
