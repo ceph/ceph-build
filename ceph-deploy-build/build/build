@@ -83,7 +83,15 @@ then
     DEB_BUILD=$(lsb_release -s -c)
     #XXX only releases until we fix this
     RELEASE=1
-    DISTRO=`python -c "exec 'import platform; print platform.linux_distribution()[0].lower()'"`
+    DISTRO=""
+    case $DIST in
+        jessie|wheezy)
+            DISTRO="debian"
+            ;;
+        *)
+            DISTRO="ubuntu"
+            ;;
+    esac
 
     [ "$TEST" = true ] && chacra_ref="test" || chacra_ref="$BRANCH"
     # ceph-deploy isn't architecture dependant, so we use 'all' as architecture and
