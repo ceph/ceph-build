@@ -41,12 +41,12 @@ cmake -DCMAKE_BUILDER_TYPE=Maintainer -DUSE_FSAL_RGW=YES -DUSE_FSAL_CEPH=YES $WO
 ## Create the source rpm
 echo "Building SRPM"
 rpmbuild \
-    --define "_sourcedir ./dist" \
+    --define "_sourcedir $WORKSPACE/dist" \
     --define "_specdir ." \
     --define "_builddir ." \
     --define "_srcrpmdir ." \
     --define "_rpmdir ." \
-    --nodeps -bs ../src/nfs-ganesha.spec
+    --nodeps -bs $WORKSPACE/nfs-ganesha/src/nfs-ganesha.spec
 SRPM=$(readlink -f *.src.rpm)
 
 # add repo file to mock config
@@ -57,7 +57,7 @@ echo "\"\"\"" >> nfs-ganesha.cfg
 
 ## Build the binaries with mock
 echo "Building RPMs"
-sudo mock -r nfs-ganesha.cfg --resultdir=./dist/rpm/ ${SRPM}
+sudo mock -r nfs-ganesha.cfg --resultdir=$WORKSPACE/dist/rpm/ ${SRPM}
 
 
 ## Upload the created RPMs to chacra
@@ -66,7 +66,7 @@ chacra_endpoint="nfs-ganesha/${NFS_GANESHA_BRANCH}/${GIT_COMMIT}/${DISTRO}/${REL
 [ "$FORCE" = true ] && chacra_flags="--force" || chacra_flags=""
 
 # push binaries to chacra
-find ./dist/rpm/ | egrep '\.rpm$' | $VENV/chacractl binary ${chacra_flags} create ${chacra_endpoint}/$ARCH/
+find $WORKSPACE/dist/rpm/ | egrep '\.rpm$' | $VENV/chacractl binary ${chacra_flags} create ${chacra_endpoint}/$ARCH/
 
 # start repo creation
 $VENV/chacractl repo update ${chacra_endpoint}

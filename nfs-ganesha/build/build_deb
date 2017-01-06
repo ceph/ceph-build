@@ -56,7 +56,7 @@ PBUILDDIR="/srv/debian-base"
 
 sudo pbuilder --clean
 
-mkdir -p dist/deb
+mkdir -p $WORKSPACE/dist/deb
 
 REPO_URL="https://shaman.ceph.com/api/repos/ceph/$CEPH_BRANCH/$CEPH_SHA1/$DISTRO/$DIST/repo"
 echo "EXTRAPACKAGES=\"libcephfs-dev\"" >> ~/.pbuilderrc
@@ -66,9 +66,9 @@ echo "Building debs for $DIST"
 sudo pbuilder build \
     --distribution $DIST \
     --basetgz $PBUILDDIR/$DIST.tgz \
-    --buildresult dist/deb/ \
+    --buildresult $WORKSPACE/dist/deb/ \
     --debbuildopts "-j`grep -c processor /proc/cpuinfo`" \
-    dist/nfs-ganesha_$VERSION.dsc
+    $WORKSPACE/dist/nfs-ganesha_$VERSION.dsc
 
 
 ## Upload the created RPMs to chacra

@@ -20,9 +20,14 @@ cd $WORKSPACE
 get_distro_and_target
 
 # Perform a clean-up
+cd $WORKSPACE/nfs-ganesha
+git clean -fxd
+
+cd $WORKSPACE/nfs-ganesha-debian
 git clean -fxd
 
 # Make sure the dist directory is clean
+cd $WORKSPACE
 rm -rf dist
 mkdir -p dist
 
