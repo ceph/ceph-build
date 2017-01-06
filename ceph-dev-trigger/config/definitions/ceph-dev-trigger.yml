@@ -35,6 +35,10 @@
           wipe-workspace: true
 
     builders:
+      - shell:
+          !include-raw:
+            - ../../../scripts/build_utils.sh
+            - ../../build/notify
       - trigger-builds:
         - project: 'ceph-dev'
           predefined-parameters: |
