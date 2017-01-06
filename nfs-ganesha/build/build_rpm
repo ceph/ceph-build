@@ -36,16 +36,16 @@ mkdir build
 cd build
 
 # generate .spec file and make source tarball
-cmake -DCMAKE_BUILDER_TYPE=Maintainer -DUSE_FSAL_RGW=YES -DUSE_FSAL_CEPH=YES $WORKSPACE/nfs-ganesha/src && make dist || exit 0
+cmake -DCMAKE_BUILD_TYPE=Maintainer $WORKSPACE/nfs-ganesha/src && make dist || exit 0
 
 ## Create the source rpm
 echo "Building SRPM"
 rpmbuild \
-    --define "_sourcedir $WORKSPACE/dist" \
-    --define "_specdir ." \
-    --define "_builddir ." \
-    --define "_srcrpmdir ." \
-    --define "_rpmdir ." \
+    --define "_sourcedir ." \
+    --define "_specdir $WORKSPACE/dist" \
+    --define "_builddir $WORKSPACE/dist" \
+    --define "_srcrpmdir $WORKSPACE/dist" \
+    --define "_rpmdir $WORKSPACE/dist" \
     --nodeps -bs $WORKSPACE/nfs-ganesha/src/nfs-ganesha.spec
 SRPM=$(readlink -f *.src.rpm)
 

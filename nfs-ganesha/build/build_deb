@@ -29,7 +29,7 @@ mkdir build
 cd build
 
 # make source tarball
-cmake -DCMAKE_BUILDER_TYPE=Maintainer -DUSE_FSAL_RGW=YES -DUSE_FSAL_CEPH=YES $WORKSPACE/nfs-ganesha/src && make dist || exit 0
+cmake -DCMAKE_BUILD_TYPE=Maintainer $WORKSPACE/nfs-ganesha/src && make dist || exit 0
 
 ## Get some basic information about the system and the repository
 DEB_ARCH=$(dpkg-architecture -qDEB_BUILD_ARCH)
