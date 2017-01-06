@@ -49,3 +49,8 @@
             BRANCH=${GIT_BRANCH}
             FORCE=True
             FLAVOR=notcmalloc
+
+    wrappers:
+      - inject-passwords:
+          global: true
+          mask-password-params: true
