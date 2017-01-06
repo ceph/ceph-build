@@ -6,4 +6,4 @@ WORKDIR=$(mktemp -td tox.XXXXXXXXXX)
 
 cd $WORKSPACE/tests/functional
 
-INSTALLER_DEV_BRANCH=$INSTALLER_BRANCH CEPH_ANSIBLE_DEV_BRANCH=$CEPH_ANSIBLE_BRANCH $VENV/tox -rv -e=ansible2.2-nightly --workdir=$WORKDIR -- --provider=libvirt
+INSTALLER_DEV_BRANCH=$INSTALLER_BRANCH CEPH_ANSIBLE_DEV_BRANCH=$CEPH_ANSIBLE_BRANCH $VENV/tox -rv -e=$SCENARIO --workdir=$WORKDIR -- --provider=libvirt

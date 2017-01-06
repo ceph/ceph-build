@@ -1,9 +1,17 @@
-- job:
-    name: ceph-installer-nightly
+- project:
+    name: ceph-installer-tests
+    scenario:
+      - ansible2.2-nightly_centos7
+      - ansible2.2-nightly_xenial
+    jobs:
+        - 'ceph-installer-tests-{scenario}'
+
+- job-template:
+    name: 'ceph-installer-tests-{scenario}'
     node: vagrant && libvirt 
     project-type: freestyle
     defaults: global
-    display-name: 'ceph-installer: Nightly tests for ceph-installer and ceph-ansible integration'
+    display-name: 'ceph-installer: Tests [{scenario}]'
     quiet-period: 5
     block-downstream: false
     block-upstream: false
@@ -40,8 +48,11 @@
           timeout: 20
 
     builders:
+      - inject:
+          properties-content: |
+            SCENARIO={scenario}
       - shell:
-          !include-raw:
+          !include-raw-escape:
             - ../../../scripts/build_utils.sh
             - ../../build/build
 
