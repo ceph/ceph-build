@@ -48,8 +48,8 @@
 
       - string:
           name: DISTROS
-          description: "A list of distros to build for. Available options are: xenial, centos7, centos6, trusty, precise, wheezy, and jessie"
-          default: "centos7 precise xenial"
+          description: "A list of distros to build for. Available options are: xenial, centos7"
+          default: "centos7 xenial"
 
       - string:
           name: ARCHS
@@ -89,9 +89,6 @@ If this is checked, then the binaries will be built and pushed to chacra even if
             - centos7
             - trusty
             - xenial
-      - axis:
-          type: dynamic
-          name: DIST
       - axis:
           type: dynamic
           name: DIST
