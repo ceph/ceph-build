@@ -29,24 +29,6 @@ tar xzf *.orig.tar.gz
 cd ceph-*
 pwd
 
-case $(lsb_release -si) in
-CentOS|Fedora|SUSE*|RedHatEnterpriseServer)
-        case $(lsb_release -si) in
-            SUSE*)
-                $SUDO zypper -y yum-utils
-                ;;
-            *)
-                $SUDO yum install -y yum-utils
-                ;;
-        esac
-        sed -e 's/@//g' < ceph.spec.in > $DIR/ceph.spec
-        $SUDO yum-builddep -y $DIR/ceph.spec
-        ;;
-*)
-        echo "$(lsb_release -si) is unknown, dependencies will have to be installed manually."
-        ;;
-esac
-
 BRANCH=`branch_slash_filter $BRANCH`
 
 if [[ ! -f /etc/redhat-release && ! -f /usr/bin/zypper ]] ; then
@@ -109,6 +91,24 @@ NORMAL_ARCH=$ARCH
 
 # create build status in shaman
 create_build_status "started" "ceph" $NORMAL_DISTRO $NORMAL_DISTRO_VERSION $NORMAL_ARCH
+
+case $(lsb_release -si) in
+CentOS|Fedora|SUSE*|RedHatEnterpriseServer)
+        case $(lsb_release -si) in
+            SUSE*)
+                $SUDO zypper -y yum-utils
+                ;;
+            *)
+                $SUDO yum install -y yum-utils
+                ;;
+        esac
+        sed -e 's/@//g' < ceph.spec.in > $DIR/ceph.spec
+        $SUDO yum-builddep -y $DIR/ceph.spec
+        ;;
+*)
+        echo "$(lsb_release -si) is unknown, dependencies will have to be installed manually."
+        ;;
+esac
 
 pkgs=( "chacractl>=0.0.4" )
 install_python_packages "pkgs[@]"
