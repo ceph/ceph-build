@@ -1,0 +1,21 @@
+#!/bin/bash
+
+# the following two methods exist in scripts/build_utils.sh
+pkgs=( "tox" )
+install_python_packages "pkgs[@]"
+
+# XXX this might not be needed
+source $VENV/activate
+
+WORKDIR=$(mktemp -td tox.XXXXXXXXXX)
+
+sudo apt-get install -y docker.io
+
+sudo gpasswd -a ${USER} docker
+sudo systemctl restart docker
+newgrp docker
+
+# adding groups on the fly doesn't guarantee their availability
+# so we must use `sg` to execute the tests as part of the docker group to avoid
+# 'Permission Denied` when tryin to talk over the socket
+sg docker -c "$VENV/tox -rv -e=$SCENARIO --workdir=$WORKDIR"

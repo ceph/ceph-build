@@ -1,0 +1,73 @@
+- project:
+    name: ceph-docker-prs
+    scenario:
+      - ceph_ansible2.1-jewel-centos7_cluster
+    jobs:
+        - 'ceph-docker-prs-{scenario}'
+
+
+- job-template:
+    name: 'ceph-docker-prs-{scenario}'
+    node: vagrant&&libvirt
+    concurrent: true
+    defaults: global
+    display-name: 'ceph-docker: Pull Requests [{scenario}]'
+    quiet-period: 5
+    block-downstream: false
+    block-upstream: false
+    retry-count: 3
+    properties:
+      - github:
+          url: https://github.com/ceph/ceph-docker
+    logrotate:
+      daysToKeep: 15
+      numToKeep: 30
+      artifactDaysToKeep: -1
+      artifactNumToKeep: -1
+
+    parameters:
+      - string:
+          name: sha1
+          description: "A pull request ID, like 'origin/pr/72/head'"
+
+    triggers:
+      - github-pull-request:
+          allow-whitelist-orgs-as-admins: true
+          org-list:
+            - ceph
+          trigger-phrase: 'jenkins test {scenario}'
+          only-trigger-phrase: false
+          github-hooks: true
+          permit-all: true
+          auto-close-on-fail: false
+          status-context: "Testing: {scenario}"
+          started-status: "Running: {scenario}"
+          success-status: "OK - {scenario}"
+          failure-status: "FAIL - {scenario}"
+
+    scm:
+      - git:
+          url: https://github.com/ceph/ceph-docker.git
+          branches:
+            - ${{sha1}}
+          refspec: +refs/pull/*:refs/remotes/origin/pr/*
+          browser: auto
+          timeout: 20
+          skip-tag: true
+          wipe-workspace: false
+
+    builders:
+      - inject:
+          properties-content: |
+            SCENARIO={scenario}
+      - shell:
+          !include-raw-escape:
+            - ../../../scripts/build_utils.sh
+            - ../../build/build
+
+    publishers:
+      - postbuildscript:
+          script-only-if-succeeded: False
+          script-only-if-failed: True
+          builders:
+            - shell: !include-raw ../../build/teardown
