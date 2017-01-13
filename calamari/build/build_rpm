@@ -56,7 +56,7 @@ SRPM=$(readlink -f *.src.rpm)
 
 ## Build the binaries with mock
 echo "Building RPMs"
-sudo mock -r ${MOCK_TARGET}-${RELEASE}-${ARCH} --resultdir=./dist/rpm/ ${SRPM}
+sudo mock -r ${MOCK_TARGET}-${RELEASE}-${ARCH} --resultdir=./dist/rpm/ ${SRPM} || cat ./dist/rpm/build.log
 
 
 ## Upload the created RPMs to chacra
