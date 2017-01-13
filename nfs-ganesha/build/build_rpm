@@ -11,22 +11,20 @@ RELEASE="$(lsb_release --short -r | cut -d '.' -f 1)" # sytem release
 
 # Get .repo file from appropriate shaman build
 REPO_URL="https://shaman.ceph.com/api/repos/ceph/$CEPH_BRANCH/$CEPH_SHA1/$DISTRO/$RELEASE/flavors/default/repo"
-if `curl --fail -L $REPO_URL > $WORKSPACE/libcephfs.repo`; then
+if `curl --fail -L $REPO_URL > $WORKSPACE/shaman.repo`; then
   echo "Ceph repo file has been added from shaman"
 else
   echo "Ceph repo file was NOT added from shaman"
-  exit 0
+  exit 1
 fi
 
-## Install any setup-time deps (to make dist package)
-# We need this to get the major version from lsb_release
-# ALI TO DO: find out if all these packages are necessary
+# install ceph libraries so enable FSAL_CEPH and FSAL_RGW in the .spec file 
+# when cmake command runs
 xargs sudo yum install -y <<< "
-redhat-lsb-core 
-mock 
-cmake 
-git
+librgw2-devel
+libcephfs1
 "
+
 
 cd $WORKSPACE/nfs-ganesha
 
@@ -36,7 +34,7 @@ mkdir build
 cd build
 
 # generate .spec file and make source tarball
-cmake -DCMAKE_BUILD_TYPE=Maintainer $WORKSPACE/nfs-ganesha/src && make dist || exit 0
+cmake -DCMAKE_BUILD_TYPE=Maintainer $WORKSPACE/nfs-ganesha/src && make dist || exit 1
 
 ## Create the source rpm
 echo "Building SRPM"
@@ -47,17 +45,17 @@ rpmbuild \
     --define "_srcrpmdir $WORKSPACE/dist" \
     --define "_rpmdir $WORKSPACE/dist" \
     --nodeps -bs $WORKSPACE/nfs-ganesha/src/nfs-ganesha.spec
-SRPM=$(readlink -f *.src.rpm)
+SRPM=$(readlink -f $WORKSPACE/dist/*.src.rpm)
 
 # add repo file to mock config
 sudo head -n -1 /etc/mock/${MOCK_TARGET}-${RELEASE}-${ARCH}.cfg > temp.cfg
 echo >> temp
-sudo cat temp.cfg $WORKSPACE/libcephfs.repo > nfs-ganesha.cfg
+sudo cat temp.cfg $WORKSPACE/shaman.repo > nfs-ganesha.cfg
 echo "\"\"\"" >> nfs-ganesha.cfg
 
 ## Build the binaries with mock
 echo "Building RPMs"
-sudo mock -r nfs-ganesha.cfg --resultdir=$WORKSPACE/dist/rpm/ ${SRPM}
+sudo mock -r nfs-ganesha.cfg --resultdir=$WORKSPACE/dist/rpm/ ${SRPM} || ( tail -n +1 $WORKSPACE/dist/rpm/{root,build}.log && exit 1 )
 
 
 ## Upload the created RPMs to chacra
