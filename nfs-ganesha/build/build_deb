@@ -8,15 +8,29 @@ fi
 
 
 ## Install any setup-time deps
-# TODO -- upload install-deps.sh script that installs the setup time deps
-# to upstream repo or update this section to install these packages
+# TODO: add file to /etc/apt/sources.list.d/ to get repos for librgw-dev and libcephfs-dev and run sudo apt-get update
 
 # We need this for system, to build ganesha, and to enable FSAL_CEPH and 
 # FSAL_RGW in the .spec file when cmake command runs
-sudo apt-get install -y equivs cmake git libkrb5-dev bison flex librgw2-dev libcephfs-dev
+sudo apt-get -y install "
+cmake
+equivs
+libkrb5-dev
+bison
+flex
+librgw-dev
+libcephfs-dev
+"
+
+# Normalize variables across rpm/deb builds
+NORMAL_DISTRO=$DISTRO
+NORMAL_DISTRO_VERSION=$DIST
+NORMAL_ARCH=$ARCH
+
+# create build status in shaman
+create_build_status "started" "nfs-ganesha" $NORMAL_DISTRO $NORMAL_DISTRO_VERSION $NORMAL_ARCH
 
 ## Setup the pbuilder
-# TODO remove if you do not want to use pbuilders
 setup_pbuilder
 
 
@@ -30,11 +44,11 @@ mkdir build
 cd build
 
 # make source tarball
-cmake -DCMAKE_BUILD_TYPE=Maintainer $WORKSPACE/nfs-ganesha/src && make dist || exit 1
+cmake -DCMAKE_BUILD_TYPE=Maintainer -DUSE_FSAL_CEPH=ON -DUSE_FSAL_RGW=ON $WORKSPACE/nfs-ganesha/src && make dist || exit 1
 
 # move unpacked tarball code into nfs-ganesha-debian/src
 NFS_GANESHA_SOURCE_DIR=`grep -om 1 "nfs-ganesha-[0-9].[0-9]-dev-[0-9]-[0-9].[0-9].[0-9]-Source" CPackSourceConfig.cmake`
-tar xf ${NFS_GANESHA_SOURCE_DIR}.tar.gz
+tar xzf ${NFS_GANESHA_SOURCE_DIR}.tar.gz
 mv ${NFS_GANESHA_SOURCE_DIR} src
 cp -r src $WORKSPACE/nfs-ganesha-debian/
 
@@ -76,13 +90,38 @@ sudo pbuilder build \
 
 ## Upload the created RPMs to chacra
 chacra_endpoint="nfs-ganesha/${NFS_GANESHA_BRANCH}/${GIT_COMMIT}/${DISTRO}/${DIST}"
+# TODO: change this
+bpvers="foo"
+#bpvers=`gen_debian_version $debian_version $DIST`
 
 [ "$FORCE" = true ] && chacra_flags="--force" || chacra_flags=""
 
 # push binaries to chacra
-find $WORKSPACE/dist/deb -name "*.deb" | $VENV/chacractl binary ${chacra_flags} create ${chacra_endpoint}/${DEB_ARCH}/
 
-# start repo creation
-$VENV/chacractl repo update ${chacra_endpoint}
+if [ "$THROWAWAY" = false ] ; then
+    # push binaries to chacra
+    find $WORKSPACE/dist/deb | egrep "*\.(changes|deb|dsc|gz)$" | egrep -v "(Packages|Sources|Contents)" | $VENV/chacractl binary ${chacra_flags} create ${chacra_endpoint}
+    # write json file with build info
+    # version and package_manager version are needed for teuthology
+    cat > $WORKSPACE/repo-extra.json << EOF
+{
+    "version":"$VERSION",
+    "package_manager_version":"$bpvers",
+    "build_url":"$BUILD_URL",
+    "root_build_cause":"$ROOT_BUILD_CAUSE",
+    "node_name":"$NODE_NAME",
+    "job_name":"$JOB_NAME"
+}
+EOF
+    # post the json to repo-extra json to chacra
+    curl -X POST -H "Content-Type:application/json" --data "@$WORKSPACE/repo-extra.json" -u $CHACRACTL_USER:$CHACRACTL_KEY ${chacra_url}/repos/${chacra_endpoint}/extra/
+    # start repo creation
+    $VENV/chacractl repo update ${chacra_endpoint}
+fi
 
 echo Check the status of the repo at: https://shaman.ceph.com/api/repos/${chacra_endpoint}
+
+# update shaman with the completed build status
+update_build_status "completed" "nfs-ganesha" $NORMAL_DISTRO $NORMAL_DISTRO_VERSION $NORMAL_ARCH
+
+sudo rm -rf $WORKSPACE/dist
