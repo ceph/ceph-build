@@ -47,12 +47,12 @@ install_python_packages_no_binary () {
     PIP_SDIST_INDEX="$HOME/.cache/pip"
     mkdir -p $PIP_SDIST_INDEX
 
-    echo "Updating setuptools"
-    $VENV/pip install --upgrade --exists-action=i --download="$PIP_SDIST_INDEX" setuptools
-
     echo "Ensuring latest pip is installed"
     $VENV/pip install --upgrade --exists-action=i --download="$PIP_SDIST_INDEX" pip
     $VENV/pip install --upgrade --exists-action=i --find-links="file://$PIP_SDIST_INDEX" --no-index pip
+
+    echo "Updating setuptools"
+    $VENV/pip install --upgrade --exists-action=i --download="$PIP_SDIST_INDEX" setuptools
 
     pkgs=("${!1}")
     for package in ${pkgs[@]}; do
@@ -81,12 +81,12 @@ install_python_packages () {
     PIP_SDIST_INDEX="$HOME/.cache/pip"
     mkdir -p $PIP_SDIST_INDEX
 
-    echo "Updating setuptools"
-    $VENV/pip install --upgrade --exists-action=i --download="$PIP_SDIST_INDEX" setuptools
-
     echo "Ensuring latest pip is installed"
     $VENV/pip install --upgrade --exists-action=i --download="$PIP_SDIST_INDEX" pip
     $VENV/pip install --upgrade --exists-action=i --find-links="file://$PIP_SDIST_INDEX" --no-index pip
+
+    echo "Updating setuptools"
+    $VENV/pip install --upgrade --exists-action=i --download="$PIP_SDIST_INDEX" setuptools
 
     pkgs=("${!1}")
     for package in ${pkgs[@]}; do
