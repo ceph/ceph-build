@@ -23,7 +23,7 @@ get_distro_and_target
 git clean -fxd
 
 # Make sure the dist directory is clean
-rm -rf dist
+sudo rm -rf dist
 mkdir -p dist
 
 # Print some basic system info
