@@ -122,6 +122,7 @@ fi
 echo Check the status of the repo at: https://shaman.ceph.com/api/repos/${chacra_endpoint}
 
 # update shaman with the completed build status
+SHA1=${GIT_COMMIT}
 update_build_status "completed" "nfs-ganesha" $NORMAL_DISTRO $NORMAL_DISTRO_VERSION $NORMAL_ARCH
 
 sudo rm -rf $WORKSPACE/dist

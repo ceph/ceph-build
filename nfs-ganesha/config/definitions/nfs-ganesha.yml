@@ -38,6 +38,11 @@
           default: "next"
 
       - string:
+          name: BRANCH
+          description: "The git branch that will be posted to shaman"
+          default: $NFS_GANESHA_BRANCH
+
+      - string:
           name: CEPH_SHA1
           description: "The SHA1 of the ceph branch"
           default: "latest"
