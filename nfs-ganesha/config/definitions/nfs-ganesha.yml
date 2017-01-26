@@ -57,6 +57,12 @@
           default: "x86_64"
 
       - bool:
+          name: THROWAWAY
+          description: "
+Default: False. When True it will not POST binaries to chacra. Artifacts will not be around for long. Useful to test builds."
+          default: false
+
+      - bool:
           name: FORCE
           description: "
 If this is unchecked, then nothing is built or pushed if they already exist in chacra. This is the default.
