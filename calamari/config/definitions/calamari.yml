@@ -51,16 +51,10 @@ If this is checked, then the binaries will be built and pushed to chacra even if
           type: label-expression
           name: AVAILABLE_DIST
           values:
-            - centos6
             - centos7
             - trusty
             - xenial
             - jessie
-            - precise
-            - wheezy
-      - axis:
-          type: dynamic
-          name: DIST
       - axis:
           type: dynamic
           name: DIST
@@ -80,7 +74,7 @@ If this is checked, then the binaries will be built and pushed to chacra even if
           branches:
             - $BRANCH
           skip-tag: true
-          wipe-workspace: true
+          wipe-workspace: false
 
     builders:
       - shell: |
