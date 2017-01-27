@@ -52,7 +52,7 @@ mkdir build
 cd build
 
 # generate .spec file, edit .spec file for correct versions of libs and make source tarball
-cmake -DCMAKE_BUILD_TYPE=Maintainer -DUSE_FSAL_CEPH=ON -DUSE_FSAL_RGW=ON $WORKSPACE/nfs-ganesha/src && make dist || exit 1
+cmake -DCMAKE_BUILD_TYPE=Maintainer -DUSE_FSAL_GLUSTER=OFF -DUSE_FSAL_CEPH=ON -DUSE_FSAL_RGW=ON $WORKSPACE/nfs-ganesha/src && make dist || exit 1
 
 sed -i 's/libcephfs1-devel/libcephfs-devel/' $WORKSPACE/nfs-ganesha/src/nfs-ganesha.spec
 sed -i 's/librgw2-devel/librgw-devel/' $WORKSPACE/nfs-ganesha/src/nfs-ganesha.spec
@@ -78,7 +78,7 @@ echo "\"\"\"" >> nfs-ganesha.cfg
 echo "Building RPMs"
 sudo mock -r nfs-ganesha.cfg --define "dist .el7" --resultdir=$WORKSPACE/dist/RPMS/ ${SRPM} || ( tail -n +1 $WORKSPACE/dist/RPMS/{root,build}.log && exit 1 )
 
-VERSION=`grep -om 1 "[0-9]\.[0-9]-dev-[0-9]" $WORKSPACE/nfs-ganesha/build/include/config.h`
+VERSION=`grep -om 1 '[[:digit:]]\+\.[[:digit:]]\+-dev-[[:digit:]]\+' $WORKSPACE/nfs-ganesha/build/include/config.h`
 chacra_endpoint="nfs-ganesha/${NFS_GANESHA_BRANCH}/${GIT_COMMIT}/${DISTRO}/${RELEASE}"
 RPM_RELEASE=`grep Release $WORKSPACE/nfs-ganesha/src/nfs-ganesha.spec | sed 's/Release:[ \t]*//g' | cut -d '%' -f 1`
 RPM_VERSION=`grep Version $WORKSPACE/nfs-ganesha/src/nfs-ganesha.spec | sed 's/Version:[ \t]*//g'`

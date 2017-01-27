@@ -12,15 +12,9 @@ fi
 
 # We need this for system, to build ganesha, and to enable FSAL_CEPH and 
 # FSAL_RGW in the .spec file when cmake command runs
-sudo apt-get -y install "
-cmake
-equivs
-libkrb5-dev
-bison
-flex
-librgw-dev
-libcephfs-dev
-"
+sudo apt-get -y install "cmake equivs libkrb5-dev bison flex quilt
+libdbus-1-dev libnfsidmap-dev libwbclient-dev libntirpc-dev (>= 1.4.3) libattr1-dev libacl1-dev libcap-dev glusterfs-common (>= 3.8.4) python-qt4 pyqt4-dev-tools pkgconf
+librgw-dev libcephfs-dev"
 
 # Normalize variables across rpm/deb builds
 NORMAL_DISTRO=$DISTRO
@@ -44,26 +38,30 @@ mkdir build
 cd build
 
 # make source tarball
-cmake -DCMAKE_BUILD_TYPE=Maintainer -DUSE_FSAL_CEPH=ON -DUSE_FSAL_RGW=ON $WORKSPACE/nfs-ganesha/src && make dist || exit 1
+cmake -DCMAKE_BUILD_TYPE=Maintainer -DUSE_FSAL_GLUSTER=OFF -DUSE_FSAL_CEPH=ON -DUSE_FSAL_RGW=ON $WORKSPACE/nfs-ganesha/src && make dist || exit 1
 
 # move unpacked tarball code into nfs-ganesha-debian/src
-NFS_GANESHA_SOURCE_DIR=`grep -om 1 "nfs-ganesha-[0-9].[0-9]-dev-[0-9]-[0-9].[0-9].[0-9]-Source" CPackSourceConfig.cmake`
+VERSION=`grep -om 1 '[[:digit:]]\+\.[[:digit:]]\+-dev-[[:digit:]]\+' $WORKSPACE/nfs-ganesha/build/CPackSourceConfig.cmake | sed s/-//g`
+BUILD=`grep -om 1 "[[:digit:]]\+-g\w\w\w\w\w\w\w" $WORKSPACE/nfs-ganesha/build/include/config.h`
+NFS_GANESHA_ORIG_TAR_GZ="nfs-ganesha_${VERSION}.orig.tar.gz"
+NFS_GANESHA_SOURCE_DIR=`grep -om 1 'nfs-ganesha-[[:digit:]]\+\.[[:digit:]]\+-dev-[[:digit:]]\+-[[:digit:]]\+\.[[:digit:]]\+\.[[:digit:]]\+-Source' $WORKSPACE/nfs-ganesha/build/CPackSourceConfig.cmake`
 tar xzf ${NFS_GANESHA_SOURCE_DIR}.tar.gz
-mv ${NFS_GANESHA_SOURCE_DIR} src
-cp -r src $WORKSPACE/nfs-ganesha-debian/
+mv ${NFS_GANESHA_SOURCE_DIR}.tar.gz ${NFS_GANESHA_ORIG_TAR_GZ}
+mv ${NFS_GANESHA_SOURCE_DIR} nfs-ganesha-${VERSION}
+rm -rf $WORKSPACE/nfs-ganesha-debian/debian/patches
+mv $WORKSPACE/nfs-ganesha-debian/debian $WORKSPACE/nfs-ganesha/build/nfs-ganesha-${VERSION}/debian
 
 ## Get some basic information about the system and the repository
 DEB_ARCH=$(dpkg-architecture -qDEB_BUILD_ARCH)
-VERSION=`grep -om 1 "[0-9]\.[0-9]-dev-[0-9]" include/config.h`
 
 cd $WORKSPACE/nfs-ganesha-debian
 
 ## Prepare the debian files
 # Bump the changelog
-dch -v "$VERSION" "New release ($VERSION)"
+dch -v "$VERSION-$BUILD" "New release ($VERSION)"
 
 # Create .dsc and source tarball
-sudo dpkg-buildpackage -S -us -uc
+sudo dpkg-buildpackage -S -us -uc -d
 
 ## Build with pbuilder
 echo "Building debs"
