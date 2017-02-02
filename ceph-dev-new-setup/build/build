@@ -57,10 +57,14 @@ if [ "${FLAVOR}" == "notcmalloc" ]
 then
     echo "Detected notcmalloc flavor: will use flag: --without-tcmalloc or -DALLOCATOR=libc"
     AUTOCONF_FLAVOR_FLAGS="$AUTOCONF_FLAVOR_FLAGS --without-tcmalloc"
-    export CEPH_EXTRA_CMAKE_ARGS="$CEPH_EXTRA_CMAKE_ARGS -DALLOCATOR=libc"
+    CEPH_EXTRA_CONFIGURE_ARGS="--without-tcmalloc"
+    CEPH_EXTRA_RPMBUILD_ARGS="--without tcmalloc"
+    CEPH_EXTRA_CMAKE_ARGS="$CEPH_EXTRA_CMAKE_ARGS -DALLOCATOR=libc"
 else
     AUTOCONF_FLAVOR_FLAGS="$AUTOCONF_FLAVOR_FLAGS --with-tcmalloc"
-    export CEPH_EXTRA_CMAKE_ARGS="$CEPH_EXTRA_CMAKE_ARGS -DALLOCATOR=tcmalloc"
+    CEPH_EXTRA_CONFIGURE_ARGS="--with-tcmalloc"
+    CEPH_EXTRA_RPMBUILD_ARGS="--with tcmalloc"
+    CEPH_EXTRA_CMAKE_ARGS="$CEPH_EXTRA_CMAKE_ARGS -DALLOCATOR=tcmalloc"
 fi
 
 # When using autotools/autoconf it is possible to see output from `git diff`
@@ -209,6 +213,10 @@ cat > dist/branch << EOF
 BRANCH=${BRANCH}
 EOF
 
+# CEPH_EXTRA_{CONFIGURE,RPMBUILD}_ARGS are consumed by ceph-build before
+# the switch to cmake; CEPH_EXTRA_CMAKE_ARGS is for after cmake
 cat > dist/other_envvars << EOF
+CEPH_EXTRA_CONFIGURE_ARGS=${CEPH_EXTRA_CONFIGURE_ARGS}
+CEPH_EXTRA_RPMBUILD_ARGS=${CEPH_EXTRA_RPMBUILD_ARGS}
 CEPH_EXTRA_CMAKE_ARGS=${CEPH_EXTRA_CMAKE_ARGS}
 EOF
