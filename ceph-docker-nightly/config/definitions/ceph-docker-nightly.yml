@@ -1,9 +1,22 @@
-- job:
+- project:
     name: ceph-docker-nightly
-    node: xenial && x86_64
-    project-type: freestyle
+    scenario:
+      - ceph_ansible2.1-jewel-centos7_cluster
+      - ceph_ansible2.1-jewel-xenial_cluster
+      - ceph_ansible-jewel-centos7_cluster
+      - ceph_ansible-jewel-xenial_cluster
+      - ceph_ansible-kraken-centos7_cluster
+      - ceph_ansible-kraken-xenial_cluster
+    jobs:
+        - 'ceph-docker-nightly-{scenario}'
+
+
+- job-template:
+    name: 'ceph-docker-nightly-{scenario}'
+    node: vagrant&&libvirt
+    concurrent: true
     defaults: global
-    display-name: 'ceph-docker: Nightly tests for released containers'
+    display-name: 'ceph-docker: Nightly tests [{scenario}]'
     quiet-period: 5
     block-downstream: false
     block-upstream: false
@@ -12,10 +25,16 @@
       - github:
           url: https://github.com/ceph/ceph-docker
     logrotate:
-      daysToKeep: -1
-      numToKeep: -1
+      daysToKeep: 15
+      numToKeep: 30
       artifactDaysToKeep: -1
       artifactNumToKeep: -1
+
+    parameters:
+      - string:
+          name: BRANCH
+          description: "A ceph-docker branch to test"
+          default: master
 
     triggers:
       - timed: '@daily'
@@ -24,12 +43,22 @@
       - git:
           url: https://github.com/ceph/ceph-docker.git
           branches:
-            - master
+            - ${{BRANCH}}
           browser: auto
           timeout: 20
 
     builders:
+      - inject:
+          properties-content: |
+            SCENARIO={scenario}
       - shell:
-          !include-raw:
+          !include-raw-escape:
             - ../../../scripts/build_utils.sh
             - ../../build/build
+
+    publishers:
+      - postbuildscript:
+          script-only-if-succeeded: False
+          script-only-if-failed: True
+          builders:
+            - shell: !include-raw ../../build/teardown
