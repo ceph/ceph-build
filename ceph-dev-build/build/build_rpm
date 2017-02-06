@@ -45,7 +45,7 @@ cp -a rpm/*.patch ${BUILDAREA}/SOURCES/. || true
 # Build RPMs
 BUILDAREA=`readlink -fn ${BUILDAREA}`   ### rpm wants absolute path
 cd ${BUILDAREA}/SPECS
-rpmbuild -ba --define "_topdir ${BUILDAREA}" ceph.spec
+rpmbuild -ba --define "_topdir ${BUILDAREA}" ${CEPH_EXTRA_RPMBUILD_ARGS} ceph.spec
 
 # The following was copied from autobuild-ceph/build-ceph-rpm.sh
 # which creates the ceph-release rpm meant to create the repository file for the repo
