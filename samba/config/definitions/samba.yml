@@ -10,11 +10,12 @@
       - string:
           name: BRANCH
           description: "The git branch (or tag) to build"
+          default: "master"
 
       - string:
           name: DISTROS
-          description: "A list of distros to build for. Available options are: xenial, centos7, centos6, trusty, precise, wheezy, and jessie"
-          default: "centos7 precise xenial"
+          description: "A list of distros to build for. Available options are: xenial, centos7, centos6, trusty-pbuilder, precise, wheezy, and jessie"
+          default: "centos7 trusty-pbuilder xenial"
 
       - string:
           name: ARCHS
