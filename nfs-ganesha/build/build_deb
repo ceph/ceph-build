@@ -7,20 +7,10 @@ if test "$DISTRO" != "debian" -a "$DISTRO" != "ubuntu"; then
 fi
 
 
-## Install any setup-time deps
-# TODO: add file to /etc/apt/sources.list.d/ to get repos for librgw-dev and libcephfs-dev and run sudo apt-get update
-
 # We need this for system, to build ganesha, and to enable FSAL_CEPH and 
 # FSAL_RGW in the .spec file when cmake command runs
-sudo apt-get -y install "
-cmake
-equivs
-libkrb5-dev
-bison
-flex
-librgw-dev
-libcephfs-dev
-"
+sudo apt-get update
+sudo apt-get -y install cmake equivs libkrb5-dev bison flex quilt librgw-dev libcephfs-dev
 
 # Normalize variables across rpm/deb builds
 NORMAL_DISTRO=$DISTRO
@@ -44,26 +34,29 @@ mkdir build
 cd build
 
 # make source tarball
-cmake -DCMAKE_BUILD_TYPE=Maintainer -DUSE_FSAL_CEPH=ON -DUSE_FSAL_RGW=ON $WORKSPACE/nfs-ganesha/src && make dist || exit 1
+cmake -DCMAKE_BUILD_TYPE=Maintainer -DUSE_FSAL_GLUSTER=OFF -DUSE_FSAL_CEPH=ON -DUSE_FSAL_RGW=ON $WORKSPACE/nfs-ganesha/src && make dist || exit 1
 
 # move unpacked tarball code into nfs-ganesha-debian/src
-NFS_GANESHA_SOURCE_DIR=`grep -om 1 "nfs-ganesha-[0-9].[0-9]-dev-[0-9]-[0-9].[0-9].[0-9]-Source" CPackSourceConfig.cmake`
+NFS_GANESHA_SOURCE_DIR=`grep -om 1 'nfs-ganesha-[[:digit:]]\+\.[[:digit:]]\+-dev-[[:digit:]]\+-[[:digit:]]\+\.[[:digit:]]\+\.[[:digit:]]\+-Source' $WORKSPACE/nfs-ganesha/build/CPackSourceConfig.cmake`
+VERSION=`grep -om 1 '[[:digit:]]\+\.[[:digit:]]\+-dev-[[:digit:]]\+' $WORKSPACE/nfs-ganesha/build/CPackSourceConfig.cmake`
+TAR_VERSION=`grep -om 1 '[[:digit:]]\+\.[[:digit:]]\+-dev' $WORKSPACE/nfs-ganesha/build/CPackSourceConfig.cmake`
+NFS_GANESHA_ORIG_TAR_GZ="nfs-ganesha_${TAR_VERSION}.orig.tar.gz"
+mkdir nfs-ganesha-${VERSION}
 tar xzf ${NFS_GANESHA_SOURCE_DIR}.tar.gz
-mv ${NFS_GANESHA_SOURCE_DIR} src
-cp -r src $WORKSPACE/nfs-ganesha-debian/
+mv ${NFS_GANESHA_SOURCE_DIR} nfs-ganesha-${VERSION}/src
+tar czf ${NFS_GANESHA_ORIG_TAR_GZ} nfs-ganesha-${VERSION}/src
+mv $WORKSPACE/nfs-ganesha-debian/debian $WORKSPACE/nfs-ganesha/build/nfs-ganesha-${VERSION}/debian
+cd nfs-ganesha-${VERSION}
 
 ## Get some basic information about the system and the repository
 DEB_ARCH=$(dpkg-architecture -qDEB_BUILD_ARCH)
-VERSION=`grep -om 1 "[0-9]\.[0-9]-dev-[0-9]" include/config.h`
-
-cd $WORKSPACE/nfs-ganesha-debian
 
 ## Prepare the debian files
 # Bump the changelog
-dch -v "$VERSION" "New release ($VERSION)"
+dch -v "$VERSION" "Dev release ($VERSION)"
 
 # Create .dsc and source tarball
-sudo dpkg-buildpackage -S -us -uc
+sudo dpkg-buildpackage -S -us -uc -d
 
 ## Build with pbuilder
 echo "Building debs"
@@ -76,8 +69,10 @@ mkdir -p $WORKSPACE/dist/deb
 
 # use libcephfs and librgw from shaman
 REPO_URL="https://shaman.ceph.com/api/repos/ceph/$CEPH_BRANCH/$CEPH_SHA1/$DISTRO/$DIST/repo"
+SHAMAN_MIRROR=`curl -L ${REPO_URL}`
 echo "EXTRAPACKAGES=\"libcephfs-dev librgw-dev\"" >> ~/.pbuilderrc
-echo "OTHERMIRROR=deb ${REPO_URL}" >> ~/.pbuildrrc
+echo "OTHERMIRROR=\"${SHAMAN_MIRROR}\"" >> ~/.pbuilderrc
+cat ~/.pbuilderrc
 
 echo "Building debs for $DIST"
 sudo pbuilder build \
@@ -85,7 +80,7 @@ sudo pbuilder build \
     --basetgz $PBUILDDIR/$DIST.tgz \
     --buildresult $WORKSPACE/dist/deb/ \
     --debbuildopts "-j`grep -c processor /proc/cpuinfo`" \
-    $WORKSPACE/dist/nfs-ganesha_$VERSION.dsc
+    $WORKSPACE/nfs-ganesha/build/nfs-ganesha_${VERSION}.dsc
 
 
 ## Upload the created RPMs to chacra
@@ -122,6 +117,7 @@ fi
 echo Check the status of the repo at: https://shaman.ceph.com/api/repos/${chacra_endpoint}
 
 # update shaman with the completed build status
+SHA1=${GIT_COMMIT}
 update_build_status "completed" "nfs-ganesha" $NORMAL_DISTRO $NORMAL_DISTRO_VERSION $NORMAL_ARCH
 
 sudo rm -rf $WORKSPACE/dist

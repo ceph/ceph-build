@@ -11,6 +11,7 @@
 #  License as published by the Free Software Foundation; either
 #  version 2.1 of the License, or (at your option) any later version.
 #
+
 set -ex
 
 # Make sure we execute at the top level directory before we do anything
@@ -42,6 +43,9 @@ export LC_ALL=C # the following is vulnerable to i18n
 
 pkgs=( "chacractl>=0.0.4" )
 install_python_packages "pkgs[@]"
+
+NFS_GANESHA_BRANCH=`branch_slash_filter $NFS_GANESHA_BRANCH`
+CEPH_BRANCH=`branch_slash_filter $CEPH_BRANCH`
 
 # ask shaman which chacra instance to use
 chacra_url=`curl -f -u $SHAMAN_API_USER:$SHAMAN_API_KEY https://shaman.ceph.com/api/nodes/next/`

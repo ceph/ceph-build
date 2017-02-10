@@ -38,6 +38,11 @@
           default: "next"
 
       - string:
+          name: BRANCH
+          description: "The git branch that will be posted to shaman"
+          default: $NFS_GANESHA_BRANCH
+
+      - string:
           name: CEPH_SHA1
           description: "The SHA1 of the ceph branch"
           default: "latest"
@@ -128,6 +133,18 @@ If this is checked, then the binaries will be built and pushed to chacra even if
             - ../../../scripts/build_utils.sh
             - ../../build/setup
             - ../../build/build_rpm
+
+    publishers:
+      - postbuildscript:
+          script-only-if-failed: True
+          script-only-if-succeeded: False 
+          builders:
+            - inject:
+                properties-file: ${WORKSPACE}/build_info
+            - shell:
+                !include-raw:
+                  - ../../../scripts/build_utils.sh
+                  - ../../build/failure
 
     wrappers:
       - inject-passwords:
