@@ -12,11 +12,11 @@ releases=${*:-"firefly giant hammer infernalis testing"}
 
 ceph_sync() {
   release=$1
-  deb_cmd="/opt/repos/ceph/$release/debian/jessie/* dhc-user@download.ceph.com:/home/dhc-user/repos/debian-$release/"
+  deb_cmd="/opt/repos/ceph/$release/debian/jessie/* signer@download.ceph.com:/data/download.ceph.com/www/debian-$release/"
   rsync --progress -avr $deb_cmd
 
-  el6_cmd="/opt/repos/ceph/$release/centos/6/* dhc-user@download.ceph.com:/home/dhc-user/repos/rpm-$release/el6/"
-  el7_cmd="/opt/repos/ceph/$release/centos/7/* dhc-user@download.ceph.com:/home/dhc-user/repos/rpm-$release/el7/"
+  el6_cmd="/opt/repos/ceph/$release/centos/6/* signer@download.ceph.com:/data/download.ceph.com/www/rpm-$release/el6/"
+  el7_cmd="/opt/repos/ceph/$release/centos/7/* signer@download.ceph.com:/data/download.ceph.com/www/rpm-$release/el7/"
   rsync --progress -avr $el6_cmd
   rsync --progress -avr $el7_cmd
 }
