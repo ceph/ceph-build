@@ -38,7 +38,7 @@ chacra_endpoint="calamari/${BRANCH}/${GIT_COMMIT}/${DISTRO}/${DIST}"
 [ "$FORCE" = true ] && chacra_flags="--force" || chacra_flags=""
 
 # push binaries to chacra
-find ../calamari-server*.deb ../calamari-server*.changes | $VENV/chacractl binary ${chacra_flags} create ${chacra_endpoint}/${DEB_ARCH}/
+find ../calamari-server*.deb ../calamari-server*.changes | $VENV/chacractl binary ${chacra_flags} create ${chacra_endpoint}/${ARCH}/
 
 # start repo creation
 $VENV/chacractl repo update ${chacra_endpoint}

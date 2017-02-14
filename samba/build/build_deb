@@ -9,7 +9,7 @@ fi
 
 ## Install any setup-time deps
 # We need these for the build
-sudo apt-get install -y build-essential equivs libgnutls-dev libacl1-dev libldap2-dev ruby ruby-dev
+sudo apt-get update && sudo apt-get install -y build-essential equivs libgnutls-dev libacl1-dev libldap2-dev ruby ruby-dev
 
 # We use fpm to create the deb package
 sudo gem install fpm
@@ -49,7 +49,7 @@ chacra_endpoint="samba/${BRANCH}/${GIT_COMMIT}/${DISTRO}/${DIST}"
 [ "$FORCE" = true ] && chacra_flags="--force" || chacra_flags=""
 
 # push binaries to chacra
-find *.deb | $VENV/chacractl binary ${chacra_flags} create ${chacra_endpoint}/${DEB_ARCH}/
+find *.deb | $VENV/chacractl binary ${chacra_flags} create ${chacra_endpoint}/${ARCH}/
 PACKAGE_MANAGER_VERSION=$(dpkg-deb -f $(find *"$DEB_ARCH".deb | head -1) Version)
 
 # write json file with build info
