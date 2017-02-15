@@ -6,11 +6,16 @@ if test "$DISTRO" != "debian" -a "$DISTRO" != "ubuntu"; then
     exit 0
 fi
 
+REPO_URL="https://shaman.ceph.com/api/repos/ceph/$CEPH_BRANCH/$CEPH_SHA1/$DISTRO/$DIST/repo"
+if `curl --fail -L $REPO_URL`; then
+  echo "Ceph debian lib repo exists in shaman"
+else
+  echo "Ceph debian lib repo does NOT exist in shaman"
+  exit 1
+fi
 
-# We need this for system, to build ganesha, and to enable FSAL_CEPH and 
-# FSAL_RGW in the .spec file when cmake command runs
+# We need this for system and to run the cmake
 sudo apt-get update
-sudo apt-get -y install cmake equivs libkrb5-dev bison flex quilt librgw-dev libcephfs-dev
 
 # Normalize variables across rpm/deb builds
 NORMAL_DISTRO=$DISTRO
@@ -23,40 +28,42 @@ create_build_status "started" "nfs-ganesha" $NORMAL_DISTRO $NORMAL_DISTRO_VERSIO
 ## Setup the pbuilder
 setup_pbuilder
 
+cd $WORKSPACE/nfs-ganesha
+git submodule update --init || git submodule sync
+
+PACKAGE_MANAGER_VERSION="`git describe --long | sed 's/V//1'`-1${DIST}"
+
+# Version is in format X.XdevX-X-SHA1
+VERSION=`git describe --long | sed -e 's/V//1; s/-//1; s/-//1'`
+
+rm -rf .git
+
+cd $WORKSPACE
 
 ## Build the source tarball
+NFS_GANESHA_ORIG_TAR_GZ="nfs-ganesha_${VERSION}.orig.tar.gz"
+tar czf ${NFS_GANESHA_ORIG_TAR_GZ} nfs-ganesha/src
+
+# remove old version
+rm -rf $WORKSPACE/nfs-ganesha
+
+# unpack just the src
+tar xzf ${NFS_GANESHA_ORIG_TAR_GZ}
 
 cd $WORKSPACE/nfs-ganesha
 
-git submodule update --init || git submodule sync
-
-mkdir build
-cd build
-
-# make source tarball
-cmake -DCMAKE_BUILD_TYPE=Maintainer -DUSE_FSAL_GLUSTER=OFF -DUSE_FSAL_CEPH=ON -DUSE_FSAL_RGW=ON $WORKSPACE/nfs-ganesha/src && make dist || exit 1
-
-# move unpacked tarball code into nfs-ganesha-debian/src
-NFS_GANESHA_SOURCE_DIR=`grep -om 1 'nfs-ganesha-[[:digit:]]\+\.[[:digit:]]\+-dev-[[:digit:]]\+-[[:digit:]]\+\.[[:digit:]]\+\.[[:digit:]]\+-Source' $WORKSPACE/nfs-ganesha/build/CPackSourceConfig.cmake`
-VERSION=`grep -om 1 '[[:digit:]]\+\.[[:digit:]]\+-dev-[[:digit:]]\+' $WORKSPACE/nfs-ganesha/build/CPackSourceConfig.cmake`
-TAR_VERSION=`grep -om 1 '[[:digit:]]\+\.[[:digit:]]\+-dev' $WORKSPACE/nfs-ganesha/build/CPackSourceConfig.cmake`
-NFS_GANESHA_ORIG_TAR_GZ="nfs-ganesha_${TAR_VERSION}.orig.tar.gz"
-mkdir nfs-ganesha-${VERSION}
-tar xzf ${NFS_GANESHA_SOURCE_DIR}.tar.gz
-mv ${NFS_GANESHA_SOURCE_DIR} nfs-ganesha-${VERSION}/src
-tar czf ${NFS_GANESHA_ORIG_TAR_GZ} nfs-ganesha-${VERSION}/src
-mv $WORKSPACE/nfs-ganesha-debian/debian $WORKSPACE/nfs-ganesha/build/nfs-ganesha-${VERSION}/debian
-cd nfs-ganesha-${VERSION}
+# add debian directory next to src
+mv $WORKSPACE/nfs-ganesha-debian/debian $WORKSPACE/nfs-ganesha/
 
 ## Get some basic information about the system and the repository
 DEB_ARCH=$(dpkg-architecture -qDEB_BUILD_ARCH)
 
 ## Prepare the debian files
 # Bump the changelog
-dch -v "$VERSION" "Dev release ($VERSION)"
+dch -v "$VERSION-1${DIST}" "$VERSION for Shaman"
 
-# Create .dsc and source tarball
-sudo dpkg-buildpackage -S -us -uc -d
+# Create .dsc and source tarball, we don't care about signing changes or source package
+sudo dpkg-buildpackage -S -us -uc
 
 ## Build with pbuilder
 echo "Building debs"
@@ -67,12 +74,26 @@ sudo pbuilder --clean
 
 mkdir -p $WORKSPACE/dist/deb
 
-# use libcephfs and librgw from shaman
-REPO_URL="https://shaman.ceph.com/api/repos/ceph/$CEPH_BRANCH/$CEPH_SHA1/$DISTRO/$DIST/repo"
+# add missing packages and components to pbuilder
+sudo pbuilder update \
+    --basetgz $PBUILDDIR/$DIST.tgz \
+    --distribution $DIST \
+    --extrapackages "apt-transport-https apt-utils ca-certificates" \
+    --components "main restricted universe multiverse"
+
+# add other mirror to pbuilder
 SHAMAN_MIRROR=`curl -L ${REPO_URL}`
-echo "EXTRAPACKAGES=\"libcephfs-dev librgw-dev\"" >> ~/.pbuilderrc
-echo "OTHERMIRROR=\"${SHAMAN_MIRROR}\"" >> ~/.pbuilderrc
-cat ~/.pbuilderrc
+sudo pbuilder update \
+    --basetgz $PBUILDDIR/$DIST.tgz \
+    --distribution $DIST \
+    --othermirror "${SHAMAN_MIRROR}" \
+    --override-config
+
+# use libcephfs and librgw from shaman
+sudo pbuilder update \
+    --basetgz $PBUILDDIR/$DIST.tgz \
+    --distribution $DIST \
+    --extrapackages "librados-dev libcephfs-dev librgw-dev"
 
 echo "Building debs for $DIST"
 sudo pbuilder build \
@@ -80,14 +101,11 @@ sudo pbuilder build \
     --basetgz $PBUILDDIR/$DIST.tgz \
     --buildresult $WORKSPACE/dist/deb/ \
     --debbuildopts "-j`grep -c processor /proc/cpuinfo`" \
-    $WORKSPACE/nfs-ganesha/build/nfs-ganesha_${VERSION}.dsc
+    $WORKSPACE/nfs-ganesha_${VERSION}-1${DIST}.dsc
 
 
 ## Upload the created RPMs to chacra
 chacra_endpoint="nfs-ganesha/${NFS_GANESHA_BRANCH}/${GIT_COMMIT}/${DISTRO}/${DIST}"
-# TODO: change this
-bpvers="foo"
-#bpvers=`gen_debian_version $debian_version $DIST`
 
 [ "$FORCE" = true ] && chacra_flags="--force" || chacra_flags=""
 
@@ -95,13 +113,13 @@ bpvers="foo"
 
 if [ "$THROWAWAY" = false ] ; then
     # push binaries to chacra
-    find $WORKSPACE/dist/deb | egrep "*\.(changes|deb|dsc|gz)$" | egrep -v "(Packages|Sources|Contents)" | $VENV/chacractl binary ${chacra_flags} create ${chacra_endpoint}
+    find $WORKSPACE/dist/deb | egrep "*\.(changes|deb|dsc|gz)$" | egrep -v "(Packages|Sources|Contents)" | $VENV/chacractl binary ${chacra_flags} create ${chacra_endpoint}/${ARCH}
     # write json file with build info
     # version and package_manager version are needed for teuthology
     cat > $WORKSPACE/repo-extra.json << EOF
 {
     "version":"$VERSION",
-    "package_manager_version":"$bpvers",
+    "package_manager_version":"$PACKAGE_MANAGER_VERSION"
     "build_url":"$BUILD_URL",
     "root_build_cause":"$ROOT_BUILD_CAUSE",
     "node_name":"$NODE_NAME",
@@ -114,7 +132,7 @@ EOF
     $VENV/chacractl repo update ${chacra_endpoint}
 fi
 
-echo Check the status of the repo at: https://shaman.ceph.com/api/repos/${chacra_endpoint}
+echo "Check the status of the repo at: https://shaman.ceph.com/api/repos/${chacra_endpoint}"
 
 # update shaman with the completed build status
 SHA1=${GIT_COMMIT}
