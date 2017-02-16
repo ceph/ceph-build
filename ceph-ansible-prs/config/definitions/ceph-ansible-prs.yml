@@ -8,6 +8,7 @@
       - ansible2.2-dmcrypt_journal_collocation
       - ansible2.2-docker_cluster
       - ansible2.2-docker_dedicated_journal
+      - ansible2.2-docker_dmcrypt_journal_collocation
       - ansible2.2-purge_cluster
       - ansible2.2-purge_dmcrypt
     jobs:
