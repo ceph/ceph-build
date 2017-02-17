@@ -11,6 +11,7 @@
       - ansible2.2-docker_dmcrypt_journal_collocation
       - ansible2.2-purge_cluster
       - ansible2.2-purge_dmcrypt
+      - ansible2.2-update_dmcrypt
     jobs:
         - 'ceph-ansible-prs-{scenario}'
 
