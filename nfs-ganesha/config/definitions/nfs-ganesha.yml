@@ -119,14 +119,16 @@ If this is checked, then the binaries will be built and pushed to chacra even if
       # debian build scripts
       - shell:
           !include-raw:
+            - ../../build/validate_deb
             - ../../../scripts/build_utils.sh
-            - ../../build/setup_deb
+            - ../../build/setup
             - ../../build/build_deb
       # rpm build scripts
       - shell:
           !include-raw:
+            - ../../build/validate_rpm
             - ../../../scripts/build_utils.sh
-            - ../../build/setup_rpm
+            - ../../build/setup
             - ../../build/build_rpm
 
     publishers:
