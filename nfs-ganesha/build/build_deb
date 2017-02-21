@@ -7,7 +7,8 @@ if test "$DISTRO" != "debian" -a "$DISTRO" != "ubuntu"; then
 fi
 
 REPO_URL="https://shaman.ceph.com/api/repos/ceph/$CEPH_BRANCH/$CEPH_SHA1/$DISTRO/$DIST/repo"
-if `curl --fail -L $REPO_URL`; then
+SHAMAN_MIRROR=`curl --fail -L ${REPO_URL}`
+if [[ ${SHAMAN_MIRROR} ]]; then
   echo "Ceph debian lib repo exists in shaman"
 else
   echo "Ceph debian lib repo does NOT exist in shaman"
@@ -82,7 +83,6 @@ sudo pbuilder update \
     --components "main restricted universe multiverse"
 
 # add other mirror to pbuilder
-SHAMAN_MIRROR=`curl -L ${REPO_URL}`
 sudo pbuilder update \
     --basetgz $PBUILDDIR/$DIST.tgz \
     --distribution $DIST \
