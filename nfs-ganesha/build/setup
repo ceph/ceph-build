@@ -14,11 +14,6 @@
 
 set -ex
 
-# Only do actual work when we are a DEB distro
-if test "$DISTRO" != "debian" -a "$DISTRO" != "ubuntu"; then
-    exit 0
-fi
-
 # Make sure we execute at the top level directory before we do anything
 cd $WORKSPACE
 
