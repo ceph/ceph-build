@@ -76,7 +76,7 @@ echo "\"\"\"" >> nfs-ganesha.cfg
 
 ## Build the binaries with mock
 echo "Building RPMs"
-sudo mock -r nfs-ganesha.cfg --define "dist .el7" --resultdir=$WORKSPACE/dist/RPMS/ ${SRPM} || ( tail -n +1 $WORKSPACE/dist/RPMS/{root,build}.log && exit 1 )
+sudo mock --verbose -r nfs-ganesha.cfg --define "dist .el7" --resultdir=$WORKSPACE/dist/RPMS/ ${SRPM} || ( tail -n +1 $WORKSPACE/dist/RPMS/{root,build}.log && exit 1 )
 
 VERSION=`grep -om 1 '[[:digit:]]\+\.[[:digit:]]\+-dev-[[:digit:]]\+' $WORKSPACE/nfs-ganesha/build/include/config.h`
 chacra_endpoint="nfs-ganesha/${NFS_GANESHA_BRANCH}/${GIT_COMMIT}/${DISTRO}/${RELEASE}"
@@ -108,7 +108,7 @@ EOF
     $VENV/chacractl repo update ${chacra_endpoint}
 fi
 
-echo Check the status of the repo at: https://shaman.ceph.com/api/repos/${chacra_endpoint}
+echo "Check the status of the repo at: https://shaman.ceph.com/api/repos/${chacra_endpoint}"
 
 # update shaman with the completed build status
 SHA1=${GIT_COMMIT}
