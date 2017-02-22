@@ -74,15 +74,6 @@ If this is checked, then the binaries will be built and pushed to chacra even if
             - name: ceph-dev-build
               current-parameters: true
               exposed-scm: false
-      - multijob:
-          name: 'nfs-ganesha build phase'
-          condition: SUCCESSFUL
-          projects:
-            - name: nfs-ganesha
-              current-parameters: false
-              predefined-parameters: |
-                CEPH_BRANCH=${BRANCH}
-              exposed-scm: false
 
     wrappers:
       - inject-passwords:

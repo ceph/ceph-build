@@ -30,6 +30,9 @@
     display-name: 'nfs-ganesha'
     block-downstream: false
     block-upstream: false
+    properties:
+      - github:
+          url: https://github.com/nfs-ganesha/nfs-ganesha
     concurrent: true
     parameters:
       - string:
@@ -105,6 +108,22 @@ If this is checked, then the binaries will be built and pushed to chacra even if
           name: ARCH
           values:
             - ARCHS
+    triggers:
+      - github
+      - pollurl:
+          urls:
+            - url: https://shaman.ceph.com/api/repos/ceph/master/latest/centos/7/repo
+              check-content:
+                - simple: true
+            - url: https://shaman.ceph.com/api/repos/ceph/kraken/latest/centos/7/repo
+              check-content:
+                - simple: true
+            - url: https://shaman/ceph.com/api/repos/ceph/master/latest/ubuntu/xenial/repo
+              check-content:
+                - simple: true
+            - url: https://shaman/ceph.com/api/repos/ceph/kraken/latest/ubuntu/xenial/repo
+              check-content:
+                - simple: true
 
     scm:
       - nfs-ganesha
