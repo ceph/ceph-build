@@ -1,0 +1,9 @@
+#!/bin/bash -ex
+
+# update shaman with the triggered build status. At this point there aren't any
+# architectures or distro information, so we just report this with the current
+# build information
+BRANCH=`branch_slash_filter ${GIT_BRANCH}`
+SHA1=${GIT_COMMIT}
+
+create_build_status "queued" "nfs-ganesha"
