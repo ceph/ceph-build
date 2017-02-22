@@ -4,6 +4,16 @@
     update_cache: yes
   sudo: yes
 
+- name: set postgresql version on trusty
+  set_fact:
+      postgresql_version: "9.3"
+  when: ansible_distribution_release == "trusty"
+
+- name: set postgresql version on xenial
+  set_fact:
+      postgresql_version: "9.5"
+  when: ansible_distribution_release == "xenial"
+
 - name: install postgresql requirements
   sudo: yes
   apt:
@@ -13,7 +23,7 @@
     - postgresql
     - postgresql-common
     - postgresql-contrib
-    - postgresql-server-dev-9.3
+    - "postgresql-server-dev-{{ postgresql_version }}"
     - python-psycopg2
   tags:
     - packages
@@ -28,12 +38,9 @@
 - name: allow users to connect locally
   sudo: yes
   lineinfile:
-     # TODO: should not hardcode that version
-     # 9.3 is available on trusty, 9.5 on Xenial
-     dest: /etc/postgresql/9.3/main/pg_hba.conf
-     regexp: '^host\s+all\s+all\s+127.0.0.1/32'
-     line: 'host    all             all             127.0.0.1/32            trust'
-     backrefs: yes
+     dest: "/etc/postgresql/{{ postgresql_version }}/main/pg_hba.conf"
+     # allow all ipv4 local connections without a password
+     line: 'host    all             all             0.0.0.0/0            trust'
   register: pg_hba_conf
 
 - name: make jenkins-build user
