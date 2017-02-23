@@ -64,7 +64,7 @@ DEB_ARCH=$(dpkg-architecture -qDEB_BUILD_ARCH)
 dch -v "$VERSION-1${DIST}" "$VERSION for Shaman"
 
 # Create .dsc and source tarball, we don't care about signing changes or source package
-sudo dpkg-buildpackage -S -us -uc
+sudo dpkg-buildpackage -S -us -uc -d
 
 ## Build with pbuilder
 echo "Building debs"
