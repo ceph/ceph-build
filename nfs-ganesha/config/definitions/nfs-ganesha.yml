@@ -118,10 +118,10 @@ If this is checked, then the binaries will be built and pushed to chacra even if
             - url: https://shaman.ceph.com/api/repos/ceph/kraken/latest/centos/7/repo
               check-content:
                 - simple: true
-            - url: https://shaman/ceph.com/api/repos/ceph/master/latest/ubuntu/xenial/repo
+            - url: https://shaman.ceph.com/api/repos/ceph/master/latest/ubuntu/xenial/repo
               check-content:
                 - simple: true
-            - url: https://shaman/ceph.com/api/repos/ceph/kraken/latest/ubuntu/xenial/repo
+            - url: https://shaman.ceph.com/api/repos/ceph/kraken/latest/ubuntu/xenial/repo
               check-content:
                 - simple: true
 
