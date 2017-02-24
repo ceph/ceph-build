@@ -1,0 +1,96 @@
+#! /usr/bin/bash
+set -ex
+
+# Only do actual work when we are an RPM distro
+if test "$DISTRO" != "fedora" -a "$DISTRO" != "centos" -a "$DISTRO" != "rhel"; then
+    exit 0
+fi
+
+
+## Install any setup-time deps
+# We need these for the build
+sudo yum install -y cmake glib2-devel libnl3-devel glusterfs-api-devel kmod-devel zlib-devel
+
+# We use fpm to create the package
+sudo yum install -y rubygems ruby-devel
+sudo gem install fpm
+
+TDIR}/usr/share/man/man8/
+
+# Prepare the build
+DESTDIR="install.tmp"
+install -d -m0755 -- "$DESTDIR"
+cmake -DCMAKE_VERBOSE_MAKEFILE:BOOL=ON \
+      -DCMAKE_INSTALL_PREFIX:PATH='/usr' \
+      -DLIB_SUFFIX=64 \
+      -DBUILD_SHARED_LIBS:BOOL=ON \
+      -DSUPPORT_SYSTEMD=ON .
+
+
+# Perform the build and install the files to DESTDIR
+NCPU=$(grep -c processor /proc/cpuinfo)
+make -j$NCPU
+
+make -j$NCPU install DESTDIR=${DESTDIR}
+gzip ${DESTDIR}/usr/share/man/man8/tcmu-runner.8
+
+
+## Get some basic information about the system and the repository
+# Get version
+RELEASE="$(lsb_release --short -r | cut -d '.' -f 1)" # system release
+VERSION="$(git describe --abbrev=0 --tags HEAD)"
+REVISION="$(git describe --tags HEAD | cut -d - -f 2- | sed 's/-/./')"
+
+## Create the package
+# Make sure there are no other packages, first
+rm -f *.rpm
+
+# Create the package
+fpm -s dir -t rpm -n tcmu-runner -C ${DESTDIR} \
+    -v ${VERSION} --iteration ${REVISION} \
+    --exclude usr/lib64/libtcmu.so* \
+    --exclude usr/include
+
+cat > SCRIPTLET <<EOF
+/sbin/ldconfig
+EOF
+fpm -s dir -t rpm -n libtcmu -C ${DESTDIR} \
+    -v ${VERSION} --iteration ${REVISION} \
+    --after-install SCRIPTLET \
+    --after-remove SCRIPTLET \
+    usr/lib64/libtcmu.so.1
+
+fpm -s dir -t rpm -n libtcmu-devel -C ${DESTDIR} \
+    -v ${VERSION} --iteration ${REVISION} \
+    -d "libtcmu = ${VERSION}-${REVISION}" \
+    usr/include \
+    usr/lib64/libtcmu.so
+
+
+## Upload the created RPMs to chacra
+chacra_endpoint="python-rtslib/${BRANCH}/${GIT_COMMIT}/${DISTRO}/${RELEASE}"
+
+[ "$FORCE" = true ] && chacra_flags="--force" || chacra_flags=""
+
+# push binaries to chacra
+find *.rpm | $VENV/chacractl binary ${chacra_flags} create ${chacra_endpoint}/$ARCH/
+PACKAGE_MANAGER_VERSION=$(rpm --queryformat '%{VERSION}-%{RELEASE}\n' -qp $(find *.rpm | egrep "\.$ARCH\.rpm" | head -1))
+
+# write json file with build info
+cat > $WORKSPACE/repo-extra.json << EOF
+{
+    "version":"$VERSION",
+    "package_manager_version":"$PACKAGE_MANAGER_VERSION",
+    "build_url":"$BUILD_URL",
+    "root_build_cause":"$ROOT_BUILD_CAUSE",
+    "node_name":"$NODE_NAME",
+    "job_name":"$JOB_NAME"
+}
+EOF
+# post the json to repo-extra json to chacra
+curl -X POST -H "Content-Type:application/json" --data "@$WORKSPACE/repo-extra.json" -u $CHACRACTL_USER:$CHACRACTL_KEY ${chacra_url}repos/${chacra_endpoint}/extra/
+
+# start repo creation
+$VENV/chacractl repo update ${chacra_endpoint}
+
+echo Check the status of the repo at: https://shaman.ceph.com/api/repos/${chacra_endpoint}

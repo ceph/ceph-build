@@ -1,0 +1,38 @@
+- job:
+    name: tcmu-runner-trigger
+    node: master
+    project-type: freestyle
+    defaults: global
+    quiet-period: 5
+    block-downstream: false
+    block-upstream: false
+    properties:
+      - github:
+          url: https://github.com/ceph/tcmu-runner
+    discard-old-builds: true
+    logrotate:
+      daysToKeep: 1
+      numToKeep: 10
+      artifactDaysToKeep: -1
+      artifactNumToKeep: -1
+
+    triggers:
+      - github
+
+    scm:
+      - git:
+          url: https://github.com/ceph/tcmu-runner.git
+          branches:
+            - 'origin/master*'
+            - 'origin/testing*'
+            - 'origin/wip*'
+          skip-tag: true
+          timeout: 20
+          wipe-workspace: true
+
+    builders:
+      - trigger-builds:
+        - project: 'tcmu-runner'
+          predefined-parameters: |
+            BRANCH=${GIT_BRANCH}
+            FORCE=True
