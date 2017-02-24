@@ -20,15 +20,14 @@ sudo gem install fpm
 # Get version
 RELEASE="$(lsb_release --short -r | cut -d '.' -f 1)" # system release
 VERSION="$(git describe --abbrev=0 --tags HEAD)"
-REVISION="$(git rev-parse HEAD)"
-
+REVISION="$(git describe --tags HEAD | cut -d - -f 2- | sed 's/-/./')"
 
 ## Create the package
 # Make sure there are no other packages, first
 rm -f *.rpm
 
 # Create the package
-fpm -s python -t rpm -n python-rtslib -v ${VERSION} -C ${DESTDIR} -d python-kmod -d python-six -d python2-pyudev setup.py
+fpm -s python -t rpm -n python-rtslib -v ${VERSION} --iteration ${REVISION} -d python-kmod -d python-six -d python2-pyudev setup.py
 
 
 ## Upload the created RPMs to chacra
