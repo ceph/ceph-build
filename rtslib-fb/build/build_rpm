@@ -12,6 +12,7 @@ fi
 sudo yum install -y python-devel epydoc python-setuptools systemd-units
 
 # We use fpm to create the package
+sudo yum install -y rubygems ruby-devel
 sudo gem install fpm
 
 
