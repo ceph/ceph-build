@@ -9,13 +9,11 @@ fi
 
 ## Install any setup-time deps
 # We need these for the build
-sudo yum install -y cmake glib2-devel libnl3-devel glusterfs-api-devel kmod-devel zlib-devel
+sudo yum install -y cmake glib2-devel libnl3-devel glusterfs-api-devel kmod-devel zlib-devel librbd1-devel
 
 # We use fpm to create the package
 sudo yum install -y rubygems ruby-devel
 sudo gem install fpm
-
-TDIR}/usr/share/man/man8/
 
 # Prepare the build
 DESTDIR="install.tmp"
