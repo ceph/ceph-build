@@ -1,11 +1,12 @@
 #! /usr/bin/bash
 set -ex
 
+BRANCH=`branch_slash_filter $BRANCH`
+
 # Only do actual work when we are an RPM distro
 if test "$DISTRO" != "fedora" -a "$DISTRO" != "centos" -a "$DISTRO" != "rhel"; then
     exit 0
 fi
-
 
 ## Install any setup-time deps
 # We need these for the build
