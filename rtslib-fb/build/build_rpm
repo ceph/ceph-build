@@ -37,8 +37,8 @@ chacra_endpoint="python-rtslib/${BRANCH}/${GIT_COMMIT}/${DISTRO}/${RELEASE}"
 [ "$FORCE" = true ] && chacra_flags="--force" || chacra_flags=""
 
 # push binaries to chacra
-find *.rpm | $VENV/chacractl binary ${chacra_flags} create ${chacra_endpoint}/$ARCH/
-PACKAGE_MANAGER_VERSION=$(rpm --queryformat '%{VERSION}-%{RELEASE}\n' -qp $(find *.rpm | egrep "\.$ARCH\.rpm" | head -1))
+find *.rpm | $VENV/chacractl binary ${chacra_flags} create ${chacra_endpoint}/noarch/
+PACKAGE_MANAGER_VERSION=$(rpm --queryformat '%{VERSION}-%{RELEASE}\n' -qp $(find *.rpm | egrep "\.noarch\.rpm" | head -1))
 
 # write json file with build info
 cat > $WORKSPACE/repo-extra.json << EOF
