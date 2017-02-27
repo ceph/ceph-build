@@ -1,11 +1,12 @@
 #! /usr/bin/bash
 set -ex
 
+BRANCH=`branch_slash_filter $BRANCH`
+
 # Only do actual work when we are an RPM distro
 if test "$DISTRO" != "fedora" -a "$DISTRO" != "centos" -a "$DISTRO" != "rhel"; then
     exit 0
 fi
-
 
 ## Install any setup-time deps
 # We need these for the build
@@ -257,7 +258,7 @@ fpm -s dir -t rpm -n libtcmu-devel -C ${DESTDIR} \
 
 
 ## Upload the created RPMs to chacra
-chacra_endpoint="python-rtslib/${BRANCH}/${GIT_COMMIT}/${DISTRO}/${RELEASE}"
+chacra_endpoint="tcmu-runner/${BRANCH}/${GIT_COMMIT}/${DISTRO}/${RELEASE}"
 
 [ "$FORCE" = true ] && chacra_flags="--force" || chacra_flags=""
 
