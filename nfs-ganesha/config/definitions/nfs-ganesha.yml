@@ -111,6 +111,7 @@ If this is checked, then the binaries will be built and pushed to chacra even if
     triggers:
       - github
       - pollurl:
+          cron: '*/30 * * * *'
           urls:
             - url: https://shaman.ceph.com/api/repos/ceph/master/latest/centos/7/repo
               check-content:
