@@ -48,6 +48,7 @@
       - string:
           name: CEPH_BRANCH
           description: "The branch of Ceph to get the repo file of for libcephfs"
+          default: "master"
 
       - string:
           name: DISTROS
