@@ -1,3 +1,11 @@
+- project:
+    name: nfs-ganesha
+    ceph-branch:
+      - master
+      - kraken
+    jobs:
+      - 'nfs-ganesha-{ceph-branch}'
+
 - scm:
     name: nfs-ganesha
     scm:
@@ -23,11 +31,12 @@
           skip-tag: true
           wipe-workspace: true
           basedir: "nfs-ganesha-debian"
-- job:
-    name: nfs-ganesha
+
+- job-template:
+    name: 'nfs-ganesha-{ceph-branch}'
     project-type: matrix
     defaults: global
-    display-name: 'nfs-ganesha'
+    display-name: 'nfs-ganesha: Triggered by {ceph-branch}'
     block-downstream: false
     block-upstream: false
     properties:
@@ -48,7 +57,7 @@
       - string:
           name: CEPH_BRANCH
           description: "The branch of Ceph to get the repo file of for libcephfs"
-          default: "master"
+          default: {ceph-branch}
 
       - string:
           name: DISTROS
@@ -114,16 +123,10 @@ If this is checked, then the binaries will be built and pushed to chacra even if
       - pollurl:
           cron: '*/30 * * * *'
           urls:
-            - url: https://shaman.ceph.com/api/repos/ceph/master/latest/centos/7/repo
+            - url: https://shaman.ceph.com/api/repos/ceph/{ceph-branch}/latest/centos/7/repo
               check-content:
                 - simple: true
-            - url: https://shaman.ceph.com/api/repos/ceph/kraken/latest/centos/7/repo
-              check-content:
-                - simple: true
-            - url: https://shaman.ceph.com/api/repos/ceph/master/latest/ubuntu/xenial/repo
-              check-content:
-                - simple: true
-            - url: https://shaman.ceph.com/api/repos/ceph/kraken/latest/ubuntu/xenial/repo
+            - url: https://shaman.ceph.com/api/repos/ceph/{ceph-branch}/latest/ubuntu/xenial/repo
               check-content:
                 - simple: true
 
