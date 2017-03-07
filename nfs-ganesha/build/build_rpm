@@ -11,10 +11,24 @@ RELEASE="$(lsb_release --short -r | cut -d '.' -f 1)" # sytem release
 
 # Get .repo file from appropriate shaman build
 REPO_URL="https://shaman.ceph.com/api/repos/ceph/$CEPH_BRANCH/$CEPH_SHA1/$DISTRO/$RELEASE/flavors/default/repo"
-if `curl --fail -L $REPO_URL > $WORKSPACE/shaman.repo`; then
-  echo "Ceph repo file has been added from shaman"
-else
-  echo "Ceph repo file was NOT added from shaman"
+TIME_LIMIT=600
+INTERVAL=30
+REPO_FOUND=0
+
+# poll shaman for up to 10 minutes
+while [ "$SECONDS" -le "$TIME_LIMIT" ]
+do
+  if `curl --fail -L $REPO_URL > $WORKSPACE/shaman.repo`; then
+    echo "Ceph repo file has been added from shaman"
+    REPO_FOUND=1
+    break
+  else
+    sleep $INTERVAL
+  fi
+done
+
+if [[ "$REPO_FOUND" -eq 0 ]]; then
+  echo "Ceph lib repo does NOT exist in shaman"
   exit 1
 fi
 

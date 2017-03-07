@@ -7,10 +7,24 @@ if test "$DISTRO" != "debian" -a "$DISTRO" != "ubuntu"; then
 fi
 
 REPO_URL="https://shaman.ceph.com/api/repos/ceph/$CEPH_BRANCH/$CEPH_SHA1/$DISTRO/$DIST/repo"
-SHAMAN_MIRROR=`curl --fail -L ${REPO_URL}`
-if [[ ${SHAMAN_MIRROR} ]]; then
-  echo "Ceph debian lib repo exists in shaman"
-else
+TIME_LIMIT=600
+INTERVAL=30
+REPO_FOUND=0
+
+# poll shaman for up to 10 minutes
+while [ "$SECONDS" -le "$TIME_LIMIT" ]
+do
+  SHAMAN_MIRROR=`curl --fail -L ${REPO_URL}`
+  if [[ ${SHAMAN_MIRROR} ]]; then
+    echo "Ceph debian lib repo exists in shaman"
+    REPO_FOUND=1
+    break
+  else
+    sleep $INTERVAL
+  fi
+done
+
+if [[ "$REPO_FOUND" -eq 0 ]]; then
   echo "Ceph debian lib repo does NOT exist in shaman"
   exit 1
 fi

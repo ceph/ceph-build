@@ -79,6 +79,11 @@
             - ../../../scripts/build_utils.sh
             - ../../build/setup_rpm
             - ../../build/build_rpm
+      - trigger-builds:
+        - project: "nfs-ganesha"
+          current-parameters: True
+          predefined-parameters:
+            CEPH_BRANCH=$BRANCH
 
     publishers:
       - postbuildscript:
