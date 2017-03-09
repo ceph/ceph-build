@@ -82,8 +82,9 @@
       - trigger-builds:
         - project: "nfs-ganesha"
           current-parameters: True
-          predefined-parameters:
-            CEPH_BRANCH=$BRANCH
+          predefined-parameters: |
+            CEPH_BRANCH=${BRANCH}
+            CEPH_SHA1=${SHA1}
 
     publishers:
       - postbuildscript:
