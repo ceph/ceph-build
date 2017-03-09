@@ -81,6 +81,10 @@
             - ../../build/build_rpm
       - trigger-builds:
         - project: "nfs-ganesha"
+          property-file: ${WORKSPACE}/dist/sha1
+          property-file: ${WORKSPACE}/dist/branch
+          property-file: ${WORKSPACE}/dist/other_envvars
+          property-file-on-missing: True
           current-parameters: True
           predefined-parameters: |
             CEPH_BRANCH=${BRANCH}
