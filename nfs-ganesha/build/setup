@@ -46,6 +46,9 @@ install_python_packages "pkgs[@]"
 
 NFS_GANESHA_BRANCH=`branch_slash_filter $NFS_GANESHA_BRANCH`
 CEPH_BRANCH=`branch_slash_filter $CEPH_BRANCH`
+BRANCH=${NFS_GANESHA_BRANCH}
+# set flavor as ceph branch libs are coming from
+FLAVOR="ceph_${CEPH_BRANCH}"
 
 # ask shaman which chacra instance to use
 chacra_url=`curl -f -u $SHAMAN_API_USER:$SHAMAN_API_KEY https://shaman.ceph.com/api/nodes/next/`
