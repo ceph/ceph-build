@@ -119,7 +119,7 @@ sudo pbuilder build \
 
 
 ## Upload the created RPMs to chacra
-chacra_endpoint="nfs-ganesha/${NFS_GANESHA_BRANCH}/${GIT_COMMIT}/${DISTRO}/${DIST}"
+chacra_endpoint="nfs-ganesha/${NFS_GANESHA_BRANCH}/${GIT_COMMIT}/${DISTRO}/${DIST}/flavors/${FLAVOR}"
 
 [ "$FORCE" = true ] && chacra_flags="--force" || chacra_flags=""
 
