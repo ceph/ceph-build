@@ -3,8 +3,6 @@
     scm:
       - git:
           url: https://github.com/nfs-ganesha/nfs-ganesha.git
-          # Use the SSH key attached to the ceph-jenkins GitHub account.
-          credentials-id: '39fa150b-b2a1-416e-b334-29a9a2c0b32d'
           branches:
             - $NFS_GANESHA_BRANCH
           skip-tag: true
@@ -16,8 +14,6 @@
     scm:
       - git:
           url: https://github.com/nfs-ganesha/nfs-ganesha-debian.git
-          # Use the SSH key attached to the ceph-jenkins GitHub account.
-          credentials-id: '39fa150b-b2a1-416e-b334-29a9a2c0b32d'
           branches:
             - xenial-nfs-ganesha-ceph-fsals
           skip-tag: true
