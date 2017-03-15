@@ -110,7 +110,7 @@ make_chacractl_config () {
 url = "$url"
 user = "$CHACRACTL_USER"
 key = "$CHACRACTL_KEY"
-ssl_verify = False
+ssl_verify = True
 EOF
 }
 
