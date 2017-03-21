@@ -93,7 +93,8 @@ echo "Building RPMs"
 sudo mock --verbose -r nfs-ganesha.cfg --define "dist .el7" --resultdir=$WORKSPACE/dist/RPMS/ ${SRPM} || ( tail -n +1 $WORKSPACE/dist/RPMS/{root,build}.log && exit 1 )
 
 VERSION=`grep -om 1 '[[:digit:]]\+\.[[:digit:]]\+-dev-[[:digit:]]\+' $WORKSPACE/nfs-ganesha/build/include/config.h`
-chacra_endpoint="nfs-ganesha/${NFS_GANESHA_BRANCH}/${GIT_COMMIT}/${DISTRO}/${RELEASE}/flavors/${FLAVOR}"
+chacra_endpoint="nfs-ganesha/${NFS_GANESHA_BRANCH}/${GIT_COMMIT}/${DISTRO}/${RELEASE}"
+chacra_repo_endpoint="${chacra_endpoint}/flavors/${FLAVOR}"
 RPM_RELEASE=`grep Release $WORKSPACE/nfs-ganesha/src/nfs-ganesha.spec | sed 's/Release:[ \t]*//g' | cut -d '%' -f 1`
 RPM_VERSION=`grep Version $WORKSPACE/nfs-ganesha/src/nfs-ganesha.spec | sed 's/Version:[ \t]*//g'`
 PACKAGE_MANAGER_VERSION="$RPM_VERSION-$RPM_RELEASE"
@@ -102,8 +103,8 @@ PACKAGE_MANAGER_VERSION="$RPM_VERSION-$RPM_RELEASE"
 
 if [ "$THROWAWAY" = false ] ; then
     # push binaries to chacra
-    find $WORKSPACE/dist/SRPMS | grep rpm | $VENV/chacractl binary ${chacra_flags} create ${chacra_endpoint}/source
-    find $WORKSPACE/dist/RPMS/ | grep rpm | $VENV/chacractl binary ${chacra_flags} create ${chacra_endpoint}/${ARCH}
+    find $WORKSPACE/dist/SRPMS | grep rpm | $VENV/chacractl binary ${chacra_flags} create ${chacra_endpoint}/source/flavors/${FLAVOR}
+    find $WORKSPACE/dist/RPMS/ | grep rpm | $VENV/chacractl binary ${chacra_flags} create ${chacra_endpoint}/${ARCH}/flavors/${FLAVOR}
     # write json file with build info
     # version and package_manager version are needed for teuthology
     cat > $WORKSPACE/repo-extra.json << EOF
@@ -117,12 +118,12 @@ if [ "$THROWAWAY" = false ] ; then
 }
 EOF
     # post the json to repo-extra json to chacra
-    curl -X POST -H "Content-Type:application/json" --data "@$WORKSPACE/repo-extra.json" -u $CHACRACTL_USER:$CHACRACTL_KEY ${chacra_url}/repos/${chacra_endpoint}/extra/
+    curl -X POST -H "Content-Type:application/json" --data "@$WORKSPACE/repo-extra.json" -u $CHACRACTL_USER:$CHACRACTL_KEY ${chacra_url}repos/${chacra_repo_endpoint}/extra/
     # start repo creation
-    $VENV/chacractl repo update ${chacra_endpoint}
+    $VENV/chacractl repo update ${chacra_repo_endpoint}
 fi
 
-echo "Check the status of the repo at: https://shaman.ceph.com/api/repos/${chacra_endpoint}"
+echo "Check the status of the repo at: https://shaman.ceph.com/api/repos/${chacra_repo_endpoint}
 
 # update shaman with the completed build status
 SHA1=${GIT_COMMIT}
