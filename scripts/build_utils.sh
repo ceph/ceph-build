@@ -396,7 +396,8 @@ setup_pbuilder() {
         sudo pbuilder update \
         --basetgz $basedir/$DIST.tgz \
         --distribution $DIST \
-        --mirror "$mirror"
+        --mirror "$mirror" \
+        --override-config
     else
         echo building $DIST base.tgz
         sudo pbuilder create \
