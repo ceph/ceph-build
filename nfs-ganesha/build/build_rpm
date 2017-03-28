@@ -123,7 +123,7 @@ EOF
     $VENV/chacractl repo update ${chacra_repo_endpoint}
 fi
 
-echo "Check the status of the repo at: https://shaman.ceph.com/api/repos/${chacra_repo_endpoint}
+echo "Check the status of the repo at: https://shaman.ceph.com/api/repos/${chacra_repo_endpoint}"
 
 # update shaman with the completed build status
 SHA1=${GIT_COMMIT}
