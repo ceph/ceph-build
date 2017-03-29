@@ -14,7 +14,7 @@ REPO_FOUND=0
 # poll shaman for up to 10 minutes
 while [ "$SECONDS" -le "$TIME_LIMIT" ]
 do
-  SHAMAN_MIRROR=`curl --fail -L ${REPO_URL}`
+  SHAMAN_MIRROR=`curl --fail -L ${REPO_URL} || true`
   if [[ ${SHAMAN_MIRROR} ]]; then
     echo "Ceph debian lib repo exists in shaman"
     REPO_FOUND=1
