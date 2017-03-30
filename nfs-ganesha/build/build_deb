@@ -7,7 +7,7 @@ if test "$DISTRO" != "debian" -a "$DISTRO" != "ubuntu"; then
 fi
 
 REPO_URL="https://shaman.ceph.com/api/repos/ceph/$CEPH_BRANCH/$CEPH_SHA1/$DISTRO/$DIST/repo"
-TIME_LIMIT=600
+TIME_LIMIT=1200
 INTERVAL=30
 REPO_FOUND=0
 
