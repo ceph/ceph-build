@@ -93,7 +93,6 @@ If this is checked, then the binaries will be built and pushed to chacra even if
           name: AVAILABLE_DIST
           values:
             - centos7
-            - trusty
             - xenial
       - axis:
           type: dynamic
