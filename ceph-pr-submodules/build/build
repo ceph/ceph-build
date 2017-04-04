@@ -4,6 +4,13 @@ set -ex
 
 cd "$WORKSPACE"
 
+# Ensure that our clone has the very latest target branch.
+# The Jenkins Git plugin may have not updated this particular ref.
+git fetch origin ${ghprbTargetBranch}:refs/remotes/origin/${ghprbTargetBranch}
+
+echo "Comparing the following target branch:"
+git rev-parse origin/${ghprbTargetBranch}
+
 # show diffs between $ghprbTargetBranch (where the merge is going) and
 # $ghprbActualCommit (the tip of the branch that's merging) with '...',
 # which is equivalent to diff $(git merge-base TB AC) AC, or "show
