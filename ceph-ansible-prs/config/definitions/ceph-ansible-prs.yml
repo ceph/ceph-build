@@ -1,5 +1,8 @@
 - project:
     name: ceph-ansible-prs
+    release:
+      - jewel
+      - kraken
     scenario:
       - ansible2.2-centos7_cluster
       - ansible2.2-xenial_cluster
@@ -14,15 +17,15 @@
       - ansible2.2-update_dmcrypt
       - ansible2.2-update_cluster
     jobs:
-        - 'ceph-ansible-prs-{scenario}'
+        - 'ceph-ansible-prs-{release}-{scenario}'
 
 
 - job-template:
-    name: 'ceph-ansible-prs-{scenario}'
+    name: 'ceph-ansible-prs-{release}-{scenario}'
     node: vagrant&&libvirt
     concurrent: true
     defaults: global
-    display-name: 'ceph-ansible: Pull Requests [{scenario}]'
+    display-name: 'ceph-ansible: Pull Requests [{release}-{scenario}]'
     quiet-period: 5
     block-downstream: false
     block-upstream: false
@@ -46,15 +49,15 @@
           allow-whitelist-orgs-as-admins: true
           org-list:
             - ceph
-          trigger-phrase: 'jenkins test {scenario}'
+          trigger-phrase: 'jenkins test {release}-{scenario}'
           only-trigger-phrase: false
           github-hooks: true
           permit-all: true
           auto-close-on-fail: false
-          status-context: "Testing: {scenario}"
-          started-status: "Running: {scenario}"
-          success-status: "OK - {scenario}"
-          failure-status: "FAIL - {scenario}"
+          status-context: "Testing: {release}-{scenario}"
+          started-status: "Running: {release}-{scenario}"
+          success-status: "OK - {release}-{scenario}"
+          failure-status: "FAIL - {release}-{scenario}"
 
     scm:
       - git:
@@ -71,6 +74,7 @@
       - inject:
           properties-content: |
             SCENARIO={scenario}
+            RELEASE={release}
       - shell:
           !include-raw-escape:
             - ../../../scripts/build_utils.sh
