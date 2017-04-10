@@ -1,0 +1,40 @@
+- job:
+    name: ceph-ansible-docs
+    node: docs
+    project-type: freestyle
+    defaults: global
+    display-name: 'ceph-ansible: docs build'
+    quiet-period: 5
+    block-downstream: false
+    block-upstream: false
+    retry-count: 3
+    properties:
+      - github:
+          url: https://github.com/ceph/ceph-ansible
+    logrotate:
+      daysToKeep: -1
+      numToKeep: 10
+      artifactDaysToKeep: -1
+      artifactNumToKeep: -1
+
+    triggers:
+      - github
+
+    scm:
+      - git:
+          url: https://github.com/ceph/ceph-ansible
+          branches:
+            - master
+            - stable-2.1
+            # as more stable branches are published, they need to be
+            # added here
+            #- stable-2.2
+          browser: auto
+          skip-tag: true
+          timeout: 20
+
+    builders:
+      - shell:
+          !include-raw:
+            - ../../../scripts/build_utils.sh
+            - ../../build/build
