@@ -17,5 +17,5 @@ $VENV/tox -rv
 # a `$BRANCH` dir because the project has stable branches that will
 # publish docs that might be different from other versions (similar,
 # but not exactly the same to what the Ceph project does)
-mdkir -p "/var/ceph-ansible/docs/$BRANCH"
+mkdir -p "/var/ceph-ansible/docs/$BRANCH"
 rsync -auv --delete .tox/docs/tmp/html/* "/var/ceph-ansible/docs/$BRANCH/"
