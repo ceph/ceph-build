@@ -7,3 +7,8 @@
 
     triggers:
       - timed: '@hourly'
+
+    builders:
+      - shell:
+          !include-raw:
+            - ../../build/build
