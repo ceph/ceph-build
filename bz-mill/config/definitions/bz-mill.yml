@@ -1,3 +1,7 @@
+- job:
+    name: bz-mill
+    defaults: global
+    display-name: 'bz-mill'
 - project:
     name: bz-mill
 
