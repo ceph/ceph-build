@@ -4,7 +4,7 @@ set -e
 set -x
 
 find .
-cat config/definitions/map_namespace_to_query |\
+cat map_namespace_to_query |\
 while read url namespace;
 do
     echo "$url ::: $namespace";
