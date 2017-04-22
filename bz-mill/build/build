@@ -1,19 +1,11 @@
-#!/bin/bash
+" > stuff
 
-set -e
-set -x
 
-find .
-cat map_namespace_to_query |\
+cat stuff |\
 while read url namespace;
 do
-    echo "$url ::: $namespace";
     bz_count=$(curl 2>/dev/null -XGET -L "$url" 3>/dev/null | sed 1d | tr "," " " | awk '{print $1}' | sort -n | wc -l);
-    echo "$namespace $bz_count $(date +%s)";
-    echo "$namespace $bz_count $(date +%s)" | nc grafana.ceph.com 2003
+    echo "$namespace $bz_count $(date +%s)" | nc grafana.ceph.com 2003;
 done
-#we'll eventually want to just iterate a list of BZ query URLs
-#url=http://red.ht/2paAywM
-#TODO auth against BZ so we get counts of hidden BZs
 
-#namespace="bz.gmeno.ceph.any.needinfo.24hrs"
+#TODO auth against BZ so we get counts of hidden BZs
