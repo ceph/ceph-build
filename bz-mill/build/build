@@ -1,8 +1,10 @@
 #!/bin/bash
 
 set -e
+set -x
 
-cat config/definitions/map_namespace_to_query |\
+find .
+cat map_namespace_to_query |\
 while read url namespace;
 do
     echo "$url ::: $namespace";
