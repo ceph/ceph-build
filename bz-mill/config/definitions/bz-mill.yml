@@ -9,4 +9,5 @@
     builders:
       - shell:
           !include-raw:
+            - ../../build/generate_map_namespace_to_query.sh
             - ../../build/build
