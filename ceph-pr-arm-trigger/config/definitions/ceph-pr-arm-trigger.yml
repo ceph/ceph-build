@@ -1,0 +1,59 @@
+- job:
+    name: ceph-pr-arm-trigger
+    node: master
+    project-type: freestyle
+    defaults: global
+    quiet-period: 5
+    block-downstream: false
+    block-upstream: false
+    properties:
+      - github:
+          url: https://github.com/ceph/ceph
+    discard-old-builds: true
+    logrotate:
+      daysToKeep: 1
+      numToKeep: 10
+      artifactDaysToKeep: -1
+      artifactNumToKeep: -1
+
+    triggers:
+      - github-pull-request:
+          allow-whitelist-orgs-as-admins: true
+          org-list:
+            - ceph
+          trigger-phrase: 'jenkins test arm'
+          only-trigger-phrase: false
+          github-hooks: true
+          permit-all: true
+          auto-close-on-fail: false
+          status-context: "arm build"
+          started-status: "building on arm"
+          success-status: "successfully built on arm"
+          failure-status: "could not build on arm"
+
+    scm:
+      - git:
+          url: https://github.com/ceph/ceph
+          browser: auto
+          skip-tag: true
+          timeout: 20
+          wipe-workspace: true
+
+    builders:
+      - trigger-builds:
+        # 'ceph-dev' uses ceph.git, where this PR would live at
+        - project: 'ceph-dev'
+          predefined-parameters: |
+            # XXX unsure if $GIT_BRANCH will translate correctly to the actual
+            # source of the PR
+            BRANCH=${GIT_BRANCH}
+            FORCE=True
+            DISTROS="xenial centos7"
+            ARCHS="arm64"
+            # Do not post to chacra
+            THROWAWAY=True
+
+    wrappers:
+      - inject-passwords:
+          global: true
+          mask-password-params: true
