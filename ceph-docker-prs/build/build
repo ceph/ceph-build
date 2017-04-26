@@ -15,6 +15,17 @@ sudo gpasswd -a ${USER} docker
 sudo systemctl restart docker
 newgrp docker
 
+# Moving docker/image & libvirt/images to shm to speedup CI
+if [ ! -e /dev/shm/images ]; then
+  sudo mv /var/lib/libvirt/images /dev/shm/
+  sudo ln -sf /dev/shm/images /var/lib/libvirt/
+fi
+
+if [ ! -e /dev/shm/image ]; then
+  sudo mv /var/lib/docker/image /dev/shm
+  sudo ln -sf /dev/shm/image /var/lib/docker/
+fi
+
 # adding groups on the fly doesn't guarantee their availability
 # so we must use `sg` to execute the tests as part of the docker group to avoid
 # 'Permission Denied` when tryin to talk over the socket
