@@ -72,7 +72,7 @@
       with_items:
         - createrepo
         - epel-release
-        - java-1.7.0-openjdk
+        - java-1.8.0-openjdk
         - git
         - python-pip
         - python-virtualenv
