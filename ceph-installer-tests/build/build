@@ -13,4 +13,8 @@ for network in $networks; do
     sudo virsh net-undefine $network || true
 done
 
+# restart libvirt services
+sudo service libvirt-bin restart
+sudo service libvirt-guests restart
+
 INSTALLER_DEV_BRANCH=$INSTALLER_BRANCH CEPH_ANSIBLE_DEV_BRANCH=$CEPH_ANSIBLE_BRANCH $VENV/tox -rv -e=$SCENARIO --workdir=$WORKDIR -- --provider=libvirt
