@@ -1,0 +1,52 @@
+
+- job:
+    name: 'ceph-ansible-scenario'
+    node: vagrant&&libvirt
+    concurrent: false
+    defaults: global
+    display-name: 'ceph-ansible: individual scenario testing'
+    quiet-period: 5
+    block-downstream: false
+    block-upstream: false
+    retry-count: 3
+    properties:
+      - github:
+          url: https://github.com/ceph/ceph-ansible
+    logrotate:
+      daysToKeep: 15
+      numToKeep: 30
+      artifactDaysToKeep: -1
+      artifactNumToKeep: -1
+
+    parameters:
+      - string:
+          name: SCENARIO
+          description: "A full scenario name for ceph-ansible testing, like jewel-ansible2.2-purge_cluster"
+      - string:
+          name: BRANCH
+          description: "The ceph-ansible branch to test against"
+          default: "master"
+
+    scm:
+      - git:
+          url: https://github.com/ceph/ceph-ansible.git
+          branches:
+            - $BRANCH
+          refspec: +refs/pull/*:refs/remotes/origin/pr/*
+          browser: auto
+          timeout: 20
+          skip-tag: true
+          wipe-workspace: false
+
+    builders:
+      - shell:
+          !include-raw-escape:
+            - ../../../scripts/build_utils.sh
+            - ../../build/build
+
+    publishers:
+      - postbuildscript:
+          script-only-if-succeeded: False
+          script-only-if-failed: True
+          builders:
+            - shell: !include-raw ../../build/teardown
