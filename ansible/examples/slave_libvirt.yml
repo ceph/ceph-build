@@ -188,8 +188,10 @@
 
     - name: install python-jenkins
       sudo: true
-      # https://bugs.launchpad.net/python-jenkins/+bug/1500898
-      pip: name=python-jenkins version=0.4.7
+      # HORRIBLY BROKEN. This is temporary until this lands upstream:
+      # https://github.com/ceph/python-jenkins/commit/8e018bf7d88dfc308833d195a6ebd29231a8969d
+      # https://review.openstack.org/460363
+      pip: name=git+https://github.com/ceph/python-jenkins@patched#egg=python-jenkins
 
     - name: add github.com host key
       sudo: true
