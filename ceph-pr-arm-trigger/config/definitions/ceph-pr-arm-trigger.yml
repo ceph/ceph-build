@@ -1,6 +1,9 @@
 - job:
     name: ceph-pr-arm-trigger
     node: master
+    # disabled for now because this is not passing the right BRANCH to
+    # `ceph-dev` which causes failures there
+    disabled: true
     project-type: freestyle
     defaults: global
     quiet-period: 5
