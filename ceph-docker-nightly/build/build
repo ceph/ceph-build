@@ -22,6 +22,10 @@ for network in $networks; do
     sudo virsh net-undefine $network || true
 done
 
+# restart libvirt services
+sudo service libvirt-bin restart
+sudo service libvirt-guests restart
+
 # adding groups on the fly doesn't guarantee their availability
 # so we must use `sg` to execute the tests as part of the docker group to avoid
 # 'Permission Denied` when tryin to talk over the socket
