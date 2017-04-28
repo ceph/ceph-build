@@ -16,6 +16,10 @@ for network in $networks; do
     sudo virsh net-undefine $network || true
 done
 
+# restart libvirt services
+sudo service libvirt-bin restart
+sudo service libvirt-guests restart
+
 # the $SCENARIO var is injected by the job template. It maps
 # to an actual, defined, tox environment
 $VENV/tox -rv -e=$RELEASE-$SCENARIO --workdir=$WORKDIR -- --provider=libvirt
