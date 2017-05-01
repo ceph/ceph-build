@@ -2,7 +2,7 @@
 - job:
     name: 'ceph-ansible-scenario'
     node: vagrant&&libvirt
-    concurrent: false
+    concurrent: true
     defaults: global
     display-name: 'ceph-ansible: individual scenario testing'
     quiet-period: 5
