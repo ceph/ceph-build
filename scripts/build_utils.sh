@@ -406,3 +406,18 @@ setup_pbuilder() {
         --mirror "$mirror"
     fi
 }
+
+clear_libvirt_networks() {
+    # Sometimes, networks may linger around, so we must ensure they are killed:
+    networks=`sudo virsh net-list --all | grep active | egrep -v "(default|libvirt)" | cut -d ' ' -f 2`
+    for network in $networks; do
+        sudo virsh net-destroy $network || true
+        sudo virsh net-undefine $network || true
+    done
+}
+
+restart_libvirt_services() {
+    # restart libvirt services
+    sudo service libvirt-bin restart
+    sudo service libvirt-guests restart
+}

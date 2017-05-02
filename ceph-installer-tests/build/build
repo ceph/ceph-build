@@ -6,4 +6,7 @@ WORKDIR=$(mktemp -td tox.XXXXXXXXXX)
 
 cd $WORKSPACE/tests/functional
 
+clear_libvirt_networks
+restart_libvirt_services
+
 INSTALLER_DEV_BRANCH=$INSTALLER_BRANCH CEPH_ANSIBLE_DEV_BRANCH=$CEPH_ANSIBLE_BRANCH $VENV/tox -rv -e=$SCENARIO --workdir=$WORKDIR -- --provider=libvirt
