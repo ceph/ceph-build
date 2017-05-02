@@ -92,7 +92,7 @@ echo "\"\"\"" >> nfs-ganesha.cfg
 echo "Building RPMs"
 sudo mock --verbose -r nfs-ganesha.cfg --define "dist .el7" --resultdir=$WORKSPACE/dist/RPMS/ ${SRPM} || ( tail -n +1 $WORKSPACE/dist/RPMS/{root,build}.log && exit 1 )
 
-VERSION=`grep -om 1 '[[:digit:]]\+\.[[:digit:]]\+-dev-[[:digit:]]\+' $WORKSPACE/nfs-ganesha/build/include/config.h`
+VERSION=`grep -R "#define GANESHA_VERSION \"" $WORKSPACE/nfs-ganesha/build/include/config.h | sed -e 's/#define GANESHA_VERSION "//1; s/"//1;'`
 chacra_endpoint="nfs-ganesha/${NFS_GANESHA_BRANCH}/${GIT_COMMIT}/${DISTRO}/${RELEASE}"
 chacra_repo_endpoint="${chacra_endpoint}/flavors/${FLAVOR}"
 RPM_RELEASE=`grep Release $WORKSPACE/nfs-ganesha/src/nfs-ganesha.spec | sed 's/Release:[ \t]*//g' | cut -d '%' -f 1`
