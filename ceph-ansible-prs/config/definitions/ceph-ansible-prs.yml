@@ -35,7 +35,7 @@
           url: https://github.com/ceph/ceph-ansible
     logrotate:
       daysToKeep: 15
-      numToKeep: 30
+      numToKeep: -1
       artifactDaysToKeep: -1
       artifactNumToKeep: -1
 
