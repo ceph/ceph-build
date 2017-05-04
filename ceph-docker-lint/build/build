@@ -1,3 +1,4 @@
-sudo yum -y install ShellChecker
+sudo yum -y install epel-release
+sudo yum -y install ShellCheck
 cd $WORKSPACE/ceph-docker 
 find . -name '*.sh' | while read filename; do shellchecker "$filename"; done
