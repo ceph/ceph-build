@@ -1,4 +1,5 @@
 sudo yum -y install epel-release
 sudo yum -y install ShellCheck
 cd $WORKSPACE/ceph-docker 
-find . -name '*.sh' | while read filename; do shellchecker "$filename"; done
+set +e
+find . -name '*.sh' | grep -v NOT_MAINTAINED_ANYMORE | while read filename; do shellcheck "$filename"; done
