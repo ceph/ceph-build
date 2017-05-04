@@ -1,0 +1,3 @@
+sudo yum -y install ShellChecker
+cd $WORKSPACE/ceph-docker 
+find . -name '*.sh' | while read filename; do shellchecker "$filename"; done
