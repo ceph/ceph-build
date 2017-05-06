@@ -1,5 +1,48 @@
-sudo yum -y install epel-release
-sudo yum -y install ShellCheck
-cd $WORKSPACE/ceph-docker 
-set +e
-find . -name '*.sh' | grep -v NOT_MAINTAINED_ANYMORE | while read filename; do shellcheck "$filename"; done
+#!/bin/bash
+
+set -e
+set -x
+
+
+# install some of our dependencies
+if [ "${HUDSON_URL}" = "jenkins.ceph.com" ]
+then
+    sudo yum -y install epel-release
+    sudo yum -y install ShellCheck
+    sudo yum -y install jq
+    pull_request_id=${ghprbPullId:-$2}
+    workspace=${WORKSPACE:-$1}
+else
+    if [[ ! -x $(which jq) ]]
+    then
+        echo 'install jq first'
+    fi
+    if [[ ! -x $(which shellcheck) ]]
+    then
+        echo 'install shellcheck first'
+    fi
+    pull_request_id=${ghprbPullId:-$2}
+    workspace=${WORKSPACE:-$1}
+fi
+
+
+pushd "$workspace/ceph-docker"
+
+if [[ "$pull_request_id" -eq "" || "$ghprbCommentBody" = "jenkins lint all" ]]
+then
+    find . -name '*.sh'| grep -v NOT_MAINTAINED_ANYMORE  |
+    while read -r filename; do
+        echo "$filename";
+        shellcheck "$filename" || true;
+    done
+else
+    curl -XGET "https://api.github.com/repos/ceph/ceph-docker/pulls/$pull_request_id/files" |
+    jq '.[].filename' |  # just the files please
+    tr -d '"'  |  # remove the quoting from JSON
+    while read -r filename; do
+        echo "$filename";
+        shellcheck "$filename" || true;
+    done
+fi
+
+popd
