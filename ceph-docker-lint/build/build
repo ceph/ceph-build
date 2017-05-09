@@ -3,7 +3,34 @@
 set -e
 set -x
 
+#IGNORE_THESE_CODES="SC2005,SC2068,SC2086,SC2148,SC2162"
+IGNORE_THESE_CODES=""
 
+function generate_filelist(){
+   if [[ "$pull_request_id" -eq "" || "${ghprbCommentBody:-}" = "jenkins lint all" ]]
+   then
+       find . -name '*.sh'| grep -v "NOT_MAINTAINED_ANYMORE"
+   else
+       curl -XGET "https://api.github.com/repos/ceph/ceph-docker/pulls/$pull_request_id/files" |
+       jq '.[].filename' |  # just the files please
+       tr -d '"' # remove the quoting from JSON
+   fi
+
+}
+
+function check(){
+    while read -r filename; do
+        if [[ -z "$IGNORE_THESE_CODES" ]]
+        then
+            shellcheck "$filename";
+        else
+            shellcheck -e "$IGNORE_THESE_CODES" "$filename";
+        fi
+    done
+    return $?
+}
+
+function main() {
 # install some of our dependencies
 if [ "${HUDSON_URL}" = "jenkins.ceph.com" ]
 then
@@ -27,22 +54,9 @@ fi
 
 
 pushd "$workspace/ceph-docker"
-
-if [[ "$pull_request_id" -eq "" || "$ghprbCommentBody" = "jenkins lint all" ]]
-then
-    find . -name '*.sh'| grep -v NOT_MAINTAINED_ANYMORE  |
-    while read -r filename; do
-        echo "$filename";
-        shellcheck "$filename" || true;
-    done
-else
-    curl -XGET "https://api.github.com/repos/ceph/ceph-docker/pulls/$pull_request_id/files" |
-    jq '.[].filename' |  # just the files please
-    tr -d '"'  |  # remove the quoting from JSON
-    while read -r filename; do
-        echo "$filename";
-        shellcheck "$filename" || true;
-    done
-fi
-
+generate_filelist | check
 popd
+exit $?
+}
+
+main "$@"
