@@ -37,12 +37,6 @@
             - alfredodeza
             - ktdreyer
             - gmeno
-          white-list:
-            - xarses
-            - angdraug
-            - mbroz
-            - ddiss
-            - osynge
           org-list:
             - ceph
           trigger-phrase: 'jenkins lint'
