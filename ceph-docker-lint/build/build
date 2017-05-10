@@ -13,7 +13,8 @@ function generate_filelist(){
    else
        curl -XGET "https://api.github.com/repos/ceph/ceph-docker/pulls/$pull_request_id/files" |
        jq '.[].filename' |  # just the files please
-       tr -d '"' # remove the quoting from JSON
+       tr -d '"' |  # remove the quoting from JSON
+       grep ".sh$"  # just the bash
    fi
 
 }
