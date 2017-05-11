@@ -1,0 +1,42 @@
+#!/bin/bash
+
+set -eux
+
+sudo yum -y install docker
+
+sudo systemctl start docker
+
+# Authenticate to Docker Hub
+sudo docker login -u "$DOCKER_USERNAME" -p "$DOCKER_PASSWORD"
+
+# Copy the files to the root for the type of image we're going to build
+mkdir -p daemon demo
+cp -Lrv ceph-releases/"$CEPH_RELEASE"/centos/7/daemon/* daemon
+# TODO: make demo image optional in build_imgs.sh
+# (instead of building it here and throwing it away)
+cp -Lrv ceph-releases/"$CEPH_RELEASE"/centos/7/demo/* demo
+
+# TODO: manipulate the Dockerfile here to insert the chacra Yum repo?
+# Proj Atomic does that with https://github.com/DBuildService/dockerfile-parse
+
+sudo "$WORKSPACE"/travis-builds/build_imgs.sh
+
+# Show our new images, for debugging:
+sudo docker images
+
+REGISTRY=docker.io
+
+# Determine our image's tag for the registry:
+BRANCH=${GIT_BRANCH//origin\//}
+TAG=ci-build-${BRANCH}-${CEPH_RELEASE}-centos-7
+
+# Tag the image we just built for the registry:
+sudo docker tag ceph/daemon "${REGISTRY}/cephjenkins/daemon:${TAG}"
+
+# Apparently this avoids a race condition between the tagging and the push
+# which causes this to sometimes fail when run by Jenkins
+sleep 1
+sudo docker --debug push "${REGISTRY}/cephjenkins/daemon:${TAG}"
+
+# Clean up registry credentials
+sudo docker logout

@@ -1,0 +1,52 @@
+- project:
+    name: ceph-docker-build
+    ceph-release:
+      - jewel
+      - kraken
+      - luminous
+    jobs:
+        - 'ceph-docker-build-{ceph-release}'
+
+- job-template:
+    name: 'ceph-docker-build-{ceph-release}'
+    node: 'centos7 && x86_64 && small && !sepia'
+    concurrent: true
+    defaults: global
+    display-name: 'ceph-docker: image builds for {ceph-release}'
+    quiet-period: 5
+    block-downstream: false
+    block-upstream: false
+    retry-count: 3
+    properties:
+      - github:
+          url: https://github.com/ceph/ceph-docker
+    logrotate:
+      daysToKeep: 15
+      numToKeep: 30
+
+    triggers:
+      - github
+
+    scm:
+      - git:
+          url: https://github.com/ceph/ceph-docker
+
+    builders:
+      - inject:
+          properties-content: |
+            CEPH_RELEASE={ceph-release}
+      - shell:
+          !include-raw-escape:
+            - ../../build/build
+
+    wrappers:
+      - credentials-binding:
+          - username-password-separated:
+             credential-id: 68874f10-f019-4875-afb2-5cf63594dc0d
+             username: DOCKER_USERNAME
+             password: DOCKER_PASSWORD
+
+    publishers:
+      - postbuildscript:
+          builders:
+            - shell: 'sudo docker logout'
