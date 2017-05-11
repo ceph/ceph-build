@@ -23,9 +23,9 @@ function check(){
     while read -r filename; do
         if [[ -z "$IGNORE_THESE_CODES" ]]
         then
-            shellcheck "$filename";
+            shellcheck -x "$filename";
         else
-            shellcheck -e "$IGNORE_THESE_CODES" "$filename";
+            shellcheck -x -e "$IGNORE_THESE_CODES" "$filename";
         fi
     done
     return $?
