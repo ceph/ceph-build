@@ -46,6 +46,7 @@
         - libvirt-bin
         - libvirt-dev
         - vagrant
+        - ruby-libvirt
       when: ansible_pkg_mgr  == "apt"
 
     - name: create a {{ jenkins_user }} user
