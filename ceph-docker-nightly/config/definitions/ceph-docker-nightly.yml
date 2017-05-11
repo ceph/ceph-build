@@ -1,8 +1,8 @@
 - project:
     name: ceph-docker-nightly
     scenario:
-      - ceph_ansible2.1-jewel-centos7_cluster
-      - ceph_ansible2.1-jewel-xenial_cluster
+      - ceph_ansible2.2-jewel-centos7_cluster
+      - ceph_ansible2.2-jewel-xenial_cluster
       - ceph_ansible-jewel-centos7_cluster
       - ceph_ansible-jewel-xenial_cluster
       - ceph_ansible-kraken-centos7_cluster
