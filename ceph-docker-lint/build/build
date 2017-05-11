@@ -9,7 +9,7 @@ IGNORE_THESE_CODES=""
 function generate_filelist(){
    if [[ "$pull_request_id" -eq "" || "${ghprbCommentBody:-}" = "jenkins lint all" ]]
    then
-       find . -name '*.sh'| grep -v "NOT_MAINTAINED_ANYMORE"
+       find . -name '*.sh'
    else
        curl -XGET "https://api.github.com/repos/ceph/ceph-docker/pulls/$pull_request_id/files" |
        jq '.[].filename' |  # just the files please
@@ -23,9 +23,9 @@ function check(){
     while read -r filename; do
         if [[ -z "$IGNORE_THESE_CODES" ]]
         then
-            shellcheck "$filename";
+            shellcheck -x "$filename";
         else
-            shellcheck -e "$IGNORE_THESE_CODES" "$filename";
+            shellcheck -x -e "$IGNORE_THESE_CODES" "$filename";
         fi
     done
     return $?
