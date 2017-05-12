@@ -3,18 +3,19 @@
 set -e
 set -x
 
-#IGNORE_THESE_CODES="SC2005,SC2068,SC2086,SC2148,SC2162"
-IGNORE_THESE_CODES=""
+IGNORE_THESE_CODES="SC1091,SC2015,SC2009,SC2001"
+IGNORE_THESE_FILES="variables_entrypoint.sh" # pipe-separated file names, e.g: foo|bar|foobar, this avoids shellcheck complaining that vars are not used (see: SC2034)
 
 function generate_filelist(){
    if [[ "$pull_request_id" -eq "" || "${ghprbCommentBody:-}" = "jenkins lint all" ]]
    then
-       find . -name '*.sh'
+       find . -name '*.sh' | grep -vE "$IGNORE_THESE_FILES"
    else
        curl -XGET "https://api.github.com/repos/ceph/ceph-docker/pulls/$pull_request_id/files" |
        jq '.[].filename' |  # just the files please
        tr -d '"' |  # remove the quoting from JSON
-       grep ".sh$"  # just the bash
+       grep ".sh$" | # just the bash
+       grep -vE "$IGNORE_THESE_FILES"
    fi
 
 }
