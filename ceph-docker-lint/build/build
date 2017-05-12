@@ -3,8 +3,7 @@
 set -e
 set -x
 
-#IGNORE_THESE_CODES="SC2005,SC2068,SC2086,SC2148,SC2162"
-IGNORE_THESE_CODES=""
+IGNORE_THESE_CODES="SC1091,SC2015,SC2009,SC2001"
 
 function generate_filelist(){
    if [[ "$pull_request_id" -eq "" || "${ghprbCommentBody:-}" = "jenkins lint all" ]]
