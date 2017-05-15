@@ -34,7 +34,7 @@ function check(){
 
 function main() {
 # install some of our dependencies
-if [ "${HUDSON_URL}" = "jenkins.ceph.com" ]
+if [ "${HUDSON_URL}" = "https://jenkins.ceph.com" ]
 then
     sudo yum -y install epel-release
     sudo yum -y install ShellCheck
@@ -45,10 +45,12 @@ else
     if [[ ! -x $(which jq) ]]
     then
         echo 'install jq first'
+        exit 1
     fi
     if [[ ! -x $(which shellcheck) ]]
     then
         echo 'install shellcheck first'
+        exit 1
     fi
     pull_request_id=${ghprbPullId:-$2}
     workspace=${WORKSPACE:-$1}
