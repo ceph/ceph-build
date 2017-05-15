@@ -1,10 +1,10 @@
 - project:
     name: ceph-docker-prs
     scenario:
-      - ceph_ansible-jewel-centos7_cluster
-      - ceph_ansible-jewel-xenial_cluster
-      - ceph_ansible-kraken-centos7_cluster
-      - ceph_ansible-kraken-xenial_cluster
+      - ceph_ansible-jewel-centos7-cluster
+      - ceph_ansible-jewel-xenial-cluster
+      - ceph_ansible-kraken-centos7-cluster
+      - ceph_ansible-kraken-xenial-cluster
     jobs:
         - 'ceph-docker-prs-{scenario}'
 
