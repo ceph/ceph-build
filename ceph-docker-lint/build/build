@@ -3,7 +3,7 @@
 set -e
 set -x
 
-IGNORE_THESE_CODES="SC1091,SC2015,SC2009,SC2001"
+IGNORE_THESE_CODES="SC1091,SC2009,SC2001"
 IGNORE_THESE_FILES="variables_entrypoint.sh" # pipe-separated file names, e.g: foo|bar|foobar, this avoids shellcheck complaining that vars are not used (see: SC2034)
 
 function generate_filelist(){
