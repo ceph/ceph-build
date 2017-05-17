@@ -15,6 +15,7 @@ sudo gpasswd -a ${USER} docker
 sudo systemctl restart docker
 newgrp docker
 
+delete_libvirt_vms
 clear_libvirt_networks
 restart_libvirt_services
 

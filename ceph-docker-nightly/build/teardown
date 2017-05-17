@@ -11,5 +11,3 @@ for scenario in $scenarios; do
     vagrant destroy -f
     cd -
 done
-
-delete_vagrant_docker_vms
