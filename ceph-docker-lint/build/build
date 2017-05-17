@@ -25,7 +25,6 @@ function check(){
     while read -r filename; do
         pushd "$(dirname "$filename")"
         file=$(basename "$filename")
-        chcon -t svirt_sandbox_file_t "$file"
         docker run -v "$(pwd)"/"$file":/"$file" koalaman/shellcheck --external-sources --exclude "$IGNORE_THESE_CODES" /"$file"
         popd
     done
