@@ -407,6 +407,19 @@ setup_pbuilder() {
     fi
 }
 
+delete_vagrant_docker_vms() {
+    # Delete any vagrant/libvirt VMs leftover from a failed docker build
+    libvirt_vms=`sudo virsh list --all --name | grep docker`
+    for vm in $libvirt_vms; do
+        # Destroy returns a non-zero rc if the VM's not running
+        sudo virsh destroy $vm || true
+        sudo virsh undefine $vm || true
+    done
+    # Clean up any leftover disk images
+    sudo rm -f /var/lib/libvirt/images/docker*.img
+    sudo virsh pool-refresh default
+}
+
 clear_libvirt_networks() {
     # Sometimes, networks may linger around, so we must ensure they are killed:
     networks=`sudo virsh net-list --all | grep active | egrep -v "(default|libvirt)" | cut -d ' ' -f 2`
