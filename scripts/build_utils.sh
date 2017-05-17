@@ -407,16 +407,17 @@ setup_pbuilder() {
     fi
 }
 
-delete_vagrant_docker_vms() {
-    # Delete any vagrant/libvirt VMs leftover from a failed docker build
-    libvirt_vms=`sudo virsh list --all --name | grep docker`
+delete_libvirt_vms() {
+    # Delete any VMs leftover from previous builds.
+    # Primarily used for Vagrant VMs leftover from docker builds.
+    libvirt_vms=`sudo virsh list --all --name`
     for vm in $libvirt_vms; do
         # Destroy returns a non-zero rc if the VM's not running
         sudo virsh destroy $vm || true
         sudo virsh undefine $vm || true
     done
     # Clean up any leftover disk images
-    sudo rm -f /var/lib/libvirt/images/docker*.img
+    sudo rm -f /var/lib/libvirt/images/*.img
     sudo virsh pool-refresh default
 }
 

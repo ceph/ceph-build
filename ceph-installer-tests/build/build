@@ -6,6 +6,7 @@ WORKDIR=$(mktemp -td tox.XXXXXXXXXX)
 
 cd $WORKSPACE/tests/functional
 
+delete_libvirt_vms
 clear_libvirt_networks
 restart_libvirt_services
 
