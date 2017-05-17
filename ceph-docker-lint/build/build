@@ -3,7 +3,7 @@
 set -e
 set -x
 
-IGNORE_THESE_CODES="SC1091,SC2015,SC2009,SC2001"
+IGNORE_THESE_CODES="SC1091,SC2009,SC2001"
 IGNORE_THESE_FILES="variables_entrypoint.sh" # pipe-separated file names, e.g: foo|bar|foobar, this avoids shellcheck complaining that vars are not used (see: SC2034)
 
 function generate_filelist(){
@@ -21,46 +21,40 @@ function generate_filelist(){
 }
 
 function check(){
+    local file
     while read -r filename; do
-        if [[ -z "$IGNORE_THESE_CODES" ]]
-        then
-            shellcheck -x "$filename";
-        else
-            shellcheck -x -e "$IGNORE_THESE_CODES" "$filename";
-        fi
+        pushd "$(dirname "$filename")"
+        file=$(basename "$filename")
+        chcon -t svirt_sandbox_file_t "$file"
+        docker run -v "$(pwd)"/"$file":/"$file" koalaman/shellcheck --external-sources --exclude "$IGNORE_THESE_CODES" /"$file"
+        popd
     done
     return $?
 }
 
 function main() {
-# install some of our dependencies
-if [ "${HUDSON_URL}" = "https://jenkins.ceph.com/" ]
-then
-    sudo yum -y install epel-release
-    sudo yum -y install ShellCheck
-    sudo yum -y install jq
-    pull_request_id=${ghprbPullId:-$2}
-    workspace=${WORKSPACE:-$1}
-else
-    if [[ ! -x $(which jq) ]]
+    # install some of our dependencies
+    if [ "${HUDSON_URL}" = "https://jenkins.ceph.com/" ]
     then
-        echo 'install jq first'
-        exit 1
+        sudo yum -y install epel-release
+        sudo yum -y install docker jq
+        pull_request_id=${ghprbPullId:-$2}
+        workspace=${WORKSPACE:-$1}
+    else
+        if ! command -v docker || ! command -v jq
+        then
+            echo "docker or jq is/are missing, install it/them"
+            exit 1
+        fi
+        pull_request_id=${ghprbPullId:-$2}
+        workspace=${WORKSPACE:-$1}
     fi
-    if [[ ! -x $(which shellcheck) ]]
-    then
-        echo 'install shellcheck first'
-        exit 1
-    fi
-    pull_request_id=${ghprbPullId:-$2}
-    workspace=${WORKSPACE:-$1}
-fi
 
 
-pushd "$workspace/ceph-docker"
-generate_filelist | check
-popd
-exit $?
+    pushd "$workspace/ceph-docker"
+    generate_filelist | check
+    popd
+    exit $?
 }
 
 main "$@"
