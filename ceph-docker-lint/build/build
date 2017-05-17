@@ -25,7 +25,7 @@ function check(){
     while read -r filename; do
         pushd "$(dirname "$filename")"
         file=$(basename "$filename")
-        docker run -v "$(pwd)"/"$file":/"$file" koalaman/shellcheck --external-sources --exclude "$IGNORE_THESE_CODES" /"$file"
+        sudo docker run -v "$(pwd)"/"$file":/"$file" koalaman/shellcheck --external-sources --exclude "$IGNORE_THESE_CODES" /"$file"
         popd
     done
     return $?
@@ -37,6 +37,7 @@ function main() {
     then
         sudo yum -y install epel-release
         sudo yum -y install docker jq
+        sudo systemctl start docker
         pull_request_id=${ghprbPullId:-$2}
         workspace=${WORKSPACE:-$1}
     else
