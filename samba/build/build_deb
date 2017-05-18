@@ -6,10 +6,39 @@ if test "$DISTRO" != "debian" -a "$DISTRO" != "ubuntu"; then
     exit 0
 fi
 
+## Get the desired CEPH_BRANCH/CEPH_SHA1 ceph repo
+# Get repo file from appropriate shaman build
+REPO_URL="https://shaman.ceph.com/api/repos/ceph/$CEPH_BRANCH/$CEPH_SHA1/$DISTRO/$DIST/repo"
+TIME_LIMIT=1200
+INTERVAL=30
+REPO_FOUND=0
+
+# poll shaman for up to 10 minutes
+while [ "$SECONDS" -le "$TIME_LIMIT" ]
+do
+  if `curl --fail -L ${REPO_URL} > $WORKSPACE/shaman.list`; then
+    echo "Ceph debian lib repo exists in shaman"
+    REPO_FOUND=1
+    break
+  else
+    sleep $INTERVAL
+  fi
+done
+
+if [[ "$REPO_FOUND" -eq 0 ]]; then
+  echo "Ceph debian lib repo does NOT exist in shaman"
+  exit 1
+fi
+
+# Copy the repo
+sudo cp $WORKSPACE/shaman.list /etc/apt/sources.list.d/
 
 ## Install any setup-time deps
+# Make sure we use the latest version of libcephfs-dev
+sudo apt-get remove -y libcephfs-dev || true
+
 # We need these for the build
-sudo apt-get update && sudo apt-get install -y build-essential equivs libgnutls-dev libacl1-dev libldap2-dev ruby ruby-dev
+sudo apt-get update && sudo apt-get install -y build-essential equivs libgnutls-dev libacl1-dev libldap2-dev ruby ruby-dev libcephfs-dev
 
 # We use fpm to create the deb package
 sudo gem install fpm
