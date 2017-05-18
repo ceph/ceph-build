@@ -13,6 +13,16 @@
           default: "master"
 
       - string:
+          name: CEPH_SHA1
+          description: "The SHA1 of the ceph branch"
+          default: "latest"
+
+      - string:
+          name: CEPH_BRANCH
+          description: "The branch of Ceph to get the repo file of for libcephfs"
+          default: "master"
+
+      - string:
           name: DISTROS
           description: "A list of distros to build for. Available options are: xenial, centos7, centos6, trusty-pbuilder, precise, wheezy, and jessie"
           default: "centos7 trusty-pbuilder xenial"

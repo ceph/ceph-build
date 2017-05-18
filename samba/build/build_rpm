@@ -6,10 +6,41 @@ if test "$DISTRO" != "fedora" -a "$DISTRO" != "centos" -a "$DISTRO" != "rhel"; t
     exit 0
 fi
 
+RELEASE="$(lsb_release --short -r | cut -d '.' -f 1)" # sytem release
+
+## Get the desired CEPH_BRANCH/CEPH_SHA1 ceph repo
+# Get .repo file from appropriate shaman build
+REPO_URL="https://shaman.ceph.com/api/repos/ceph/$CEPH_BRANCH/$CEPH_SHA1/$DISTRO/$RELEASE/flavors/default/repo"
+TIME_LIMIT=1200
+INTERVAL=30
+REPO_FOUND=0
+
+# poll shaman for up to 10 minutes
+while [ "$SECONDS" -le "$TIME_LIMIT" ]
+do
+  if `curl --fail -L $REPO_URL > $WORKSPACE/shaman.repo`; then
+    echo "Ceph repo file has been added from shaman"
+    REPO_FOUND=1
+    break
+  else
+    sleep $INTERVAL
+  fi
+done
+
+if [[ "$REPO_FOUND" -eq 0 ]]; then
+  echo "Ceph lib repo does NOT exist in shaman"
+  exit 1
+fi
+
+# Copy the repo
+sudo cp $WORKSPACE/shaman.repo /etc/yum.repos.d/
 
 ## Install any setup-time deps
+# We modified the repos, clean cache first
+sudo yum clean all
+
 # We need these for the build
-sudo yum install -y gnutls-devel libacl-devel openldap-devel rubygems ruby-devel
+sudo yum install -y gnutls-devel libacl-devel openldap-devel rubygems ruby-devel libcephfs-devel
 
 # We use fpm to create the deb package
 sudo gem install fpm
@@ -30,7 +61,6 @@ make -j$NCPU install DESTDIR=${DESTDIR}
 ## Get some basic information about the system and the repository
 # Get version
 export LD_LIBRARY_PATH=${DESTDIR}/usr/local/samba/lib/:${DESTDIR}/usr/local/samba/lib/private/
-RELEASE="$(lsb_release --short -r | cut -d '.' -f 1)" # system release
 VERSION=$(${DESTDIR}/usr/local/samba/sbin/smbd --version | sed -e "s|Version ||")
 REVISION="$(git rev-parse HEAD)"
 
