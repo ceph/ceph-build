@@ -89,7 +89,7 @@ If this is checked, then the binaries will be built and pushed to chacra even if
           # Use the SSH key attached to the ceph-jenkins GitHub account.
           credentials-id: '39fa150b-b2a1-416e-b334-29a9a2c0b32d'
           branches:
-            - $BRANCH
+            - $SAMBA_BRANCH
           skip-tag: true
           wipe-workspace: true
 
