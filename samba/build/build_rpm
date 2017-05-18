@@ -9,7 +9,7 @@ fi
 
 ## Install any setup-time deps
 # We need these for the build
-sudo yum install -y gnutls-devel libacl-devel openldap-devel rubygems ruby-devel
+sudo yum install -y gnutls-devel libacl-devel libpam-devel openldap-devel rubygems ruby-devel
 
 # We use fpm to create the deb package
 sudo gem install fpm
