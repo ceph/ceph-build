@@ -8,7 +8,7 @@
     concurrent: true
     parameters:
       - string:
-          name: BRANCH
+          name: SAMBA_BRANCH
           description: "The git branch (or tag) to build"
           default: "master"
 
