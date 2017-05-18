@@ -35,13 +35,11 @@ sudo cp $WORKSPACE/shaman.list /etc/apt/sources.list.d/
 
 ## Install any setup-time deps
 # Make sure we use the latest ceph versions, remove any old bits
-xargs sudo apt-get remove -y <<< "
-libcephfs-dev
-libcephfs1
-libcephfs2
-librados2
-librbd1
-"
+sudo apt-get remove -y libcephfs-dev || true
+sudo apt-get remove -y libcephfs2 || true
+sudo apt-get remove -y libcephfs1 || true
+sudo apt-get remove -y librados2 || true
+sudo apt-get remove -y librbd1 || true
 
 # We need these for the build
 sudo apt-get update && sudo apt-get install -y build-essential equivs libgnutls-dev libacl1-dev libldap2-dev ruby ruby-dev libcephfs-dev
