@@ -418,7 +418,7 @@ delete_libvirt_vms() {
     done
     # Clean up any leftover disk images
     sudo rm -f /var/lib/libvirt/images/*.img
-    sudo virsh pool-refresh default
+    sudo virsh pool-refresh default || true
 }
 
 clear_libvirt_networks() {
