@@ -40,7 +40,7 @@ sudo cp $WORKSPACE/shaman.repo /etc/yum.repos.d/
 sudo yum clean all
 
 # We need these for the build
-sudo yum install -y gnutls-devel libacl-devel openldap-devel rubygems ruby-devel libcephfs-devel
+sudo yum install -y gnutls-devel libacl-devel openldap-devel rubygems ruby-devel libcephfs-devel pam-devel
 
 # We use fpm to create the deb package
 sudo gem install fpm
