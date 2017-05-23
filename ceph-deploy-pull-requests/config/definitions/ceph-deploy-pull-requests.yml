@@ -29,7 +29,7 @@
 
 - job:
     name: ceph-deploy-pull-requests
-    node: trusty
+    node: python3
     project-type: freestyle
     defaults: global
     concurrent: true
