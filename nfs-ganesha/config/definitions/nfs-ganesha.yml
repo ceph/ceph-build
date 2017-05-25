@@ -21,6 +21,7 @@
           basedir: "nfs-ganesha-debian"
 - job:
     name: nfs-ganesha
+    disabled: false
     project-type: matrix
     defaults: global
     display-name: 'nfs-ganesha'
