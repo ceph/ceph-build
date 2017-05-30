@@ -49,7 +49,7 @@ git submodule update --init || git submodule sync
 PACKAGE_MANAGER_VERSION="`git describe --long | sed 's/V//1'`-1${DIST}"
 
 # Version is in format X.XdevX-X-SHA1
-VERSION=`git describe --long | sed -e 's/V//1; s/-//1; s/-//1'`
+VERSION=`git describe --long | sed -e 's/V//1'`
 
 rm -rf .git
 
