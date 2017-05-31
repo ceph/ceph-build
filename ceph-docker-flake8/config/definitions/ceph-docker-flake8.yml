@@ -1,0 +1,60 @@
+- scm:
+    name: ceph-docker
+    scm:
+      - git:
+          url: https://github.com/ceph/ceph-docker.git
+          branches:
+            - ${sha1}
+          refspec: +refs/pull/*:refs/remotes/origin/pr/*
+          browser: auto
+          timeout: 20
+          skip-tag: true
+          wipe-workspace: false
+          basedir: "ceph-docker"
+
+- job:
+    name: ceph-docker-flake8
+    node: small && centos7
+    defaults: global
+    display-name: 'ceph-docker-flake8'
+    properties:
+      - github:
+          url: https://github.com/ceph/ceph-docker/
+    logrotate:
+      daysToKeep: 15
+      numToKeep: 30
+      artifactDaysToKeep: -1
+      artifactNumToKeep: -1
+
+    parameters:
+      - string:
+          name: sha1
+          description: "A pull request ID, like 'origin/pr/72/head'"
+
+    triggers:
+      - github-pull-request:
+          admin-list:
+            - alfredodeza
+            - ktdreyer
+            - gmeno
+            - zcerza
+          org-list:
+            - ceph
+          trigger-phrase: 'jenkins flake8'
+          only-trigger-phrase: false
+          github-hooks: true
+          permit-all: true
+          auto-close-on-fail: false
+          status-context: "Testing: for sloppy python"
+          started-status: "Running: flake8"
+          success-status: "OK - nice work"
+          failure-status: "FAIL - please clean up for merge"
+
+    scm:
+      - ceph-docker
+
+    builders:
+      - shell:
+          !include-raw:
+            - ../../build/build
+
