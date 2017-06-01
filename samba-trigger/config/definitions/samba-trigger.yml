@@ -1,5 +1,6 @@
 - job:
     name: samba-trigger
+    disabled: true
     node: master
     project-type: freestyle
     defaults: global
