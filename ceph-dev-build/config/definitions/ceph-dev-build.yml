@@ -79,31 +79,31 @@
             - ../../../scripts/build_utils.sh
             - ../../build/setup_rpm
             - ../../build/build_rpm
-      - trigger-builds:
-        - project: "nfs-ganesha"
-          property-file: ${WORKSPACE}/dist/sha1
-          property-file: ${WORKSPACE}/dist/branch
-          property-file: ${WORKSPACE}/dist/other_envvars
-          property-file-on-missing: True
-          current-parameters: True
-          predefined-parameters: |
-            CEPH_BRANCH=${BRANCH}
-            CEPH_SHA1=${SHA1}
-      - trigger-builds:
-        - project: "samba"
-          property-file: ${WORKSPACE}/dist/sha1
-          property-file: ${WORKSPACE}/dist/branch
-          property-file: ${WORKSPACE}/dist/other_envvars
-          property-file-on-missing: True
-          current-parameters: True
-          predefined-parameters: |
-            CEPH_BRANCH=${BRANCH}
-            CEPH_SHA1=${SHA1}
+      #- trigger-builds:
+      #  - project: "nfs-ganesha"
+      #    property-file: ${WORKSPACE}/dist/sha1
+      #    property-file: ${WORKSPACE}/dist/branch
+      #    property-file: ${WORKSPACE}/dist/other_envvars
+      #    property-file-on-missing: True
+      #    current-parameters: True
+      #    predefined-parameters: |
+      #      CEPH_BRANCH=${BRANCH}
+      #      CEPH_SHA1=${SHA1}
+      #- trigger-builds:
+      #  - project: "samba"
+      #    property-file: ${WORKSPACE}/dist/sha1
+      #    property-file: ${WORKSPACE}/dist/branch
+      #    property-file: ${WORKSPACE}/dist/other_envvars
+      #    property-file-on-missing: True
+      #    current-parameters: True
+      #    predefined-parameters: |
+      #      CEPH_BRANCH=${BRANCH}
+      #      CEPH_SHA1=${SHA1}
 
     publishers:
       - postbuildscript:
           script-only-if-failed: True
-          script-only-if-succeeded: False 
+          script-only-if-succeeded: False
           builders:
             - inject:
                 properties-file: ${WORKSPACE}/build_info
