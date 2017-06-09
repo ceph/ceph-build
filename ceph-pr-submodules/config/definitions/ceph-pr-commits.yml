@@ -33,7 +33,7 @@
           github-hooks: true
           permit-all: true
           auto-close-on-fail: false
-          status-context: "Unmodifed Submodules"
+          status-context: "Unmodified Submodules"
           started-status: "checking if PR has modified submodules"
           success-status: "submodules for project are unmodified"
           failure-status: "Approval needed: modified submodules found"
