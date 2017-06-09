@@ -33,6 +33,10 @@
           github-hooks: true
           permit-all: true
           auto-close-on-fail: false
+          status-context: "make check"
+          started-status: "running make check"
+          success-status: "make check succeeded"
+          failure-status: "make check failed"
 
     scm:
       - git:
