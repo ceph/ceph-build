@@ -6,6 +6,9 @@ set -ex
 pkgs=( "tox" )
 install_python_packages "pkgs[@]"
 
+# trims leading slashes
+BRANCH=${GIT_BRANCH#*/}
+
 # create the docs build with tox
 $VENV/tox -rv -e docs
 
