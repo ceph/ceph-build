@@ -12,10 +12,10 @@ BRANCH=`branch_slash_filter ${GIT_BRANCH}`
 # create the docs build with tox
 $VENV/tox -rv -e docs
 
-# publish docs to http://docs.ceph.com/ceph-lvm/$BRANCH/ create
+# publish docs to http://docs.ceph.com/ceph-volume/$BRANCH/ create
 # a `$BRANCH` dir because the project has stable branches that will
 # publish docs that might be different from other versions (similar,
 # but not exactly the same to what the Ceph project does)
-mkdir -p "/var/ceph-lvm/docs/$BRANCH"
-rsync -auv --delete .tox/docs/tmp/html/* "/var/ceph-lvm/docs/$BRANCH/"
+mkdir -p "/var/ceph-volume/docs/$BRANCH"
+rsync -auv --delete .tox/docs/tmp/html/* "/var/ceph-volume/docs/$BRANCH/"
 
