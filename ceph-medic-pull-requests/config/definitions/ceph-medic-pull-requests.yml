@@ -1,0 +1,64 @@
+- scm:
+    name: ceph-medic 
+    scm:
+      - git:
+          url: https://github.com/ceph/ceph-medic
+          branches:
+            - ${sha1}
+          refspec: +refs/pull/*:refs/remotes/origin/pr/*
+          browser: auto
+          timeout: 20
+          basedir: "ceph-medic"
+          skip-tag: true
+          wipe-workspace: true
+
+
+- job:
+    name: ceph-medic-pull-requests
+    description: Runs tox tests for ceph-medic on each GitHub PR
+    project-type: freestyle
+    node: python3
+    block-downstream: false
+    block-upstream: false
+    defaults: global
+    display-name: 'ceph-medic: Pull Requests'
+    quiet-period: 5
+    retry-count: 3
+
+    logrotate:
+      daysToKeep: 15
+      numToKeep: 30
+      artifactDaysToKeep: 15
+      artifactNumToKeep: 15
+
+    properties:
+      - github:
+          url: https://github.com/ceph/ceph-medic/
+
+    parameters:
+      - string:
+          name: sha1
+          description: "A pull request ID, like 'origin/pr/72/head'"
+
+    triggers:
+      - github-pull-request:
+          admin-list:
+            - alfredodeza
+            - dmick
+            - ktdreyer
+            - andrewschoen
+          org-list:
+            - ceph
+          only-trigger-phrase: false
+          github-hooks: true
+          permit-all: true
+          auto-close-on-fail: false
+
+    scm:
+      - ceph-medic
+
+    builders:
+      - shell:
+          !include-raw:
+            - ../../../scripts/build_utils.sh
+            - ../../build/build
