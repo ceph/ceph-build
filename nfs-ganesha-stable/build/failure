@@ -1,0 +1,9 @@
+#!/bin/bash -ex
+
+# note: the failed_build_status call relies on normalized variable names that
+# are infered by the builds themselves. If the build fails before these are
+# set, they will be posted with empty values
+NFS_GANESHA_BRANCH=`branch_slash_filter $NFS_GANESHA_BRANCH`
+
+# update shaman with the failed build status
+failed_build_status "nfs-ganesha" $NORMAL_DISTRO $NORMAL_DISTRO_VERSION $NORMAL_ARCH

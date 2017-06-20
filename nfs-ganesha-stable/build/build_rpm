@@ -1,0 +1,136 @@
+#! /usr/bin/bash
+set -ex
+
+# Only do actual work when we are an RPM distro
+if test "$DISTRO" != "fedora" -a "$DISTRO" != "centos" -a "$DISTRO" != "rhel"; then
+    exit 0
+fi
+
+## Get some basic information about the system and the repository
+RELEASE="$(lsb_release --short -r | cut -d '.' -f 1)" # sytem release
+
+# Get .repo file from appropriate shaman build
+REPO_URL="https://shaman.ceph.com/api/repos/ceph/$CEPH_BRANCH/$CEPH_SHA1/$DISTRO/$RELEASE/flavors/default/repo"
+TIME_LIMIT=1200
+INTERVAL=30
+REPO_FOUND=0
+
+# poll shaman for up to 10 minutes
+while [ "$SECONDS" -le "$TIME_LIMIT" ]
+do
+  if `curl --fail -L $REPO_URL > $WORKSPACE/shaman.repo`; then
+    echo "Ceph repo file has been added from shaman"
+    REPO_FOUND=1
+    break
+  else
+    sleep $INTERVAL
+  fi
+done
+
+if [[ "$REPO_FOUND" -eq 0 ]]; then
+  echo "Ceph lib repo does NOT exist in shaman"
+  exit 1
+fi
+
+# add shaman repos to /etc/yum.repos.d/ to install ceph libraries so enable
+#FSAL_CEPH (enabled by default) and FSAL_RGW in the .spec file when cmake command runs
+sudo cp $WORKSPACE/shaman.repo /etc/yum.repos.d/
+# for debugging
+cat /etc/yum.repos.d/shaman.repo
+xargs sudo yum install -y <<< "
+dbus-devel
+libacl-devel
+libblkid-devel
+libcap-devel
+libnfsidmap-devel
+libwbclient-devel
+krb5-devel
+librgw-devel
+libcephfs-devel
+"
+
+sudo yum install -y mock
+
+# Normalize variables across rpm/deb builds
+NORMAL_DISTRO=$DISTRO
+NORMAL_DISTRO_VERSION=$RELEASE
+NORMAL_ARCH=$ARCH
+
+# create build status in shaman
+create_build_status "started" "nfs-ganesha" $NORMAL_DISTRO $NORMAL_DISTRO_VERSION $NORMAL_ARCH
+
+cd $WORKSPACE/nfs-ganesha
+
+git submodule update --init || git submodule sync
+
+mkdir build
+cd build
+
+# generate .spec file, edit .spec file for correct versions of libs and make source tarball
+cmake -DCMAKE_BUILD_TYPE=Maintainer -DUSE_FSAL_GLUSTER=OFF -DUSE_FSAL_CEPH=ON -DUSE_FSAL_RGW=ON $WORKSPACE/nfs-ganesha/src && make dist || exit 1
+
+sed -i 's/libcephfs1-devel/libcephfs-devel/' $WORKSPACE/nfs-ganesha/src/nfs-ganesha.spec
+sed -i 's/librgw2-devel/librgw-devel/' $WORKSPACE/nfs-ganesha/src/nfs-ganesha.spec
+
+## Create the source rpm
+echo "Building SRPM"
+rpmbuild \
+    --define "_sourcedir ." \
+    --define "_specdir $WORKSPACE/dist" \
+    --define "_builddir $WORKSPACE/dist" \
+    --define "_srcrpmdir $WORKSPACE/dist/SRPMS" \
+    --define "_rpmdir $WORKSPACE/dist/RPMS" \
+    --nodeps -bs $WORKSPACE/nfs-ganesha/src/nfs-ganesha.spec
+SRPM=$(readlink -f $WORKSPACE/dist/SRPMS/*.src.rpm)
+
+# add repo file to mock config
+sudo head -n -1 /etc/mock/${MOCK_TARGET}-${RELEASE}-${ARCH}.cfg > temp.cfg
+echo >> temp
+sudo cat temp.cfg $WORKSPACE/shaman.repo > nfs-ganesha.cfg
+echo "\"\"\"" >> nfs-ganesha.cfg
+# for debugging
+cat nfs-ganesha.cfg
+
+## Build the binaries with mock
+echo "Building RPMs"
+sudo mock --verbose -r nfs-ganesha.cfg --scrub=all
+sudo mock --verbose -r nfs-ganesha.cfg --define "dist .el7" --resultdir=$WORKSPACE/dist/RPMS/ ${SRPM} || ( tail -n +1 $WORKSPACE/dist/RPMS/{root,build}.log && exit 1 )
+
+VERSION=`grep -R "#define GANESHA_VERSION \"" $WORKSPACE/nfs-ganesha/build/include/config.h | sed -e 's/#define GANESHA_VERSION "//1; s/"//1;'`
+chacra_endpoint="nfs-ganesha/${NFS_GANESHA_BRANCH}/${GIT_COMMIT}/${DISTRO}/${RELEASE}"
+chacra_repo_endpoint="${chacra_endpoint}/flavors/${FLAVOR}"
+RPM_RELEASE=`grep Release $WORKSPACE/nfs-ganesha/src/nfs-ganesha.spec | sed 's/Release:[ \t]*//g' | cut -d '%' -f 1`
+RPM_VERSION=`grep Version $WORKSPACE/nfs-ganesha/src/nfs-ganesha.spec | sed 's/Version:[ \t]*//g'`
+PACKAGE_MANAGER_VERSION="$RPM_VERSION-$RPM_RELEASE"
+
+[ "$FORCE" = true ] && chacra_flags="--force" || chacra_flags=""
+
+if [ "$THROWAWAY" = false ] ; then
+    # push binaries to chacra
+    find $WORKSPACE/dist/SRPMS | grep rpm | $VENV/chacractl binary ${chacra_flags} create ${chacra_endpoint}/source/flavors/${FLAVOR}
+    find $WORKSPACE/dist/RPMS/ | grep rpm | $VENV/chacractl binary ${chacra_flags} create ${chacra_endpoint}/${ARCH}/flavors/${FLAVOR}
+    # write json file with build info
+    # version and package_manager version are needed for teuthology
+    cat > $WORKSPACE/repo-extra.json << EOF
+{
+    "version":"$VERSION",
+    "package_manager_version":"$PACKAGE_MANAGER_VERSION",
+    "build_url":"$BUILD_URL",
+    "root_build_cause":"$ROOT_BUILD_CAUSE",
+    "node_name":"$NODE_NAME",
+    "job_name":"$JOB_NAME"
+}
+EOF
+    # post the json to repo-extra json to chacra
+    curl -X POST -H "Content-Type:application/json" --data "@$WORKSPACE/repo-extra.json" -u $CHACRACTL_USER:$CHACRACTL_KEY ${chacra_url}repos/${chacra_repo_endpoint}/extra/
+    # start repo creation
+    $VENV/chacractl repo update ${chacra_repo_endpoint}
+fi
+
+echo "Check the status of the repo at: https://shaman.ceph.com/api/repos/${chacra_repo_endpoint}"
+
+# update shaman with the completed build status
+SHA1=${GIT_COMMIT}
+update_build_status "completed" "nfs-ganesha" $NORMAL_DISTRO $NORMAL_DISTRO_VERSION $NORMAL_ARCH
+
+sudo rm -rf $WORKSPACE/dist
