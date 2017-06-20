@@ -1,0 +1,56 @@
+#!/bin/bash
+
+set -e
+set -x
+
+function generate_filelist(){
+   if [[ "$pull_request_id" -eq "" || "${ghprbCommentBody:-}" = "jenkins flake8 all" ]]
+   then
+       find . -name '*.py'
+   else
+       curl -XGET "https://api.github.com/repos/ceph/ceph-docker/pulls/$pull_request_id/files" |
+       jq '.[].filename' |  # just the files please
+       tr -d '"' |  # remove the quoting from JSON
+       grep ".py$" # just the python
+   fi
+
+}
+
+function check(){
+    local file
+    while read -r filename; do
+        pushd "$(dirname "$filename")"
+        file=$(basename "$filename")
+        sudo docker run --rm -v "$(pwd)"/"$file":/"$file" eeacms/flake8 /"$file"
+        popd
+    done
+    return $?
+}
+
+function main() {
+    # install some of our dependencies
+    if [ "${HUDSON_URL}" = "https://jenkins.ceph.com/" ]
+    then
+        sudo yum -y install epel-release
+        sudo yum -y install docker jq
+        sudo systemctl start docker
+        pull_request_id=${ghprbPullId:-$2}
+        workspace=${WORKSPACE:-$1}
+    else
+        if ! command -v docker || ! command -v jq
+        then
+            echo "docker or jq is/are missing, install it/them"
+            exit 1
+        fi
+        pull_request_id=${ghprbPullId:-$2}
+        workspace=${WORKSPACE:-$1}
+    fi
+
+
+    pushd "$workspace/ceph-docker"
+    generate_filelist | check
+    popd
+    exit $?
+}
+
+main "$@"

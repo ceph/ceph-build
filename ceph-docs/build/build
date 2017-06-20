@@ -1,21 +1,26 @@
 #!/bin/bash
+# vim: ts=4 sw=4 expandtab
 
 set -ex
 
 # did any doc/ files change?  
-# This assumes $GIT_COMMIT is a merge commit (it is usually, because that's how
-# we manage ceph, with PRs that include merges).  So, noting the three dots,
+# If $GIT_COMMIT is a merge commit (it is usually, because that's how
+# we manage ceph, with PRs that include merges):  noting the three dots,
 # this git diff invocation compares the common ancestor between first parent
 # (original state of the branch) to the second parent (the branch being merged
 # in) i.e., same as git diff $(git merge-base p1 p2) p2 and outputs filenames
-# only (--name-only)
+# only (--name-only).
+#
+# Skip this optimization for non-merge commits
 
-# enclosing doublequotes prevent newlines from disappearing, for grep below
-files="$(git diff --name-only ${GIT_COMMIT}^1...${GIT_COMMIT}^2)"
-echo -e "changed files:\n$files"
-if ! (echo "$files" | grep -sq '^doc/'); then
-       echo "No doc files changed, skipping build"
-       exit 0
+if git rev-parse --verify ${GIT_COMMIT}^2; then
+    # enclosing doublequotes prevent newlines from disappearing, for grep below
+    files="$(git diff --name-only ${GIT_COMMIT}^1...${GIT_COMMIT}^2)"
+    echo -e "changed files:\n$files"
+    if ! (echo "$files" | grep -sq '^doc/'); then
+        echo "No doc files changed, skipping build"
+        exit 0
+    fi
 fi
 
 ./admin/build-doc
