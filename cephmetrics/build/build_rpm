@@ -10,7 +10,7 @@ fi
 ## Install any setup-time deps (to make dist package)
 
 # We need this to get the major version from lsb_release
-sudo yum install -y redhat-lsb-core mock git
+sudo yum install -y redhat-lsb-core mock git wget
 
 # Run the install-deps.sh upstream script if it exists
 if [ -x install-deps.sh ]; then
