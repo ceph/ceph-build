@@ -15,4 +15,4 @@ restart_libvirt_services
 
 # the $SCENARIO var is injected by the job template. It maps
 # to an actual, defined, tox environment
-$VENV/tox -rv -e=$RELEASE-$SCENARIO --workdir=$WORKDIR -- --provider=libvirt
+timeout 5h $VENV/tox -rv -e=$RELEASE-$SCENARIO --workdir=$WORKDIR -- --provider=libvirt || echo "ERROR: Job didn't complete before the timeout has been exceeded (5h)."
