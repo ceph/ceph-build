@@ -1,0 +1,156 @@
+#! /usr/bin/bash
+set -ex
+
+# Only do actual work when we are a DEB distro
+if test "$DISTRO" != "debian" -a "$DISTRO" != "ubuntu"; then
+    exit 0
+fi
+
+REPO_URL="https://shaman.ceph.com/api/repos/ceph/$CEPH_BRANCH/$CEPH_SHA1/$DISTRO/$DIST/repo"
+TIME_LIMIT=1200
+INTERVAL=30
+REPO_FOUND=0
+
+# poll shaman for up to 10 minutes
+while [ "$SECONDS" -le "$TIME_LIMIT" ]
+do
+  SHAMAN_MIRROR=`curl --fail -L ${REPO_URL} || true`
+  if [[ ${SHAMAN_MIRROR} ]]; then
+    echo "Ceph debian lib repo exists in shaman"
+    REPO_FOUND=1
+    break
+  else
+    sleep $INTERVAL
+  fi
+done
+
+if [[ "$REPO_FOUND" -eq 0 ]]; then
+  echo "Ceph debian lib repo does NOT exist in shaman"
+  exit 1
+fi
+
+# We need this for system and to run the cmake
+sudo apt-get update
+
+# Normalize variables across rpm/deb builds
+NORMAL_DISTRO=$DISTRO
+NORMAL_DISTRO_VERSION=$DIST
+NORMAL_ARCH=$ARCH
+
+# create build status in shaman
+create_build_status "started" "nfs-ganesha" $NORMAL_DISTRO $NORMAL_DISTRO_VERSION $NORMAL_ARCH
+
+## Setup the pbuilder
+setup_pbuilder
+
+cd $WORKSPACE/nfs-ganesha
+git submodule update --init || git submodule sync
+
+PACKAGE_MANAGER_VERSION="`git describe --long | sed 's/V//1'`-1${DIST}"
+
+# Version is in format X.XdevX-X-SHA1
+VERSION=`git describe --long | sed -e 's/V//1'`
+
+rm -rf .git
+
+cd $WORKSPACE
+
+## Build the source tarball
+NFS_GANESHA_ORIG_TAR_GZ="nfs-ganesha_${VERSION}.orig.tar.gz"
+tar czf ${NFS_GANESHA_ORIG_TAR_GZ} nfs-ganesha/src
+
+# remove old version
+rm -rf $WORKSPACE/nfs-ganesha
+
+# unpack just the src
+tar xzf ${NFS_GANESHA_ORIG_TAR_GZ}
+
+cd $WORKSPACE/nfs-ganesha
+
+# add debian directory next to src
+mv $WORKSPACE/nfs-ganesha-debian/debian $WORKSPACE/nfs-ganesha/
+
+## Get some basic information about the system and the repository
+DEB_ARCH=$(dpkg-architecture -qDEB_BUILD_ARCH)
+
+## Prepare the debian files
+# Bump the changelog
+dch -v "$VERSION-1${DIST}" "$VERSION for Shaman"
+
+# Create .dsc and source tarball, we don't care about signing changes or source package
+sudo dpkg-buildpackage -S -us -uc -d
+
+## Build with pbuilder
+echo "Building debs"
+
+PBUILDDIR="/srv/debian-base"
+
+sudo pbuilder --clean
+
+mkdir -p $WORKSPACE/dist/deb
+
+# add missing packages and components to pbuilder
+sudo pbuilder update \
+    --basetgz $PBUILDDIR/$DIST.tgz \
+    --distribution $DIST \
+    --extrapackages "apt-transport-https apt-utils ca-certificates" \
+    --components "main restricted universe multiverse"
+
+# add other mirror to pbuilder
+sudo pbuilder update \
+    --basetgz $PBUILDDIR/$DIST.tgz \
+    --distribution $DIST \
+    --othermirror "${SHAMAN_MIRROR}" \
+    --override-config
+
+# use libcephfs and librgw from shaman
+sudo pbuilder update \
+    --basetgz $PBUILDDIR/$DIST.tgz \
+    --distribution $DIST \
+    --extrapackages "librados-dev libcephfs-dev librgw-dev"
+
+echo "Building debs for $DIST"
+sudo pbuilder build \
+    --distribution $DIST \
+    --basetgz $PBUILDDIR/$DIST.tgz \
+    --buildresult $WORKSPACE/dist/deb/ \
+    --debbuildopts "-j`grep -c processor /proc/cpuinfo`" \
+    $WORKSPACE/nfs-ganesha_${VERSION}-1${DIST}.dsc
+
+
+## Upload the created debs to chacra
+chacra_endpoint="nfs-ganesha/${NFS_GANESHA_BRANCH}/${GIT_COMMIT}/${DISTRO}/${DIST}"
+chacra_repo_endpoint="${chacra_endpoint}/flavors/${FLAVOR}"
+
+[ "$FORCE" = true ] && chacra_flags="--force" || chacra_flags=""
+
+# push binaries to chacra
+
+if [ "$THROWAWAY" = false ] ; then
+    # push binaries to chacra
+    find $WORKSPACE/dist/deb | egrep "*\.(changes|deb|dsc|gz)$" | egrep -v "(Packages|Sources|Contents)" | $VENV/chacractl binary ${chacra_flags} create ${chacra_endpoint}/${ARCH}/flavors/${FLAVOR}
+    # write json file with build info
+    # version and package_manager version are needed for teuthology
+    cat > $WORKSPACE/repo-extra.json << EOF
+{
+    "version":"$VERSION",
+    "package_manager_version":"$PACKAGE_MANAGER_VERSION",
+    "build_url":"$BUILD_URL",
+    "root_build_cause":"$ROOT_BUILD_CAUSE",
+    "node_name":"$NODE_NAME",
+    "job_name":"$JOB_NAME"
+}
+EOF
+    # post the json to repo-extra json to chacra
+    curl -X POST -H "Content-Type:application/json" --data "@$WORKSPACE/repo-extra.json" -u $CHACRACTL_USER:$CHACRACTL_KEY ${chacra_url}repos/${chacra_repo_endpoint}/extra/
+    # start repo creation
+    $VENV/chacractl repo update ${chacra_repo_endpoint}
+fi
+
+echo "Check the status of the repo at: https://shaman.ceph.com/api/repos/${chacra_repo_endpoint}"
+
+# update shaman with the completed build status
+SHA1=${GIT_COMMIT}
+update_build_status "completed" "nfs-ganesha" $NORMAL_DISTRO $NORMAL_DISTRO_VERSION $NORMAL_ARCH
+
+sudo rm -rf $WORKSPACE/dist
