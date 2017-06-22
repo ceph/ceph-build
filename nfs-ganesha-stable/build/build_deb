@@ -38,7 +38,7 @@ NORMAL_DISTRO_VERSION=$DIST
 NORMAL_ARCH=$ARCH
 
 # create build status in shaman
-create_build_status "started" "nfs-ganesha" $NORMAL_DISTRO $NORMAL_DISTRO_VERSION $NORMAL_ARCH
+create_build_status "started" "nfs-ganesha-stable" $NORMAL_DISTRO $NORMAL_DISTRO_VERSION $NORMAL_ARCH
 
 ## Setup the pbuilder
 setup_pbuilder
@@ -119,7 +119,7 @@ sudo pbuilder build \
 
 
 ## Upload the created debs to chacra
-chacra_endpoint="nfs-ganesha/${NFS_GANESHA_BRANCH}/${GIT_COMMIT}/${DISTRO}/${DIST}"
+chacra_endpoint="nfs-ganesha-stable/${NFS_GANESHA_BRANCH}/${GIT_COMMIT}/${DISTRO}/${DIST}"
 chacra_repo_endpoint="${chacra_endpoint}/flavors/${FLAVOR}"
 
 [ "$FORCE" = true ] && chacra_flags="--force" || chacra_flags=""
@@ -151,6 +151,6 @@ echo "Check the status of the repo at: https://shaman.ceph.com/api/repos/${chacr
 
 # update shaman with the completed build status
 SHA1=${GIT_COMMIT}
-update_build_status "completed" "nfs-ganesha" $NORMAL_DISTRO $NORMAL_DISTRO_VERSION $NORMAL_ARCH
+update_build_status "completed" "nfs-ganesha-stable" $NORMAL_DISTRO $NORMAL_DISTRO_VERSION $NORMAL_ARCH
 
 sudo rm -rf $WORKSPACE/dist

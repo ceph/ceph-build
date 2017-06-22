@@ -20,10 +20,10 @@
           wipe-workspace: true
           basedir: "nfs-ganesha-debian"
 - job:
-    name: nfs-ganesha
+    name: nfs-ganesha-stable
     project-type: matrix
     defaults: global
-    display-name: 'nfs-ganesha'
+    display-name: 'nfs-ganesha-stable'
     block-downstream: false
     block-upstream: false
     properties:
