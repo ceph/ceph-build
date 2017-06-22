@@ -57,7 +57,7 @@ NORMAL_DISTRO_VERSION=$RELEASE
 NORMAL_ARCH=$ARCH
 
 # create build status in shaman
-create_build_status "started" "nfs-ganesha" $NORMAL_DISTRO $NORMAL_DISTRO_VERSION $NORMAL_ARCH
+create_build_status "started" "nfs-ganesha-stable" $NORMAL_DISTRO $NORMAL_DISTRO_VERSION $NORMAL_ARCH
 
 cd $WORKSPACE/nfs-ganesha
 
@@ -97,7 +97,7 @@ sudo mock --verbose -r nfs-ganesha.cfg --scrub=all
 sudo mock --verbose -r nfs-ganesha.cfg --define "dist .el7" --resultdir=$WORKSPACE/dist/RPMS/ ${SRPM} || ( tail -n +1 $WORKSPACE/dist/RPMS/{root,build}.log && exit 1 )
 
 VERSION=`grep -R "#define GANESHA_VERSION \"" $WORKSPACE/nfs-ganesha/build/include/config.h | sed -e 's/#define GANESHA_VERSION "//1; s/"//1;'`
-chacra_endpoint="nfs-ganesha/${NFS_GANESHA_BRANCH}/${GIT_COMMIT}/${DISTRO}/${RELEASE}"
+chacra_endpoint="nfs-ganesha-stable/${NFS_GANESHA_BRANCH}/${GIT_COMMIT}/${DISTRO}/${RELEASE}"
 chacra_repo_endpoint="${chacra_endpoint}/flavors/${FLAVOR}"
 RPM_RELEASE=`grep Release $WORKSPACE/nfs-ganesha/src/nfs-ganesha.spec | sed 's/Release:[ \t]*//g' | cut -d '%' -f 1`
 RPM_VERSION=`grep Version $WORKSPACE/nfs-ganesha/src/nfs-ganesha.spec | sed 's/Version:[ \t]*//g'`
@@ -131,6 +131,6 @@ echo "Check the status of the repo at: https://shaman.ceph.com/api/repos/${chacr
 
 # update shaman with the completed build status
 SHA1=${GIT_COMMIT}
-update_build_status "completed" "nfs-ganesha" $NORMAL_DISTRO $NORMAL_DISTRO_VERSION $NORMAL_ARCH
+update_build_status "completed" "nfs-ganesha-stable" $NORMAL_DISTRO $NORMAL_DISTRO_VERSION $NORMAL_ARCH
 
 sudo rm -rf $WORKSPACE/dist

@@ -6,4 +6,4 @@
 NFS_GANESHA_BRANCH=`branch_slash_filter $NFS_GANESHA_BRANCH`
 
 # update shaman with the failed build status
-failed_build_status "nfs-ganesha" $NORMAL_DISTRO $NORMAL_DISTRO_VERSION $NORMAL_ARCH
+failed_build_status "nfs-ganesha-stable" $NORMAL_DISTRO $NORMAL_DISTRO_VERSION $NORMAL_ARCH
