@@ -281,6 +281,10 @@ get_distro_and_target() {
     # Get distro from DIST for chacra uploads
     DISTRO=""
     case $DIST in
+        stretch*)
+            DIST=stretch
+            DISTRO="debian"
+            ;;
         jessie*)
             DIST=jessie
             DISTRO="debian"
