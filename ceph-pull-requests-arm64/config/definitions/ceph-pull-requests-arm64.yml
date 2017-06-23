@@ -1,0 +1,92 @@
+- job:
+    block-downstream: false
+    block-upstream: false
+    builders:
+    - shell:
+        !include-raw:
+        - ../../build/build
+    concurrent: true
+    disabled: false
+    name: !!python/unicode 'ceph-pull-requests-arm64'
+    node: arm64
+    parameters:
+    - string:
+        default: origin/master
+        description: A pull request ID, like 'origin/pr/72/head'
+        name: sha1
+    project-type: freestyle
+    properties:
+    - build-discarder:
+        artifact-days-to-keep: -1
+        artifact-num-to-keep: -1
+        days-to-keep: 15
+        num-to-keep: 300
+    - raw:
+        xml: |
+          <com.sonyericsson.jenkins.plugins.bfa.model.ScannerJobProperty plugin="build-failure-analyzer@1.18.1">
+          <doNotScan>false</doNotScan>
+          </com.sonyericsson.jenkins.plugins.bfa.model.ScannerJobProperty>
+    - github:
+        url: https://github.com/ceph/ceph/
+    - raw:
+        xml: |
+          <com.sonyericsson.rebuild.RebuildSettings plugin="rebuild@1.25">
+          <autoRebuild>false</autoRebuild>
+          <rebuildDisabled>false</rebuildDisabled>
+          </com.sonyericsson.rebuild.RebuildSettings>
+    publishers: []
+    quiet-period: '5'
+    retry-count: '3'
+    scm:
+    - raw:
+        xml: |
+          <scm class="hudson.plugins.git.GitSCM" plugin="git@3.1.0">
+          <configVersion>2</configVersion>
+          <userRemoteConfigs>
+          <hudson.plugins.git.UserRemoteConfig>
+          <name>origin</name>
+          <refspec>+refs/pull/*:refs/remotes/origin/pr/*</refspec>
+          <url>https://github.com/ceph/ceph.git</url>
+          </hudson.plugins.git.UserRemoteConfig>
+          </userRemoteConfigs>
+          <branches>
+          <hudson.plugins.git.BranchSpec>
+          <name>${sha1}</name>
+          </hudson.plugins.git.BranchSpec>
+          </branches>
+          <doGenerateSubmoduleConfigurations>false</doGenerateSubmoduleConfigurations>
+          <submoduleCfg class="list" />
+          <extensions>
+          <hudson.plugins.git.extensions.impl.CheckoutOption>
+          <timeout>20</timeout>
+          </hudson.plugins.git.extensions.impl.CheckoutOption>
+          <hudson.plugins.git.extensions.impl.CloneOption>
+          <shallow>false</shallow>
+          <noTags>false</noTags>
+          <reference />
+          <timeout>20</timeout>
+          <depth>0</depth>
+          <honorRefspec>false</honorRefspec>
+          </hudson.plugins.git.extensions.impl.CloneOption>
+          <hudson.plugins.git.extensions.impl.WipeWorkspace />
+          </extensions>
+          </scm>
+    triggers:
+    - github-pull-request:
+        admin-list:
+        - alfredodeza
+        - ktdreyer
+        allow-whitelist-orgs-as-admins: false
+        auth-id: 2f99aa21-4f3c-4a7e-93d9-f85361aff591
+        auto-close-on-fail: false
+        build-desc-template: null
+        cron: null
+        github-hooks: true
+        only-trigger-phrase: false
+        org-list:
+        - ceph
+        permit-all: true
+        trigger-phrase: null
+        white-list-target-branches:
+        - master
+    wrappers: []
