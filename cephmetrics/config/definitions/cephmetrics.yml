@@ -72,14 +72,13 @@ If this is checked, then the binaries will be built and pushed to chacra even if
           branches:
             - $BRANCH
           skip-tag: true
-          wipe-workspace: true
 
     builders:
       - shell: |
           echo "Cleaning up top-level workarea (shared among workspaces)"
-          rm -rf dist
-          rm -rf venv
-          rm -rf release
+          sudo rm -rf dist
+          sudo rm -rf venv
+          sudo rm -rf release
       # rpm build scripts
       - shell:
           !include-raw:
