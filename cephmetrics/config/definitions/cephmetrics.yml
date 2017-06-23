@@ -10,6 +10,7 @@
       - string:
           name: BRANCH
           description: "The git branch (or tag) to build"
+          default: "master"
 
       - string:
           name: DISTROS
@@ -72,6 +73,7 @@ If this is checked, then the binaries will be built and pushed to chacra even if
           branches:
             - $BRANCH
           skip-tag: true
+          wipe-workspace: false
 
     builders:
       - shell: |
