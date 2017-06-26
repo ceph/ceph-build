@@ -30,6 +30,7 @@ RPM_RELEASE=$(echo $REVISION | tr '-' '_') # the '-' has a special meaning
 echo "Building source distribution"
 git archive --format=zip --prefix=cephmetrics-${VERSION}/ HEAD > dist/cephmetrics-${VERSION}.zip
 wget https://grafana.com/api/plugins/vonage-status-panel/versions/1.0.4/download -O dist/vonage-status-panel-1.0.4.zip
+wget https://grafana.com/api/plugins/grafana-piechart-panel/versions/1.1.5/download -O /dist/grafana-piechart-panel-1.1.5.zip
 
 
 ## Prepare the spec file for build
