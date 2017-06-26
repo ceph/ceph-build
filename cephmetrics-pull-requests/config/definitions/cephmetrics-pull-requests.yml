@@ -4,7 +4,8 @@
     defaults: global
     concurrent: true
     display-name: 'Cephmetrics: Pull Requests'
-    quiet-period: 5
+    node: small && (centos7 || trusty)
+    quiet-period: 0
     block-downstream: false
     block-upstream: false
     retry-count: 3
@@ -51,4 +52,5 @@
       - shell:
           !include-raw:
             - ../../../scripts/build_utils.sh
+            - ../../setup/setup
             - ../../build/build

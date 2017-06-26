@@ -1,0 +1,16 @@
+#!/bin/bash
+set -ex
+if test $(id -u) != 0 ; then
+    SUDO=sudo
+fi
+
+deb_deps="python-dev python-virtualenv"
+rpm_deps="python-devel python-virtualenv"
+if test -f /etc/redhat-release ; then
+    $SUDO yum install -y $rpm_deps
+elif test -f /etc/debian_version ; then
+    $SUDO apt install -y $deb_deps
+fi
+
+pkgs=( "tox" )
+install_python_packages "pkgs[@]"

@@ -1,11 +1,5 @@
 #!/bin/bash
-
 set -ex
-
-# the following two methods exist in scripts/build_utils.sh
-pkgs=( "tox" )
-install_python_packages "pkgs[@]"
-
 # run tox by recreating the environment and in verbose mode
 # by default this will run all environments defined
 $VENV/tox -rv
