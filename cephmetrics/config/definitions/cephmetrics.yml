@@ -75,6 +75,9 @@ If this is checked, then the binaries will be built and pushed to chacra even if
           skip-tag: true
           wipe-workspace: false
 
+    triggers:
+      - github
+
     builders:
       - shell: |
           echo "Cleaning up top-level workarea (shared among workspaces)"
