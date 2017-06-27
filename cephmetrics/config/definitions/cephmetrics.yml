@@ -6,6 +6,9 @@
     block-downstream: false
     block-upstream: false
     concurrent: true
+    properties:
+      - github:
+          url: https://github.com/ceph/cephmetrics
     parameters:
       - string:
           name: BRANCH
