@@ -4,6 +4,8 @@ set -ex
 # Sanity-check:
 [ -z "$GIT_BRANCH" ] && echo Missing GIT_BRANCH variable && exit 1
 
+BRANCH=`branch_slash_filter $GIT_BRANCH`
+
 # Only do actual work when we are an RPM distro
 if test "$DISTRO" != "fedora" -a "$DISTRO" != "centos" -a "$DISTRO" != "rhel"; then
     exit 0
