@@ -1,0 +1,39 @@
+- job:
+    name: ceph-medic-docs
+    node: docs
+    project-type: freestyle
+    defaults: global
+    display-name: 'ceph-medic: docs build'
+    quiet-period: 5
+    block-downstream: false
+    block-upstream: false
+    retry-count: 3
+    properties:
+      - github:
+          url: https://github.com/ceph/ceph-medic
+    logrotate:
+      daysToKeep: -1
+      numToKeep: 10
+      artifactDaysToKeep: -1
+      artifactNumToKeep: -1
+
+    triggers:
+      - github
+
+    scm:
+      - git:
+          url: https://github.com/ceph/ceph-medic
+          branches:
+            - master
+            # as more stable branches are published, they need to be
+            # added here
+            #- stable-1.0
+          browser: auto
+          skip-tag: true
+          timeout: 20
+
+    builders:
+      - shell:
+          !include-raw:
+            - ../../../scripts/build_utils.sh
+            - ../../build/build
