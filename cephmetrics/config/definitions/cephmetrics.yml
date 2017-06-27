@@ -6,6 +6,9 @@
     block-downstream: false
     block-upstream: false
     concurrent: true
+    properties:
+      - github:
+          url: https://github.com/ceph/cephmetrics
     parameters:
       - string:
           name: BRANCH
@@ -70,8 +73,6 @@ If this is checked, then the binaries will be built and pushed to chacra even if
           url: git@github.com:ceph/cephmetrics.git
           # Use the SSH key attached to the ceph-jenkins GitHub account.
           credentials-id: '39fa150b-b2a1-416e-b334-29a9a2c0b32d'
-          branches:
-            - $BRANCH
           skip-tag: true
           wipe-workspace: false
 
