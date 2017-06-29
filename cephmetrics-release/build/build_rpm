@@ -59,7 +59,7 @@ sudo mock -r ${MOCK_TARGET}-${RELEASE}-${ARCH} --resultdir=./dist/rpm/ ${SRPM}
 
 
 ## Upload the created RPMs to chacra
-chacra_endpoint="cephmetrics/${BRANCH}/${GIT_COMMIT}/${DISTRO}/${RELEASE}"
+chacra_endpoint="cephmetrics/${BRANCH}/${GIT_COMMIT}/rhel/${RELEASE}"
 
 [ "$FORCE" = true ] && chacra_flags="--force" || chacra_flags=""
 
