@@ -76,7 +76,7 @@ If this is checked, then the binaries will be built and pushed to chacra even if
           skip-tag: true
           branches:
             - $BRANCH
-          wipe-workspace: true
+          wipe-workspace: false
 
     builders:
       - shell: |
