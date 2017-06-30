@@ -1,26 +1,22 @@
 #!/bin/bash
-# This script will pull repository files from the binary API (chacra.ceph.com)
-# so that they can be signed. This is only useful in the context of the
-# "signer" server.
-# By default it will sync all releases defined, but can optionally take one or more
-# releases to sync:
-#
-#     sync-pull hammer infernali
 
-releases=${*:-"firefly giant hammer infernalis testing"}
+: ${2?"Usage: $0 \$project \$release \$sha1"}
+  #  Script exits here if command-line parameter absent,
+  #+ with following error message.
+  #    usage-message.sh: 1: Usage: sync-pull $project $release $sha1
 
-ceph_sync() {
-  release=$1
-  deb_cmd="admin@chacra.ceph.com:/opt/repos/ceph/$release/debian/jessie/* /opt/repos/ceph/$release/debian/jessie/"
-  rsync -Lavh -e 'ssh -p 2222' --progress $deb_cmd
+project=${1}
+release=${2}
+sha1=${3}
 
-  el6_cmd="admin@chacra.ceph.com:/opt/repos/ceph/$release/centos/6/* /opt/repos/ceph/$release/centos/6/"
-  el7_cmd="admin@chacra.ceph.com:/opt/repos/ceph/$release/centos/7/* /opt/repos/ceph/$release/centos/7/"
-  rsync -Lavh -e 'ssh -p 2222' --progress $el6_cmd
-  rsync -Lavh -e 'ssh -p 2222' --progress $el7_cmd
-}
+echo "sync for: $project $release"
+echo "********************************************"
+deb_cmd="ubuntu@chacra.ceph.com:/opt/repos/$project/$release/$sha1/debian/jessie/flavors/default/* /opt/repos/$project/$release/debian/jessie/"
+echo $deb_cmd
+echo "--------------------------------------------"
+rsync -Lavh -e 'ssh -p 2222' --progress $deb_cmd
 
-for i in "${releases[@]}"
-do
-   ceph_sync $i
-done
+el7_cmd="ubuntu@chacra.ceph.com:/opt/repos/$project/$release/$sha1/centos/7/flavors/default/* /opt/repos/$project/$release/centos/7/"
+echo $el7_cmd
+echo "--------------------------------------------"
+rsync -Lavh -e 'ssh -p 2222' --progress $el7_cmd
