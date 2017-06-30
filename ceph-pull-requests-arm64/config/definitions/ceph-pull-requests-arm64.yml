@@ -73,20 +73,18 @@
           </scm>
     triggers:
     - github-pull-request:
-        admin-list:
-        - alfredodeza
-        - ktdreyer
-        allow-whitelist-orgs-as-admins: false
-        auth-id: 2f99aa21-4f3c-4a7e-93d9-f85361aff591
-        auto-close-on-fail: false
-        build-desc-template: null
-        cron: null
-        github-hooks: true
-        only-trigger-phrase: false
+        allow-whitelist-orgs-as-admins: true
         org-list:
         - ceph
+        trigger-phrase: ''
+        only-trigger-phrase: false
+        github-hooks: true
         permit-all: true
-        trigger-phrase: null
+        auto-close-on-fail: false
+        status-context: "make check (arm64)"
+        started-status: "running make check"
+        success-status: "make check succeeded"
+        failure-status: "make check failed"
         white-list-target-branches:
         - master
     wrappers: []
