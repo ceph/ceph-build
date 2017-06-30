@@ -1,0 +1,223 @@
+---
+# This playbook is used to configure static libvirt&&vagrant slaves.
+# Ubuntu Xenial is the only supported distro at this time
+#
+# Example usage:
+# On a baremetal node already configured by the github.com/ceph/ceph-cm-ansible common role,
+# `cd ceph-build/ansible && cp examples/slave_libvirt_static.yml .` then:
+# ansible-playbook -M ./library/ slave_libvirt_static.yml --extra-vars '{"token": "XXXXX"}' --limit="yourslave*"
+
+- hosts: all
+  become: true
+  user: cm
+  vars:
+   - jenkins_user: 'jenkins-build'
+   # jenkins API credentials:
+   - api_user: 'ceph-jenkins'
+   - token: '{{ token }}'
+   - api_uri: 'https://jenkins.ceph.com'
+   - nodename: '{{ ansible_hostname }}'
+   - labels: 'vagrant libvirt'
+
+  tasks:
+
+    - name: Fail if slave is not running Xenial
+      fail:
+        msg: "Slave is not running Xenial"
+      when: ansible_distribution_release != "xenial"
+
+    # vagrant doesn't have repositories, this chacra repo will be better to have
+    # around and can get updates as soon as a new vagrant version is published via
+    # chacractl
+    - name: add the vagrant repository
+      apt_repository:
+        repo: "deb [trusted=yes] https://chacra.ceph.com/r/vagrant/latest/HEAD/ubuntu/xenial/flavors/default/ xenial main"
+        state: present
+
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+
+    - name: Install required packages
+      apt:
+        name: "{{ item }}"
+        state: present
+      with_items:
+        - git
+        - python-dev
+        - python-pip
+        - python-virtualenv
+        - libtool
+        - libssl-dev
+        - libffi-dev
+        - debian-archive-keyring
+        - libyaml-dev
+        - qemu-kvm
+        - libvirt-bin
+        - libvirt-dev
+        - vagrant
+        - default-jdk
+        - default-jre
+
+    - name: "create a {{ jenkins_user }} user"
+      user:
+        name: "{{ jenkins_user }}"
+        groups: libvirtd
+        append: yes
+        comment: "Jenkins Build Slave User"
+
+    - name: "create a {{ jenkins_user }} home directory"
+      file:
+        path: "/home/{{ jenkins_user }}/"
+        state: directory
+        owner: "{{ jenkins_user }}"
+
+    - name: Create .ssh directory
+      file:
+        path: "/home/{{ jenkins_user }}/.ssh"
+        state: directory
+        owner: "{{ jenkins_user }}"
+
+    - name: install the vagrant-libvirt plugin
+      shell: vagrant plugin install vagrant-libvirt
+      become: yes
+      become_user: "{{ jenkins_user }}"
+
+    - name: set the authorized keys
+      authorized_key:
+        user: "{{ jenkins_user }}"
+        key: "{{ lookup('file', 'files/ssh/keys/jenkins_build.pub') }}"
+
+    - name: "ensure {{ jenkins_user }} can sudo without a prompt"
+      lineinfile:
+        dest: /etc/sudoers
+        regexp: '^{{ jenkins_user }} ALL'
+        line: '{{ jenkins_user }}   ALL=(ALL:ALL) NOPASSWD:ALL'
+        validate: 'visudo -cf %s'
+
+    - name: set utf-8 for LC_ALL
+      lineinfile:
+        dest: "/home/{{ jenkins_user }}/.bashrc"
+        regexp: '^export LC_ALL='
+        line: "export LC_ALL=en_US.UTF-8"
+        create: true
+        state: present
+
+    - name: set utf-8 for LANG
+      lineinfile:
+        dest: "/home/{{ jenkins_user }}/.bashrc"
+        regexp: '^export LANG='
+        line: "export LANG=en_US.UTF-8"
+
+    - name: set utf-8 for LANGUAGE
+      lineinfile:
+        dest: "/home/{{ jenkins_user }}/.bashrc"
+        regexp: '^export LANGUAGE='
+        line: "export LANGUAGE=en_US.UTF-8"
+
+    - name: ensure the build dir exists
+      file:
+        path: "/home/{{ jenkins_user }}/build"
+        state: directory
+        owner: "{{ jenkins_user }}"
+
+    - name: ensure the home dir has the right owner permissions
+      file:
+        path: "/home/{{ jenkins_user }}"
+        state: directory
+        owner: "{{ jenkins_user }}"
+        group: "{{ jenkins_user }}"
+        recurse: yes
+
+    # Makes sure only our block is in the file
+    - name: remove gitconfig file
+      file:
+        path: "/home/{{ jenkins_user }}/.gitconfig"
+        state: absent
+
+    - name: ensure our gitconfig file exists
+      blockinfile:
+        dest: "/home/{{ jenkins_user }}/.gitconfig"
+        create: yes
+        owner: "{{ jenkins_user }}"
+        group: "{{ jenkins_user }}"
+        block: |
+          [user]
+          name=Ceph CI
+          email=ceph-release-team@redhat.com
+
+    - name: Set Hostname with hostname command
+      hostname:
+        name: "{{ ansible_hostname }}"
+
+    - name: ensure that the current host is in /etc/hosts. Yes this is a thing.
+      replace:
+        backup: yes
+        dest: /etc/hosts
+        regexp: '^(127\.0\.1\.1(?!.*\b{{ ansible_hostname }}\b).*)$'
+        replace: '\1 {{ ansible_hostname }}'
+
+    - name: install six, latest one
+      pip:
+        name: six
+        state: latest
+
+    - name: install python-jenkins
+      # HORRIBLY BROKEN. This is temporary until this lands upstream:
+      # https://github.com/ceph/python-jenkins/commit/8e018bf7d88dfc308833d195a6ebd29231a8969d
+      # https://review.openstack.org/460363
+      # Still not in upstream pip version as of 22JUN2017
+      pip:
+        name: git+https://github.com/ceph/python-jenkins@patched#egg=python-jenkins
+
+    - name: add github.com host key
+      known_hosts:
+        path: '/etc/ssh/ssh_known_hosts'
+        # we need to use 'host' here because prado currently uses ansible-playbook==1.9.1
+        host: 'github.com'
+        # github.com.pub is the output of `ssh-keyscan github.com`
+        key: "{{ lookup('file', 'files/ssh/hostkeys/github.com.pub') }}"
+
+    - name: start the libvirt-bin service
+      service:
+        name: libvirt-bin
+        state: started
+
+    - name: start the libvirt-guests service
+      service:
+        name: libvirt-guests
+        state: started
+
+    - name: register the new slave to jenkins master with jnlp
+      jenkins_node:
+        username: "{{ api_user }}"
+        uri: "{{ api_uri }}"
+        password: "{{ token }}"
+        # relies on a convention to set a unique name that allows a reverse
+        # mapping from Jenkins back to whatever service created the current
+        # node
+        name: "{{ ansible_default_ipv4.address }}+{{ nodename }}"
+        labels: "{{ labels }}"
+        host: "{{ ansible_default_ipv4.address }}"
+        credentialsId: '39fa150b-b2a1-416e-b334-29a9a2c0b32d'
+        launcher: 'hudson.slaves.JNLPLauncher'
+        remoteFS: '/home/{{ jenkins_user }}/build'
+        # XXX this should be configurable, not all nodes should have one executor
+        executors: '{{ executors|default(1) }}'
+        exclusive: true
+
+    - name: Download slave.jar
+      get_url:
+        url: "{{ api_uri }}/jnlpJars/slave.jar"
+        dest: "/home/{{ jenkins_user }}/slave.jar"
+
+    - name: install the systemd unit file for jenkins
+      template:
+        src: "templates/systemd/jenkins.service.j2"
+        dest: "/etc/systemd/system/jenkins.service"
+
+    - name: start jenkins service
+      service:
+        name: jenkins
+        state: started
+        enabled: yes
