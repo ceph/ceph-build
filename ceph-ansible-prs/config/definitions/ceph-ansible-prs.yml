@@ -3,6 +3,7 @@
     release:
       - jewel
       - kraken
+      - luminous
     scenario:
       - ansible2.2-centos7_cluster
       - ansible2.2-xenial_cluster
