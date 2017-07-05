@@ -71,7 +71,6 @@ If this is checked, then the binaries will be built and pushed to chacra even if
     scm:
       - git:
           url: https://github.com/ceph/ceph-medic
-          # Use the SSH key attached to the ceph-jenkins GitHub account.
           skip-tag: true
           branches:
             - $BRANCH
