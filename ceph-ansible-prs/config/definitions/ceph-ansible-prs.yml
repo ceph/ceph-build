@@ -38,6 +38,9 @@
       - ansible2.2-bluestore_journal_collocation
       - ansible2.2-bluestore_dmcrypt_journal
       - ansible2.2-bluestore_dmcrypt_journal_collocation
+      - ansible2.2-bluestore_docker_cluster
+      - ansible2.2-bluestore_docker_dedicated_journal
+      - ansible2.2-bluestore_docker_dmcrypt_journal_collocation
     jobs:
         - 'ceph-ansible-prs-{release_before_luminous}-{scenario_before_luminous}'
         - 'ceph-ansible-prs-{release_after_luminous}-{scenario_after_luminous}'
