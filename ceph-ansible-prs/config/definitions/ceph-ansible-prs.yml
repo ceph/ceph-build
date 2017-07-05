@@ -2,7 +2,6 @@
     name: ceph-ansible-prs
     release_before_luminous:
       - jewel
-      - kraken
     release_after_luminous:
       - luminous
     scenario_before_luminous:
