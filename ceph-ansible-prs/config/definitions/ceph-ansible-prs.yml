@@ -21,6 +21,8 @@
       - ansible2.2-update_docker_cluster
       - ansible2.2-bluestore_cluster
       - ansible2.2-bluestore_journal_collocation
+      - ansible2.2-bluestore_dmcrypt_journal
+      - ansible2.2-bluestore_dmcrypt_journal_collocation
     jobs:
         - 'ceph-ansible-prs-{release}-{scenario}'
 
