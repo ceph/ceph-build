@@ -6,8 +6,6 @@ set -ex
 [ -z "$GIT_BRANCH" ] && echo Missing GIT_BRANCH variable && exit 1
 [ -z "$JOB_NAME" ] && echo Missing JOB_NAME variable && exit 1
 
-# Strip "-rpm" off the job name to get our package's name
-PACKAGE=${JOB_NAME%-rpm}
 
 sudo yum -y install epel-release
 sudo yum -y install fedpkg mock
@@ -29,7 +27,7 @@ make_chacractl_config
 BRANCH=`branch_slash_filter $GIT_BRANCH`
 
 ## Upload the created RPMs to chacra
-chacra_endpoint="${PACKAGE}/${BRANCH}/${GIT_COMMIT}/centos/7"
+chacra_endpoint="ceph-medic/${BRANCH}/${GIT_COMMIT}/centos/7"
 
 [ "$FORCE" = true ] && chacra_flags="--force" || chacra_flags=""
 
