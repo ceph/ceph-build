@@ -1,0 +1,13 @@
+# the following two methods exist in scripts/build_utils.sh
+pkgs=( "tox" )
+install_python_packages "pkgs[@]"
+
+WORKDIR=$(mktemp -td tox.XXXXXXXXXX)
+
+cd $WORKSPACE/tests/functional
+
+delete_libvirt_vms
+clear_libvirt_networks
+restart_libvirt_services
+
+CEPH_MEDIC_DEV_BRANCH=$CEPH_MEDIC_BRANCH CEPH_ANSIBLE_BRANCH=$CEPH_ANSIBLE_BRANCH $VENV/tox -rv -e=$SCENARIO --workdir=$WORKDIR -- --provider=libvirt

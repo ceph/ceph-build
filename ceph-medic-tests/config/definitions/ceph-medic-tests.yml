@@ -1,0 +1,60 @@
+- project:
+    name: ceph-medic-tests
+    scenario:
+      - ansible2.2-nightly_centos7
+    jobs:
+        - 'ceph-medic-tests-{scenario}'
+
+- job-template:
+    name: 'ceph-medic-tests-{scenario}'
+    node: vagrant && libvirt 
+    project-type: freestyle
+    defaults: global
+    display-name: 'ceph-medic: Tests [{scenario}]'
+    quiet-period: 5
+    block-downstream: false
+    block-upstream: false
+    retry-count: 3
+    properties:
+      - github:
+          url: https://github.com/ceph/ceph-medic
+    logrotate:
+      daysToKeep: -1
+      numToKeep: -1
+      artifactDaysToKeep: -1
+      artifactNumToKeep: -1
+
+    parameters:
+      - string:
+          name: CEPH_MEDIC_BRANCH
+          description: "The ceph-medic branch to test"
+          default: master
+
+      - string:
+          name: CEPH_ANSIBLE_BRANCH
+          description: "The ceph-ansible branch to test"
+          default: master
+
+    triggers:
+      - timed: '@daily'
+
+    scm:
+      - git:
+          url: https://github.com/ceph/ceph-medic.git
+          branches:
+            - $CEPH_MEDIC_BRANCH 
+          browser: auto
+          timeout: 20
+
+    builders:
+      - inject:
+          properties-content: |
+            SCENARIO={scenario}
+      - shell:
+          !include-raw-escape:
+            - ../../../scripts/build_utils.sh
+            - ../../build/build
+
+    publishers:
+      - email:
+          recipients: aschoen@redhat.com adeza@redhat.com
