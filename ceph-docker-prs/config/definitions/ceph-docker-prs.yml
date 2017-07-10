@@ -5,7 +5,6 @@
       - xenial
     ceph-version:
       - jewel
-      - kraken
       - luminous
     test:
       - cluster
