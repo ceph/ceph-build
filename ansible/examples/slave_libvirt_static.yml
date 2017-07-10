@@ -1,6 +1,6 @@
 ---
 # This playbook is used to configure static libvirt&&vagrant slaves.
-# Ubuntu Xenial is the only supported distro at this time
+# Ubuntu Xenial or Yakkety are the only supported distros at this time
 #
 # Example usage:
 # On a baremetal node already configured by the github.com/ceph/ceph-cm-ansible common role,
@@ -21,10 +21,26 @@
 
   tasks:
 
-    - name: Fail if slave is not running Xenial
+    - name: Fail if slave is not running Xenial or Yakkety
       fail:
-        msg: "Slave is not running Xenial"
-      when: ansible_distribution_release != "xenial"
+        msg: "Slave is not running Xenial or Yakkety"
+      when: ansible_distribution != "Ubuntu" or
+            (ansible_distribution == "Ubuntu" and ansible_distribution_major_version < 16)
+
+    - name: Check for custom repos
+      shell: "ls -1 /etc/apt/sources.list.d"
+      register: custom_repos
+
+    - name: Delete custom repos
+      file:
+        path: "/etc/apt/sources.list.d/{{ item }}"
+        state: absent
+      with_items: "{{ custom_repos.stdout_lines }}"
+      when: custom_repos|length > 0
+
+    - name: Update apt cache
+      apt:
+        update_cache: yes
 
     # vagrant doesn't have repositories, this chacra repo will be better to have
     # around and can get updates as soon as a new vagrant version is published via
