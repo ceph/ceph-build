@@ -87,6 +87,7 @@ If this is checked, then the binaries will be built and pushed to chacra even if
           branches:
             - $BRANCH
           skip-tag: true
+          timeout: 20
           wipe-workspace: true
 
     builders:
