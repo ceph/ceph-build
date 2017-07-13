@@ -22,4 +22,7 @@ restart_libvirt_services
 # adding groups on the fly doesn't guarantee their availability
 # so we must use `sg` to execute the tests as part of the docker group to avoid
 # 'Permission Denied` when tryin to talk over the socket
-sg docker -c "$VENV/tox -rv -e=$SCENARIO --workdir=$WORKDIR"
+if ! timeout 3h sg docker -c "$VENV/tox -rv -e=$SCENARIO --workdir=$WORKDIR"; then
+  echo "ERROR: Job didn't complete successfully or got stuck for more than 3h."
+  exit 1
+fi
