@@ -88,6 +88,7 @@ If this is checked, then the binaries will be built and pushed to chacra even if
             - $BRANCH
           skip-tag: true
           timeout: 20
+          shallow-clone: true
           wipe-workspace: true
 
     builders:
