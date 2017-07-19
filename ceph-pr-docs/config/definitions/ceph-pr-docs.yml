@@ -1,7 +1,7 @@
 - job:
     name: ceph-pr-docs
     display-name: 'ceph: Pull Requests Docs Check'
-    node: (centos7 || trusty) && x86_64
+    node: trusty && x86_64
     project-type: freestyle
     defaults: global
     quiet-period: 5
