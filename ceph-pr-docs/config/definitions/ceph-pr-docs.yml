@@ -38,6 +38,10 @@
           timeout: 20
           wipe-workspace: true
 
+    builders:
+      - shell:
+          !include-raw ../../build/build
+
     publishers:
       - html-publisher:
           name: "Ceph Pull Request Docs"
@@ -48,7 +52,3 @@
           keep-all: true
           allow-missing: true
           link-to-last-build: true
-
-    builders:
-      - shell:
-          !include-raw ../../build/build
