@@ -1,7 +1,7 @@
 - job:
     name: ceph-pr-docs
     display-name: 'ceph: Pull Requests Docs Check'
-    node: (centos7 || trusty) && x86_64
+    node: trusty && x86_64
     project-type: freestyle
     defaults: global
     quiet-period: 5
@@ -38,6 +38,10 @@
           timeout: 20
           wipe-workspace: true
 
+    builders:
+      - shell:
+          !include-raw ../../build/build
+
     publishers:
       - html-publisher:
           name: "Ceph Pull Request Docs"
@@ -48,7 +52,3 @@
           keep-all: true
           allow-missing: true
           link-to-last-build: true
-
-    builders:
-      - shell:
-          !include-raw ../../build/build
