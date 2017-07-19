@@ -1,0 +1,8 @@
+#!/bin/bash
+
+set -ex
+
+./admin/build-doc
+
+ls -l build-doc/output/html/
+

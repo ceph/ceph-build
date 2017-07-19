@@ -1,0 +1,54 @@
+- job:
+    name: ceph-pr-docs
+    display-name: 'ceph: Pull Requests Docs Check'
+    node: (centos7 || trusty) && x86_64
+    project-type: freestyle
+    defaults: global
+    quiet-period: 5
+    block-downstream: false
+    block-upstream: false
+    properties:
+      - github:
+          url: https://github.com/ceph/ceph
+    discard-old-builds: true
+    logrotate:
+      daysToKeep: 14
+
+    triggers:
+      - github-pull-request:
+          allow-whitelist-orgs-as-admins: true
+          org-list:
+            - ceph
+          # this job is only triggered by explicitly asking for it
+          only-trigger-phrase: true
+          trigger-phrase: 'jenkins test docs'
+          github-hooks: true
+          permit-all: true
+          auto-close-on-fail: false
+          status-context: "Testing: building docs"
+          started-status: "Building documentation"
+          success-status: "OK - docs built"
+          failure-status: "Docs failed with errors"
+
+    scm:
+      - git:
+          url: https://github.com/ceph/ceph
+          browser: auto
+          skip-tag: true
+          timeout: 20
+          wipe-workspace: true
+
+    publishers:
+      - html-publisher:
+          name: "Ceph Pull Request Docs"
+          dir: "admin/build-doc/output/html/"
+          # XXX is this sufficient? the docs indicate this is only for the
+          # main index files
+          files: "index.html"
+          keep-all: true
+          allow-missing: true
+          link-to-last-build: true
+
+    builders:
+      - shell:
+          !include-raw ../../build/build
