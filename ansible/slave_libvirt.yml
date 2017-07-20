@@ -188,8 +188,8 @@
 
     - name: install python-jenkins
       sudo: true
-      # https://bugs.launchpad.net/python-jenkins/+bug/1500898
-      pip: name=python-jenkins version=0.4.7
+      # https://review.openstack.org/460363
+      pip: name=python-jenkins version=0.4.15
 
     - name: add github.com host key
       sudo: true
