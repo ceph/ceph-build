@@ -2,7 +2,7 @@
 - name: update apt cache
   apt:
     update_cache: yes
-  sudo: yes
+  become: yes
 
 - name: install postgresql requirements
   sudo: yes
@@ -23,7 +23,7 @@
     name: postgresql
     state: started
     enabled: yes
-  sudo: yes
+  become: yes
 
 - name: allow users to connect locally
   sudo: yes
@@ -48,4 +48,4 @@
 - service:
     name: postgresql
     state: restarted
-  sudo: true
+  become: yes
