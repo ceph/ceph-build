@@ -13,7 +13,7 @@
     - postgresql
     - postgresql-common
     - postgresql-contrib
-    - postgresql-server-dev-9.3
+    - postgresql-server-dev-9.5
     - python-psycopg2
   tags:
     - packages
@@ -30,7 +30,7 @@
   lineinfile:
      # TODO: should not hardcode that version
      # 9.3 is available on trusty, 9.5 on Xenial
-     dest: /etc/postgresql/9.3/main/pg_hba.conf
+     dest: /etc/postgresql/9.5/main/pg_hba.conf
      regexp: '^host\s+all\s+all\s+127.0.0.1/32'
      line: 'host    all             all             127.0.0.1/32            trust'
      backrefs: yes
