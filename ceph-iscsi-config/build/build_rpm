@@ -1,0 +1,78 @@
+#! /usr/bin/bash
+set -ex
+
+BRANCH=`branch_slash_filter $BRANCH`
+
+# Only do actual work when we are an RPM distro
+if test "$DISTRO" != "fedora" -a "$DISTRO" != "centos" -a "$DISTRO" != "rhel"; then
+    exit 0
+fi
+
+## Install any setup-time deps
+# We need these for the build
+sudo yum install -y python-devel python-setuptools systemd
+
+## Get some basic information about the system and the repository
+# Get version
+RELEASE="$(lsb_release --short -r | cut -d '.' -f 1)" # system release
+VERSION="$(git describe --abbrev=0 --tags HEAD)"
+REVISION="$(git describe --tags HEAD | cut -d - -f 2- | sed 's/-/./')"
+
+# Update spec version
+sed -i "s/^Version:.*$/Version:\t${VERSION}-${REVISION}/g" $WORKSPACE/ceph-iscsi-config.spec
+# for debugging
+cat $WORKSPACE/ceph-iscsi-config.spec
+
+# Update setup.py version
+sed -i "s/version=""[^""]*""/version=""${VERSION}""/g" $WORKSPACE/setup.py
+# for debugging
+cat $WORKSPACE/setup.py
+
+## Create the source rpm
+echo "Building SRPM"
+rpmbuild \
+    --define "_sourcedir ." \
+    --define "_specdir $WORKSPACE/dist" \
+    --define "_builddir $WORKSPACE/dist" \
+    --define "_srcrpmdir $WORKSPACE/dist/SRPMS" \
+    --define "_rpmdir $WORKSPACE/dist/RPMS" \
+    --nodeps -bs $WORKSPACE/ceph-iscsi-config.spec
+SRPM=$(readlink -f $WORKSPACE/dist/SRPMS/*.src.rpm)
+
+# mock config
+sudo head -n -1 /etc/mock/${MOCK_TARGET}-${RELEASE}-${ARCH}.cfg > ceph-iscsi-config.cfg
+# for debugging
+cat ceph-iscsi-config.cfg
+
+## Build the binaries with mock
+echo "Building RPMs"
+sudo mock --verbose -r ceph-iscsi-config.cfg --scrub=all
+sudo mock --verbose -r ceph-iscsi-config.cfg --define "dist .el7" --resultdir=$WORKSPACE/dist/RPMS/ ${SRPM} || ( tail -n +1 $WORKSPACE/dist/RPMS/{root,build}.log && exit 1 )
+
+## Upload the created RPMs to chacra
+chacra_endpoint="ceph-iscsi-config/${BRANCH}/${GIT_COMMIT}/${DISTRO}/${RELEASE}"
+
+[ "$FORCE" = true ] && chacra_flags="--force" || chacra_flags=""
+
+# push binaries to chacra
+find *.rpm | $VENV/chacractl binary ${chacra_flags} create ${chacra_endpoint}/$ARCH/
+PACKAGE_MANAGER_VERSION=$(rpm --queryformat '%{VERSION}-%{RELEASE}\n' -qp $(find *.rpm | egrep "\.$ARCH\.rpm" | head -1))
+
+# write json file with build info
+cat > $WORKSPACE/repo-extra.json << EOF
+{
+    "version":"$VERSION",
+    "package_manager_version":"$PACKAGE_MANAGER_VERSION",
+    "build_url":"$BUILD_URL",
+    "root_build_cause":"$ROOT_BUILD_CAUSE",
+    "node_name":"$NODE_NAME",
+    "job_name":"$JOB_NAME"
+}
+EOF
+# post the json to repo-extra json to chacra
+curl -X POST -H "Content-Type:application/json" --data "@$WORKSPACE/repo-extra.json" -u $CHACRACTL_USER:$CHACRACTL_KEY ${chacra_url}repos/${chacra_endpoint}/extra/
+
+# start repo creation
+$VENV/chacractl repo update ${chacra_endpoint}
+
+echo Check the status of the repo at: https://shaman.ceph.com/api/repos/${chacra_endpoint}
