@@ -19,12 +19,13 @@ VERSION="$(git describe --abbrev=0 --tags HEAD)"
 REVISION="$(git describe --tags HEAD | cut -d - -f 2- | sed 's/-/./')"
 
 # Update spec version
-sed -i "s/^Version:.*$/Version:\t${VERSION}-${REVISION}/g" $WORKSPACE/ceph-iscsi-config.spec
+sed -i "s/^Version:.*$/Version:\t${VERSION}/g" $WORKSPACE/ceph-iscsi-config.spec
+sed -i "s/^Release:.*$/Release:\t${REVISION}%{?dist}/g" $WORKSPACE/ceph-iscsi-config.spec
 # for debugging
 cat $WORKSPACE/ceph-iscsi-config.spec
 
 # Update setup.py version
-sed -i "s/version=""[^""]*""/version=""${VERSION}""/g" $WORKSPACE/setup.py
+sed -i "s/version=\"[^\"]*\"/version=\"${VERSION}\"/g" $WORKSPACE/setup.py
 # for debugging
 cat $WORKSPACE/setup.py
 
