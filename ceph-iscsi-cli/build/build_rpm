@@ -1,7 +1,7 @@
 #! /usr/bin/bash
 set -ex
 
-PROJECT=ceph-iscsi-config
+PROJECT=ceph-iscsi-cli
 BRANCH=`branch_slash_filter $BRANCH`
 
 # Only do actual work when we are an RPM distro
