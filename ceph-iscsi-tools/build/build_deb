@@ -1,0 +1,9 @@
+#! /usr/bin/bash
+set -ex
+
+# Only do actual work when we are a DEB distro
+if test "$DISTRO" != "debian" -a "$DISTRO" != "ubuntu"; then
+    exit 0
+fi
+
+exit 1
