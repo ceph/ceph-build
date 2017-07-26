@@ -11,7 +11,6 @@ fi
 
 # Install the dependencies
 sudo yum install -y mock
-sudo yum-builddep -y ${PROJECT}.spec
 
 ## Get some basic information about the system and the repository
 # Get version
@@ -20,9 +19,16 @@ VERSION="$(git describe --abbrev=0 --tags HEAD)"
 REVISION="$(git describe --tags HEAD | cut -d - -f 2- | sed 's/-/./')"
 
 # Create dummy dist tar
-tar cfv dist/${PROJECT}-${VERSION}.tar.gz \
+tar cf dist/${PROJECT}-${VERSION}.tar.gz \
 	--exclude .git --exclude dist \
-	--transform "s/^/${PROJECT}-${VERSION}\//" *
+	--transform "s,^,${PROJECT}-${VERSION}/," *
+tar tfv dist/${PROJECT}-${VERSION}.tar.gz
+
+# Update spec version
+sed -i "s/^Version:.*$/Version:\t${VERSION}/g" $WORKSPACE/${PROJECT}.spec
+sed -i "s/^Release:.*$/Release:\t${REVISION}%{?dist}/g" $WORKSPACE/${PROJECT}.spec
+# for debugging
+cat $WORKSPACE/${PROJECT}.spec
 
 # Update setup.py version
 sed -i "s/version=\"[^\"]*\"/version=\"${VERSION}\"/g" $WORKSPACE/setup.py
