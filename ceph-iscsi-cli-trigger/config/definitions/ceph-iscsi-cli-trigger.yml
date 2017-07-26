@@ -1,5 +1,5 @@
 - job:
-    name: ceph-iscsi-config-trigger
+    name: ceph-iscsi-cli-trigger
     node: master
     project-type: freestyle
     defaults: global
@@ -8,7 +8,7 @@
     block-upstream: false
     properties:
       - github:
-          url: https://github.com/ceph/ceph-iscsi-config
+          url: https://github.com/ceph/ceph-iscsi-cli
     discard-old-builds: true
     logrotate:
       daysToKeep: 1
@@ -21,7 +21,7 @@
 
     scm:
       - git:
-          url: https://github.com/ceph/ceph-iscsi-config.git
+          url: https://github.com/ceph/ceph-iscsi-cli.git
           branches:
             - 'origin/master*'
             - 'origin/wip*'
@@ -31,7 +31,7 @@
 
     builders:
       - trigger-builds:
-        - project: 'ceph-iscsi-config'
+        - project: 'ceph-iscsi-cli'
           predefined-parameters: |
             BRANCH=${GIT_BRANCH}
             FORCE=True
