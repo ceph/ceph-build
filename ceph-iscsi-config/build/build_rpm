@@ -1,6 +1,7 @@
 #! /usr/bin/bash
 set -ex
 
+PROJECT=ceph-iscsi-config
 BRANCH=`branch_slash_filter $BRANCH`
 
 # Only do actual work when we are an RPM distro
@@ -8,9 +9,8 @@ if test "$DISTRO" != "fedora" -a "$DISTRO" != "centos" -a "$DISTRO" != "rhel"; t
     exit 0
 fi
 
-## Install any setup-time deps
-# We need these for the build
-sudo yum install -y python-devel python-setuptools systemd
+# Install the dependencies
+sudo yum-builddep -y ${PROJECT}.spec
 
 ## Get some basic information about the system and the repository
 # Get version
@@ -18,11 +18,10 @@ RELEASE="$(lsb_release --short -r | cut -d '.' -f 1)" # system release
 VERSION="$(git describe --abbrev=0 --tags HEAD)"
 REVISION="$(git describe --tags HEAD | cut -d - -f 2- | sed 's/-/./')"
 
-# Update spec version
-sed -i "s/^Version:.*$/Version:\t${VERSION}/g" $WORKSPACE/ceph-iscsi-config.spec
-sed -i "s/^Release:.*$/Release:\t${REVISION}%{?dist}/g" $WORKSPACE/ceph-iscsi-config.spec
-# for debugging
-cat $WORKSPACE/ceph-iscsi-config.spec
+# Create dummy dist tar
+tar cfv dist/${PROJECT}-${VERSION}.tar.gz \
+	--exclude .git --exclude dist \
+	--transform "s/^/${PROJECT}-${VERSION}\//" *
 
 # Update setup.py version
 sed -i "s/version=\"[^\"]*\"/version=\"${VERSION}\"/g" $WORKSPACE/setup.py
@@ -32,26 +31,26 @@ cat $WORKSPACE/setup.py
 ## Create the source rpm
 echo "Building SRPM"
 rpmbuild \
-    --define "_sourcedir ." \
+    --define "_sourcedir $WORKSPACE/dist" \
     --define "_specdir $WORKSPACE/dist" \
     --define "_builddir $WORKSPACE/dist" \
     --define "_srcrpmdir $WORKSPACE/dist/SRPMS" \
     --define "_rpmdir $WORKSPACE/dist/RPMS" \
-    --nodeps -bs $WORKSPACE/ceph-iscsi-config.spec
+    --nodeps -bs $WORKSPACE/${PROJECT}.spec
 SRPM=$(readlink -f $WORKSPACE/dist/SRPMS/*.src.rpm)
 
 # mock config
-sudo head -n -1 /etc/mock/${MOCK_TARGET}-${RELEASE}-${ARCH}.cfg > ceph-iscsi-config.cfg
+sudo head -n -1 /etc/mock/${MOCK_TARGET}-${RELEASE}-${ARCH}.cfg > ${PROJECT}.cfg
 # for debugging
-cat ceph-iscsi-config.cfg
+cat ${PROJECT}.cfg
 
 ## Build the binaries with mock
 echo "Building RPMs"
-sudo mock --verbose -r ceph-iscsi-config.cfg --scrub=all
-sudo mock --verbose -r ceph-iscsi-config.cfg --define "dist .el7" --resultdir=$WORKSPACE/dist/RPMS/ ${SRPM} || ( tail -n +1 $WORKSPACE/dist/RPMS/{root,build}.log && exit 1 )
+sudo mock --verbose -r ${PROJECT}.cfg --scrub=all
+sudo mock --verbose -r ${PROJECT}.cfg --define "dist .el7" --resultdir=$WORKSPACE/dist/RPMS/ ${SRPM} || ( tail -n +1 $WORKSPACE/dist/RPMS/{root,build}.log && exit 1 )
 
 ## Upload the created RPMs to chacra
-chacra_endpoint="ceph-iscsi-config/${BRANCH}/${GIT_COMMIT}/${DISTRO}/${RELEASE}"
+chacra_endpoint="${PROJECT}/${BRANCH}/${GIT_COMMIT}/${DISTRO}/${RELEASE}"
 
 [ "$FORCE" = true ] && chacra_flags="--force" || chacra_flags=""
 
