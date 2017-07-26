@@ -75,10 +75,18 @@
         - default-jdk
         - default-jre
 
+    - set_fact:
+        jenkins_group: 'libvirtd'
+      when: ansible_distribution_version == '16.04'
+
+    - set_fact:
+        jenkins_group: 'libvirt'
+      when: ansible_distribution_version == '16.10'
+
     - name: "create a {{ jenkins_user }} user"
       user:
         name: "{{ jenkins_user }}"
-        groups: libvirtd
+        groups: "{{ jenkins_group }}"
         append: yes
         comment: "Jenkins Build Slave User"
 
