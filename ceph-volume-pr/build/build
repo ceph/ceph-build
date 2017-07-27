@@ -1,0 +1,8 @@
+#!/bin/bash
+set -ex
+
+# the following two methods exist in scripts/build_utils.sh
+pkgs=( "tox" )
+install_python_packages "pkgs[@]"
+
+cd src/ceph-volume && $VENV/tox -rv
