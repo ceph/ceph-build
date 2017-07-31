@@ -15,7 +15,7 @@
       - git:
           url: https://github.com/nfs-ganesha/nfs-ganesha-debian.git
           branches:
-            - xenial-nfs-ganesha-ceph-fsals
+            - xenial-nfs-ganesha-shaman
           skip-tag: true
           wipe-workspace: true
           basedir: "nfs-ganesha-debian"
@@ -106,6 +106,7 @@ If this is checked, then the binaries will be built and pushed to chacra even if
             - ARCHS
     triggers:
       - github
+      - timed: "* H/12 * * *"
 
     scm:
       - nfs-ganesha
