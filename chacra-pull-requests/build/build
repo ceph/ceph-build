@@ -7,6 +7,11 @@ install_python_packages "pkgs[@]"
 # run ansible to get this current host to meet our requirements, specifying
 # a local connection and 'localhost' as the host where to execute
 cd "$WORKSPACE/ceph-build/chacra-pull-requests/setup/playbooks"
+
+# make sure any shaman list file is removed. At some point if all nodes
+# are clean this will not be needed.
+sudo rm -f /etc/apt/sources.list.d/shaman*
+
 $VENV/ansible-playbook -i "localhost," -c local setup.yml
 
 cd "$WORKSPACE/chacra"
