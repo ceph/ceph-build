@@ -1,6 +1,6 @@
 ---
 placeholder: 'placeholder'
-port: 8080
+jenkins_port: 8080
 # plugins:
 #   - 'ldap'
 #   - 'github'
