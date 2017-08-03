@@ -32,6 +32,7 @@
       src: /etc/nginx/sites-available/jenkins.conf
       dest: /etc/nginx/sites-enabled/jenkins.conf
       state: link
+      force: yes
 
   - name: Enable Nginx service
     service:
