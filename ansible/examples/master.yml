@@ -1,8 +1,8 @@
 ---
 
-- hosts: jenkins
-  user: admin
-  sudo: true
+- hosts: jenkins_master
+  user: cm
+  become: true
   roles:
     - ansible-jenkins
   vars:

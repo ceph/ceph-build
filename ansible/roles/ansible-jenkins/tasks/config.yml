@@ -52,18 +52,14 @@
     group: jenkins
     mode: 0644
 
-- name: Tell SELinux that we should allow Nginx to talk to Jenkins
-  seboolean: name=httpd_can_network_connect state=yes persistent=yes
-  when: ansible_pkg_mgr  == "yum"
-
-- name: copy JJB config file to {{ jenkins_jobs }}
+- name: "copy JJB config file to {{ jenkins_jobs }}"
   synchronize:
     src: jobs/jenkins-job-builder
     dest: '{{ jenkins_jobs }}'
     owner: no
     group: no
 
-- name: ensure correct ownership of {{ jenkins_jobs }}
+- name: "ensure correct ownership of {{ jenkins_jobs }}"
   file:
     path: '{{ jenkins_jobs }}'
     state: directory

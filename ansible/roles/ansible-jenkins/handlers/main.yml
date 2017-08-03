@@ -1,9 +1,8 @@
 # Safe-restart Jenkins
 - name: restart jenkins
-  sudo: yes
   command: java -jar {{ jenkins.cli_dest }} -s http://localhost:{{ port }} safe-restart
 
 - name: restart nginx
-  sudo: yes
-  action: service name=nginx state=restarted
-  #command: service nginx restart
+  service:
+    name: nginx
+    state: restarted
