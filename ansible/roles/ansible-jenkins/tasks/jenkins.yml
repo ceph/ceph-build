@@ -5,6 +5,10 @@
 
 - include: nginx.yml
 
+- include: letsencrypt.yml
+  tags:
+    - letsencrypt
+
 - name: Install Jenkins
   apt:
     name: jenkins
