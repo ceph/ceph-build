@@ -112,6 +112,10 @@
           script-only-if-failed: True
           builders:
             - shell: !include-raw ../../build/teardown
+      - naginator:
+          rerun-unstable-builds: true
+          fixed-delay: 60
+          max-failed-builds: 3
 
 - job-template:
     name: 'ceph-ansible-prs-{release_after_luminous}-{scenario_after_luminous}'
@@ -179,3 +183,7 @@
           script-only-if-failed: True
           builders:
             - shell: !include-raw ../../build/teardown
+      - naginator:
+          rerun-unstable-builds: true
+          fixed-delay: 60
+          max-failed-builds: 3
