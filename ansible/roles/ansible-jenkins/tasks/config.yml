@@ -8,25 +8,6 @@
     backrefs: yes
   register: config_changed
 
-- name: ensure TTY is disabled for admin user
-  lineinfile:
-    dest: /etc/sudoers
-    state: present
-    regexp: '^{{ ansible_ssh_user }} ALL\='
-    regexp: '^Defaults    requiretty'
-    line: '#Defaults    requiretty'
-    validate: 'visudo -cf %s'
-    backrefs: yes
-
-- name: ensure ssh user can sudo without prompts
-  lineinfile:
-    dest: /etc/sudoers
-    state: present
-    regexp: '^{{ ansible_ssh_user }} ALL\='
-    line: '%{{ ansible_ssh_user }} ALL=(ALL) NOPASSWD:ALL'
-    validate: 'visudo -cf %s'
-    backrefs: yes
-
 - name: Configure Jenkins Prefix
   when: prefix is defined
   lineinfile:
