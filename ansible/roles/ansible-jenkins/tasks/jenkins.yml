@@ -9,6 +9,10 @@
   tags:
     - letsencrypt
 
+- include: ufw.yml
+  tags:
+    - ufw
+
 - name: Install Jenkins
   apt:
     name: jenkins
