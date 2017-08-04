@@ -1,6 +1,7 @@
 # Safe-restart Jenkins
 - name: restart jenkins
   command: java -jar {{ jenkins.cli_dest }} -s http://localhost:{{ jenkins_port }} safe-restart
+  when: okay_with_restart == "y"
 
 - name: restart nginx
   service:

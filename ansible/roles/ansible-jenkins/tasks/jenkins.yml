@@ -22,6 +22,7 @@
 - include: config.yml
 
 - include: plugins.yml
+  when: okay_with_restart == "y"
   tags:
     - plugins
 
