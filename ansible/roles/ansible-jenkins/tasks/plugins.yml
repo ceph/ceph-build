@@ -1,15 +1,46 @@
 ---
+- name: Make sure Jenkins CLI is enabled
+  blockinfile:
+    path: "{{ jenkins_lib }}/jenkins.CLI.xml"
+    create: yes
+    block: |
+      <?xml version='1.0' encoding='UTF-8'?>
+      <jenkins.CLI>
+        <enabled>true</enabled>
+      </jenkins.CLI>
+
+- name: Temporarily disable public http access
+  service:
+    name: nginx
+    state: stopped
+
+- name: Temporarily disable security so anonymous can use jenkins-cli
+  replace:
+    path: "{{ jenkins_lib }}/config.xml"
+    regexp: '<useSecurity>true</useSecurity>'
+    replace: '<useSecurity>false</useSecurity>'
+    backup: yes
+  register: original_jenkins_config
+
+- name: Restart Jenkins with no security so we can use jenkins-cli
+  service:
+    name: jenkins
+    state: restarted
+
 - name: List plugins
   shell: java -jar {{ jenkins.cli_dest }} -s http://localhost:{{ jenkins_port }} list-plugins | cut -f 1 -d ' '
   when: plugins is defined
   register: plugins_installed
+  # Jenkins takes a while to come back up
+  retries: 10
+  until: '"503" not in plugins_installed.stderr and plugins_installed.stdout != ""'
 
 - name: Install/update plugins
   shell: java -jar {{ jenkins.cli_dest }} -s http://localhost:{{ jenkins_port }} install-plugin {{ item }}
   when: plugins_installed.changed and plugins_installed.stdout.find('{{ item }}') == -1
-  with_items: plugins
-  notify:
-    - 'restart jenkins'
+  with_items: "{{ plugins }}"
+  # This is only here because the postbuildscript plugin is currently deprecated
+  ignore_errors: yes
 
 - name: List plugins to be updated
   shell: java -jar {{ jenkins.cli_dest }} -s http://localhost:{{ jenkins_port }} list-plugins | grep ')$' | cut -f 1 -d ' ' | sed ':a;N;$!ba;s/\n/ /g'
@@ -17,8 +48,24 @@
 
 - name: Update plugins
   shell: java -jar {{ jenkins.cli_dest }} -s http://localhost:{{ jenkins_port }} install-plugin {{ item }}
-  with_items: plugins_updates.stdout.split()
+  with_items: "{{ plugins_updates.stdout.split() }}"
   when: plugins_updates.stdout != ''
   ignore_errors: yes
-  notify:
-    - 'restart jenkins'
+
+- name: Restore original Jenkins config to re-enable auth
+  copy:
+    src: "{{ original_jenkins_config.backup_file }}"
+    dest: "{{ jenkins_lib }}/config.xml"
+    remote_src: yes
+    owner: jenkins
+    group: jenkins
+
+- name: Restart Jenkins with security
+  service:
+    name: jenkins
+    state: restarted
+
+- name: Re-enable public http access
+  service:
+    name: nginx
+    state: started

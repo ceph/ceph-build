@@ -6,3 +6,8 @@
   service:
     name: nginx
     state: restarted
+
+- name: stop nginx
+  service:
+    name: nginx
+    state: stopped

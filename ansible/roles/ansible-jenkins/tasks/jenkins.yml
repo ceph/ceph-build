@@ -22,5 +22,7 @@
 - include: config.yml
 
 - include: plugins.yml
+  tags:
+    - plugins
 
 - include: config.yml
