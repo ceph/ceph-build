@@ -25,4 +25,11 @@
   tags:
     - plugins
 
+# This should only get run the first time the role is run.
+# The variables should be passed as --extra-vars via ansible-playbook command
+- include: auth.yml
+  when: github_oauth_client is defined and github_oauth_secret is defined
+  tags:
+    - auth
+
 - include: config.yml
