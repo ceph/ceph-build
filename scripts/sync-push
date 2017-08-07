@@ -13,7 +13,7 @@ releases=${*:-"firefly giant hammer infernalis testing"}
 ceph_sync() {
   release=$1
   deb_cmd="/opt/repos/ceph/$release/debian/jessie/* signer@download.ceph.com:/data/download.ceph.com/www/debian-$release/"
-  rsync --progress -avr $deb_cmd
+  rsync --progress --exclude '*lockfile*' -avr $deb_cmd
 
   el6_cmd="/opt/repos/ceph/$release/centos/6/* signer@download.ceph.com:/data/download.ceph.com/www/rpm-$release/el6/"
   el7_cmd="/opt/repos/ceph/$release/centos/7/* signer@download.ceph.com:/data/download.ceph.com/www/rpm-$release/el7/"
