@@ -35,6 +35,7 @@
 
     triggers:
       - github-pull-request:
+          cancel-builds-on-update: true
           allow-whitelist-orgs-as-admins: true
           org-list:
             - ceph
@@ -70,11 +71,6 @@
             - ../../build/build
 
     publishers:
-      - raw:
-          xml: |
-            <org.jenkinsci.plugins.ghprb.extensions.build.GhprbCancelBuildsOnUpdate>
-              <overrideGlobal>false</overrideGlobal>
-            </org.jenkinsci.plugins.ghprb.extensions.build.GhprbCancelBuildsOnUpdate>
       - postbuildscript:
           script-only-if-succeeded: False
           script-only-if-failed: True
