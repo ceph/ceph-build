@@ -1,14 +1,19 @@
 #!/bin/bash
 set -ex
+WORKDIR=$(mktemp -td tox.XXXXXXXXXX)
+
+# Find out the name of the remote branch from the Pull Request. This is otherwise not
+# available by the plugin. Without grepping for `heads` output will look like:
+#
+# 855ce630695ed9ca53c314b7e261ec3cc499787d    refs/heads/wip-volume-tests
+BRANCH=`git ls-remote origin | grep $GIT_PREVIOUS_COMMIT | grep heads | cut -d '/' -f 3`
 
 # the following two methods exist in scripts/build_utils.sh
 pkgs=( "tox" )
 install_python_packages "pkgs[@]"
 
-# trims leading slashes
-BRANCH=`branch_slash_filter ${GIT_BRANCH}`
 SHA=$GIT_COMMIT
 
+cd src/ceph-volume/ceph_volume/tests/functional
 
-cd src/ceph-volume/tests/functional
-CEPH_DEV_BRANCH=$BRANCH CEPH_DEV_SHA1=$SHA tox -vre $DISTRO-$SCENARIO
+CEPH_DEV_BRANCH=$BRANCH CEPH_DEV_SHA1=$SHA $VENV/tox --workdir=$WORKDIR -vre $DISTRO-$SCENARIO -- --provider=libvirt
