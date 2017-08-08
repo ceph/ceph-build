@@ -15,9 +15,10 @@ install_python_packages "pkgs[@]"
 # Wipe out JJB's cache if $FORCE is set.
 [ "$FORCE" = true ] && rm -rf "$HOME/.cache/jenkins_jobs/"
 
-# workaround for https://issues.jenkins-ci.org/browse/JENKINS-16225
-JENKINS_URL=${JENKINS_URL:-"https://jenkins.ceph.com/"}
-JJB_CONFIG="$HOME/.jenkins_jobs.ini"
+# Each jenkins master will write its own config file when the
+# jenkins-job-builder gets run
+JENKINS_FQDN=$(echo $JENKINS_URL | awk -F/ '{print $3}')
+JJB_CONFIG="$HOME/.jenkins_jobs.$JENKINS_FQDN.ini"
 
 # slap the programatically computed JJB config using env vars from Jenkins
 cat > $JJB_CONFIG << EOF
@@ -34,12 +35,26 @@ for dir in `find . -maxdepth 1 -path ./.git -prune -o -type d -print`; do
     if [ -d "$definitions_dir" ]; then
         echo "found definitions directory: $definitions_dir"
 
-        # Test the definitions first
-        $VENV/jenkins-jobs --log_level DEBUG --conf $JJB_CONFIG test $definitions_dir -o /tmp/output
+        # Set with JJB config file we should use based on if an override
+        # file is present in the job's config dir
+        if [ -f "$dir/config/JENKINS_URL" ]; then
+            JENKINS_URL_OVERRIDE=$(cat $dir/config/JENKINS_URL)
+            echo "found JENKINS_URL override file.  using $JENKINS_URL_OVERRIDE"
+            JJB_CONFIG="$HOME/.jenkins_jobs.$JENKINS_URL_OVERRIDE.ini"
+        else
+            JJB_CONFIG="$HOME/.jenkins_jobs.jenkins.ceph.com.ini"
+        fi
 
-        # Update Jenkins with the output if they passed the test phase
-        # Note that this needs proper permissions with the right credentials to the
-        # correct Jenkins instance.
-        $VENV/jenkins-jobs --log_level DEBUG --conf $JJB_CONFIG update $definitions_dir
+        # Each jenkins-job-builder job should only update the master
+        # that started it.  This prevents collisions.
+        if [[ "$JJB_CONFIG" == "$HOME/.jenkins_jobs.$JENKINS_FQDN.ini" ]]; then
+            # Test the definitions first
+            $VENV/jenkins-jobs --log_level DEBUG --conf $JJB_CONFIG test $definitions_dir -o /tmp/output
+
+            # Update Jenkins with the output if they passed the test phase
+            # Note that this needs proper permissions with the right credentials to the
+            # correct Jenkins instance.
+            $VENV/jenkins-jobs --log_level DEBUG --conf $JJB_CONFIG update $definitions_dir
+        fi
     fi
 done
