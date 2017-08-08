@@ -40,7 +40,6 @@
 
     triggers:
       - github-pull-request:
-          cancel-builds-on-update: true
           allow-whitelist-orgs-as-admins: true
           org-list:
             - ceph
