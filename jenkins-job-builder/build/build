@@ -9,7 +9,7 @@
 set -ex
 
 # the following two methods exist in scripts/build_utils.sh
-pkgs=( "jenkins-job-builder" )
+pkgs=( "jenkins-job-builder==2.0.0.0b2" )
 install_python_packages "pkgs[@]"
 
 # Wipe out JJB's cache if $FORCE is set.
