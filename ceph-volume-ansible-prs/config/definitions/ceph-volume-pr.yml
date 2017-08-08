@@ -1,0 +1,82 @@
+- project:
+    name: ceph-volume-ansible-prs
+    distro:
+      - xenial
+      - centos7
+    scenario:
+      - create
+      - prepare_activate
+
+    jobs:
+      - 'ceph-volume-prs-{distro}-{scenario}'
+
+
+- job-template:
+    name: 'ceph-volume-prs-{distro}-{scenario}'
+    display-name: 'ceph-volume: Pull Request [{distro}-{scenario}]'
+    node: vagrant&&libvirt
+    concurrent: true
+    project-type: freestyle
+    defaults: global
+    quiet-period: 5
+    block-downstream: false
+    block-upstream: false
+    properties:
+      - github:
+          url: https://github.com/ceph/ceph
+    discard-old-builds: true
+    logrotate:
+      daysToKeep: 30
+
+    parameters:
+      - string:
+          name: sha1
+          description: "A pull request ID, like 'origin/pr/72/head'"
+
+    triggers:
+      - github-pull-request:
+          allow-whitelist-orgs-as-admins: true
+          org-list:
+            - ceph
+          only-trigger-phrase: true
+          trigger-phrase: 'jenkins test ceph-volume {distro}-{scenario}'
+          github-hooks: true
+          permit-all: true
+          auto-close-on-fail: false
+          status-context: "ceph-volume testing {distro}-{scenario}"
+          started-status: "ceph-volume running {distro}-{scenario}"
+          success-status: "ceph-volume {distro}-{scenario} OK"
+          failure-status: "ceph-volume {distro}-{scenario} failed"
+
+    scm:
+      - git:
+          url: https://github.com/ceph/ceph-ansible.git
+          branches:
+            - ${{sha1}}
+          refspec: +refs/pull/*:refs/remotes/origin/pr/*
+          browser: auto
+          timeout: 20
+          skip-tag: true
+          wipe-workspace: false
+
+    builders:
+      - inject:
+          properties-content: |
+            SCENARIO={scenario}
+            DISTRO={distro}
+      - shell:
+          !include-raw-escape:
+            - ../../../scripts/build_utils.sh
+            - ../../build/build
+
+    publishers:
+      - raw:
+          xml: |
+            <org.jenkinsci.plugins.ghprb.extensions.build.GhprbCancelBuildsOnUpdate>
+              <overrideGlobal>false</overrideGlobal>
+            </org.jenkinsci.plugins.ghprb.extensions.build.GhprbCancelBuildsOnUpdate>
+      - postbuildscript:
+          script-only-if-succeeded: False
+          script-only-if-failed: True
+          builders:
+            - shell: !include-raw ../../build/teardown

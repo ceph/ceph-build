@@ -1,0 +1,14 @@
+#!/bin/bash
+set -ex
+
+# the following two methods exist in scripts/build_utils.sh
+pkgs=( "tox" )
+install_python_packages "pkgs[@]"
+
+# trims leading slashes
+BRANCH=`branch_slash_filter ${GIT_BRANCH}`
+SHA=$GIT_COMMIT
+
+
+cd src/ceph-volume/tests/functional
+CEPH_DEV_BRANCH=$BRANCH CEPH_DEV_SHA1=$SHA tox -vre $DISTRO-$SCENARIO
