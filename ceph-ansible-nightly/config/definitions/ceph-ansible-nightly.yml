@@ -1,0 +1,80 @@
+- project:
+    name: ceph-ansible-nightly
+    release:
+      - jewel 
+    ansible_version:
+      - ansible2.3
+      - ansible2.2
+    scenario:
+      - centos7_cluster
+      - xenial_cluster
+      - journal_collocation
+      - dmcrypt_journal
+      - dmcrypt_journal_collocation
+      - docker_cluster
+      - docker_dedicated_journal
+      - docker_dmcrypt_journal_collocation
+      - purge_cluster
+      - purge_dmcrypt
+      - update_dmcrypt
+      - update_cluster
+      - purge_docker_cluster
+      - update_docker_cluster
+    jobs:
+        - 'ceph-ansible-nightly-{release}-{ansible_version}-{scenario}'
+
+- job-template:
+    name: 'ceph-ansible-nightly-{release}-{ansible_version}-{scenario}'
+    node: vagrant&&libvirt
+    concurrent: true
+    defaults: global
+    display-name: 'ceph-ansible: Nightly [{release}-{ansible_version}-{scenario}]'
+    quiet-period: 5
+    block-downstream: false
+    block-upstream: false
+    retry-count: 3
+    properties:
+      - github:
+          url: https://github.com/ceph/ceph-ansible
+    logrotate:
+      daysToKeep: 15
+      numToKeep: -1
+      artifactDaysToKeep: -1
+      artifactNumToKeep: -1
+
+    parameters:
+      - string:
+          name: CEPH_ANSIBLE_BRANCH
+          description: "The ceph-ansible branch (or tag) to test"
+          default: master
+
+    triggers:
+      - timed: '@daily'
+
+    scm:
+      - git:
+          url: https://github.com/ceph/ceph-ansible.git
+          branches:
+            - $CEPH_ANSIBLE_BRANCH
+          browser: auto
+          timeout: 20
+          skip-tag: true
+          wipe-workspace: true
+
+    builders:
+      - inject:
+          properties-content: |
+            SCENARIO={scenario}
+            RELEASE={release}
+            ANSIBLE_VERSION={ansible_version}
+      - shell:
+          !include-raw-escape:
+            - ../../../scripts/build_utils.sh
+            - ../../build/build
+
+    publishers:
+      - postbuildscript:
+          script-only-if-succeeded: False
+          script-only-if-failed: True
+          builders:
+            - shell: !include-raw ../../build/teardown
