@@ -1,28 +1,11 @@
 ---
 
-- name: Configure Jenkins Port
-  lineinfile:
-    dest: '{{ jenkins.apt.config_file }}'
-    regexp: ^HTTP_PORT=
-    line: HTTP_PORT={{jenkins_port}}
-    backrefs: yes
+- name: Configure Jenkins service defaults
+  template:
+    src: etc_default.j2
+    dest: '{{ jenkins.config_file }}'
+    backup: yes
   register: config_changed
-
-- name: Configure Jenkins Prefix
-  when: prefix is defined
-  lineinfile:
-    dest: '{{ jenkins.apt.config_file }}'
-    regexp: ^PREFIX=
-    line: PREFIX={{prefix}}
-    backrefs: yes
-
-- name: Set the amount of RAM
-  when: xmx is defined
-  lineinfile:
-    dest: '{{ jenkins.apt.config_file }}'
-    regexp: ^JENKINS_JAVA_OPTIONS
-    line: 'JENKINS_JAVA_OPTIONS="-Xmx{{xmx}}m -Djava.awt.headless=true"'
-    backrefs: yes
 
 - name: Configure Jenkins E-mail
   when: email is defined
