@@ -1,0 +1,16 @@
+#!/bin/bash
+
+set -e
+set -x
+
+function main() {
+    # install some of our dependencies
+    pushd "$WORKSPACE/teuthology"
+    git remote -v
+    ./bootstrap
+    curl -XGET -L paddles.front.sepia.ceph.com/nodes | jq '[.[] | select(.description == null or .description == "None") | select(.locked == true)] | group_by(.locked_by) | .[] | {locked_by: .[0].locked_by, name: [ .[].name | tostring] | join(" ")} | select(.locked_by | tostring| test("scheduled")|not)'
+    popd
+    exit $?
+}
+
+main "$@"
