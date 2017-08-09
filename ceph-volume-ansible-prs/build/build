@@ -1,5 +1,6 @@
 #!/bin/bash
 set -ex
+env
 WORKDIR=$(mktemp -td tox.XXXXXXXXXX)
 
 # Find out the name of the remote branch from the Pull Request. This is otherwise not
@@ -7,12 +8,24 @@ WORKDIR=$(mktemp -td tox.XXXXXXXXXX)
 #
 # 855ce630695ed9ca53c314b7e261ec3cc499787d    refs/heads/wip-volume-tests
 BRANCH=`git ls-remote origin | grep $GIT_PREVIOUS_COMMIT | grep heads | cut -d '/' -f 3`
+SHA=$GIT_PREVIOUS_COMMIT
+
+# sometimes, $GIT_PREVIOUS_COMMIT will not help grep from ls-remote, so we fallback
+# to looking for GIT_COMMIT (e.g. if the branch has not been rebased to be the tip)
+if [ -z "$BRANCH" ]; then
+    BRANCH=`git ls-remote origin | grep $GIT_COMMIT | grep heads | cut -d '/' -f 3`
+    SHA=$GIT_COMMIT
+fi
+
+echo $BRANCH
+echo $SHA
+
 
 # the following two methods exist in scripts/build_utils.sh
 pkgs=( "tox" )
 install_python_packages "pkgs[@]"
 
-SHA=$GIT_COMMIT
+
 
 cd src/ceph-volume/ceph_volume/tests/functional
 
