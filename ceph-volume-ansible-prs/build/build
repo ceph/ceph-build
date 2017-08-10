@@ -3,12 +3,23 @@ set -ex
 env
 WORKDIR=$(mktemp -td tox.XXXXXXXXXX)
 
+# This job is meant to be triggered from a Github Pull Request, only when the
+# job is executed in that way a few "special" variables become available. So
+# this build script tries to use those first but then it will try to figure it
+# out using Git directly so that if triggered manually it can attempt to
+# actually work.
+SHA=$ghprbActualCommit
+BRANCH=$ghprbSourceBranch
+
+
 # Find out the name of the remote branch from the Pull Request. This is otherwise not
 # available by the plugin. Without grepping for `heads` output will look like:
 #
 # 855ce630695ed9ca53c314b7e261ec3cc499787d    refs/heads/wip-volume-tests
-BRANCH=`git ls-remote origin | grep $GIT_PREVIOUS_COMMIT | grep heads | cut -d '/' -f 3`
-SHA=$GIT_PREVIOUS_COMMIT
+if [ -z "$ghprbSourceBranch" ]; then
+    BRANCH=`git ls-remote origin | grep $GIT_PREVIOUS_COMMIT | grep heads | cut -d '/' -f 3`
+    SHA=$GIT_PREVIOUS_COMMIT
+fi
 
 # sometimes, $GIT_PREVIOUS_COMMIT will not help grep from ls-remote, so we fallback
 # to looking for GIT_COMMIT (e.g. if the branch has not been rebased to be the tip)
@@ -17,15 +28,21 @@ if [ -z "$BRANCH" ]; then
     SHA=$GIT_COMMIT
 fi
 
-echo $BRANCH
-echo $SHA
+# Finally, we verify one last time to bail if nothing really worked here to determine
+# this
+if [ -z "$BRANCH" ]; then
+    echo "Could not determine \$BRANCH var from \$ghprbSourceBranch"
+    echo "or by using \$GIT_PREVIOUS_COMMIT and \$GIT_COMMIT"
+    exit 1
+fi
 
+
+# TODO: at this point a `curl` to shaman is needed to verify that the repo is
+# ready to be consumed
 
 # the following two methods exist in scripts/build_utils.sh
 pkgs=( "tox" )
 install_python_packages "pkgs[@]"
-
-
 
 cd src/ceph-volume/ceph_volume/tests/functional
 
