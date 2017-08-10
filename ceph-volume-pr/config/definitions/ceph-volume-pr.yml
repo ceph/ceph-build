@@ -1,7 +1,7 @@
 - job:
     name: ceph-volume-pr
     display-name: 'ceph-volume: Pull Request tox tests'
-    node: x86_64
+    node: python3
     project-type: freestyle
     defaults: global
     quiet-period: 5
@@ -16,9 +16,7 @@
 
     triggers:
       - github-pull-request:
-          allow-whitelist-orgs-as-admins: true
-          org-list:
-            - ceph
+          cancel-builds-on-update: true
           only-trigger-phrase: true
           trigger-phrase: 'jenkins test ceph-volume tox'
           github-hooks: true
@@ -28,6 +26,17 @@
           started-status: "ceph-volume tox running"
           success-status: "ceph-volume tox OK"
           failure-status: "ceph-volume tox failed"
+
+    scm:
+      - git:
+          url: https://github.com/ceph/ceph
+          browser: auto
+          branches:
+            - ${sha1}
+          refspec: +refs/pull/*:refs/remotes/origin/pr/*
+          skip-tag: true
+          timeout: 20
+          wipe-workspace: true
 
     builders:
       - shell:

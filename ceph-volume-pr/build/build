@@ -5,4 +5,8 @@ set -ex
 pkgs=( "tox" )
 install_python_packages "pkgs[@]"
 
-cd src/ceph-volume && $VENV/tox -rv
+cd src/ceph-volume
+
+# ceph-volume has a 3.6 environ but most machines don't have it,
+# so until then, we do them piecemeal
+$VENV/tox -v -e py27,py35,flake8
