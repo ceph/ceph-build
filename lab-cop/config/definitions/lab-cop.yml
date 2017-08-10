@@ -3,8 +3,6 @@
     scm:
       - git:
           url: https://github.com/ceph/teuthology.git
-          branches:
-            - ${sha1}
           refspec: +refs/pull/*:refs/remotes/origin/pr/*
           browser: auto
           timeout: 20
