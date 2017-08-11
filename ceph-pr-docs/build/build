@@ -2,16 +2,30 @@
 
 set -ex
 
-# make sure any shaman list file is removed. At some point if all nodes
-# are clean this will not be needed.
-sudo rm -f /etc/apt/sources.list.d/shaman*
+# This job is meant to be triggered from a Github Pull Request, only when the
+# job is executed in that way a few "special" variables become available. So
+# this build script tries to use those first but then it will try to figure it
+# out using Git directly so that if triggered manually it can attempt to
+# actually work.
+PR_ID=$ghprbPullId
 
-# Ceph doc build deps, Ubuntu only because ditaa is not packaged for CentOS
-sudo apt-get update
-sudo apt-get install -y gcc python-dev python-pip python-virtualenv libxml2-dev libxslt-dev doxygen graphviz ant ditaa
-sudo apt-get install -y python-sphinx
+# fallback to just using 'manual' if that ID is not available, for manually
+# triggered builds
+if [ -z "$ghprbPullId" ]; then
+    PR_ID="manual"
+fi
+
 
 ./admin/build-doc
 
-# XXX to be removed after it is all working, here for debug only
-ls -l build-doc/output/html/
+# publish docs to http://docs.ceph.com/ceph-prs/$PR_ID/
+mkdir -p "/var/ceph-prs/$PR_ID"
+rsync -auv --delete build-doc/output/html/* "/var/ceph-prs/$PR_ID/"
+
+set +e
+set +x
+echo
+echo "Docs available to preview at:"
+echo
+echo "    http://docs.ceph.com/ceph-prs/$PR_ID/"
+echo
