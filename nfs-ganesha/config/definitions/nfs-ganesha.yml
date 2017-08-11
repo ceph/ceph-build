@@ -106,7 +106,7 @@ If this is checked, then the binaries will be built and pushed to chacra even if
             - ARCHS
     triggers:
       - github
-      - timed: "* H/12 * * *"
+      - timed: "0 1,13 * * *"
 
     scm:
       - nfs-ganesha
