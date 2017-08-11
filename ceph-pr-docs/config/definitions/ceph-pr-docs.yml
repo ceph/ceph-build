@@ -45,14 +45,3 @@
     builders:
       - shell:
           !include-raw ../../build/build
-
-    publishers:
-      - html-publisher:
-          name: "Ceph Pull Request Docs"
-          dir: "admin/build-doc/output/html/"
-          # XXX is this sufficient? the docs indicate this is only for the
-          # main index files
-          files: "index.html"
-          keep-all: true
-          allow-missing: true
-          link-to-last-build: true
