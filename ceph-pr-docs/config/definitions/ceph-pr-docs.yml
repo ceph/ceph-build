@@ -30,6 +30,7 @@
           started-status: "Docs: building"
           success-status: "OK - docs built"
           failure-status: "Docs: failed with errors"
+          success-comment: "Doc build available at http://docs.ceph.com/ceph-prs/${ghprbPullId}/"
 
     scm:
       - git:
