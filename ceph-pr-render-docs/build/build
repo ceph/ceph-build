@@ -1,0 +1,31 @@
+#!/bin/bash
+
+set -ex
+
+# This job is meant to be triggered from a Github Pull Request, only when the
+# job is executed in that way a few "special" variables become available. So
+# this build script tries to use those first but then it will try to figure it
+# out using Git directly so that if triggered manually it can attempt to
+# actually work.
+PR_ID=$ghprbPullId
+
+# fallback to just using 'manual' if that ID is not available, for manually
+# triggered builds
+if [ -z "$ghprbPullId" ]; then
+    PR_ID="manual"
+fi
+
+
+./admin/build-doc
+
+# publish docs to http://docs.ceph.com/ceph-prs/$PR_ID/
+mkdir -p "/var/ceph-prs/$PR_ID"
+rsync -auv --delete build-doc/output/html/* "/var/ceph-prs/$PR_ID/"
+
+set +e
+set +x
+echo
+echo "Docs available to preview at:"
+echo
+echo "    http://docs.ceph.com/ceph-prs/$PR_ID/"
+echo

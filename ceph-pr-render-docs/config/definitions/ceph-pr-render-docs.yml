@@ -1,7 +1,7 @@
 - job:
-    name: ceph-pr-docs
-    display-name: 'ceph: Pull Requests Docs Check'
-    node: trusty && x86_64
+    name: ceph-pr-render-docs
+    display-name: 'ceph: Pull Requests Render Docs'
+    node: docs
     project-type: freestyle
     defaults: global
     quiet-period: 5
@@ -20,15 +20,17 @@
           org-list:
             - ceph
           cancel-builds-on-update: true
-          only-trigger-phrase: false
-          trigger-phrase: 'jenkins test docs.*'
+          # this job is only triggered by explicitly asking for it
+          only-trigger-phrase: true
+          trigger-phrase: 'jenkins render docs.*'
           github-hooks: true
           permit-all: true
           auto-close-on-fail: false
-          status-context: "Docs: build check"
-          started-status: "Docs: building"
-          success-status: "OK - docs built"
-          failure-status: "Docs: failed with errors"
+          status-context: "Docs: render build"
+          started-status: "Docs: building to render"
+          success-status: "OK - docs rendered"
+          failure-status: "Docs: render failed with errors"
+          success-comment: "Doc render available at http://docs.ceph.com/ceph-prs/${ghprbPullId}/"
 
     scm:
       - git:
