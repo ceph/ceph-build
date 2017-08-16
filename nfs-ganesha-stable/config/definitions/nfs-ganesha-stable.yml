@@ -15,10 +15,20 @@
       - git:
           url: https://github.com/nfs-ganesha/nfs-ganesha-debian.git
           branches:
-            - xenial-nfs-ganesha-ceph-fsals
+            - $NFS_GANESHA_DEBIAN_BRANCH
           skip-tag: true
           wipe-workspace: true
           basedir: "nfs-ganesha-debian"
+- scm:
+    name: ntirpc
+    scm:
+      - git:
+          url: https://github.com/nfs-ganesha/ntirpc.git
+          branches:
+            - $NTIRPC_BRANCH
+          skip-tag: true
+          wipe-workspace: true
+          basedir: "ntirpc"
 - job:
     name: nfs-ganesha-stable
     project-type: matrix
@@ -35,6 +45,21 @@
           name: NFS_GANESHA_BRANCH
           description: "The git branch (or tag) to build"
           default: "V2.5-stable"
+
+      - string:
+          name: NTIRPC_BRANCH
+          description: "The git branch (or tag) to build"
+          default: "next"
+
+      - string:
+          name: NTIRPC_DEBIAN_BRANCH
+          description: "The git branch (or tag) for debian build scripts for ntirpc"
+          default: "xenial-libntirpc-1.5"
+
+      - string:
+          name: NFS_GANESHA_DEBIAN_BRANCH
+          description: "The git branch (or tag) for debian build scripts for nfs-ganesha"
+          default: "xenial-nfs-ganesha-download-dot-ceph-dot-com"
 
       - string:
           name: CEPH_SHA1

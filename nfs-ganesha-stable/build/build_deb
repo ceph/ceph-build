@@ -6,6 +6,56 @@ if test "$DISTRO" != "debian" -a "$DISTRO" != "ubuntu"; then
     exit 0
 fi
 
+
+cd $WORKSPACE/ntirpc
+NTIRPC_VERSION=`git describe --long | sed -e 's/v//1;'`
+
+rm -rf .git
+
+cd $WORKSPACE
+
+## Build the source tarball
+NTIRPC_ORIG_TAR_GZ="libntirpc_${NTIRPC_VERSION}.orig.tar.gz"
+tar czf ${NTIRPC_ORIG_TAR_GZ} ntirpc
+
+cd $WORKSPACE/nfs-ganesha-debian
+git checkout ${NTIRPC_DEBIAN_BRANCH}
+cd $WORKSPACE/ntirpc
+
+# add debian directory next to src
+cp -r $WORKSPACE/nfs-ganesha-debian/debian $WORKSPACE/ntirpc/
+
+## Prepare the debian files
+# Bump the changelog
+dch -v "$NTIRPC_VERSION-1${DIST}" "$NTIRPC_VERSION for download.ceph.com"
+
+# Create .dsc and source tarball, we don't care about signing changes or source package
+sudo dpkg-buildpackage -S -us -uc -d
+
+## Setup the pbuilder
+setup_pbuilder
+
+## Build with pbuilder
+echo "Building ntirpc debs"
+
+sudo pbuilder --clean
+
+# add missing packages and components to pbuilder
+sudo pbuilder update \
+    --extrapackages "cmake libkrb5-dev libjemalloc-dev debhelper apt-transport-https apt-utils ca-certificates" \
+    --components "main restricted universe multiverse" \
+    --override-config
+
+echo "Building debs for $DIST"
+sudo pbuilder build \
+    --buildresult $WORKSPACE/dist/ntirpc/deb/ \
+    $WORKSPACE/libntirpc_${NTIRPC_VERSION}-1${DIST}.dsc
+
+cd $WORKSPACE/dist/ntirpc/deb
+apt-ftparchive packages . > Packages
+
+cd $WORKSPACE
+
 REPO_URL="https://shaman.ceph.com/api/repos/ceph/$CEPH_BRANCH/$CEPH_SHA1/$DISTRO/$DIST/repo"
 TIME_LIMIT=1200
 INTERVAL=30
@@ -29,6 +79,10 @@ if [[ "$REPO_FOUND" -eq 0 ]]; then
   exit 1
 fi
 
+# make sure any shaman list file is removed. At some point if all nodes
+# are clean this will not be needed.
+sudo rm -f /etc/apt/sources.list.d/shaman*
+
 # We need this for system and to run the cmake
 sudo apt-get update
 
@@ -40,11 +94,10 @@ NORMAL_ARCH=$ARCH
 # create build status in shaman
 create_build_status "started" "nfs-ganesha-stable" $NORMAL_DISTRO $NORMAL_DISTRO_VERSION $NORMAL_ARCH
 
-## Setup the pbuilder
-setup_pbuilder
+cd $WORKSPACE/nfs-ganesha-debian
+git checkout ${NFS_GANESHA_DEBIAN_BRANCH}
 
 cd $WORKSPACE/nfs-ganesha
-git submodule update --init || git submodule sync
 
 PACKAGE_MANAGER_VERSION="`git describe --long | sed 's/V//1'`-1${DIST}"
 
@@ -68,7 +121,7 @@ tar xzf ${NFS_GANESHA_ORIG_TAR_GZ}
 cd $WORKSPACE/nfs-ganesha
 
 # add debian directory next to src
-mv $WORKSPACE/nfs-ganesha-debian/debian $WORKSPACE/nfs-ganesha/
+cp -r $WORKSPACE/nfs-ganesha-debian/debian $WORKSPACE/nfs-ganesha/
 
 ## Get some basic information about the system and the repository
 DEB_ARCH=$(dpkg-architecture -qDEB_BUILD_ARCH)
@@ -91,29 +144,18 @@ mkdir -p $WORKSPACE/dist/deb
 
 # add missing packages and components to pbuilder
 sudo pbuilder update \
-    --basetgz $PBUILDDIR/$DIST.tgz \
-    --distribution $DIST \
-    --extrapackages "apt-transport-https apt-utils ca-certificates" \
-    --components "main restricted universe multiverse"
-
-# add other mirror to pbuilder
-sudo pbuilder update \
-    --basetgz $PBUILDDIR/$DIST.tgz \
-    --distribution $DIST \
+    --extrapackages "apt-transport-https apt-utils ca-certificates librados-dev libcephfs-dev librgw-dev libntirpc-dev debhelper python-all" \
+    --components "main restricted universe multiverse" \
     --othermirror "${SHAMAN_MIRROR}" \
+    --othermirror "deb [trusted=yes] file://$WORKSPACE/dist/ntirpc/deb ./" \
+    --bindmounts "$WORKSPACE/dist/ntirpc/deb" \
     --override-config
-
-# use libcephfs and librgw from shaman
-sudo pbuilder update \
-    --basetgz $PBUILDDIR/$DIST.tgz \
-    --distribution $DIST \
-    --extrapackages "librados-dev libcephfs-dev librgw-dev"
 
 echo "Building debs for $DIST"
 sudo pbuilder build \
     --distribution $DIST \
     --basetgz $PBUILDDIR/$DIST.tgz \
-    --buildresult $WORKSPACE/dist/deb/ \
+    --buildresult $WORKSPACE/dist/nfs-ganesha/deb/ \
     --debbuildopts "-j`grep -c processor /proc/cpuinfo`" \
     $WORKSPACE/nfs-ganesha_${VERSION}-1${DIST}.dsc
 
@@ -128,7 +170,8 @@ chacra_repo_endpoint="${chacra_endpoint}/flavors/${FLAVOR}"
 
 if [ "$THROWAWAY" = false ] ; then
     # push binaries to chacra
-    find $WORKSPACE/dist/deb | egrep "*\.(changes|deb|dsc|gz)$" | egrep -v "(Packages|Sources|Contents)" | $VENV/chacractl binary ${chacra_flags} create ${chacra_endpoint}/${ARCH}/flavors/${FLAVOR}
+    find $WORKSPACE/dist/nfs-ganesha/deb | egrep "*\.(changes|deb|dsc|gz)$" | egrep -v "(Packages|Sources|Contents)" | $VENV/chacractl binary ${chacra_flags} create ${chacra_endpoint}/${ARCH}/flavors/${FLAVOR}
+    find $WORKSPACE/dist/ntirpc/deb | egrep "*\.(changes|deb|dsc|gz)$" | egrep -v "(Packages|Sources|Contents)" | $VENV/chacractl binary ${chacra_flags} create ${chacra_endpoint}/${ARCH}/flavors/${FLAVOR}
     # write json file with build info
     # version and package_manager version are needed for teuthology
     cat > $WORKSPACE/repo-extra.json << EOF
@@ -154,3 +197,4 @@ SHA1=${GIT_COMMIT}
 update_build_status "completed" "nfs-ganesha-stable" $NORMAL_DISTRO $NORMAL_DISTRO_VERSION $NORMAL_ARCH
 
 sudo rm -rf $WORKSPACE/dist
+
