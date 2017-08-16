@@ -1,0 +1,48 @@
+- job:
+    name: ceph-pr-render-docs
+    display-name: 'ceph: Pull Requests Render Docs'
+    node: docs
+    project-type: freestyle
+    defaults: global
+    quiet-period: 5
+    block-downstream: false
+    block-upstream: false
+    properties:
+      - github:
+          url: https://github.com/ceph/ceph
+    discard-old-builds: true
+    logrotate:
+      daysToKeep: 14
+
+    triggers:
+      - github-pull-request:
+          allow-whitelist-orgs-as-admins: true
+          org-list:
+            - ceph
+          cancel-builds-on-update: true
+          # this job is only triggered by explicitly asking for it
+          only-trigger-phrase: true
+          trigger-phrase: 'jenkins render docs.*'
+          github-hooks: true
+          permit-all: true
+          auto-close-on-fail: false
+          status-context: "Docs: render build"
+          started-status: "Docs: building to render"
+          success-status: "OK - docs rendered"
+          failure-status: "Docs: render failed with errors"
+          success-comment: "Doc render available at http://docs.ceph.com/ceph-prs/${ghprbPullId}/"
+
+    scm:
+      - git:
+          url: https://github.com/ceph/ceph
+          browser: auto
+          branches:
+            - ${sha1}
+          refspec: +refs/pull/*:refs/remotes/origin/pr/*
+          skip-tag: true
+          timeout: 20
+          wipe-workspace: true
+
+    builders:
+      - shell:
+          !include-raw ../../build/build
