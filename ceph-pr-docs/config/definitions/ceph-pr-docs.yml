@@ -1,7 +1,7 @@
 - job:
     name: ceph-pr-docs
     display-name: 'ceph: Pull Requests Docs Check'
-    node: docs
+    node: trusty && x86_64
     project-type: freestyle
     defaults: global
     quiet-period: 5
@@ -20,9 +20,8 @@
           org-list:
             - ceph
           cancel-builds-on-update: true
-          # this job is only triggered by explicitly asking for it
-          only-trigger-phrase: true
-          trigger-phrase: 'jenkins test docs'
+          only-trigger-phrase: false
+          trigger-phrase: 'jenkins test docs.*'
           github-hooks: true
           permit-all: true
           auto-close-on-fail: false
@@ -30,7 +29,6 @@
           started-status: "Docs: building"
           success-status: "OK - docs built"
           failure-status: "Docs: failed with errors"
-          success-comment: "Doc build available at http://docs.ceph.com/ceph-prs/${ghprbPullId}/"
 
     scm:
       - git:
