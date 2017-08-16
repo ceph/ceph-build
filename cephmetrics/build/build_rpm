@@ -26,8 +26,11 @@ fi
 
 ## Get some basic information about the system and the repository
 RELEASE="$(lsb_release --short -r | cut -d '.' -f 1)" # sytem release
-VERSION="0.1"
-REVISION="$(git rev-list --count HEAD)-g$(git rev-parse --short HEAD)"
+DESCRIBE="$(git describe --tags 2>/dev/null | cut -b 2-)"
+test -z "$DESCRIBE" && DESCRIBE="0.1-$(git rev-list --count HEAD)-g$(git rev-parse --short HEAD)"
+VERSION="$(echo $DESCRIBE | cut -d - -f 1)"
+REVISION="$(echo $DESCRIBE | cut -s -d - -f 2-)"
+test -z "$REVISION" && REVISION=0
 RPM_RELEASE=$(echo $REVISION | tr '-' '_') # the '-' has a special meaning
 
 
