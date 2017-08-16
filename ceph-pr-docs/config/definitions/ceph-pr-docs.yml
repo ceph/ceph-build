@@ -1,6 +1,7 @@
 - job:
     name: ceph-pr-docs
     display-name: 'ceph: Pull Requests Docs Check'
+    concurrent: true
     node: trusty && x86_64
     project-type: freestyle
     defaults: global
