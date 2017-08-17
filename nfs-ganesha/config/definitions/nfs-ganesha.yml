@@ -15,7 +15,7 @@
       - git:
           url: https://github.com/nfs-ganesha/nfs-ganesha-debian.git
           branches:
-            - xenial-nfs-ganesha-shaman
+            - $NFS_GANESHA_DEBIAN_BRANCH
           skip-tag: true
           wipe-workspace: true
           basedir: "nfs-ganesha-debian"
@@ -35,6 +35,11 @@
           name: NFS_GANESHA_BRANCH
           description: "The git branch (or tag) to build"
           default: "next"
+
+      - string:
+          name: NFS_GANESHA_DEBIAN_BRANCH
+          description: "The git branch (or tag) for debian build scripts for nfs-ganesha"
+          default: "xenial-nfs-ganesha-shaman"
 
       - string:
           name: CEPH_SHA1
