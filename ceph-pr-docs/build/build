@@ -8,6 +8,6 @@ sudo rm -f /etc/apt/sources.list.d/shaman*
 
 # Ceph doc build deps, Ubuntu only because ditaa is not packaged for CentOS
 sudo apt-get update
-sudo apt-get install -y gcc python-dev python-pip python-virtualenv libxml2-dev libxslt-dev doxygen graphviz ant ditaa python-sphinx
+sudo apt-get install -y gcc python-dev python-pip python-virtualenv libxml2-dev libxslt-dev doxygen graphviz ant ditaa cython
 
 ./admin/build-doc
