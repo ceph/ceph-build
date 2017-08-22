@@ -86,6 +86,7 @@ If this is checked, then the binaries will be built and pushed to chacra even if
           url: https://github.com/ceph/ceph-client.git
           branches:
             - $BRANCH
+          do-not-fetch-tags: true
           skip-tag: true
           timeout: 20
           shallow-clone: true
