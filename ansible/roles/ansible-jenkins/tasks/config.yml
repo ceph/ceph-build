@@ -1,47 +1,11 @@
 ---
 
-- name: Configure Jenkins Port
-  lineinfile:
-    dest: '{{ jenkins.apt.config_file }}'
-    regexp: ^HTTP_PORT=
-    line: HTTP_PORT={{port}}
-    backrefs: yes
+- name: Configure Jenkins service defaults
+  template:
+    src: etc_default.j2
+    dest: '{{ jenkins.config_file }}'
+    backup: yes
   register: config_changed
-
-- name: ensure TTY is disabled for admin user
-  lineinfile:
-    dest: /etc/sudoers
-    state: present
-    regexp: '^{{ ansible_ssh_user }} ALL\='
-    regexp: '^Defaults    requiretty'
-    line: '#Defaults    requiretty'
-    validate: 'visudo -cf %s'
-    backrefs: yes
-
-- name: ensure ssh user can sudo without prompts
-  lineinfile:
-    dest: /etc/sudoers
-    state: present
-    regexp: '^{{ ansible_ssh_user }} ALL\='
-    line: '%{{ ansible_ssh_user }} ALL=(ALL) NOPASSWD:ALL'
-    validate: 'visudo -cf %s'
-    backrefs: yes
-
-- name: Configure Jenkins Prefix
-  when: prefix is defined
-  lineinfile:
-    dest: '{{ jenkins.apt.config_file }}'
-    regexp: ^PREFIX=
-    line: PREFIX={{prefix}}
-    backrefs: yes
-
-- name: Set the amount of RAM
-  when: xmx is defined
-  lineinfile:
-    dest: '{{ jenkins.apt.config_file }}'
-    regexp: ^JENKINS_JAVA_OPTIONS
-    line: 'JENKINS_JAVA_OPTIONS="-Xmx{{xmx}}m -Djava.awt.headless=true"'
-    backrefs: yes
 
 - name: Configure Jenkins E-mail
   when: email is defined
@@ -52,18 +16,14 @@
     group: jenkins
     mode: 0644
 
-- name: Tell SELinux that we should allow Nginx to talk to Jenkins
-  seboolean: name=httpd_can_network_connect state=yes persistent=yes
-  when: ansible_pkg_mgr  == "yum"
-
-- name: copy JJB config file to {{ jenkins_jobs }}
+- name: "copy JJB config file to {{ jenkins_jobs }}"
   synchronize:
     src: jobs/jenkins-job-builder
     dest: '{{ jenkins_jobs }}'
     owner: no
     group: no
 
-- name: ensure correct ownership of {{ jenkins_jobs }}
+- name: "ensure correct ownership of {{ jenkins_jobs }}"
   file:
     path: '{{ jenkins_jobs }}'
     state: directory
@@ -77,7 +37,7 @@
 - name: "{{ startup_delay_s | default(10) }}s delay while starting Jenkins"
   wait_for:
     host: localhost
-    port: '{{ port }}'
+    port: '{{ jenkins_port }}'
     delay: '{{ startup_delay_s | default(10) }}'
   when: jenkins_install.changed or config_changed.changed
 
@@ -88,7 +48,7 @@
 
 - name: Get Jenkins CLI
   get_url:
-    url: http://localhost:{{ port }}/jnlpJars/jenkins-cli.jar
+    url: http://localhost:{{ jenkins_port }}/jnlpJars/jenkins-cli.jar
     dest: '{{ jenkins.cli_dest }}'
     mode: 0440
   register: jenkins_local_cli
@@ -107,7 +67,7 @@
   register: jenkins_updates
 
 - name: Update-center Jenkins
-  shell: "cat {{ jenkins.updates_dest }} | sed '1d;$d' | curl -X POST -H 'Accept: application/json' -d @- http://localhost:{{ port }}/updateCenter/byId/default/postBack"
+  shell: "cat {{ jenkins.updates_dest }} | sed '1d;$d' | curl -X POST -H 'Accept: application/json' -d @- http://localhost:{{ jenkins_port }}/updateCenter/byId/default/postBack"
   when: jenkins_updates.changed
   notify:
     - 'restart jenkins'

@@ -1,6 +1,7 @@
 ---
 placeholder: 'placeholder'
-port: 8080
+jenkins_port: 8080
+letsencrypt_email: 'ceph-infra@redhat.com'
 # plugins:
 #   - 'ldap'
 #   - 'github'

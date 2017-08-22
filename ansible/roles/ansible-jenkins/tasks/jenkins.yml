@@ -5,18 +5,32 @@
 
 - include: nginx.yml
 
-- name: Install Jenkins with Yum
-  yum: name=jenkins state=present
-  register: jenkins_install
-  when: ansible_pkg_mgr  == "yum"
+- include: letsencrypt.yml
+  tags:
+    - letsencrypt
 
-- name: Install Jenkins with Apt
-  apt: name=jenkins state=present
+- include: ufw.yml
+  tags:
+    - ufw
+
+- name: Install Jenkins
+  apt:
+    name: jenkins
+    state: present
   register: jenkins_install
-  when: ansible_pkg_mgr  == "apt"
 
 - include: config.yml
 
 - include: plugins.yml
+  when: okay_with_restart == "y"
+  tags:
+    - plugins
+
+# This should only get run the first time the role is run.
+# The variables should be passed as --extra-vars via ansible-playbook command
+- include: auth.yml
+  when: github_oauth_client is defined and github_oauth_secret is defined
+  tags:
+    - auth
 
 - include: config.yml

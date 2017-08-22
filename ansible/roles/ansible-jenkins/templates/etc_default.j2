@@ -1,0 +1,48 @@
+# {{ ansible_managed }}
+
+# pulled in from the init script; makes things easier.
+NAME=jenkins
+
+# location of java
+JAVA=/usr/bin/java
+
+# From https://jenkins.io/blog/2016/11/21/gc-tuning/
+JAVA_ARGS="-Xmx20g -Xms20g -Djava.awt.headless=true -Dhudson.model.User.SECURITY_243_FULL_DEFENSE=false -Dhudson.model.ParametersAction.keepUndefinedParameters=true -server -XX:+AlwaysPreTouch -Xloggc:/var/log/jenkins/gc-%t.log -XX:NumberOfGCLogFiles=5 -XX:+UseGCLogFileRotation -XX:GCLogFileSize=20m -XX:+PrintGC -XX:+PrintGCDateStamps -XX:+PrintGCDetails -XX:+PrintHeapAtGC -XX:+PrintGCCause -XX:+PrintTenuringDistribution -XX:+PrintReferenceGC -XX:+PrintAdaptiveSizePolicy -XX:+UseG1GC -XX:+ExplicitGCInvokesConcurrent -XX:+ParallelRefProcEnabled -XX:+UseStringDeduplication -XX:+UnlockExperimentalVMOptions -XX:G1NewSizePercent=20 -XX:+UnlockDiagnosticVMOptions -XX:G1SummarizeRSetStatsPeriod=1" 
+
+PIDFILE=/var/run/$NAME/$NAME.pid
+
+# user and group to be invoked as (default to jenkins)
+JENKINS_USER=$NAME
+JENKINS_GROUP=$NAME
+
+# location of the jenkins war file
+JENKINS_WAR=/usr/share/$NAME/$NAME.war
+
+# jenkins home location
+JENKINS_HOME=/var/lib/$NAME
+
+# set this to false if you don't want Hudson to run by itself
+# in this set up, you are expected to provide a servlet container
+# to host jenkins.
+RUN_STANDALONE=true
+
+# log location.  this may be a syslog facility.priority
+JENKINS_LOG=/var/log/$NAME/$NAME.log
+
+# OS LIMITS SETUP
+#   comment this out to observe /etc/security/limits.conf
+#   this is on by default because http://github.com/jenkinsci/jenkins/commit/2fb288474e980d0e7ff9c4a3b768874835a3e92e
+#   reported that Ubuntu's PAM configuration doesn't include pam_limits.so, and as a result the # of file
+#   descriptors are forced to 1024 regardless of /etc/security/limits.conf
+MAXOPENFILES=8192
+
+# port for HTTP connector (default 8080; disable with -1)
+HTTP_PORT={{ jenkins_port }}
+
+# port for AJP connector (disabled by default)
+AJP_PORT=-1
+
+# servlet context, important if you want to use apache proxying
+PREFIX={{ prefix }}
+
+JENKINS_ARGS="--webroot=/var/cache/$NAME/war --httpPort=$HTTP_PORT --ajp13Port=$AJP_PORT"

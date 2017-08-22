@@ -1,0 +1,54 @@
+---
+# letsencrypt doesn't recommend using the Ubuntu-provided letsencrypt package
+# https://github.com/certbot/certbot/issues/3538
+# They do recommend using certbot from their PPA for Xenial
+# https://certbot.eff.org/#ubuntuxenial-nginx
+
+- name: install software-properties-common
+  apt:
+    name: software-properties-common
+    state: latest
+    update_cache: yes
+
+- name: add certbot PPA
+  apt_repository:
+    repo: "ppa:certbot/certbot"
+
+- name: install certbot
+  apt:
+    name: python-certbot-nginx
+    state: latest
+    update_cache: yes
+
+- name: ensure letsencrypt acme-challenge path
+  file:
+    path: "/var/www/{{ inventory_hostname }}"
+    state: "directory"
+    mode: 0755
+
+- name: attempt to renew cert if this is not first playbook run
+  command: "certbot renew"
+  register: certbot_renew
+  ignore_errors: true
+
+- name: create letsencrypt ssl cert
+  command: "certbot certonly --webroot -w /var/www/{{ inventory_hostname }} -d {{ inventory_hostname }} --email {{ letsencrypt_email }} --agree-tos"
+  when: certbot_renew.rc != 0
+
+- name: insert nginx ssl_certificate paths
+  blockinfile:
+    path: /etc/nginx/sites-enabled/jenkins.conf
+    insertbefore: ".*ssl_protocols.*"
+    block: |4
+            ssl_certificate     /etc/letsencrypt/live/{{ inventory_hostname }}/fullchain.pem;
+            ssl_certificate_key /etc/letsencrypt/live/{{ inventory_hostname }}/privkey.pem;
+  notify:
+    - restart nginx
+
+- name: setup a cron to attempt to renew the SSL cert every 15ish days
+  cron:
+    name: "renew letsencrypt cert"
+    minute: "0"
+    hour: "0"
+    day: "1,15"
+    job: "certbot renew --renew-hook='service nginx reload'"

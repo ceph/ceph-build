@@ -3,20 +3,11 @@ jenkins_dest: /opt/jenkins
 jenkins_lib: /var/lib/jenkins
 jenkins_jobs: '{{ jenkins_lib }}/jobs'
 jenkins:
-  yum:
-    #repo: 'deb http://pkg.jenkins-ci.org/debian binary/' # Jenkins repository
-    dependencies: # Jenkins dependencies
-      #- 'openjdk-7-jre'
-      - 'java-1.7.0-openjdk'
-      - 'git'
-      - 'curl'
-      - 'nginx'
-    config_file: '/etc/sysconfig/jenkins'
-  apt:
-    dependencies: # Jenkins dependencies
-      - 'git'
-      - 'curl'
-      - 'nginx'
-    config_file: '/etc/default/jenkins'
+  dependencies: # Jenkins dependencies
+    - 'git'
+    - 'curl'
+    - 'nginx'
+    - 'default-jdk'
+  config_file: '/etc/default/jenkins'
   cli_dest: '{{ jenkins_dest }}/jenkins-cli.jar' # Jenkins CLI destination
   updates_dest: '{{ jenkins_dest }}/updates_jenkins.json' # Jenkins updates file

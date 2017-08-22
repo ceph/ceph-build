@@ -1,0 +1,67 @@
+---
+- name: Check if Jenkins config exists
+  stat:
+    path: "{{ jenkins_lib }}/config.xml"
+  register: jenkins_config_file
+
+- name: Check if github oauth is already enabled
+  shell: "grep -q github-oauth {{ jenkins_lib }}/config.xml"
+  register: github_oauth_enabled
+  when: jenkins_config_file.stat.exists
+  failed_when: false
+
+- name: Remove AuthorizationStrategy$Unsecured
+  lineinfile:
+    path: "{{ jenkins_lib }}/config.xml"
+    regexp: ".*hudson\\.security\\.AuthorizationStrategy\\$Unsecured.*"
+    state: absent
+
+- name: Remove SecurityRealm$None
+  lineinfile:
+    path: "{{ jenkins_lib }}/config.xml"
+    regexp: ".*hudson\\.security\\.SecurityRealm\\$None.*"
+    state: absent
+
+# Jenkins will automatically update the plugin version,
+# remove the ansible blockinfile comments,
+# and encrypt github_oauth_secret when the service is restarted
+- name: Add/update github-oauth settings
+  blockinfile:
+    path: "{{ jenkins_lib }}/config.xml"
+    insertafter: ".*useSecurity.*"
+    block: |2
+        <authorizationStrategy class="org.jenkinsci.plugins.GithubAuthorizationStrategy" plugin="github-oauth@0.25">
+          <rootACL>
+            <organizationNameList class="linked-list">
+              <string></string>
+            </organizationNameList>
+            <adminUserNameList class="linked-list">
+              <string>ktdreyer</string>
+              <string>alfredodeza</string>
+              <string>gregmeno</string>
+              <string>dmick</string>
+              <string>zmc</string>
+              <string>andrewschoen</string>
+              <string>djgalloway</string>
+              <string>ceph-jenkins</string>
+            </adminUserNameList>
+            <authenticatedUserReadPermission>true</authenticatedUserReadPermission>
+            <useRepositoryPermissions>false</useRepositoryPermissions>
+            <authenticatedUserCreateJobPermission>false</authenticatedUserCreateJobPermission>
+            <allowGithubWebHookPermission>true</allowGithubWebHookPermission>
+            <allowCcTrayPermission>false</allowCcTrayPermission>
+            <allowAnonymousReadPermission>true</allowAnonymousReadPermission>
+            <allowAnonymousJobStatusPermission>true</allowAnonymousJobStatusPermission>
+          </rootACL>
+        </authorizationStrategy>
+        <securityRealm class="org.jenkinsci.plugins.GithubSecurityRealm">
+          <githubWebUri>https://github.com</githubWebUri>
+          <githubApiUri>https://api.github.com</githubApiUri>
+          <clientID>{{ github_oauth_client }}</clientID>
+          <clientSecret>{{ github_oauth_secret }}</clientSecret>
+          <oauthScopes>read:org,user:email</oauthScopes>
+        </securityRealm>
+  when: jenkins_config_file.stat.exists and github_oauth_enabled.rc == 1
+  no_log: true
+  notify:
+    - restart jenkins

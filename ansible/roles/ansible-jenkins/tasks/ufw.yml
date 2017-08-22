@@ -1,0 +1,29 @@
+---
+- name: install ufw
+  apt:
+    name: ufw
+    state: latest
+
+- name: only listen to localhost on port 8080
+  ufw:
+    port: 8080
+    src: 127.0.0.1
+    rule: allow
+
+- name: allow custom ssh, http, https, and JNLP slave port
+  ufw:
+    port: "{{ item }}"
+    rule: allow
+  with_items:
+    - 2222
+    - 80
+    - 443
+    - 49187
+
+- name: reload ufw
+  ufw:
+    state: reloaded
+
+- name: start ufw
+  ufw:
+    state: enabled

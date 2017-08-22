@@ -1,33 +1,41 @@
 ---
 
   - name: ensure sites-available for nginx
-    file: path=/etc/nginx/sites-available state=directory
+    file:
+      path: /etc/nginx/sites-available
+      state: directory
 
   - name: ensure sites-enable for nginx
-    file: path=/etc/nginx/sites-enabled state=directory
+    file:
+      path: /etc/nginx/sites-enabled
+      state: directory
 
   - name: remove default nginx site
-    action: file path=/etc/nginx/sites-enabled/default state=absent
+    file:
+      path: /etc/nginx/sites-enabled/default
+      state: absent
 
   - name: write nginx.conf
-    action: template src=../templates/nginx.conf dest=/etc/nginx/nginx.conf
-
-  - name: write jenkins SSL public cert
-    copy:
-      src: jenkins.ceph.com-bundled.crt
-      dest: /etc/ssl/certs/
-      owner: root
-      group: root
-      mode: 0644
-    when: ansible_pkg_mgr  == 'apt'
+    template:
+      src: templates/nginx.conf
+      dest: /etc/nginx/nginx.conf
 
   - name: create nginx site config
-    action: template src=../templates/jenkins.conf dest=/etc/nginx/sites-available/jenkins.conf
+    template:
+      src: templates/jenkins.conf
+      dest: /etc/nginx/sites-available/jenkins.conf
     notify:
       - restart nginx
 
   - name: link nginx config
-    action: file src=/etc/nginx/sites-available/jenkins.conf dest=/etc/nginx/sites-enabled/jenkins.conf state=link
+    file:
+      src: /etc/nginx/sites-available/jenkins.conf
+      dest: /etc/nginx/sites-enabled/jenkins.conf
+      state: link
+      force: yes
 
   - name: Enable Nginx service
-    service: name=nginx enabled=yes state=started
+    service:
+      name: nginx
+      enabled: yes
+      state: started
