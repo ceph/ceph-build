@@ -19,6 +19,7 @@
           skip-tag: true
           wipe-workspace: true
           basedir: "nfs-ganesha-debian"
+
 - scm:
     name: ntirpc
     scm:
@@ -29,6 +30,7 @@
           skip-tag: true
           wipe-workspace: true
           basedir: "ntirpc"
+
 - job:
     name: nfs-ganesha-stable
     project-type: matrix
@@ -135,6 +137,7 @@ If this is checked, then the binaries will be built and pushed to chacra even if
     scm:
       - nfs-ganesha
       - nfs-ganesha-debian
+      - ntirpc
 
     builders:
       - shell: |

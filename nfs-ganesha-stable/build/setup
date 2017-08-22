@@ -27,6 +27,9 @@ git clean -fxd
 cd $WORKSPACE/nfs-ganesha-debian
 git clean -fxd
 
+cd $WORKSPACE/ntirpc
+git clean -fxd
+
 # Make sure the dist directory is clean
 cd $WORKSPACE
 rm -rf dist
