@@ -228,6 +228,9 @@ Let's say this git branch makes a change in the ``my-cool-job`` job.
 
     jenkins-jobs --conf ~/.jenkins_jobs.ini test my-cool-job/config/definitions/my-cool-job.yml
 
+   If everything goes ok, this will cause JJB to output the XML of your job(s).
+   If there is a problem, JJB will print an error/backtrace instead.
+
 5. Run JJB to push your changes live to job on the master::
 
     jenkins-jobs --conf ~/.jenkins_jobs.ini update my-cool-job/config/definitions/my-cool-job.yml
