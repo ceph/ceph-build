@@ -26,6 +26,8 @@
       - bluestore_docker_cluster
       - bluestore_docker_dedicated_journal
       - bluestore_docker_dmcrypt_journal_collocation
+      - lvm_osds
+      - purge_lvm_osds
     jobs:
         - 'ceph-ansible-prs-{release}-{ansible_version}-{scenario}'
 
