@@ -34,23 +34,30 @@ sudo dpkg-buildpackage -S -us -uc -d
 
 ## Setup the pbuilder
 setup_pbuilder
+PBUILDDIR="/srv/debian-base"
 
 ## Build with pbuilder
 echo "Building ntirpc debs"
 
-sudo pbuilder --clean
+sudo pbuilder --clean \
+    --distribution $DIST \
+    --basetgz $PBUILDDIR/$DIST.tgz
 
 # add missing packages and components to pbuilder
 sudo pbuilder update \
+    --distribution $DIST \
+    --basetgz $PBUILDDIR/$DIST.tgz \
     --extrapackages "cmake libkrb5-dev libjemalloc-dev debhelper apt-transport-https apt-utils ca-certificates" \
     --components "main restricted universe multiverse" \
     --override-config
 
-echo "Building debs for $DIST"
 sudo pbuilder build \
+    --distribution $DIST \
+    --basetgz $PBUILDDIR/$DIST.tgz \
     --buildresult $WORKSPACE/dist/ntirpc/deb/ \
     $WORKSPACE/libntirpc_${NTIRPC_VERSION}-1${DIST}.dsc
 
+sudo chown -R jenkins-build:jenkins-build $WORKSPACE/dist/ntirpc/deb
 cd $WORKSPACE/dist/ntirpc/deb
 apt-ftparchive packages . > Packages
 
@@ -134,16 +141,19 @@ dch -v "$VERSION-1${DIST}" "$VERSION for Shaman"
 sudo dpkg-buildpackage -S -us -uc -d
 
 ## Build with pbuilder
-echo "Building debs"
+echo "Building nfs-ganesha debs"
 
-PBUILDDIR="/srv/debian-base"
+sudo pbuilder --clean \
+    --distribution $DIST \
+    --basetgz $PBUILDDIR/$DIST.tgz
 
-sudo pbuilder --clean
 
 mkdir -p $WORKSPACE/dist/deb
 
 # add missing packages and components to pbuilder
 sudo pbuilder update \
+    --distribution $DIST \
+    --basetgz $PBUILDDIR/$DIST.tgz \
     --extrapackages "apt-transport-https apt-utils ca-certificates librados-dev libcephfs-dev librgw-dev libntirpc-dev debhelper python-all" \
     --components "main restricted universe multiverse" \
     --othermirror "${SHAMAN_MIRROR}" \
