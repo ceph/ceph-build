@@ -8,6 +8,8 @@
       - centos7_cluster
       - xenial_cluster
       - journal_collocation
+      - journal_collocation_auto
+      - journal_collocation_auto_dmcrypt
       - dmcrypt_journal
       - dmcrypt_journal_collocation
       - docker_cluster
