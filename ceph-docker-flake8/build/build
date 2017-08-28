@@ -28,8 +28,8 @@ function check(){
 }
 
 function main() {
-    # install some of our dependencies
-    if [ "${HUDSON_URL}" = "https://jenkins.ceph.com/" ]
+    # install some of our dependencies if running on a jenkins slave
+    if [[ -n "$HUDSON_URL" ]]
     then
         sudo yum -y install epel-release
         sudo yum -y install docker jq
