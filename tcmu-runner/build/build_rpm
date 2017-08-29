@@ -77,8 +77,7 @@ rm -f *.rpm
 # Create the package
 fpm -s dir -t rpm -n tcmu-runner -C ${DESTDIR} \
     -v ${VERSION} --iteration ${REVISION} \
-    --exclude usr/lib64/libtcmu.so* \
-    --exclude usr/include
+    --exclude usr/lib64/libtcmu.so*
 
 cat > SCRIPTLET <<EOF
 /sbin/ldconfig
@@ -87,12 +86,11 @@ fpm -s dir -t rpm -n libtcmu -C ${DESTDIR} \
     -v ${VERSION} --iteration ${REVISION} \
     --after-install SCRIPTLET \
     --after-remove SCRIPTLET \
-    usr/lib64/libtcmu.so.1
+    usr/lib64/libtcmu.so.2
 
 fpm -s dir -t rpm -n libtcmu-devel -C ${DESTDIR} \
     -v ${VERSION} --iteration ${REVISION} \
     -d "libtcmu = ${VERSION}-${REVISION}" \
-    usr/include \
     usr/lib64/libtcmu.so
 
 
