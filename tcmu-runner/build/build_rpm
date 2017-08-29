@@ -35,6 +35,11 @@ if [[ "$REPO_FOUND" -eq 0 ]]; then
   exit 1
 fi
 
+function cleanup() {
+  sudo rm -rf /etc/yum.repos.d/shaman.repo || true
+}
+trap cleanup EXIT
+
 # Copy the repo
 sudo cp $WORKSPACE/shaman.repo /etc/yum.repos.d/
 
