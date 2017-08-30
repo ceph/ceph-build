@@ -31,6 +31,8 @@
       - lvm_osds
       - purge_lvm_osds
       - switch_to_containers
+      - shrink_mon
+      - shrink_osd
     jobs:
         - 'ceph-ansible-prs-{release}-{ansible_version}-{scenario}'
 
