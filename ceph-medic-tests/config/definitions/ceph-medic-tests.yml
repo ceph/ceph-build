@@ -1,7 +1,7 @@
 - project:
     name: ceph-medic-tests
     scenario:
-      - ansible2.2-nightly_centos7
+      - ansible2.3-nightly_centos7
     jobs:
         - 'ceph-medic-tests-{scenario}'
 

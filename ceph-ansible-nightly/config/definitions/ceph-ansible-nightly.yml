@@ -4,7 +4,6 @@
       - jewel 
     ansible_version:
       - ansible2.3
-      - ansible2.2
     scenario:
       - centos7_cluster
       - xenial_cluster
