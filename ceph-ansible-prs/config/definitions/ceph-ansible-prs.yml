@@ -30,6 +30,7 @@
       - bluestore_docker_dmcrypt_journal_collocation
       - lvm_osds
       - purge_lvm_osds
+      - switch_to_containers
     jobs:
         - 'ceph-ansible-prs-{release}-{ansible_version}-{scenario}'
 
