@@ -36,6 +36,17 @@
     jobs:
         - 'ceph-ansible-prs-{release}-{ansible_version}-{scenario}'
 
+- project:
+    name: ceph-ansible-prs-dev
+    release:
+      - dev
+    ansible_version:
+      - ansible2.3
+    scenario:
+      - centos7_cluster
+    jobs:
+      - 'ceph-ansible-prs-{release}-{ansible_version}-{scenario}'
+
 - job-template:
     name: 'ceph-ansible-prs-{release}-{ansible_version}-{scenario}'
     node: vagrant&&libvirt
