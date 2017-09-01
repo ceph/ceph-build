@@ -3,7 +3,8 @@
 set -e
 
 # the following two methods exist in scripts/build_utils.sh
-pkgs=( "ansible" "jenkins-job-builder" "urllib3" "pyopenssl" "ndg-httpsclient" "pyasn1" )
+# kernel jobs need do-not-fetch-tags option, added in badab0264717
+pkgs=( "ansible" "git+https://github.com/openstack-infra/jenkins-job-builder.git@badab0264717" "urllib3" "pyopenssl" "ndg-httpsclient" "pyasn1" )
 install_python_packages "pkgs[@]"
 
 
