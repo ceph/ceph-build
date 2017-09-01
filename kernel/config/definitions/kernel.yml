@@ -82,15 +82,43 @@ If this is checked, then the binaries will be built and pushed to chacra even if
             - ARCHS
 
     scm:
-      - git:
-          url: https://github.com/ceph/ceph-client.git
-          branches:
-            - $BRANCH
-          do-not-fetch-tags: true
-          skip-tag: true
-          timeout: 20
-          shallow-clone: true
-          wipe-workspace: true
+    - raw:
+        xml: |
+          <scm class="hudson.plugins.git.GitSCM">
+            <configVersion>2</configVersion>
+            <userRemoteConfigs>
+              <hudson.plugins.git.UserRemoteConfig>
+                <name>origin</name>
+                <refspec>+refs/heads/*:refs/remotes/origin/*</refspec>
+                <url>https://github.com/ceph/ceph-client.git</url>
+              </hudson.plugins.git.UserRemoteConfig>
+            </userRemoteConfigs>
+            <branches>
+              <hudson.plugins.git.BranchSpec>
+                <name>$BRANCH</name>
+              </hudson.plugins.git.BranchSpec>
+            </branches>
+            <disableSubmodules>false</disableSubmodules>
+            <recursiveSubmodules>false</recursiveSubmodules>
+            <doGenerateSubmoduleConfigurations>false</doGenerateSubmoduleConfigurations>
+            <remotePoll>false</remotePoll>
+            <gitTool>Default</gitTool>
+            <submoduleCfg class="list"/>
+            <reference/>
+            <gitConfigName/>
+            <gitConfigEmail/>
+            <extensions>
+              <hudson.plugins.git.extensions.impl.CloneOption>
+                <shallow>true</shallow>
+                <noTags>true</noTags>
+                <timeout>20</timeout>
+              </hudson.plugins.git.extensions.impl.CloneOption>
+              <hudson.plugins.git.extensions.impl.CheckoutOption>
+                <timeout>20</timeout>
+              </hudson.plugins.git.extensions.impl.CheckoutOption>
+              <hudson.plugins.git.extensions.impl.WipeWorkspace/>
+            </extensions>
+          </scm>
 
     builders:
       - shell: |
