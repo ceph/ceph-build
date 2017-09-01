@@ -52,10 +52,17 @@ sudo yum install -y cmake kernel-headers glib2-devel libnl3-devel \
 sudo yum install -y rubygems ruby-devel
 sudo gem install fpm
 
+# Mimic koji/brew environment
+export CFLAGS='-O2 -g -pipe -Wall -Wp,-D_FORTIFY_SOURCE=2 -fexceptions -fstack-protector-strong --param=ssp-buffer-size=4 -grecord-gcc-switches   -m64 -mtune=generic'
+export CXXFLAGS='-O2 -g -pipe -Wall -Wp,-D_FORTIFY_SOURCE=2 -fexceptions -fstack-protector-strong --param=ssp-buffer-size=4 -grecord-gcc-switches   -m64 -mtune=generic'
+export LDFLAGS='-Wl,-z,relro '
+
 # Prepare the build
 DESTDIR="install.tmp"
 install -d -m0755 -- "$DESTDIR"
-cmake -DCMAKE_VERBOSE_MAKEFILE:BOOL=ON \
+cmake -DCMAKE_C_FLAGS_RELEASE:STRING=-DNDEBUG \
+      -DCMAKE_CXX_FLAGS_RELEASE:STRING=-DNDEBUG \
+      -DCMAKE_VERBOSE_MAKEFILE:BOOL=ON \
       -DCMAKE_INSTALL_PREFIX:PATH='/usr' \
       -DLIB_SUFFIX=64 \
       -DBUILD_SHARED_LIBS:BOOL=ON \
