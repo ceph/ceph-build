@@ -5,6 +5,8 @@ set -x
 
 function main() {
     # install some of our dependencies
+    pushd "$WORKSPACE"
+    git clone gti@github.com:ceph/teuthology"
     pushd "$WORKSPACE/teuthology"
     git remote -v
     ./bootstrap
