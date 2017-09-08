@@ -25,7 +25,6 @@
       - bluestore_journal_collocation
       - bluestore_dmcrypt_journal
       - bluestore_dmcrypt_journal_collocation
-      - bluestore_docker_cluster
       - bluestore_docker_dedicated_journal
       - bluestore_docker_dmcrypt_journal_collocation
       - lvm_osds
