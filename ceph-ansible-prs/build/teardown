@@ -4,12 +4,13 @@
 
 cd $WORKSPACE/tests
 
-scenarios=$(find . | grep Vagrantfile | xargs dirname)
+scenarios=$(find . -name Vagrantfile | xargs dirname)
 
 for scenario in $scenarios; do
-    cd $scenario
+    pushd $scenario
     vagrant destroy -f
-    cd -
+    rm -rf fetch/
+    popd
 done
 
 # Sometimes, networks may linger around, so we must ensure they are killed:
