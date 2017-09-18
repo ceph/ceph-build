@@ -29,7 +29,9 @@
       - bluestore_docker_dmcrypt_journal_collocation
       - switch_to_containers
       - shrink_mon
+      - shrink_mon_container
       - shrink_osd
+      - shrink_osd_container
     jobs:
         - 'ceph-ansible-prs-{release}-{ansible_version}-{scenario}'
 
