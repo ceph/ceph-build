@@ -3,7 +3,7 @@
 set -e
 
 # the following two methods exist in scripts/build_utils.sh
-pkgs=( "ansible")
+pkgs=( "ansible==2.3.1" "ansible-lint" )
 install_python_packages "pkgs[@]"
 
 cd $WORKSPACE/ceph-ansible
@@ -19,3 +19,6 @@ mv infrastructure-playbooks/group_vars/all.yml.sample infrastructure-playbooks/g
 export ANSIBLE_LIBRARY=$WORKSPACE/ceph-ansible/library
 
 $VENV/ansible-playbook -i '127.0.0.1,' infrastructure-playbooks/*.yml --syntax-check --list-tasks -vv
+
+$VENV/ansible-lint site.yml.sample
+$VENV/ansible-lint site-docker.yml.sample
