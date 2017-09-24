@@ -9,7 +9,6 @@ scenarios=$(find . -name Vagrantfile | xargs dirname)
 for scenario in $scenarios; do
     pushd $scenario
     vagrant destroy -f
-    rm -rf fetch/
     popd
 done
 
