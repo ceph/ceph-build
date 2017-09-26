@@ -8,10 +8,8 @@
     scenario:
       - centos7_cluster
       - xenial_cluster
-    only_trigger_phrase:
-      - false
     jobs:
-        - 'ceph-ansible-prs-{release}-{ansible_version}-{scenario}'
+        - 'ceph-ansible-prs-auto'
 
 # tests that will not auto start when a PR is created, but
 # they can be requested with a trigger phrase
@@ -47,10 +45,8 @@
       - shrink_mon_container
       - shrink_osd
       - shrink_osd_container
-    only_trigger_phrase:
-      - true
     jobs:
-        - 'ceph-ansible-prs-{release}-{ansible_version}-{scenario}'
+        - 'ceph-ansible-prs-trigger'
 
 # tests that use packages from shaman.ceph.com and
 # do not auto start when a PR is created, but can be
@@ -64,13 +60,12 @@
     scenario:
       - lvm_osds
       - purge_lvm_osds
-    only_trigger_phrase:
-      - true
     jobs:
-      - 'ceph-ansible-prs-{release}-{ansible_version}-{scenario}'
+      - 'ceph-ansible-prs-trigger'
 
 - job-template:
     name: 'ceph-ansible-prs-{release}-{ansible_version}-{scenario}'
+    id: 'ceph-ansible-prs-auto'
     node: vagrant&&libvirt
     concurrent: true
     defaults: global
@@ -101,7 +96,78 @@
             - ceph
           skip-build-phrase: '^jenkins do not test.*'
           trigger-phrase: 'jenkins test {release}-{ansible_version}-{scenario}'
-          only-trigger-phrase: {only_trigger_phrase}
+          only-trigger-phrase: false
+          github-hooks: true
+          permit-all: true
+          auto-close-on-fail: false
+          status-context: "Testing: {release}-{ansible_version}-{scenario}"
+          started-status: "Running: {release}-{ansible_version}-{scenario}"
+          success-status: "OK - {release}-{ansible_version}-{scenario}"
+          failure-status: "FAIL - {release}-{ansible_version}-{scenario}"
+
+    scm:
+      - git:
+          url: https://github.com/ceph/ceph-ansible.git
+          branches:
+            - ${{sha1}}
+          refspec: +refs/pull/*:refs/remotes/origin/pr/*
+          browser: auto
+          timeout: 20
+          skip-tag: true
+          wipe-workspace: false
+
+    builders:
+      - inject:
+          properties-content: |
+            SCENARIO={scenario}
+            RELEASE={release}
+            ANSIBLE_VERSION={ansible_version}
+      - shell:
+          !include-raw-escape:
+            - ../../../scripts/build_utils.sh
+            - ../../build/build
+
+    publishers:
+      - postbuildscript:
+          script-only-if-succeeded: False
+          script-only-if-failed: True
+          builders:
+            - shell: !include-raw ../../build/teardown
+
+- job-template:
+    name: 'ceph-ansible-prs-{release}-{ansible_version}-{scenario}'
+    id: 'ceph-ansible-prs-trigger'
+    node: vagrant&&libvirt
+    concurrent: true
+    defaults: global
+    display-name: 'ceph-ansible: Pull Requests [{release}-{ansible_version}-{scenario}]'
+    quiet-period: 5
+    block-downstream: false
+    block-upstream: false
+    retry-count: 3
+    properties:
+      - github:
+          url: https://github.com/ceph/ceph-ansible
+    logrotate:
+      daysToKeep: 15
+      numToKeep: -1
+      artifactDaysToKeep: -1
+      artifactNumToKeep: -1
+
+    parameters:
+      - string:
+          name: sha1
+          description: "A pull request ID, like 'origin/pr/72/head'"
+
+    triggers:
+      - github-pull-request:
+          cancel-builds-on-update: true
+          allow-whitelist-orgs-as-admins: true
+          org-list:
+            - ceph
+          skip-build-phrase: '^jenkins do not test.*'
+          trigger-phrase: 'jenkins test {release}-{ansible_version}-{scenario}'
+          only-trigger-phrase: true
           github-hooks: true
           permit-all: true
           auto-close-on-fail: false
