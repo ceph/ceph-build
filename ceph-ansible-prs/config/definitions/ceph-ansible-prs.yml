@@ -1,5 +1,6 @@
+# tests that will auto start for every PR created
 - project:
-    name: ceph-ansible-prs
+    name: ceph-ansible-prs-auto
     release:
       - luminous
     ansible_version:
@@ -7,6 +8,20 @@
     scenario:
       - centos7_cluster
       - xenial_cluster
+    only_trigger_phrase:
+      - false
+    jobs:
+        - 'ceph-ansible-prs-{release}-{ansible_version}-{scenario}'
+
+# tests that will not auto start when a PR is created, but
+# they can be requested with a trigger phrase
+- project:
+    name: ceph-ansible-prs-trigger
+    release:
+      - luminous
+    ansible_version:
+      - ansible2.3
+    scenario:
       - journal_collocation
       - journal_collocation_auto
       - journal_collocation_auto_dmcrypt
@@ -32,9 +47,14 @@
       - shrink_mon_container
       - shrink_osd
       - shrink_osd_container
+    only_trigger_phrase:
+      - true
     jobs:
         - 'ceph-ansible-prs-{release}-{ansible_version}-{scenario}'
 
+# tests that use packages from shaman.ceph.com and
+# do not auto start when a PR is created, but can be
+# requested with a trigger phrase
 - project:
     name: ceph-ansible-prs-dev
     release:
@@ -44,6 +64,8 @@
     scenario:
       - lvm_osds
       - purge_lvm_osds
+    only_trigger_phrase:
+      - true
     jobs:
       - 'ceph-ansible-prs-{release}-{ansible_version}-{scenario}'
 
@@ -79,7 +101,7 @@
             - ceph
           skip-build-phrase: '^jenkins do not test.*'
           trigger-phrase: 'jenkins test {release}-{ansible_version}-{scenario}'
-          only-trigger-phrase: false
+          only-trigger-phrase: {only_trigger_phrase}
           github-hooks: true
           permit-all: true
           auto-close-on-fail: false
