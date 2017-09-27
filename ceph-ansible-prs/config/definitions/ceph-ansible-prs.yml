@@ -95,7 +95,7 @@
           org-list:
             - ceph
           skip-build-phrase: '^jenkins do not test.*'
-          trigger-phrase: 'jenkins test {release}-{ansible_version}-{scenario}'
+          trigger-phrase: '^jenkins test {release}-{ansible_version}-{scenario}|jenkins test all.*'
           only-trigger-phrase: false
           github-hooks: true
           permit-all: true
@@ -166,7 +166,7 @@
           org-list:
             - ceph
           skip-build-phrase: '^jenkins do not test.*'
-          trigger-phrase: 'jenkins test {release}-{ansible_version}-{scenario}'
+          trigger-phrase: '^jenkins test {release}-{ansible_version}-{scenario}|jenkins test all.*'
           only-trigger-phrase: true
           github-hooks: true
           permit-all: true
