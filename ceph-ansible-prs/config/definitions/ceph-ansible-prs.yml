@@ -26,6 +26,7 @@
       - dmcrypt_journal
       - dmcrypt_journal_collocation
       - docker_cluster
+      - docker_cluster_collocation
       - docker_dedicated_journal
       - docker_dmcrypt_journal_collocation
       - purge_cluster
