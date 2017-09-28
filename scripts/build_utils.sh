@@ -439,3 +439,15 @@ restart_libvirt_services() {
     sudo service libvirt-bin restart
     sudo service libvirt-guests restart
 }
+
+# Function to update vagrant boxes on static libvirt slaves used for ceph-ansible and ceph-docker testing
+update_vagrant_boxes() {
+    outdated_boxes=`vagrant box outdated --global | grep 'is outdated' | awk '{ print $2 }' | | tr -d "'"`
+    if [ -n "$outdated_boxes" ]; then
+        for box in $outdated_boxes; do
+            vagrant box update --box $box
+        done
+        # Clean up old images
+        vagrant box prune
+    fi
+}
