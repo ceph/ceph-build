@@ -421,7 +421,7 @@ delete_libvirt_vms() {
         sudo virsh undefine $vm || true
     done
     # Clean up any leftover disk images
-    sudo rm -f /var/lib/libvirt/images/*.img
+    sudo find /var/lib/libvirt/images/ -type f -delete
     sudo virsh pool-refresh default || true
 }
 
