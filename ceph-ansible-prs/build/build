@@ -12,6 +12,7 @@ WORKDIR=$(mktemp -td tox.XXXXXXXXXX)
 delete_libvirt_vms
 clear_libvirt_networks
 restart_libvirt_services
+update_vagrant_boxes
 
 # This was initially in teardown but sometimes, it happens that the Jenkins Slave process
 # crashes before teardown is executed, it means we keep leftofver from previous build.

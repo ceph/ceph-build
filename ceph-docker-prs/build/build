@@ -18,6 +18,7 @@ newgrp docker
 delete_libvirt_vms
 clear_libvirt_networks
 restart_libvirt_services
+update_vagrant_boxes
 
 # adding groups on the fly doesn't guarantee their availability
 # so we must use `sg` to execute the tests as part of the docker group to avoid

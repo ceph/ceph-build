@@ -421,7 +421,7 @@ delete_libvirt_vms() {
         sudo virsh undefine $vm || true
     done
     # Clean up any leftover disk images
-    sudo rm -f /var/lib/libvirt/images/*.img
+    sudo find /var/lib/libvirt/images/ -type f -delete
     sudo virsh pool-refresh default || true
 }
 
@@ -438,4 +438,16 @@ restart_libvirt_services() {
     # restart libvirt services
     sudo service libvirt-bin restart
     sudo service libvirt-guests restart
+}
+
+# Function to update vagrant boxes on static libvirt slaves used for ceph-ansible and ceph-docker testing
+update_vagrant_boxes() {
+    outdated_boxes=`vagrant box outdated --global | grep 'is outdated' | awk '{ print $2 }' | | tr -d "'"`
+    if [ -n "$outdated_boxes" ]; then
+        for box in $outdated_boxes; do
+            vagrant box update --box $box
+        done
+        # Clean up old images
+        vagrant box prune
+    fi
 }
