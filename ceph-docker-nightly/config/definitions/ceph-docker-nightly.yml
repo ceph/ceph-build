@@ -1,20 +1,24 @@
 - project:
     name: ceph-docker-nightly
-    scenario:
-      - ceph_ansible-jewel-centos7-cluster
-      - ceph_ansible-jewel-xenial-cluster
-      - ceph_ansible-luminous-xenial-cluster
-      - ceph_ansible-luminous-centos7-cluster
+    os:
+      - centos7
+      - xenial
+    ceph-version:
+      - jewel
+      - luminous
+    test:
+      - cluster
+      - dedicated_journal
+      - dmcrypt_journal_collocation
     jobs:
-        - 'ceph-docker-nightly-{scenario}'
-
+        - 'ceph-docker-nightly-ceph_ansible-{ceph-version}-{os}-{test}'
 
 - job-template:
-    name: 'ceph-docker-nightly-{scenario}'
+    name: 'ceph-docker-nightly-ceph_ansible-{ceph-version}-{os}-{test}'
     node: vagrant&&libvirt
     concurrent: true
     defaults: global
-    display-name: 'ceph-docker: Nightly tests [{scenario}]'
+    display-name: 'ceph-docker: Nightly tests [ceph_ansible-{ceph-version}-{os}-{test}]'
     quiet-period: 5
     block-downstream: false
     block-upstream: false
@@ -48,7 +52,7 @@
     builders:
       - inject:
           properties-content: |
-            SCENARIO={scenario}
+            SCENARIO=ceph_ansible-{ceph-version}-{os}-{test}
       - shell:
           !include-raw-escape:
             - ../../../scripts/build_utils.sh
