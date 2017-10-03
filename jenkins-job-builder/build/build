@@ -9,7 +9,7 @@
 set -ex
 
 # the following two methods exist in scripts/build_utils.sh
-pkgs=( "jenkins-job-builder==2.0.0.0b2" )
+pkgs=( "jenkins-job-builder==2.0.0.0b2" "jq" )
 install_python_packages "pkgs[@]"
 
 # Wipe out JJB's cache if $FORCE is set.
@@ -27,6 +27,9 @@ user=$JOB_BUILDER_USER
 password=$JOB_BUILDER_PASS
 url=$JENKINS_URL
 EOF
+
+# Make a temp dir to store job configs created using `jenkins-jobs test`
+TEMPDIR=$(mktemp -d)
 
 # Test every definition if available in the current repository and update the jobs
 # if they do define one (they should always define their definitions)
@@ -49,12 +52,21 @@ for dir in `find . -maxdepth 1 -path ./.git -prune -o -type d -print`; do
         # that started it.  This prevents collisions.
         if [[ "$JJB_CONFIG" == "$HOME/.jenkins_jobs.$JENKINS_FQDN.ini" ]]; then
             # Test the definitions first
-            $VENV/jenkins-jobs --log_level DEBUG --conf $JJB_CONFIG test $definitions_dir -o /tmp/output
+            $VENV/jenkins-jobs --log_level DEBUG --conf $JJB_CONFIG test $definitions_dir -o $TEMPDIR
 
             # Update Jenkins with the output if they passed the test phase
             # Note that this needs proper permissions with the right credentials to the
             # correct Jenkins instance.
             $VENV/jenkins-jobs --log_level DEBUG --conf $JJB_CONFIG update $definitions_dir
         fi
+    fi
+done
+
+# Delete jobs our master has that didn't get job xml written during `jenkins-jobs test`
+# jenkins-job-builder doesn't get a config written so we `grep -v it` so it doesn't get deleted.
+for JOB in $(curl -s https://$JENKINS_FQDN/api/json | jq -r '.jobs[].name' | grep -v jenkins-job-builder | sort); do
+    if [ ! -f $TEMPDIR/$JOB ]; then
+        echo "Did not find job definition for $JOB.  Deleting!"
+        $VENV/jenkins-jobs --log_level DEBUG --conf $JJB_CONFIG delete $JOB
     fi
 done
