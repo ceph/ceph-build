@@ -1,6 +1,7 @@
-# tests that will auto start for every PR created
+# tests that will auto start for every PR created and run on smithi
 - project:
     name: ceph-ansible-prs-auto
+    slave_labels: 'vagrant && libvirt && smithi'
     release:
       - luminous
     ansible_version:
@@ -14,9 +15,27 @@
         - 'ceph-ansible-prs-auto'
 
 # tests that will not auto start when a PR is created, but
-# they can be requested with a trigger phrase
+# they can be requested with a trigger phrase. Run on smithi.
 - project:
-    name: ceph-ansible-prs-trigger
+    name: ceph-ansible-prs-trigger-smithi
+    slave_labels: 'vagrant && libvirt && smithi'
+    release:
+      - luminous
+    ansible_version:
+      - ansible2.3
+    scenario:
+      - purge_cluster
+      - update_docker_cluster
+      - switch_to_containers
+      - purge_docker_cluster
+    jobs:
+        - 'ceph-ansible-prs-trigger'
+
+# tests that will not auto start when a PR is created, but
+# they can be requested with a trigger phrase. Run on OVH.
+- project:
+    name: ceph-ansible-prs-trigger-ovh
+    slave_labels: 'vagrant && libvirt && !smithi'
     release:
       - luminous
     ansible_version:
@@ -30,18 +49,14 @@
       - docker_cluster_collocation
       - docker_dedicated_journal
       - docker_dmcrypt_journal_collocation
-      - purge_cluster
       - purge_dmcrypt
       - update_dmcrypt
-      - purge_docker_cluster
-      - update_docker_cluster
       - bluestore_cluster
       - bluestore_journal_collocation
       - bluestore_dmcrypt_journal
       - bluestore_dmcrypt_journal_collocation
       - bluestore_docker_dedicated_journal
       - bluestore_docker_dmcrypt_journal_collocation
-      - switch_to_containers
       - shrink_mon
       - shrink_mon_container
       - shrink_osd
@@ -54,6 +69,7 @@
 # requested with a trigger phrase
 - project:
     name: ceph-ansible-prs-dev
+    slave_labels: 'vagrant && libvirt && !smithi'
     release:
       - dev
     ansible_version:
@@ -67,7 +83,7 @@
 - job-template:
     name: 'ceph-ansible-prs-{release}-{ansible_version}-{scenario}'
     id: 'ceph-ansible-prs-auto'
-    node: vagrant&&libvirt
+    node: '{slave_labels}'
     concurrent: true
     defaults: global
     display-name: 'ceph-ansible: Pull Requests [{release}-{ansible_version}-{scenario}]'
@@ -138,7 +154,7 @@
 - job-template:
     name: 'ceph-ansible-prs-{release}-{ansible_version}-{scenario}'
     id: 'ceph-ansible-prs-trigger'
-    node: vagrant&&libvirt
+    node: '{slave_labels}'
     concurrent: true
     defaults: global
     display-name: 'ceph-ansible: Pull Requests [{release}-{ansible_version}-{scenario}]'
