@@ -247,12 +247,10 @@
         state: latest
 
     - name: install python-jenkins
-      # HORRIBLY BROKEN. This is temporary until this lands upstream:
-      # https://github.com/ceph/python-jenkins/commit/8e018bf7d88dfc308833d195a6ebd29231a8969d
       # https://review.openstack.org/460363
-      # Still not in upstream pip version as of 22JUN2017
       pip:
-        name: git+https://github.com/ceph/python-jenkins@patched#egg=python-jenkins
+        name: python-jenkins
+        version: 0.4.15
 
     - name: add github.com host key
       known_hosts:
