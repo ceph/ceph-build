@@ -1,6 +1,6 @@
 ---
 # This playbook is used to configure static libvirt&&vagrant slaves.
-# Ubuntu Xenial or Yakkety are the only supported distros at this time
+# Ubuntu >= 16.04 and CentOS 7.3 are the only tested distros
 #
 # Example usage:
 # On a baremetal node already configured by the github.com/ceph/ceph-cm-ansible common role,
@@ -14,33 +14,34 @@
    - jenkins_user: 'jenkins-build'
    # jenkins API credentials:
    - api_user: 'ceph-jenkins'
+   - jenkins_credentials_uuid: 'f58ac77b-240c-4371-9678-c31389c06728'
    - token: '{{ token }}'
-   - api_uri: 'https://jenkins.ceph.com'
+   - api_uri: 'https://2.jenkins.ceph.com'
    - nodename: '{{ ansible_hostname }}'
    - labels: 'vagrant libvirt'
 
   tasks:
 
-    - name: Fail if slave is not running Xenial or Yakkety
-      fail:
-        msg: "Slave is not running Xenial or Yakkety"
-      when: ansible_distribution != "Ubuntu" or
-            (ansible_distribution == "Ubuntu" and ansible_distribution_major_version < 16)
-
+    ### REPO TASKS ###
     - name: Check for custom repos
       shell: "ls -1 /etc/apt/sources.list.d"
       register: custom_repos
+      when: ansible_os_family == "Debian"
 
     - name: Delete custom repos
       file:
         path: "/etc/apt/sources.list.d/{{ item }}"
         state: absent
       with_items: "{{ custom_repos.stdout_lines }}"
-      when: custom_repos|length > 0
+      when:
+        - custom_repos|length > 0
+        - custom_repos is defined
+        - ansible_os_family == "Debian"
 
     - name: Update apt cache
       apt:
         update_cache: yes
+      when: ansible_os_family == "Debian"
 
     # vagrant doesn't have repositories, this chacra repo will be better to have
     # around and can get updates as soon as a new vagrant version is published via
@@ -49,10 +50,29 @@
       apt_repository:
         repo: "deb [trusted=yes] https://chacra.ceph.com/r/vagrant/latest/HEAD/ubuntu/xenial/flavors/default/ xenial main"
         state: present
+      when: ansible_os_family == "Debian"
 
+    - name: add the vagrant repository
+      yum_repository:
+        name: vagrant
+        description: self-hosted vagrant repo
+        baseurl: https://chacra.ceph.com/r/vagrant/latest/HEAD/centos/7/flavors/default/x86_64/
+        enabled: yes
+        gpgcheck: no
+      when: ansible_os_family == "RedHat"
+
+    - name: disable epel
+      lineinfile:
+        path: "/etc/yum.repos.d/epel.repo"
+        regexp: '^enabled=.*'
+        line: 'enabled=0'
+      when: ansible_os_family == "RedHat"
+
+    ### PACKAGING TASKS ###
     - name: Update apt cache
       apt:
         update_cache: yes
+      when: ansible_os_family == "Debian"
 
     - name: Install required packages
       apt:
@@ -74,7 +94,45 @@
         - vagrant
         - default-jdk
         - default-jre
+      when: ansible_os_family == "Debian"
 
+    - name: install requirements without epel
+      yum:
+        name: "{{ item }}"
+        state: present
+        disablerepo: epel
+        update_cache: yes
+      with_items:
+        - git
+        - gcc
+        - python-devel
+        - libffi-devel
+        - java-1.8.0-openjdk-devel
+        - qemu-kvm
+        - libvirt-devel
+        - libguestfs
+        - libvirt
+        - libguestfs-tools
+        - vagrant
+        - wget
+        - curl
+        - python-virtualenv
+        - openssl-devel
+        - redhat-lsb-core
+      when: ansible_os_family == "RedHat"
+
+    - name: install packages from epel
+      yum:
+        name: "{{ item }}"
+        state: present
+        enablerepo: epel
+        update_cache: yes
+      with_items:
+        - jq
+        - python-pip
+      when: ansible_os_family == "RedHat"
+
+    ### COMMON TASKS ###
     - set_fact:
         jenkins_group: 'libvirtd'
       when: ansible_distribution_version == '16.04'
@@ -82,7 +140,8 @@
     - set_fact:
         jenkins_group: 'libvirt'
       when: (ansible_distribution_version == '16.10') or
-            (ansible_distribution_major_version >= 17)
+            (ansible_distribution_major_version >= 17) or
+            (ansible_os_family == "RedHat")
 
     - name: "create a {{ jenkins_user }} user"
       user:
@@ -188,12 +247,10 @@
         state: latest
 
     - name: install python-jenkins
-      # HORRIBLY BROKEN. This is temporary until this lands upstream:
-      # https://github.com/ceph/python-jenkins/commit/8e018bf7d88dfc308833d195a6ebd29231a8969d
       # https://review.openstack.org/460363
-      # Still not in upstream pip version as of 22JUN2017
       pip:
-        name: git+https://github.com/ceph/python-jenkins@patched#egg=python-jenkins
+        name: python-jenkins
+        version: 0.4.15
 
     - name: add github.com host key
       known_hosts:
@@ -203,16 +260,34 @@
         # github.com.pub is the output of `ssh-keyscan github.com`
         key: "{{ lookup('file', 'files/ssh/hostkeys/github.com.pub') }}"
 
-    - name: start the libvirt-bin service
-      service:
-        name: libvirt-bin
-        state: started
+    ### LIBVIRT TASKS ###
+    - name: "configure libvirt permissions for {{ jenkins_user }}"
+      blockinfile:
+        dest: /etc/libvirt/qemu.conf
+        block: |
+          user = "{{ jenkins_user }}"
+          group = "{{ jenkins_user }}"
+      when: ansible_os_family == "RedHat"
 
-    - name: start the libvirt-guests service
+    - name: start DEB libvirt services
       service:
-        name: libvirt-guests
-        state: started
+        name: "{{ item }}"
+        state: restarted
+      with_items:
+        - libvirt-bin
+        - libvirt-guests
+      when: ansible_os_family == "Debian"
 
+    - name: start RPM libvirt services
+      service:
+        name: "{{ item }}"
+        state: restarted
+      with_items:
+        - libvirtd
+        - libvirt-guests
+      when: ansible_os_family == "RedHat"
+
+    ### JENKINS TASKS ###
     - name: register the new slave to jenkins master with jnlp
       jenkins_node:
         username: "{{ api_user }}"
@@ -224,7 +299,7 @@
         name: "{{ ansible_default_ipv4.address }}+{{ nodename }}"
         labels: "{{ labels }}"
         host: "{{ ansible_default_ipv4.address }}"
-        credentialsId: '39fa150b-b2a1-416e-b334-29a9a2c0b32d'
+        credentialsId: "{{ jenkins_credentials_uuid }}"
         launcher: 'hudson.slaves.JNLPLauncher'
         remoteFS: '/home/{{ jenkins_user }}/build'
         # XXX this should be configurable, not all nodes should have one executor
