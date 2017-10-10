@@ -14,8 +14,9 @@
    - jenkins_user: 'jenkins-build'
    # jenkins API credentials:
    - api_user: 'ceph-jenkins'
+   - jenkins_credentials_uuid: 'f58ac77b-240c-4371-9678-c31389c06728'
    - token: '{{ token }}'
-   - api_uri: 'https://jenkins.ceph.com'
+   - api_uri: 'https://2.jenkins.ceph.com'
    - nodename: '{{ ansible_hostname }}'
    - labels: 'vagrant libvirt'
 
@@ -300,7 +301,7 @@
         name: "{{ ansible_default_ipv4.address }}+{{ nodename }}"
         labels: "{{ labels }}"
         host: "{{ ansible_default_ipv4.address }}"
-        credentialsId: '39fa150b-b2a1-416e-b334-29a9a2c0b32d'
+        credentialsId: "{{ jenkins_credentials_uuid }}"
         launcher: 'hudson.slaves.JNLPLauncher'
         remoteFS: '/home/{{ jenkins_user }}/build'
         # XXX this should be configurable, not all nodes should have one executor
