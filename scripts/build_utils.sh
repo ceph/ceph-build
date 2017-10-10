@@ -436,7 +436,12 @@ clear_libvirt_networks() {
 
 restart_libvirt_services() {
     # restart libvirt services
-    sudo service libvirt-bin restart
+    get_distro_and_target
+    if [ "$DISTRO" == "rhel" ] || [ "$DISTRO" == "centos" ]; then
+        sudo service libvirtd restart
+    else
+        sudo service libvirt-bin restart
+    fi
     sudo service libvirt-guests restart
 }
 
