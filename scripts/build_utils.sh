@@ -436,8 +436,7 @@ clear_libvirt_networks() {
 
 restart_libvirt_services() {
     # restart libvirt services
-    get_distro_and_target
-    if [ "$DISTRO" == "rhel" ] || [ "$DISTRO" == "centos" ]; then
+    if test -f /etc/redhat-release; then
         sudo service libvirtd restart
     else
         sudo service libvirt-bin restart
