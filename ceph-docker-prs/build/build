@@ -9,21 +9,12 @@ source $VENV/activate
 
 WORKDIR=$(mktemp -td tox.XXXXXXXXXX)
 
-sudo apt-get install -y docker.io
-
-sudo gpasswd -a ${USER} docker
-sudo systemctl restart docker
-newgrp docker
-
 delete_libvirt_vms
 clear_libvirt_networks
 restart_libvirt_services
 update_vagrant_boxes
 
-# adding groups on the fly doesn't guarantee their availability
-# so we must use `sg` to execute the tests as part of the docker group to avoid
-# 'Permission Denied` when tryin to talk over the socket
-if ! timeout 3h sg docker -c "$VENV/tox -rv -e=$SCENARIO --workdir=$WORKDIR"; then
+if ! timeout 3h $VENV/tox -rv -e=$SCENARIO --workdir=$WORKDIR; then
   echo "ERROR: Job didn't complete successfully or got stuck for more than 3h."
   exit 1
 fi
