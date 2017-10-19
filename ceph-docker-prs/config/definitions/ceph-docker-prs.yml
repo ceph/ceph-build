@@ -8,8 +8,9 @@
       - luminous
     test:
       - cluster
-      - dedicated_journal
-      - dmcrypt_journal_collocation
+      - filestore_osds_container
+      - bluestore_osds_container
+      - docker_cluster_collocation
     jobs:
         - 'ceph-docker-prs-ceph_ansible-{ceph-version}-{os}-{test}'
 

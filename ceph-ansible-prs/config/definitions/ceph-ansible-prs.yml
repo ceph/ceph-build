@@ -10,7 +10,7 @@
       - centos7_cluster
       - xenial_cluster
       - docker_cluster
-      - update_cluster
+      - docker_cluster_collocation
     jobs:
         - 'ceph-ansible-prs-auto'
 
@@ -25,9 +25,10 @@
       - ansible2.3
     scenario:
       - purge_cluster
+      - purge_docker_cluster
+      - update_cluster
       - update_docker_cluster
       - switch_to_containers
-      - purge_docker_cluster
     jobs:
         - 'ceph-ansible-prs-trigger'
 
@@ -41,22 +42,10 @@
     ansible_version:
       - ansible2.3
     scenario:
-      - journal_collocation
-      - journal_collocation_auto
-      - journal_collocation_auto_dmcrypt
-      - dmcrypt_journal
-      - dmcrypt_journal_collocation
-      - docker_cluster_collocation
-      - docker_dedicated_journal
-      - docker_dmcrypt_journal_collocation
-      - purge_dmcrypt
-      - update_dmcrypt
-      - bluestore_cluster
-      - bluestore_journal_collocation
-      - bluestore_dmcrypt_journal
-      - bluestore_dmcrypt_journal_collocation
-      - bluestore_docker_dedicated_journal
-      - bluestore_docker_dmcrypt_journal_collocation
+      - bluestore_osds_non_container
+      - bluestore_osds_container
+      - filestore_osds_non_container
+      - filestore_osds_container
       - shrink_mon
       - shrink_mon_container
       - shrink_osd
