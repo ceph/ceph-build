@@ -56,6 +56,29 @@
       apt_repository:
         repo: "deb [trusted=yes] https://chacra.ceph.com/r/vagrant/latest/HEAD/ubuntu/xenial/flavors/default/ xenial main"
         state: present
+      when: ansible_os_family == "Debian"
+
+    - name: add the vagrant repository
+      yum_repository:
+        name: vagrant
+        description: self-hosted vagrant repo
+        baseurl: https://chacra.ceph.com/r/vagrant/latest/HEAD/centos/7/flavors/default/x86_64/
+        enabled: yes
+        gpgcheck: no
+      when: ansible_os_family == "RedHat"
+
+    - name: Install epel repo
+      yum:
+        name: epel-release
+        state: latest
+      when: ansible_os_family == "RedHat"
+
+    - name: disable epel for now
+      lineinfile:
+        path: "/etc/yum.repos.d/epel.repo"
+        regexp: '^enabled=.*'
+        line: 'enabled=0'
+      when: ansible_os_family == "RedHat"
 
     # Run the equivalent of "apt-get update" as a separate step
     - apt:
@@ -83,13 +106,51 @@
         - vagrant
       when: ansible_pkg_mgr  == "apt"
 
+    - name: install requirements without epel
+      yum:
+        name: "{{ item }}"
+        state: present
+        disablerepo: epel
+        update_cache: yes
+      with_items:
+        - git
+        - gcc
+        - python-devel
+        - libffi-devel
+        - java-1.8.0-openjdk-devel
+        - qemu-kvm
+        - libvirt-devel
+        - libguestfs
+        - libvirt
+        - libguestfs-tools
+        - vagrant
+        - wget
+        - curl
+        - python-virtualenv
+        - openssl-devel
+        - redhat-lsb-core
+      when: ansible_os_family == "RedHat"
+
+    - name: install packages from epel
+      yum:
+        name: "{{ item }}"
+        state: present
+        enablerepo: epel
+        update_cache: yes
+      with_items:
+        - jq
+        - python-pip
+      when: ansible_os_family == "RedHat"
+
     - set_fact:
         jenkins_group: 'libvirtd'
       when: ansible_distribution_version == '16.04'
 
     - set_fact:
         jenkins_group: 'libvirt'
-      when: ansible_distribution_version == '17.04'
+      when: (ansible_distribution_version == '16.10') or
+            (ansible_distribution_major_version >= 17) or
+            (ansible_os_family == "RedHat")
 
     - name: "create a {{ jenkins_user }} user"
       user:
@@ -263,15 +324,31 @@
         # github.com.pub is the output of `ssh-keyscan github.com`
         key: "{{ lookup('file', 'playbook/files/ssh/hostkeys/github.com.pub') }}"
 
-    - name: start the libvirt-bin service
-      service:
-        name: libvirt-bin
-        state: started
+    - name: "configure libvirt permissions for {{ jenkins_user }}"
+      blockinfile:
+        dest: /etc/libvirt/qemu.conf
+        block: |
+          user = "{{ jenkins_user }}"
+          group = "{{ jenkins_user }}"
+      when: ansible_os_family == "RedHat"
 
-    - name: start the libvirt-guests service
+    - name: start DEB libvirt services
       service:
-        name: libvirt-guests
-        state: started
+        name: "{{ item }}"
+        state: restarted
+      with_items:
+        - libvirt-bin
+        - libvirt-guests
+      when: ansible_os_family == "Debian"
+
+    - name: start RPM libvirt services
+      service:
+        name: "{{ item }}"
+        state: restarted
+      with_items:
+        - libvirtd
+        - libvirt-guests
+      when: ansible_os_family == "RedHat"
 
     - name: register the new slave to jenkins master with ssh
       jenkins_node:
