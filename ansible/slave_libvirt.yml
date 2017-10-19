@@ -1,7 +1,7 @@
 ---
 
 - hosts: all
-  sudo: true
+  become: true
   user: ubuntu
   vars:
    - jenkins_user: 'jenkins-build'
@@ -53,7 +53,6 @@
     # around and can get updates as soon as a new vagrant version is published via
     # chacractl
     - name: add the vagrant repository
-      sudo: yes
       apt_repository:
         repo: "deb [trusted=yes] https://chacra.ceph.com/r/vagrant/latest/HEAD/ubuntu/xenial/flavors/default/ xenial main"
         state: present
@@ -64,7 +63,6 @@
       when: ansible_pkg_mgr  == "apt"
 
     - name: Install DEB requirements
-      sudo: yes
       apt:
         name: "{{ item }}"
         state: present
@@ -123,7 +121,6 @@
         key: "{{ lookup('file', 'playbook/files/ssh/keys/jenkins_build.pub') }}"
 
     - name: "ensure {{ jenkins_user }} can sudo without a prompt"
-      sudo: yes
       lineinfile:
         dest: /etc/sudoers
         regexp: '^{{ jenkins_user }} ALL'
@@ -165,7 +162,6 @@
         recurse: yes
 
     - name: Add the Debian Jessie Key
-      sudo: yes
       apt_key:
         id: 2B90D010
         url: https://ftp-master.debian.org/keys/archive-key-8.asc
@@ -174,7 +170,6 @@
       when: ansible_pkg_mgr  == "apt"
 
     - name: Add the Debian Security Jessie Key
-      sudo: yes
       apt_key:
         id: C857C906
         url: https://ftp-master.debian.org/keys/archive-key-8-security.asc
@@ -183,7 +178,6 @@
       when: ansible_pkg_mgr  == "apt"
 
     - name: Add the Debian Jessie Stable Release Key
-      sudo: yes
       apt_key:
         keyserver: pgp.mit.edu
         id: 75DDC3C4A499F1A18CB5F3C8CBF8D6FD518E17E1
@@ -224,12 +218,10 @@
         owner: "{{ jenkins_user }}"
 
     - name: Set Hostname with hostname command
-      sudo: yes
       hostname:
         name: "ceph-builders"
 
     - name: ensure that 127.0.1.1 is present with an actual hostname
-      sudo: true
       lineinfile:
         dest: /etc/hosts
         line: '127.0.1.1 ceph-builders'
@@ -241,34 +233,29 @@
     # not all our images have this setting though, so ignore failures on
     # those nodes
     - name: update the etc cloud templates for debian /etc/hosts
-      sudo: true
       lineinfile:
         dest: /etc/cloud/templates/hosts.debian.tmpl
         line: '127.0.1.1 ceph-builders'
       failed_when: false
 
     - name: update the etc cloud templates for debian /etc/hosts
-      sudo: true
       lineinfile:
         dest: /etc/cloud/templates/hosts.redhat.tmpl
         line: '127.0.1.1 ceph-builders'
       failed_when: false
 
     - name: install six, latest one
-      sudo: true
       pip:
         name: six
         state: latest
 
     - name: install python-jenkins
-      sudo: true
       # https://review.openstack.org/460363
       pip:
         name: python-jenkins
         version: 0.4.15
 
     - name: add github.com host key
-      sudo: true
       known_hosts:
         path: '/etc/ssh/ssh_known_hosts'
         # we need to use 'host' here because prado currently uses ansible-playbook==1.9.1
@@ -277,13 +264,11 @@
         key: "{{ lookup('file', 'playbook/files/ssh/hostkeys/github.com.pub') }}"
 
     - name: start the libvirt-bin service
-      sudo: true
       service:
         name: libvirt-bin
         state: started
 
     - name: start the libvirt-guests service
-      sudo: true
       service:
         name: libvirt-guests
         state: started

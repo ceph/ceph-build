@@ -1,7 +1,7 @@
 ---
 
 - hosts: all
-  sudo: true
+  become: true
   user: ubuntu
   vars:
    - jenkins_user: 'jenkins-build'
@@ -72,7 +72,6 @@
         key: "{{ lookup('file', 'playbook/files/ssh/keys/jenkins_build.pub') }}"
 
     - name: "ensure {{ jenkins_user }} can sudo without a prompt"
-      sudo: yes
       lineinfile:
         dest: /etc/sudoers
         regexp: '^{{ jenkins_user }} ALL'
@@ -114,7 +113,6 @@
         recurse: yes
 
     - name: Install RPM requirements
-      sudo: yes
       yum:
         name: "{{ item }}"
         state: present
@@ -154,7 +152,6 @@
       when: ansible_pkg_mgr  == "apt"
 
     - name: Install DEB requirements
-      sudo: yes
       apt:
         name: "{{ item }}"
         state: present
@@ -186,7 +183,6 @@
       when: ansible_pkg_mgr  == "apt"
 
     - name: Add the Debian Jessie Key
-      sudo: yes
       apt_key:
        id: 2B90D010
        url: https://ftp-master.debian.org/keys/archive-key-8.asc
@@ -195,7 +191,6 @@
       when: ansible_pkg_mgr  == "apt"
 
     - name: Add the Debian Security Jessie Key
-      sudo: yes
       apt_key:
         id: C857C906
         url: https://ftp-master.debian.org/keys/archive-key-8-security.asc
@@ -204,7 +199,6 @@
       when: ansible_pkg_mgr  == "apt"
 
     - name: Add the Debian Jessie Stable Key
-      sudo: yes
       apt_key:
         keyserver: pgp.mit.edu
         id: 518E17E1
@@ -257,26 +251,22 @@
         owner: "{{ jenkins_user }}"
 
     - name: Set Hostname with hostname command
-      sudo: yes
       hostname:
         name: "ceph-builders"
 
     - name: ensure that 127.0.1.1 is present with an actual hostname
-      sudo: true
       lineinfile:
         backup: yes
         dest: /etc/hosts
         line: '127.0.1.1 ceph-builders'
 
     - name: update etc cloud templates for debian /etc/hosts
-      sudo: true
       lineinfile:
         backup: yes
         dest: /etc/cloud/templates/hosts.debian.tmpl
         line: '127.0.1.1 ceph-builders'
 
     - name: update etc cloud templates for red hat /etc/hosts
-      sudo: true
       lineinfile:
         backup: yes
         dest: /etc/cloud/templates/hosts.redhat.tmpl
@@ -284,20 +274,17 @@
       failed_when: false
 
     - name: install six, latest one
-      sudo: true
       pip:
         name: six
         state: latest
 
     - name: install python-jenkins
-      sudo: true
       # https://review.openstack.org/460363
       pip:
         name: python-jenkins
         version: 0.4.15
 
     - name: add github.com host key
-      sudo: true
       known_hosts:
         path: '/etc/ssh/ssh_known_hosts'
         # we need to use 'host' here because prado currently uses ansible-playbook==1.9.1
