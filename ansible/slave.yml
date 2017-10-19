@@ -49,10 +49,12 @@
         line: 'nameserver 8.8.8.8'
         state: present
 
-    - name: create a {{ jenkins_user }} user
-      user: name={{ jenkins_user }} comment="Jenkins Build Slave User"
+    - name: "create a {{ jenkins_user }} user"
+      user:
+        name: "{{ jenkins_user }}"
+        comment: "Jenkins Build Slave User"
 
-    - name: create a {{ jenkins_user }} home directory
+    - name: "create a {{ jenkins_user }} home directory"
       file:
         path: "/home/{{ jenkins_user }}/"
         state: directory
@@ -65,9 +67,11 @@
         owner: "{{ jenkins_user }}"
 
     - name: set the authorized keys
-      authorized_key: user={{ jenkins_user }} key="{{ lookup('file', 'playbook/files/ssh/keys/jenkins_build.pub') }}"
+      authorized_key:
+        user: "{{ jenkins_user }}"
+        key: "{{ lookup('file', 'playbook/files/ssh/keys/jenkins_build.pub') }}"
 
-    - name: ensure {{ jenkins_user }} can sudo without a prompt
+    - name: "ensure {{ jenkins_user }} can sudo without a prompt"
       sudo: yes
       lineinfile:
         dest: /etc/sudoers
@@ -96,14 +100,24 @@
         line: "export LANGUAGE=en_US.UTF-8"
 
     - name: ensure the build dir exists
-      file: path=/home/{{ jenkins_user }}/build state=directory owner={{ jenkins_user }}
+      file:
+        path: "/home/{{ jenkins_user }}/build"
+        state: directory
+        owner: "{{ jenkins_user }}"
 
     - name: ensure the home dir has the right owner permissions
-      file: path=/home/{{ jenkins_user }} state=directory owner={{ jenkins_user }} group={{ jenkins_user }} recurse=yes
+      file:
+        path: "/home/{{ jenkins_user }}"
+        state: directory
+        owner: "{{ jenkins_user }}"
+        group: "{{ jenkins_user }}"
+        recurse: yes
 
     - name: Install RPM requirements
       sudo: yes
-      yum: name={{ item }} state=present
+      yum:
+        name: "{{ item }}"
+        state: present
       with_items:
         - createrepo
         - epel-release
@@ -135,12 +149,15 @@
       when: ansible_pkg_mgr  == "yum"
 
     # Run the equivalent of "apt-get update" as a separate step
-    - apt: update_cache=yes
+    - apt:
+        update_cache: yes
       when: ansible_pkg_mgr  == "apt"
 
     - name: Install DEB requirements
       sudo: yes
-      apt: name={{ item }} state=present
+      apt:
+        name: "{{ item }}"
+        state: present
       with_items:
         - git
         - fakeroot
@@ -170,26 +187,40 @@
 
     - name: Add the Debian Jessie Key
       sudo: yes
+      apt_key:
+       id: 2B90D010
+       url: https://ftp-master.debian.org/keys/archive-key-8.asc
+       keyring: /etc/apt/trusted.gpg
+       state: present
       when: ansible_pkg_mgr  == "apt"
-      apt_key: id=2B90D010 url=https://ftp-master.debian.org/keys/archive-key-8.asc keyring=/etc/apt/trusted.gpg state=present
 
     - name: Add the Debian Security Jessie Key
       sudo: yes
+      apt_key:
+        id: C857C906
+        url: https://ftp-master.debian.org/keys/archive-key-8-security.asc
+        keyring: /etc/apt/trusted.gpg
+        state: present
       when: ansible_pkg_mgr  == "apt"
-      apt_key: id=C857C906 url=https://ftp-master.debian.org/keys/archive-key-8-security.asc keyring=/etc/apt/trusted.gpg state=present
 
     - name: Add the Debian Jessie Stable Key
       sudo: yes
+      apt_key:
+        keyserver: pgp.mit.edu
+        id: 518E17E1
       when: ansible_pkg_mgr  == "apt"
-      apt_key: keyserver=pgp.mit.edu id=518E17E1
 
     - name: Install openjdk-7-jre
-      apt: name=openjdk-7-jre state=present
+      apt:
+        name: openjdk-7-jre
+        state: present
       when:
         ansible_distribution_release in ['precise', 'trusty', 'wheezy', 'jessie']
 
     - name: Install default openjdk for Xenial only
-      apt: name={{ item }} state=present
+      apt:
+        name: "{{ item }}"
+        state: present
       with_items:
         - default-jdk
         - default-jre
@@ -197,13 +228,18 @@
         ansible_distribution_release == 'xenial'
 
     - name: correct java version selected
-      alternatives: name=java path=/usr/lib/jvm/java-7-openjdk-amd64/jre/bin/java
+      alternatives:
+        name: java
+        path: /usr/lib/jvm/java-7-openjdk-amd64/jre/bin/java
       when:
         (ansible_distribution == 'Ubuntu' and ansible_distribution_release == 'precise') or
         (ansible_distribution == 'Debian' and ansible_distribution_release == 'wheezy')
 
     - name: ensure the rpmmacros file exists to fix centos builds
-      file: path="/home/{{ jenkins_user }}/.rpmmacros" owner="{{ jenkins_user }}" state=touch
+      file:
+        path: "/home/{{ jenkins_user }}/.rpmmacros"
+        owner: "{{ jenkins_user }}"
+        state: touch
 
     - name: write the rpmmacros needed in centos
       lineinfile:
@@ -249,12 +285,16 @@
 
     - name: install six, latest one
       sudo: true
-      pip: name=six state=latest
+      pip:
+        name: six
+        state: latest
 
     - name: install python-jenkins
       sudo: true
       # https://review.openstack.org/460363
-      pip: name=python-jenkins version=0.4.15
+      pip:
+        name: python-jenkins
+        version: 0.4.15
 
     - name: add github.com host key
       sudo: true
