@@ -8,8 +8,8 @@
       - luminous
     test:
       - cluster
-      - dedicated_journal
-      - dmcrypt_journal_collocation
+      - bluestore_osds_container
+      - filestore_osds_container
     jobs:
         - 'ceph-docker-nightly-ceph_ansible-{ceph-version}-{os}-{test}'
 
