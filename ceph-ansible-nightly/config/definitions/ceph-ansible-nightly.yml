@@ -8,12 +8,14 @@
       - centos7_cluster
       - xenial_cluster
       - docker_cluster
-      - purge_cluster
       - update_cluster
-      - purge_docker_cluster
       - update_docker_cluster
       - filestore_osds_non_container
       - filestore_osds_container
+      - purge_cluster_container
+      - purge_cluster_non_container
+      - purge_filestore_osds_container
+      - purge_filestore_osds_non_container
     jobs:
         - 'ceph-ansible-nightly-{release}-{ansible_version}-{scenario}'
 
@@ -31,8 +33,6 @@
       - lvm_osds
       - purge_lvm_osds
       - docker_cluster_collocation
-      - purge_cluster
-      - purge_docker_cluster
       - update_docker_cluster
       - switch_to_containers
       - shrink_mon
@@ -43,6 +43,12 @@
       - bluestore_osds_container
       - filestore_osds_non_container
       - filestore_osds_container
+      - purge_cluster_container
+      - purge_cluster_non_container
+      - purge_filestore_osds_container
+      - purge_filestore_osds_non_container
+      - purge_bluestore_osds_container
+      - purge_bluestore_osds_non_container
     jobs:
         - 'ceph-ansible-nightly-{release}-{ansible_version}-{scenario}'
 
