@@ -48,7 +48,7 @@
 
 - job-template:
     name: 'ceph-ansible-nightly-{release}-{ansible_version}-{scenario}'
-    node: vagrant&&libvirt
+    node: vagrant&&libvirt&&centos7
     concurrent: true
     defaults: global
     display-name: 'ceph-ansible: Nightly [{release}-{ansible_version}-{scenario}]'

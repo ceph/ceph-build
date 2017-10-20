@@ -15,7 +15,7 @@
 
 - job-template:
     name: 'ceph-docker-nightly-ceph_ansible-{ceph-version}-{os}-{test}'
-    node: vagrant&&libvirt
+    node: vagrant&&libvirt&&centos7
     concurrent: true
     defaults: global
     display-name: 'ceph-docker: Nightly tests [ceph_ansible-{ceph-version}-{os}-{test}]'
