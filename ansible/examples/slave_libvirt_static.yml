@@ -140,7 +140,7 @@
     - set_fact:
         jenkins_group: 'libvirt'
       when: (ansible_distribution_version == '16.10') or
-            (ansible_distribution_major_version >= 17) or
+            (ansible_distribution_major_version|int >= 17) or
             (ansible_os_family == "RedHat")
 
     - name: "create a {{ jenkins_user }} user"
