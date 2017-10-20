@@ -36,7 +36,7 @@
 # they can be requested with a trigger phrase. Run on OVH.
 - project:
     name: ceph-ansible-prs-trigger-ovh
-    slave_labels: 'vagrant && libvirt && !smithi'
+    slave_labels: 'vagrant && libvirt && !smithi && centos7'
     release:
       - luminous
     ansible_version:
@@ -58,7 +58,7 @@
 # requested with a trigger phrase
 - project:
     name: ceph-ansible-prs-dev
-    slave_labels: 'vagrant && libvirt && !smithi'
+    slave_labels: 'vagrant && libvirt && !smithi && centos7'
     release:
       - dev
     ansible_version:

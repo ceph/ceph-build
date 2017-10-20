@@ -17,7 +17,7 @@
 
 - job-template:
     name: 'ceph-docker-prs-ceph_ansible-{ceph-version}-{os}-{test}'
-    node: vagrant&&libvirt
+    node: vagrant&&libvirt&&centos7
     concurrent: true
     defaults: global
     display-name: 'ceph-docker: Pull Requests [ceph_ansible-{ceph-version}-{os}-{test}]'
