@@ -1,7 +1,7 @@
 ---
 
 - hosts: all
-  sudo: true
+  become: true
   user: ubuntu
   vars:
    - jenkins_user: 'jenkins-build'
@@ -9,15 +9,52 @@
    - api_user: 'ceph-jenkins'
    - token: '{{ token }}'
    - api_uri: 'https://jenkins.ceph.com'
+   - jenkins_credentials_uuid: '39fa150b-b2a1-416e-b334-29a9a2c0b32d'
    - nodename: '{{ nodename }}'
    - labels: '{{ labels }}'
    - use_jnlp: false
 
   tasks:
-    - name: create a {{ jenkins_user }} user
-      user: name={{ jenkins_user }} comment="Jenkins Build Slave User"
+    - name: uninstall resolvconf on Ubuntu to manually manage resolv.conf
+      apt:
+        name: resolvconf
+        state: absent
+      when: ansible_os_family == "Debian"
 
-    - name: create a {{ jenkins_user }} home directory
+    - name: check for NetworkManager conf
+      stat:
+        path: /etc/NetworkManager/NetworkManager.conf
+      register: nm_conf
+
+    - name: tell NetworkManager to leave resolv.conf alone on CentOS
+      lineinfile:
+        dest: /etc/NetworkManager/NetworkManager.conf
+        regexp: '^dns='
+        line: 'dns=none'
+        state: present
+      when: ansible_os_family == "RedHat" and nm_conf.stat.exists
+
+    - name: tell dhclient to leave resolv.conf alone on Ubuntu
+      lineinfile:
+        dest: /etc/dhcp/dhclient.conf
+        regexp: 'prepend domain-name-servers'
+        line: 'supersede domain-name-servers 8.8.8.8;'
+        state: present
+      when: ansible_os_family == "Debian"
+
+    - name: use Google DNS for name resolution
+      lineinfile:
+        dest: /etc/resolv.conf
+        regexp: '^nameserver'
+        line: 'nameserver 8.8.8.8'
+        state: present
+
+    - name: "create a {{ jenkins_user }} user"
+      user:
+        name: "{{ jenkins_user }}"
+        comment: "Jenkins Build Slave User"
+
+    - name: "create a {{ jenkins_user }} home directory"
       file:
         path: "/home/{{ jenkins_user }}/"
         state: directory
@@ -30,10 +67,11 @@
         owner: "{{ jenkins_user }}"
 
     - name: set the authorized keys
-      authorized_key: user={{ jenkins_user }} key="{{ lookup('file', 'playbook/files/ssh/keys/jenkins_build.pub') }}"
+      authorized_key:
+        user: "{{ jenkins_user }}"
+        key: "{{ lookup('file', 'playbook/files/ssh/keys/jenkins_build.pub') }}"
 
-    - name: ensure {{ jenkins_user }} can sudo without a prompt
-      sudo: yes
+    - name: "ensure {{ jenkins_user }} can sudo without a prompt"
       lineinfile:
         dest: /etc/sudoers
         regexp: '^{{ jenkins_user }} ALL'
@@ -61,18 +99,27 @@
         line: "export LANGUAGE=en_US.UTF-8"
 
     - name: ensure the build dir exists
-      file: path=/home/{{ jenkins_user }}/build state=directory owner={{ jenkins_user }}
+      file:
+        path: "/home/{{ jenkins_user }}/build"
+        state: directory
+        owner: "{{ jenkins_user }}"
 
     - name: ensure the home dir has the right owner permissions
-      file: path=/home/{{ jenkins_user }} state=directory owner={{ jenkins_user }} group={{ jenkins_user }} recurse=yes
+      file:
+        path: "/home/{{ jenkins_user }}"
+        state: directory
+        owner: "{{ jenkins_user }}"
+        group: "{{ jenkins_user }}"
+        recurse: yes
 
     - name: Install RPM requirements
-      sudo: yes
-      yum: name={{ item }} state=present
+      yum:
+        name: "{{ item }}"
+        state: present
       with_items:
         - createrepo
         - epel-release
-        - java-1.7.0-openjdk
+        - java-1.8.0-openjdk
         - git
         - python-pip
         - python-virtualenv
@@ -100,12 +147,14 @@
       when: ansible_pkg_mgr  == "yum"
 
     # Run the equivalent of "apt-get update" as a separate step
-    - apt: update_cache=yes
+    - apt:
+        update_cache: yes
       when: ansible_pkg_mgr  == "apt"
 
     - name: Install DEB requirements
-      sudo: yes
-      apt: name={{ item }} state=present
+      apt:
+        name: "{{ item }}"
+        state: present
       with_items:
         - git
         - fakeroot
@@ -134,27 +183,38 @@
       when: ansible_pkg_mgr  == "apt"
 
     - name: Add the Debian Jessie Key
-      sudo: yes
+      apt_key:
+       id: 2B90D010
+       url: https://ftp-master.debian.org/keys/archive-key-8.asc
+       keyring: /etc/apt/trusted.gpg
+       state: present
       when: ansible_pkg_mgr  == "apt"
-      apt_key: id=2B90D010 url=https://ftp-master.debian.org/keys/archive-key-8.asc keyring=/etc/apt/trusted.gpg state=present
 
     - name: Add the Debian Security Jessie Key
-      sudo: yes
+      apt_key:
+        id: C857C906
+        url: https://ftp-master.debian.org/keys/archive-key-8-security.asc
+        keyring: /etc/apt/trusted.gpg
+        state: present
       when: ansible_pkg_mgr  == "apt"
-      apt_key: id=C857C906 url=https://ftp-master.debian.org/keys/archive-key-8-security.asc keyring=/etc/apt/trusted.gpg state=present
 
     - name: Add the Debian Jessie Stable Key
-      sudo: yes
+      apt_key:
+        keyserver: pgp.mit.edu
+        id: 518E17E1
       when: ansible_pkg_mgr  == "apt"
-      apt_key: keyserver=pgp.mit.edu id=518E17E1
 
     - name: Install openjdk-7-jre
-      apt: name=openjdk-7-jre state=present
+      apt:
+        name: openjdk-7-jre
+        state: present
       when:
         ansible_distribution_release in ['precise', 'trusty', 'wheezy', 'jessie']
 
     - name: Install default openjdk for Xenial only
-      apt: name={{ item }} state=present
+      apt:
+        name: "{{ item }}"
+        state: present
       with_items:
         - default-jdk
         - default-jre
@@ -162,13 +222,18 @@
         ansible_distribution_release == 'xenial'
 
     - name: correct java version selected
-      alternatives: name=java path=/usr/lib/jvm/java-7-openjdk-amd64/jre/bin/java
+      alternatives:
+        name: java
+        path: /usr/lib/jvm/java-7-openjdk-amd64/jre/bin/java
       when:
         (ansible_distribution == 'Ubuntu' and ansible_distribution_release == 'precise') or
         (ansible_distribution == 'Debian' and ansible_distribution_release == 'wheezy')
 
     - name: ensure the rpmmacros file exists to fix centos builds
-      file: path="/home/{{ jenkins_user }}/.rpmmacros" owner="{{ jenkins_user }}" state=touch
+      file:
+        path: "/home/{{ jenkins_user }}/.rpmmacros"
+        owner: "{{ jenkins_user }}"
+        state: touch
 
     - name: write the rpmmacros needed in centos
       lineinfile:
@@ -186,26 +251,22 @@
         owner: "{{ jenkins_user }}"
 
     - name: Set Hostname with hostname command
-      sudo: yes
       hostname:
         name: "ceph-builders"
 
     - name: ensure that 127.0.1.1 is present with an actual hostname
-      sudo: true
       lineinfile:
         backup: yes
         dest: /etc/hosts
         line: '127.0.1.1 ceph-builders'
 
     - name: update etc cloud templates for debian /etc/hosts
-      sudo: true
       lineinfile:
         backup: yes
         dest: /etc/cloud/templates/hosts.debian.tmpl
         line: '127.0.1.1 ceph-builders'
 
     - name: update etc cloud templates for red hat /etc/hosts
-      sudo: true
       lineinfile:
         backup: yes
         dest: /etc/cloud/templates/hosts.redhat.tmpl
@@ -213,16 +274,17 @@
       failed_when: false
 
     - name: install six, latest one
-      sudo: true
-      pip: name=six state=latest
+      pip:
+        name: six
+        state: latest
 
     - name: install python-jenkins
-      sudo: true
       # https://review.openstack.org/460363
-      pip: name=python-jenkins version=0.4.15
+      pip:
+        name: python-jenkins
+        version: 0.4.15
 
     - name: add github.com host key
-      sudo: true
       known_hosts:
         path: '/etc/ssh/ssh_known_hosts'
         # we need to use 'host' here because prado currently uses ansible-playbook==1.9.1
@@ -241,7 +303,7 @@
         name: "{{ ansible_default_ipv4.address }}+{{ nodename }}"
         labels: "{{ labels }}"
         host: "{{ ansible_default_ipv4.address }}"
-        credentialsId: '39fa150b-b2a1-416e-b334-29a9a2c0b32d'
+        credentialsId: "{{ jenkins_credentials_uuid }}"
         remoteFS: '/home/{{ jenkins_user }}/build'
         executors: '{{ executors|default(1) }}'
         exclusive: true
@@ -258,7 +320,7 @@
         name: "{{ ansible_default_ipv4.address }}+{{ nodename }}"
         labels: "{{ labels }}"
         host: "{{ ansible_default_ipv4.address }}"
-        credentialsId: '39fa150b-b2a1-416e-b334-29a9a2c0b32d'
+        credentialsId: "{{ jenkins_credentials_uuid }}"
         launcher: 'hudson.slaves.JNLPLauncher'
         remoteFS: '/home/{{ jenkins_user }}/build'
         # XXX this should be configurable, not all nodes should have one executor

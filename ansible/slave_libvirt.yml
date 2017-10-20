@@ -1,7 +1,7 @@
 ---
 
 - hosts: all
-  sudo: true
+  become: true
   user: ubuntu
   vars:
    - jenkins_user: 'jenkins-build'
@@ -9,28 +9,86 @@
    - api_user: 'ceph-jenkins'
    - token: '{{ token }}'
    - api_uri: 'https://jenkins.ceph.com'
+   - jenkins_credentials_uuid: '39fa150b-b2a1-416e-b334-29a9a2c0b32d'
    - nodename: '{{ nodename }}'
    - labels: '{{ labels }}'
    - use_jnlp: false
 
   tasks:
+    - name: uninstall resolvconf on Ubuntu to manually manage resolv.conf
+      apt:
+        name: resolvconf
+        state: absent
+      when: ansible_os_family == "Debian"
+
+    - name: check for NetworkManager conf
+      stat:
+        path: /etc/NetworkManager/NetworkManager.conf
+      register: nm_conf
+
+    - name: tell NetworkManager to leave resolv.conf alone on CentOS
+      lineinfile:
+        dest: /etc/NetworkManager/NetworkManager.conf
+        regexp: '^dns='
+        line: 'dns=none'
+        state: present
+      when: ansible_os_family == "RedHat" and nm_conf.stat.exists
+
+    - name: tell dhclient to leave resolv.conf alone on Ubuntu
+      lineinfile:
+        dest: /etc/dhcp/dhclient.conf
+        regexp: 'prepend domain-name-servers'
+        line: 'supersede domain-name-servers 8.8.8.8;'
+        state: present
+      when: ansible_os_family == "Debian"
+
+    - name: use Google DNS for name resolution
+      lineinfile:
+        dest: /etc/resolv.conf
+        regexp: '^nameserver'
+        line: 'nameserver 8.8.8.8'
+        state: present
 
     # vagrant doesn't have repositories, this chacra repo will be better to have
     # around and can get updates as soon as a new vagrant version is published via
     # chacractl
     - name: add the vagrant repository
-      sudo: yes
       apt_repository:
         repo: "deb [trusted=yes] https://chacra.ceph.com/r/vagrant/latest/HEAD/ubuntu/xenial/flavors/default/ xenial main"
         state: present
+      when: ansible_os_family == "Debian"
+
+    - name: add the vagrant repository
+      yum_repository:
+        name: vagrant
+        description: self-hosted vagrant repo
+        baseurl: https://chacra.ceph.com/r/vagrant/latest/HEAD/centos/7/flavors/default/x86_64/
+        enabled: yes
+        gpgcheck: no
+      when: ansible_os_family == "RedHat"
+
+    - name: Install epel repo
+      yum:
+        name: epel-release
+        state: latest
+      when: ansible_os_family == "RedHat"
+
+    - name: disable epel for now
+      lineinfile:
+        path: "/etc/yum.repos.d/epel.repo"
+        regexp: '^enabled=.*'
+        line: 'enabled=0'
+      when: ansible_os_family == "RedHat"
 
     # Run the equivalent of "apt-get update" as a separate step
-    - apt: update_cache=yes
+    - apt:
+        update_cache: yes
       when: ansible_pkg_mgr  == "apt"
 
     - name: Install DEB requirements
-      sudo: yes
-      apt: name={{ item }} state=present
+      apt:
+        name: "{{ item }}"
+        state: present
       with_items:
         - git
         - python-dev
@@ -48,22 +106,60 @@
         - vagrant
       when: ansible_pkg_mgr  == "apt"
 
+    - name: install requirements without epel
+      yum:
+        name: "{{ item }}"
+        state: present
+        disablerepo: epel
+        update_cache: yes
+      with_items:
+        - git
+        - gcc
+        - python-devel
+        - libffi-devel
+        - java-1.8.0-openjdk-devel
+        - qemu-kvm
+        - libvirt-devel
+        - libguestfs
+        - libvirt
+        - libguestfs-tools
+        - vagrant
+        - wget
+        - curl
+        - python-virtualenv
+        - openssl-devel
+        - redhat-lsb-core
+      when: ansible_os_family == "RedHat"
+
+    - name: install packages from epel
+      yum:
+        name: "{{ item }}"
+        state: present
+        enablerepo: epel
+        update_cache: yes
+      with_items:
+        - jq
+        - python-pip
+      when: ansible_os_family == "RedHat"
+
     - set_fact:
         jenkins_group: 'libvirtd'
       when: ansible_distribution_version == '16.04'
 
     - set_fact:
         jenkins_group: 'libvirt'
-      when: ansible_distribution_version == '16.10'
+      when: (ansible_distribution_version == '16.10') or
+            (ansible_distribution_major_version|int >= 17) or
+            (ansible_os_family == "RedHat")
 
-    - name: create a {{ jenkins_user }} user
+    - name: "create a {{ jenkins_user }} user"
       user:
         name: "{{ jenkins_user }}"
         groups: "{{ jenkins_group }}"
         append: yes
         comment: "Jenkins Build Slave User"
 
-    - name: create a {{ jenkins_user }} home directory
+    - name: "create a {{ jenkins_user }} home directory"
       file:
         path: "/home/{{ jenkins_user }}/"
         state: directory
@@ -81,10 +177,11 @@
       become_user: "{{ jenkins_user }}"
 
     - name: set the authorized keys
-      authorized_key: user={{ jenkins_user }} key="{{ lookup('file', 'playbook/files/ssh/keys/jenkins_build.pub') }}"
+      authorized_key:
+        user: "{{ jenkins_user }}"
+        key: "{{ lookup('file', 'playbook/files/ssh/keys/jenkins_build.pub') }}"
 
-    - name: ensure {{ jenkins_user }} can sudo without a prompt
-      sudo: yes
+    - name: "ensure {{ jenkins_user }} can sudo without a prompt"
       lineinfile:
         dest: /etc/sudoers
         regexp: '^{{ jenkins_user }} ALL'
@@ -112,41 +209,63 @@
         line: "export LANGUAGE=en_US.UTF-8"
 
     - name: ensure the build dir exists
-      file: path=/home/{{ jenkins_user }}/build state=directory owner={{ jenkins_user }}
+      file:
+        path: "/home/{{ jenkins_user }}/build"
+        state: directory
+        owner: "{{ jenkins_user }}"
 
     - name: ensure the home dir has the right owner permissions
-      file: path=/home/{{ jenkins_user }} state=directory owner={{ jenkins_user }} group={{ jenkins_user }} recurse=yes
+      file:
+        path: "/home/{{ jenkins_user }}"
+        state: directory
+        owner: "{{ jenkins_user }}"
+        group: "{{ jenkins_user }}"
+        recurse: yes
 
     - name: Add the Debian Jessie Key
-      sudo: yes
+      apt_key:
+        id: 2B90D010
+        url: https://ftp-master.debian.org/keys/archive-key-8.asc
+        keyring: /etc/apt/trusted.gpg
+        state: present
       when: ansible_pkg_mgr  == "apt"
-      apt_key: id=2B90D010 url=https://ftp-master.debian.org/keys/archive-key-8.asc keyring=/etc/apt/trusted.gpg state=present
 
     - name: Add the Debian Security Jessie Key
-      sudo: yes
+      apt_key:
+        id: C857C906
+        url: https://ftp-master.debian.org/keys/archive-key-8-security.asc
+        keyring: /etc/apt/trusted.gpg
+        state: present
       when: ansible_pkg_mgr  == "apt"
-      apt_key: id=C857C906 url=https://ftp-master.debian.org/keys/archive-key-8-security.asc keyring=/etc/apt/trusted.gpg state=present
 
     - name: Add the Debian Jessie Stable Release Key
-      sudo: yes
+      apt_key:
+        keyserver: pgp.mit.edu
+        id: 75DDC3C4A499F1A18CB5F3C8CBF8D6FD518E17E1
+        state: present
       when: ansible_pkg_mgr  == "apt"
-      apt_key: keyserver=pgp.mit.edu id=75DDC3C4A499F1A18CB5F3C8CBF8D6FD518E17E1 state=present
 
     - name: Install openjdk-7-jre
-      apt: name=openjdk-7-jre state=present
+      apt:
+        name: openjdk-7-jre
+        state: present
       when:
         ansible_distribution_release in ['precise', 'trusty', 'wheezy', 'jessie']
 
-    - name: Install default openjdk for Xenial only
-      apt: name={{ item }} state=present
+    - name: Install default openjdk for Xenial or Zesty
+      apt:
+        name: "{{ item }}"
+        state: present
       with_items:
         - default-jdk
         - default-jre
       when:
-        ansible_distribution_release == 'xenial'
+        ansible_distribution_release in ['xenial', 'zesty']
 
     - name: correct java version selected
-      alternatives: name=java path=/usr/lib/jvm/java-7-openjdk-amd64/jre/bin/java
+      alternatives:
+        name: java
+        path: /usr/lib/jvm/java-7-openjdk-amd64/jre/bin/java
       when:
         (ansible_distribution == 'Ubuntu' and ansible_distribution_release == 'precise') or
         (ansible_distribution == 'Debian' and ansible_distribution_release == 'wheezy')
@@ -160,12 +279,10 @@
         owner: "{{ jenkins_user }}"
 
     - name: Set Hostname with hostname command
-      sudo: yes
       hostname:
         name: "ceph-builders"
 
     - name: ensure that 127.0.1.1 is present with an actual hostname
-      sudo: true
       lineinfile:
         dest: /etc/hosts
         line: '127.0.1.1 ceph-builders'
@@ -177,30 +294,29 @@
     # not all our images have this setting though, so ignore failures on
     # those nodes
     - name: update the etc cloud templates for debian /etc/hosts
-      sudo: true
       lineinfile:
         dest: /etc/cloud/templates/hosts.debian.tmpl
         line: '127.0.1.1 ceph-builders'
       failed_when: false
 
     - name: update the etc cloud templates for debian /etc/hosts
-      sudo: true
       lineinfile:
         dest: /etc/cloud/templates/hosts.redhat.tmpl
         line: '127.0.1.1 ceph-builders'
       failed_when: false
 
     - name: install six, latest one
-      sudo: true
-      pip: name=six state=latest
+      pip:
+        name: six
+        state: latest
 
     - name: install python-jenkins
-      sudo: true
       # https://review.openstack.org/460363
-      pip: name=python-jenkins version=0.4.15
+      pip:
+        name: python-jenkins
+        version: 0.4.15
 
     - name: add github.com host key
-      sudo: true
       known_hosts:
         path: '/etc/ssh/ssh_known_hosts'
         # we need to use 'host' here because prado currently uses ansible-playbook==1.9.1
@@ -208,17 +324,31 @@
         # github.com.pub is the output of `ssh-keyscan github.com`
         key: "{{ lookup('file', 'playbook/files/ssh/hostkeys/github.com.pub') }}"
 
-    - name: start the libvirt-bin service
-      sudo: true
-      service:
-        name: libvirt-bin
-        state: started
+    - name: "configure libvirt permissions for {{ jenkins_user }}"
+      blockinfile:
+        dest: /etc/libvirt/qemu.conf
+        block: |
+          user = "{{ jenkins_user }}"
+          group = "{{ jenkins_user }}"
+      when: ansible_os_family == "RedHat"
 
-    - name: start the libvirt-guests service
-      sudo: true
+    - name: start DEB libvirt services
       service:
-        name: libvirt-guests
-        state: started
+        name: "{{ item }}"
+        state: restarted
+      with_items:
+        - libvirt-bin
+        - libvirt-guests
+      when: ansible_os_family == "Debian"
+
+    - name: start RPM libvirt services
+      service:
+        name: "{{ item }}"
+        state: restarted
+      with_items:
+        - libvirtd
+        - libvirt-guests
+      when: ansible_os_family == "RedHat"
 
     - name: register the new slave to jenkins master with ssh
       jenkins_node:
@@ -231,7 +361,7 @@
         name: "{{ ansible_default_ipv4.address }}+{{ nodename }}"
         labels: "{{ labels }}"
         host: "{{ ansible_default_ipv4.address }}"
-        credentialsId: '39fa150b-b2a1-416e-b334-29a9a2c0b32d'
+        credentialsId: "{{ jenkins_credentials_uuid }}"
         remoteFS: '/home/{{ jenkins_user }}/build'
         executors: '{{ executors|default(1) }}'
         exclusive: true
@@ -248,7 +378,7 @@
         name: "{{ ansible_default_ipv4.address }}+{{ nodename }}"
         labels: "{{ labels }}"
         host: "{{ ansible_default_ipv4.address }}"
-        credentialsId: '39fa150b-b2a1-416e-b334-29a9a2c0b32d'
+        credentialsId: "{{ jenkins_credentials_uuid }}"
         launcher: 'hudson.slaves.JNLPLauncher'
         remoteFS: '/home/{{ jenkins_user }}/build'
         # XXX this should be configurable, not all nodes should have one executor
