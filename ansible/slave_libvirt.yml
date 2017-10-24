@@ -129,6 +129,7 @@
         - python-virtualenv
         - openssl-devel
         - redhat-lsb-core
+        - iproute
       when: ansible_os_family == "RedHat"
 
     - name: install packages from epel
