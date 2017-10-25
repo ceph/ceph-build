@@ -70,6 +70,7 @@
     scenario:
       - lvm_osds
       - purge_lvm_osds
+      - bluestore_lvm_osds
     jobs:
       - 'ceph-ansible-prs-trigger'
 
