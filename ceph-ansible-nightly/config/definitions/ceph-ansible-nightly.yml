@@ -17,8 +17,12 @@
       - purge_cluster_non_container
       - purge_filestore_osds_container
       - purge_filestore_osds_non_container
+    ceph_ansible_branch:
+      - stable-2.2
+      - stable-3.0
+      - master
     jobs:
-        - 'ceph-ansible-nightly-{release}-{ansible_version}-{scenario}'
+      - 'ceph-ansible-nightly-{release}-{ansible_version}-{ceph_ansible_branch}-{scenario}'
 
 - project:
     name: ceph-ansible-nightly-luminous
@@ -51,15 +55,18 @@
       - purge_filestore_osds_non_container
       - purge_bluestore_osds_container
       - purge_bluestore_osds_non_container
+    ceph_ansible_branch:
+      - stable-3.0
+      - master
     jobs:
-        - 'ceph-ansible-nightly-{release}-{ansible_version}-{scenario}'
+        - 'ceph-ansible-nightly-{release}-{ansible_version}-{ceph_ansible_branch}-{scenario}'
 
 - job-template:
-    name: 'ceph-ansible-nightly-{release}-{ansible_version}-{scenario}'
+    name: 'ceph-ansible-nightly-{release}-{ansible_version}-{ceph_ansible_branch}-{scenario}'
     node: vagrant&&libvirt&&centos7
     concurrent: true
     defaults: global
-    display-name: 'ceph-ansible: Nightly [{release}-{ansible_version}-{scenario}]'
+    display-name: 'ceph-ansible: Nightly [{release}-{ansible_version}-{ceph_ansible_branch}-{scenario}]'
     quiet-period: 5
     block-downstream: false
     block-upstream: false
@@ -77,7 +84,7 @@
       - string:
           name: CEPH_ANSIBLE_BRANCH
           description: "The ceph-ansible branch (or tag) to test"
-          default: master
+          default: "{ceph_ansible_branch}"
 
     triggers:
       - timed: '@daily'
