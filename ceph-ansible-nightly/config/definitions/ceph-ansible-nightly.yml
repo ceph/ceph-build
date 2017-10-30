@@ -3,7 +3,8 @@
     release:
       - jewel
     ansible_version:
-      - ansible2.3
+      - ansible2.2
+      - ansible2.4
     scenario:
       - centos7_cluster
       - xenial_cluster
@@ -24,7 +25,8 @@
     release:
       - luminous
     ansible_version:
-      - ansible2.3
+      - ansible2.2
+      - ansible2.4
     scenario:
       - centos7_cluster
       - xenial_cluster
