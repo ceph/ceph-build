@@ -6,6 +6,7 @@
     scenario:
       - create
       - prepare_activate
+      - bluestore
 
     jobs:
       - 'ceph-volume-prs-{distro}-{scenario}'
