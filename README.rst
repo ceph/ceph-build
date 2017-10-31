@@ -27,6 +27,8 @@ Deprecation
 Any script in the top level of this repo is now deprecated and should be moved
 to follow the structure of the Jenkins Job Builder project.
 
+Any jobs removed from this repo will be automatically deleted by JJB.
+
 Enforcement
 -----------
 The rules and structure for the builds are *strictly* enforced. If the
@@ -242,3 +244,17 @@ Let's say this git branch makes a change in the ``my-cool-job`` job.
 all jobs to the state of what is in master, and your customizations will be
 wiped out. This "by-hand" testing procedure is only intended for short-lived
 tests.)
+
+Assigning a job to a different Jenkins Master
+---------------------------------------------
+
+We found one Jenkins master wasn't enough to handle all the jobs we were
+demanding of it.  The CI now supports multiple Jenkins masters.  If you wish to
+run your job on a different Jenkins master:
+
+1. Create a ``config/JENKINS_URL`` file in your job directory containing only
+   the FQDN of the target Jenkins master::
+
+    # Example
+    $ cat my-cool-job/config/JENKINS_URL
+    2.jenkins.ceph.com
