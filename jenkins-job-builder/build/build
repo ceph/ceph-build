@@ -62,6 +62,9 @@ for dir in `find . -maxdepth 1 -path ./.git -prune -o -type d -print`; do
     fi
 done
 
+# Set JJB_CONFIG back to the one our master wrote so the var can be used in the deletion task below
+JJB_CONFIG="$HOME/.jenkins_jobs.$JENKINS_FQDN.ini"
+
 # Delete jobs our master has that didn't get job xml written during `jenkins-jobs test`
 # jenkins-job-builder doesn't get a config written so we `grep -v it` so it doesn't get deleted.
 for JOB in $(curl -s https://$JENKINS_FQDN/api/json | jq -r '.jobs[].name' | grep -v jenkins-job-builder | sort); do
