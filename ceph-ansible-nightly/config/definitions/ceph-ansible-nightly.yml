@@ -1,9 +1,30 @@
 - project:
-    name: ceph-ansible-nightly
+    name: ceph-ansible-nightly-jewel
     release:
       - jewel
     ansible_version:
       - ansible2.2
+    scenario:
+      - centos7_cluster
+      - xenial_cluster
+      - docker_cluster
+      - update_cluster
+      - update_docker_cluster
+      - filestore_osds_non_container
+      - filestore_osds_container
+      - purge_cluster_container
+      - purge_cluster_non_container
+      - purge_filestore_osds_container
+      - purge_filestore_osds_non_container
+    ceph_ansible_branch:
+      - stable-2.2
+    jobs:
+      - 'ceph-ansible-nightly-{release}-{ansible_version}-{ceph_ansible_branch}-{scenario}'
+
+    name: ceph-ansible-nightly-jewel
+    release:
+      - jewel
+    ansible_version:
       - ansible2.4
     scenario:
       - centos7_cluster
@@ -29,7 +50,6 @@
     release:
       - luminous
     ansible_version:
-      - ansible2.2
       - ansible2.4
     scenario:
       - centos7_cluster
