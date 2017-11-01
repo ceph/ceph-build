@@ -1,0 +1,85 @@
+- scm:
+    name: ceph-cm-ansible
+    scm:
+      - git:
+          url: https://github.com/ceph/ceph-cm-ansible
+          branches:
+            - ${sha1}
+          refspec: +refs/pull/*:refs/remotes/origin/pr/*
+          browser: auto
+          timeout: 20
+          basedir: "ceph-cm-ansible"
+          skip-tag: true
+          wipe-workspace: true
+
+- job:
+    name: ceph-cm-ansible-pull-requests
+    description: Tests changes to ceph-cm-ansible testnode playbook
+    project-type: freestyle
+#    project-type: matrix
+    node: teuthology
+    block-downstream: false
+    block-upstream: false
+    defaults: global
+    display-name: 'ceph-cm-ansible: Pull Requests'
+    quiet-period: 5
+#    execution-strategy:
+#      sequential: false
+#    axes:
+#      - axis:
+#          type: user-defined
+#          name: MACHINE_TYPE
+#          values:
+#            - smithi
+#            - mira
+#            - vps
+#      - axis:
+#          type: user-defined
+#          name: DISTRO
+#          values:
+#            - trusty
+#            - xenial
+#            - centos
+#      - axis:
+#          type: label-expression
+#          name: teuthology
+#          values:
+#            - teuthology
+
+    logrotate:
+      daysToKeep: 14
+
+    properties:
+      - github:
+          url: https://github.com/ceph/ceph-cm-ansible/
+
+    parameters:
+      - string:
+          name: sha1
+          description: "A pull request ID, like 'origin/pr/72/head'"
+
+    triggers:
+      - github-pull-request:
+          admin-list:
+            - djgalloway
+            - zmc
+          org-list:
+            - ceph
+          only-trigger-phrase: false
+          github-hooks: true
+          permit-all: true
+          auto-close-on-fail: false
+
+    scm:
+      - ceph-cm-ansible
+
+    builders:
+      - shell:
+          !include-raw:
+            - ../../../scripts/build_utils.sh
+            - ../../build/build
+#
+#    wrappers:
+#      - pre-scm-buildstep:
+#          - shell:
+#              !include-raw: ../../build/setup
