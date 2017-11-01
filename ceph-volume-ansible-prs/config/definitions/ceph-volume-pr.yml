@@ -3,17 +3,20 @@
     distro:
       - xenial
       - centos7
+    objectstore:
+      - bluestore
+      - filestore
     scenario:
       - create
       - prepare_activate
 
     jobs:
-      - 'ceph-volume-prs-{distro}-{scenario}'
+      - 'ceph-volume-prs-{distro}-{objectstore}-{scenario}'
 
 
 - job-template:
-    name: 'ceph-volume-prs-{distro}-{scenario}'
-    display-name: 'ceph-volume: Pull Request [{distro}-{scenario}]'
+    name: 'ceph-volume-prs-{distro}-{objectstore}-{scenario}'
+    display-name: 'ceph-volume: Pull Request [{distro}-{objectstore}-{scenario}]'
     node: vagrant&&libvirt
     concurrent: true
     project-type: freestyle
@@ -40,14 +43,14 @@
           org-list:
             - ceph
           only-trigger-phrase: true
-          trigger-phrase: 'jenkins test ceph-volume {distro}-{scenario}'
+          trigger-phrase: 'jenkins test ceph-volume {distro}-{objectstore}-{scenario}'
           github-hooks: true
           permit-all: true
           auto-close-on-fail: false
-          status-context: "ceph-volume testing {distro}-{scenario}"
-          started-status: "ceph-volume running {distro}-{scenario}"
-          success-status: "ceph-volume {distro}-{scenario} OK"
-          failure-status: "ceph-volume {distro}-{scenario} failed"
+          status-context: "ceph-volume testing {distro}-{objectstore}-{scenario}"
+          started-status: "ceph-volume running {distro}-{objectstore}-{scenario}"
+          success-status: "ceph-volume {distro}-{objectstore}-{scenario} OK"
+          failure-status: "ceph-volume {distro}-{objectstore}-{scenario} failed"
 
     scm:
       - git:
@@ -65,6 +68,7 @@
           properties-content: |
             SCENARIO={scenario}
             DISTRO={distro}
+            OBJECTSTORE={objectstore}
       - shell:
           !include-raw-escape:
             - ../../../scripts/build_utils.sh
