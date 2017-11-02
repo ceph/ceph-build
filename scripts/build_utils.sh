@@ -455,3 +455,12 @@ update_vagrant_boxes() {
         vagrant box prune
     fi
 }
+
+start_tox() {
+# the $SCENARIO var is injected by the job template. It maps
+# to an actual, defined, tox environment
+  if ! CEPH_DOCKER_IMAGE_TAG=$1 timeout 3h $VENV/tox -rv -e=$RELEASE-$ANSIBLE_VERSION-$SCENARIO --workdir=$WORKDIR -- --provider=libvirt; then
+    echo "ERROR: Job didn't complete successfully or got stuck for more than 3h."
+    exit 1
+  fi
+}

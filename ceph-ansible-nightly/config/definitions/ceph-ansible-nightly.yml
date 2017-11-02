@@ -41,7 +41,6 @@
     ceph_ansible_branch:
       - stable-2.2
       - stable-3.0
-      - master
     jobs:
       - 'ceph-ansible-nightly-{release}-{ansible_version}-{ceph_ansible_branch}-{scenario}'
 
@@ -125,6 +124,7 @@
             SCENARIO={scenario}
             RELEASE={release}
             ANSIBLE_VERSION={ansible_version}
+            CEPH_ANSIBLE_BRANCH={ceph_ansible_branch}
       - shell:
           !include-raw-escape:
             - ../../../scripts/build_utils.sh
