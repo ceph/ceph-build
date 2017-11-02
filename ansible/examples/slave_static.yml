@@ -295,6 +295,7 @@
       get_url:
         url: "{{ api_uri }}/jnlpJars/slave.jar"
         dest: "/home/{{ jenkins_user }}/slave.jar"
+        force: yes
       when: use_jnlp
 
     - name: install the systemd unit file for jenkins
