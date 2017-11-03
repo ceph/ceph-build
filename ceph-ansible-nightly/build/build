@@ -14,9 +14,11 @@ clear_libvirt_networks
 restart_libvirt_services
 update_vagrant_boxes
 
-# the $SCENARIO var is injected by the job template. It maps
-# to an actual, defined, tox environment
-if ! timeout 3h $VENV/tox -rv -e=$RELEASE-$ANSIBLE_VERSION-$SCENARIO --workdir=$WORKDIR -- --provider=libvirt; then
-  echo "ERROR: Job didn't complete successfully or got stuck for more than 3h."
-  exit 1
+if [ "$RELEASE" == 'jewel' ] && [ "$CEPH_ANSIBLE_BRANCH" == 'stable-2.2' -o "$CEPH_ANSIBLE_BRANCH" == 'stable-3.0' ]; then
+  start_tox tag-stable-3.0-jewel-centos-7
+elif [ "$RELEASE" == 'luminous' ] && [ "$CEPH_ANSIBLE_BRANCH" == 'stable-3.0' ]; then
+  start_tox tag-stable-3.0-jewel-centos-7
+  start_tox tag-stable-3.0-luminous-centos-7
+elif [ "$RELEASE" == 'luminous' ] && [ "$CEPH_ANSIBLE_BRANCH" == 'master' ]; then
+  start_tox tag-build-master-luminous-ubuntu-16.04
 fi
