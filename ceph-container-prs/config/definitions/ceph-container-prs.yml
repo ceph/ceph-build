@@ -11,6 +11,9 @@
       - filestore_osds_container
       - bluestore_osds_container
       - docker_cluster_collocation
+    exclude:
+       - ceph-version: jewel
+         test: bluestore_osds_container
     jobs:
         - 'ceph-container-prs-ceph_ansible-{ceph-version}-{os}-{test}'
 
