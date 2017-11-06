@@ -1,5 +1,5 @@
 - project:
-    name: ceph-docker-prs
+    name: ceph-container-prs
     os:
       - centos7
       - xenial
@@ -12,22 +12,22 @@
       - bluestore_osds_container
       - docker_cluster_collocation
     jobs:
-        - 'ceph-docker-prs-ceph_ansible-{ceph-version}-{os}-{test}'
+        - 'ceph-container-prs-ceph_ansible-{ceph-version}-{os}-{test}'
 
 
 - job-template:
-    name: 'ceph-docker-prs-ceph_ansible-{ceph-version}-{os}-{test}'
+    name: 'ceph-container-prs-ceph_ansible-{ceph-version}-{os}-{test}'
     node: vagrant&&libvirt&&centos7
     concurrent: true
     defaults: global
-    display-name: 'ceph-docker: Pull Requests [ceph_ansible-{ceph-version}-{os}-{test}]'
+    display-name: 'ceph-container: Pull Requests [ceph_ansible-{ceph-version}-{os}-{test}]'
     quiet-period: 5
     block-downstream: false
     block-upstream: false
     retry-count: 3
     properties:
       - github:
-          url: https://github.com/ceph/ceph-docker
+          url: https://github.com/ceph/ceph-container
     logrotate:
       daysToKeep: 15
       numToKeep: -1
@@ -57,7 +57,7 @@
 
     scm:
       - git:
-          url: https://github.com/ceph/ceph-docker.git
+          url: https://github.com/ceph/ceph-container.git
           branches:
             - ${{sha1}}
           refspec: +refs/pull/*:refs/remotes/origin/pr/*

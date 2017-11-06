@@ -1,5 +1,5 @@
 - project:
-    name: ceph-docker-nightly
+    name: ceph-container-nightly
     os:
       - centos7
       - xenial
@@ -11,21 +11,21 @@
       - bluestore_osds_container
       - filestore_osds_container
     jobs:
-        - 'ceph-docker-nightly-ceph_ansible-{ceph-version}-{os}-{test}'
+        - 'ceph-container-nightly-ceph_ansible-{ceph-version}-{os}-{test}'
 
 - job-template:
-    name: 'ceph-docker-nightly-ceph_ansible-{ceph-version}-{os}-{test}'
+    name: 'ceph-container-nightly-ceph_ansible-{ceph-version}-{os}-{test}'
     node: vagrant&&libvirt&&centos7
     concurrent: true
     defaults: global
-    display-name: 'ceph-docker: Nightly tests [ceph_ansible-{ceph-version}-{os}-{test}]'
+    display-name: 'ceph-container: Nightly tests [ceph_ansible-{ceph-version}-{os}-{test}]'
     quiet-period: 5
     block-downstream: false
     block-upstream: false
     retry-count: 3
     properties:
       - github:
-          url: https://github.com/ceph/ceph-docker
+          url: https://github.com/ceph/ceph-container
     logrotate:
       daysToKeep: -1
       numToKeep: -1
@@ -35,7 +35,7 @@
     parameters:
       - string:
           name: BRANCH
-          description: "A ceph-docker branch to test"
+          description: "A ceph-container branch to test"
           default: master
 
     triggers:
@@ -43,7 +43,7 @@
 
     scm:
       - git:
-          url: https://github.com/ceph/ceph-docker.git
+          url: https://github.com/ceph/ceph-container.git
           branches:
             - ${{BRANCH}}
           browser: auto

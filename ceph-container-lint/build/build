@@ -3,15 +3,19 @@
 set -e
 set -x
 
+IGNORE_THESE_CODES="SC1091,SC2009,SC2001"
+IGNORE_THESE_FILES="variables_entrypoint.sh" # pipe-separated file names, e.g: foo|bar|foobar, this avoids shellcheck complaining that vars are not used (see: SC2034)
+
 function generate_filelist(){
-   if [[ "$pull_request_id" -eq "" || "${ghprbCommentBody:-}" = "jenkins flake8 all" ]]
+   if [[ "$pull_request_id" -eq "" || "${ghprbCommentBody:-}" = "jenkins lint all" ]]
    then
-       find . -name '*.py'
+       find . -name '*.sh' | grep -vE "$IGNORE_THESE_FILES"
    else
-       curl -XGET "https://api.github.com/repos/ceph/ceph-docker/pulls/$pull_request_id/files" |
+       curl -XGET "https://api.github.com/repos/ceph/ceph-container/pulls/$pull_request_id/files" |
        jq '.[].filename' |  # just the files please
        tr -d '"' |  # remove the quoting from JSON
-       grep ".py$" # just the python
+       grep ".sh$" | # just the bash
+       grep -vE "$IGNORE_THESE_FILES"
    fi
 
 }
@@ -21,7 +25,7 @@ function check(){
     while read -r filename; do
         pushd "$(dirname "$filename")"
         file=$(basename "$filename")
-        sudo docker run --rm -v "$(pwd)"/"$file":/"$file" eeacms/flake8 /"$file"
+        sudo docker run -v "$(pwd)"/"$file":/"$file" koalaman/shellcheck --external-sources --exclude "$IGNORE_THESE_CODES" /"$file"
         popd
     done
     return $?
@@ -47,7 +51,7 @@ function main() {
     fi
 
 
-    pushd "$workspace/ceph-docker"
+    pushd "$workspace/ceph-container"
     generate_filelist | check
     popd
     exit $?
