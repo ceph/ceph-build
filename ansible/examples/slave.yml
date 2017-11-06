@@ -146,6 +146,14 @@
         - libffi-devel
       when: ansible_pkg_mgr  == "yum"
 
+    - name: install packages from epel
+      yum:
+        name: jq
+        state: present
+        enablerepo: epel
+        update_cache: yes
+      when: ansible_os_family == "RedHat"
+
     # Run the equivalent of "apt-get update" as a separate step
     - apt:
         update_cache: yes
@@ -176,6 +184,7 @@
         - debian-archive-keyring
         # jenkins-job-builder job:
         - libyaml-dev
+        - jq
         # ceph-docs job:
         - doxygen
         - ditaa
