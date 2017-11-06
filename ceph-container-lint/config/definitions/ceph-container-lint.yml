@@ -1,8 +1,8 @@
 - scm:
-    name: ceph-docker
+    name: ceph-container
     scm:
       - git:
-          url: https://github.com/ceph/ceph-docker.git
+          url: https://github.com/ceph/ceph-container.git
           branches:
             - ${sha1}
           refspec: +refs/pull/*:refs/remotes/origin/pr/*
@@ -10,16 +10,16 @@
           timeout: 20
           skip-tag: true
           wipe-workspace: false
-          basedir: "ceph-docker"
+          basedir: "ceph-container"
 
 - job:
-    name: ceph-docker-lint
+    name: ceph-container-lint
     node: small && centos7
     defaults: global
-    display-name: 'ceph-docker-lint'
+    display-name: 'ceph-container-lint'
     properties:
       - github:
-          url: https://github.com/ceph/ceph-docker/
+          url: https://github.com/ceph/ceph-container/
     logrotate:
       daysToKeep: 15
       numToKeep: 30
@@ -50,7 +50,7 @@
           failure-status: "FAIL - please clean up for merge"
 
     scm:
-      - ceph-docker
+      - ceph-container
 
     builders:
       - shell:
