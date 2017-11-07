@@ -1,5 +1,5 @@
 - project:
-    name: ceph-ansible-nightly-jewel
+    name: ceph-ansible-nightly-jewel-stable2.2
     release:
       - jewel
     ansible_version:
@@ -25,7 +25,7 @@
     jobs:
       - 'ceph-ansible-nightly-{release}-{ansible_version}-{ceph_ansible_branch}-{scenario}'
 
-    name: ceph-ansible-nightly-jewel
+    name: ceph-ansible-nightly-jewel-stable3.0
     release:
       - jewel
     ansible_version:
