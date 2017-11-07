@@ -4,18 +4,22 @@
       - jewel
     ansible_version:
       - ansible2.2
+      - ansible2.4
     scenario:
       - centos7_cluster
       - xenial_cluster
       - docker_cluster
+      - journal_collocation
+      - dmcrypt_journal
+      - dmcrypt_journal_collocation
+      - purge_cluster
+      - purge_dmcrypt
+      - docker_dedicated_journal
+      - docker_dmcrypt_journal_collocation
+      - update_dmcrypt
       - update_cluster
-      - update_docker_cluster
-      - filestore_osds_non_container
-      - filestore_osds_container
-      - purge_cluster_container
-      - purge_cluster_non_container
-      - purge_filestore_osds_container
-      - purge_filestore_osds_non_container
+      - cluster
+      - purge_docker_cluster
     ceph_ansible_branch:
       - stable-2.2
     jobs:
@@ -31,7 +35,15 @@
       - xenial_cluster
       - docker_cluster
       - update_cluster
+      - lvm_osds
+      - purge_lvm_osds
+      - docker_cluster_collocation
       - update_docker_cluster
+      - switch_to_containers
+      - shrink_mon
+      - shrink_mon_container
+      - shrink_osd
+      - shrink_osd_container
       - filestore_osds_non_container
       - filestore_osds_container
       - purge_cluster_container
@@ -39,7 +51,6 @@
       - purge_filestore_osds_container
       - purge_filestore_osds_non_container
     ceph_ansible_branch:
-      - stable-2.2
       - stable-3.0
     jobs:
       - 'ceph-ansible-nightly-{release}-{ansible_version}-{ceph_ansible_branch}-{scenario}'
