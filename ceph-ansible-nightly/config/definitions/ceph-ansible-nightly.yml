@@ -25,6 +25,7 @@
     jobs:
       - 'ceph-ansible-nightly-{release}-{ansible_version}-{ceph_ansible_branch}-{scenario}'
 
+- project:
     name: ceph-ansible-nightly-jewel-stable3.0
     release:
       - jewel
