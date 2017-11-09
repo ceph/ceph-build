@@ -1,5 +1,5 @@
 - project:
-    name: ceph-volume-ansible-prs
+    name: ceph-volume-ansible-prs-lvm
     distro:
       - xenial
       - centos7
@@ -9,14 +9,36 @@
     scenario:
       - create
       - prepare_activate
+    test_path:
+      - src/ceph-volume/ceph_volume/tests/functional/lvm
+    subcommand:
+      - lvm
 
     jobs:
-      - 'ceph-volume-prs-{distro}-{objectstore}-{scenario}'
+      - 'ceph-volume-prs-{subcommand}-{distro}-{objectstore}-{scenario}'
+
+- project:
+    name: ceph-volume-ansible-prs-simple
+    distro:
+      - xenial
+      - centos7
+    objectstore:
+      - bluestore
+      - filestore
+    scenario:
+      - activate
+    test_path:
+      - src/ceph-volume/ceph_volume/tests/functional/simple
+    subcommand:
+      - simple
+
+    jobs:
+      - 'ceph-volume-prs-{subcommand}-{distro}-{objectstore}-{scenario}'
 
 
 - job-template:
-    name: 'ceph-volume-prs-{distro}-{objectstore}-{scenario}'
-    display-name: 'ceph-volume: Pull Request [{distro}-{objectstore}-{scenario}]'
+    name: 'ceph-volume-prs-{subcommand}-{distro}-{objectstore}-{scenario}'
+    display-name: 'ceph-volume {subcommand}: Pull Request [{distro}-{objectstore}-{scenario}]'
     node: vagrant&&libvirt
     concurrent: true
     project-type: freestyle
@@ -43,14 +65,14 @@
           org-list:
             - ceph
           only-trigger-phrase: true
-          trigger-phrase: 'jenkins test ceph-volume {distro}-{objectstore}-{scenario}'
+          trigger-phrase: 'jenkins test ceph-volume {subcommand} {distro}-{objectstore}-{scenario}'
           github-hooks: true
           permit-all: true
           auto-close-on-fail: false
-          status-context: "ceph-volume testing {distro}-{objectstore}-{scenario}"
-          started-status: "ceph-volume running {distro}-{objectstore}-{scenario}"
-          success-status: "ceph-volume {distro}-{objectstore}-{scenario} OK"
-          failure-status: "ceph-volume {distro}-{objectstore}-{scenario} failed"
+          status-context: "ceph-volume {subcommand} testing {distro}-{objectstore}-{scenario}"
+          started-status: "ceph-volume {subcommand} running {distro}-{objectstore}-{scenario}"
+          success-status: "ceph-volume {subcommand} {distro}-{objectstore}-{scenario} OK"
+          failure-status: "ceph-volume {subcommand} {distro}-{objectstore}-{scenario} failed"
 
     scm:
       - git:
@@ -69,6 +91,7 @@
             SCENARIO={scenario}
             DISTRO={distro}
             OBJECTSTORE={objectstore}
+            TEST_PATH={test_path}
       - shell:
           !include-raw-escape:
             - ../../../scripts/build_utils.sh

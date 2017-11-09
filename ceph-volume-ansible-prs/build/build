@@ -44,6 +44,6 @@ fi
 pkgs=( "tox" )
 install_python_packages "pkgs[@]"
 
-cd src/ceph-volume/ceph_volume/tests/functional
+cd $TEST_PATH
 
 CEPH_DEV_BRANCH=$BRANCH CEPH_DEV_SHA1=$SHA $VENV/tox --workdir=$WORKDIR -vre $DISTRO-$OBJECTSTORE-$SCENARIO -- --provider=libvirt
