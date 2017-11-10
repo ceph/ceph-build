@@ -39,6 +39,7 @@ CentOS|Fedora|SUSE*|RedHatEnterpriseServer)
                 $SUDO yum install -y yum-utils
                 ;;
         esac
+        $SUDO yum install -y centos-release-scl
         sed -e 's/@//g' < ceph.spec.in > $DIR/ceph.spec
         $SUDO yum-builddep -y $DIR/ceph.spec
         ;;
