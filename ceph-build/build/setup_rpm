@@ -29,23 +29,10 @@ tar xzf *.orig.tar.gz
 cd ceph-*
 pwd
 
-case $(lsb_release -si) in
-CentOS|Fedora|SUSE*|RedHatEnterpriseServer)
-        case $(lsb_release -si) in
-            SUSE*)
-                $SUDO zypper -y yum-utils
-                ;;
-            *)
-                $SUDO yum install -y yum-utils
-                ;;
-        esac
-        sed -e 's/@//g' < ceph.spec.in > $DIR/ceph.spec
-        $SUDO yum-builddep -y $DIR/ceph.spec
-        ;;
-*)
-        echo "$(lsb_release -si) is unknown, dependencies will have to be installed manually."
-        ;;
-esac
+$SUDO yum install -y yum-utils
+$SUDO yum install -y centos-release-scl
+sed -e 's/@//g' < ceph.spec.in > $DIR/ceph.spec
+$SUDO yum-builddep -y $DIR/ceph.spec
 
 BRANCH=`branch_slash_filter $BRANCH`
 
