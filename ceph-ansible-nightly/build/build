@@ -18,8 +18,6 @@ if [ "$RELEASE" == 'jewel' ] && [ "$CEPH_ANSIBLE_BRANCH" == 'stable-2.2' -o "$CE
   start_tox tag-stable-3.0-jewel-centos-7
 elif [ "$RELEASE" == 'luminous' ] && [ "$CEPH_ANSIBLE_BRANCH" == 'stable-3.0' ]; then
   # start_tox(): <CEPH_DOCKER_IMAGE_TAG> <CEPH_STABLE_RELEASE>
-  # first, we play stable-3.0 delpoying jewel and then we test a new deployment with luminous.
-  start_tox tag-stable-3.0-jewel-centos-7 jewel
   start_tox tag-stable-3.0-luminous-centos-7
 elif [ "$RELEASE" == 'luminous' ] && [ "$CEPH_ANSIBLE_BRANCH" == 'master' ]; then
   start_tox tag-build-master-luminous-ubuntu-16.04
