@@ -122,7 +122,7 @@
           skip-build-phrase: '^jenkins do not test.*'
           trigger-phrase: '^jenkins test oldstable {release}-{ansible_version}-{scenario}|jenkins test oldstable.*'
           only-trigger-phrase: true
-          github-hooks: false
+          github-hooks: true
           permit-all: true
           auto-close-on-fail: false
           status-context: "Testing: {release}-{ansible_version}-{scenario}"
