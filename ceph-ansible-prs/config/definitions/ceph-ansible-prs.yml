@@ -15,7 +15,7 @@
         - 'ceph-ansible-prs-auto'
 
 - project:
-    name: ceph-ansible-2.2-prs
+    name: ceph-ansible-prs-oldstable-trigger
     slave_labels: 'vagrant && libvirt && smithi'
     release:
       - jewel
@@ -26,7 +26,7 @@
       - xenial_cluster
       - docker_cluster
     jobs:
-        - 'ceph-ansible-2.2-prs'
+        - 'ceph-ansible-prs-oldstable-trigger'
 
 # tests that will not auto start when a PR is created, but
 # they can be requested with a trigger phrase. Run on smithi.
@@ -90,7 +90,7 @@
 
 - job-template:
     name: 'ceph-ansible-prs-{release}-{ansible_version}-{scenario}'
-    id: 'ceph-ansible-2.2-prs'
+    id: 'ceph-ansible-prs-oldstable-trigger'
     node: '{slave_labels}'
     concurrent: true
     defaults: global
@@ -120,7 +120,7 @@
           org-list:
             - ceph
           skip-build-phrase: '^jenkins do not test.*'
-          trigger-phrase: '^jenkins test stable-2.2 {release}-{ansible_version}-{scenario}|jenkins test stable-2.2.*'
+          trigger-phrase: '^jenkins test oldstable {release}-{ansible_version}-{scenario}|jenkins test oldstable.*'
           only-trigger-phrase: true
           github-hooks: false
           permit-all: true
