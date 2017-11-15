@@ -120,7 +120,7 @@
           org-list:
             - ceph
           skip-build-phrase: '^jenkins do not test.*'
-          trigger-phrase: '^jenkins test stable-2.2 {release}-{ansible_version}-{scenario}|jenkins test all stable-2.2.*'
+          trigger-phrase: '^jenkins test stable-2.2 {release}-{ansible_version}-{scenario}|jenkins test stable-2.2.*'
           only-trigger-phrase: true
           github-hooks: false
           permit-all: true
