@@ -11,6 +11,8 @@
       - xenial_cluster
       - docker_cluster
       - docker_cluster_collocation
+      - purge_bluestore_osds_container
+      - purge_bluestore_osds_non_container
     jobs:
         - 'ceph-ansible-prs-auto'
 
@@ -42,8 +44,6 @@
       - purge_cluster_non_container
       - purge_filestore_osds_non_container
       - purge_filestore_osds_container
-      - purge_bluestore_osds_non_container
-      - purge_bluestore_osds_container
       - update_cluster
       - update_docker_cluster
       - switch_to_containers
