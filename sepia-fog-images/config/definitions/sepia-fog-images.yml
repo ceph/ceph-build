@@ -1,0 +1,45 @@
+- job:
+    name: sepia-fog-images
+    project-type: freestyle
+    defaults: global
+    concurrent: false
+    display-name: 'Sepia FOG Image Creator'
+    node: teuthology
+    quiet-period: 0
+    block-downstream: false
+    block-upstream: false
+    logrotate:
+      daysToKeep: 15
+      numToKeep: 30
+      artifactDaysToKeep: -1
+      artifactNumToKeep: -1
+
+    parameters:
+      - string:
+          name: DISTROS
+          default: "trusty xenial centos"
+          description: "Distro to capture images for: (e.g., 'trusty', 'xenial', 'centos' or 'trusty xenial' for multiple distros)"
+      - string:
+          name: MACHINETYPES
+          default: "smithi mira"
+          description: "Machine types to capture images for.  (e.g., 'smithi' or 'smithi mira' for multiple machine types)"
+
+    builders:
+      - shell:
+          !include-raw:
+            - ../../build/build
+
+    publishers:
+      - postbuildscript:
+          script-only-if-failed: True
+          script-only-if-succeeded: False
+          builders:
+            - shell:
+                !include-raw:
+                  - ../../build/failure
+
+    wrappers:
+      - mask-passwords:
+      - inject-passwords:
+          global: true
+          mask-password-params: true
