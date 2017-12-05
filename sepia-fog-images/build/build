@@ -1,0 +1,189 @@
+#!/bin/bash
+# This job:
+# - Reimages testnodes using Cobbler (which runs ceph-cm-ansible)
+# - Preps the testnodes to have a FOG image captured (ceph-cm-ansible/tools/prep-fog-capture.yml)
+# - Captures FOG images
+#
+# CAPITAL vars are provided by Jenkins.  lowercase are just in this script
+
+set -ex
+
+# Converts distro friendly names into Cobbler/FOG image names
+funSetProfiles () {
+  if [ "$1" == "trusty" ]; then
+    cobblerprofile="Ubuntu-14.04-server-x86_64"
+    fogprofile="ubuntu_14.04"
+  elif [ "$1" == "xenial" ]; then
+    cobblerprofile="Ubuntu-16.04-server-x86_64"
+    fogprofile="ubuntu_16.04"
+  elif [ "$1" == "centos" ]; then
+    cobblerprofile="CentOS-7.4-x86_64"
+    fogprofile="centos_7.4"
+  else
+    echo "Unknown profile $1"
+    exit 1
+  fi
+}
+
+funPowerCycle () {
+  host=$(echo ${1} | cut -d '.' -f1)
+  powerstatus=$(ipmitool -I lanplus -U inktank -P $SEPIA_IPMI_PASS -H ${host}.ipmi.sepia.ceph.com chassis power status | cut -d ' ' -f4-)
+  if [ "$powerstatus" == "off" ]; then
+     ipmitool -I lanplus -U inktank -P $SEPIA_IPMI_PASS -H ${host}.ipmi.sepia.ceph.com chassis power on
+  else
+     ipmitool -I lanplus -U inktank -P $SEPIA_IPMI_PASS -H ${host}.ipmi.sepia.ceph.com chassis power cycle
+  fi
+}
+
+# Clone or update teuthology
+if [ ! -d teuthology ]; then
+  git clone https://github.com/ceph/teuthology
+  cd teuthology
+else
+  cd teuthology
+  git pull
+fi
+
+# Bootstrap teuthology
+./bootstrap
+
+cd $WORKSPACE
+
+source $WORKSPACE/teuthology/virtualenv/bin/activate
+
+# Clone or update ceph-cm-ansible
+if [ ! -d ceph-cm-ansible ]; then
+  git clone https://github.com/ceph/ceph-cm-ansible
+else
+  cd ceph-cm-ansible
+  git pull
+fi
+
+cd $WORKSPACE
+
+# Don't bail if we fail to lock machines
+set +e
+
+numdistros=$(echo $DISTROS | wc -w)
+# Keep trying to lock machines
+for type in $MACHINETYPES; do
+  numlocked=$(teuthology-lock --brief --machine-type $type | grep "Locked to capture FOG image for Jenkins build $BUILD_NUMBER" | wc -l)
+  while [ $numlocked -lt $numdistros ]; do
+    # Lock one at a time since we have a better shot of getting one instead of all at once.
+    # Setting the BUILD_NUMBER in the description makes sure each Jenkins job uses the right machines.
+    # This is useful for when a job is aborted and another is started while the previous job's machines are debugged/cleaned up.
+    teuthology-lock --lock-many 1 --machine-type $type --desc "Locked to capture FOG image for Jenkins build $BUILD_NUMBER"
+    # Sleep for a bit so we don't hammer the lock server
+    if [ $? -ne 0 ]; then
+      sleep 5
+    fi
+    numlocked=$(teuthology-lock --brief --machine-type $type | grep "Locked to capture FOG image for Jenkins build $BUILD_NUMBER" | wc -l)
+  done
+done
+
+set -e
+
+allhosts=$(teuthology-lock --brief | grep "Locked to capture FOG image for Jenkins build $BUILD_NUMBER" | cut -d '.' -f1 | tr "\n" " ")
+# Configure DHCP to use cobbler as the PXE server for each machine to reimage and ansiblize
+for machine in $allhosts; do
+  ssh ubuntu@store01.front.sepia.ceph.com "sudo /usr/local/sbin/set-next-server.sh $machine cobbler"
+done
+
+# Restart dhcpd (for some reason doing this every time we set the next-server in the for loop above, dhcpd would fail to start)
+ssh ubuntu@store01.front.sepia.ceph.com "sudo service dhcpd restart"
+
+# Get FOG 'Capture' TaskID
+fogcaptureid=$(curl -s -k -H "fog-api-token: ${FOG_API_TOKEN}" -H "fog-user-token: ${FOG_USER_TOKEN}" http://fog.front.sepia.ceph.com/fog/tasktype -d '{"name": "Capture"}' -X GET | jq -r '.tasktypes[0].id')
+
+# Set cobbler profile and FOG image ID for each locked machine
+for type in $MACHINETYPES; do
+  lockedhosts=$(teuthology-lock --brief --machine-type $type | grep "Locked to capture FOG image for Jenkins build $BUILD_NUMBER" | cut -d '.' -f1 | sort)
+  # Create arrays using our lists so we can iterate through them
+  array1=($lockedhosts)
+  array2=($DISTROS)
+  for i in $(seq 1 $numdistros); do
+    funSetProfiles ${array2[$i-1]}
+    ssh ubuntu@cobbler.front.sepia.ceph.com "sudo cobbler system edit --name ${array1[$i-1]} --profile $cobblerprofile --netboot-enabled=1"
+    funPowerCycle ${array1[$i-1]}
+    # Get FOG host ID
+    foghostid=$(curl -s -k -H "fog-api-token: ${FOG_API_TOKEN}" -H "fog-user-token: ${FOG_USER_TOKEN}" http://fog.front.sepia.ceph.com/fog/host -d '{"name": "'${array1[$i-1]}'"}' -X GET | jq -r '.hosts[0].id')
+    # Get FOG image ID
+    fogimageid=$(curl -s -k -H "fog-api-token: ${FOG_API_TOKEN}" -H "fog-user-token: ${FOG_USER_TOKEN}" http://fog.front.sepia.ceph.com/fog/image -d '{"name": "'${type}_${fogprofile}'"}' -X GET | jq -r '.images[0].id')
+    # Set foghostid (target host) to capture fogimageid
+    curl -s -k -H "fog-api-token: ${FOG_API_TOKEN}" -H "fog-user-token: ${FOG_USER_TOKEN}" http://fog.front.sepia.ceph.com/fog/host/$foghostid -d '{"imageID": "'${fogimageid}'"}' -X PUT
+    # Create 'Capture' task for each machine
+    curl -s -k -H "fog-api-token: ${FOG_API_TOKEN}" -H "fog-user-token: ${FOG_USER_TOKEN}" http://fog.front.sepia.ceph.com/fog/host/$foghostid/task -d '{"taskTypeID": "'${fogcaptureid}'"}' -X POST
+  done
+done
+
+# Sleep for 10sec to allow the hosts to reboot (Makes sure we don't `stat` existing/old /ceph-qa-ready
+sleep 10
+
+# Don't bail if machines aren't ready yet
+set +e
+
+# Set DHCP next-server back to FOG and prep each machine for FOG capturing
+remaininghosts=$allhosts
+while [ "$remaininghosts" != "" ]; do
+  for host in $remaininghosts; do
+    if ssh -q ubuntu@${host}.front.sepia.ceph.com stat /ceph-qa-ready \> /dev/null 2\>\&1; then
+      # Bail if anything fails
+      set -ex
+      # Set DHCP back
+      ssh ubuntu@store01.front.sepia.ceph.com "sudo /usr/local/sbin/set-next-server.sh $host fog"
+      # Prep the host for FOG image capture
+      ansible-playbook $WORKSPACE/ceph-cm-ansible/tools/prep-fog-capture.yml -e ansible_ssh_user=ubuntu --limit="$host*"
+      remaininghosts=$(echo $remaininghosts | sed -e "s/ *$host *//")
+    else
+      # This gets noisy
+      set +ex
+      echo "$(date) -- $host is not ready.  Sleeping for 2min"
+      sleep 120
+    fi
+  done
+done
+
+set -ex
+
+# Restart dhcpd so servers PXE boot to FOG server
+ssh ubuntu@store01.front.sepia.ceph.com "sudo service dhcpd restart"
+
+# Reboot all hosts so FOG can capture their OSes
+for host in $allhosts; do
+  funPowerCycle $host
+done
+
+set +x
+
+# Wait for Capture tasks to finish
+capturetasks=$(curl -s -k -H "fog-api-token: ${FOG_API_TOKEN}" -H "fog-user-token: ${FOG_USER_TOKEN}" http://fog.front.sepia.ceph.com/fog/task/active -d '{"typeID": "'${fogcaptureid}'"}' -X GET | jq -r '.count')
+while [ $capturetasks -gt 0 ]; do
+  echo "$(date) -- $capturetasks FOG capture tasks still queued.  Sleeping 10sec"
+  sleep 10
+  capturetasks=$(curl -s -k -H "fog-api-token: ${FOG_API_TOKEN}" -H "fog-user-token: ${FOG_USER_TOKEN}" http://fog.front.sepia.ceph.com/fog/task/active -d '{"typeID": "'${fogcaptureid}'"}' -X GET | jq -r '.count')
+done
+
+# Don't bail if machines aren't ready yet
+set +e
+
+# Wait for hosts to come back up after getting images captured
+remaininghosts=$allhosts
+while [ "$remaininghosts" != "" ]; do
+  for host in $remaininghosts; do
+    if ssh -q ubuntu@${host}.front.sepia.ceph.com stat /ceph-qa-ready \> /dev/null 2\>\&1; then
+      remaininghosts=$(echo $remaininghosts | sed -e "s/ *$host *//")
+    else
+      echo "$(date) -- $host is not ready.  Sleeping for 10sec"
+      sleep 10
+    fi
+  done
+done
+
+set -ex
+
+# Update lock db and unlock machines!
+for host in $allhosts; do
+  teuthology-updatekeys ubuntu@${host}
+  teuthology-update-inventory ubuntu@${host}
+  teuthology-lock --unlock $host
+done
