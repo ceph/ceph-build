@@ -36,6 +36,6 @@ set +e
 # Try to update lock DB (in case whomever debugs Jenkins job failure forgets)
 for host in $allhosts; do
   teuthology-updatekeys ubuntu@${host}
-  teuthology-update-inventory ubuntu@${host}
+  teuthology-update-inventory ${host}
   teuthology-lock --unlock $host
 done

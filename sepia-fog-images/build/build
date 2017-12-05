@@ -184,6 +184,6 @@ set -ex
 # Update lock db and unlock machines!
 for host in $allhosts; do
   teuthology-updatekeys ubuntu@${host}
-  teuthology-update-inventory ubuntu@${host}
+  teuthology-update-inventory ${host}
   teuthology-lock --unlock $host
 done
