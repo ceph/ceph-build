@@ -12,6 +12,22 @@ funPowerCycle () {
   fi
 }
 
+# Clone or update teuthology
+if [ ! -d teuthology ]; then
+  git clone https://github.com/ceph/teuthology
+  cd teuthology
+else
+  cd teuthology
+  git pull
+fi
+
+# Bootstrap teuthology
+./bootstrap
+
+cd $WORKSPACE
+
+source $WORKSPACE/teuthology/virtualenv/bin/activate
+
 allhosts=$(teuthology-lock --brief | grep "Locked to capture FOG image for Jenkins build $BUILD_NUMBER" | cut -d '.' -f1 | tr "\n" " ")
 # Set DHCP server back to FOG
 for machine in $allhosts; do
@@ -36,6 +52,6 @@ set +e
 # Try to update lock DB (in case whomever debugs Jenkins job failure forgets)
 for host in $allhosts; do
   teuthology-updatekeys ubuntu@${host}
-  teuthology-update-inventory ubuntu@${host}
+  teuthology-update-inventory ${host}
   teuthology-lock --unlock $host
 done
