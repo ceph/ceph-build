@@ -2,6 +2,12 @@
 # There has to be a better way to do this than this script which just looks
 # for every Vagrantfile in scenarios and then just destroys whatever is left.
 
+# the following two methods exist in scripts/build_utils.sh
+pkgs=( "github-status" )
+install_python_packages "pkgs[@]"
+
+GITHUB_STATUS_STATE="failure" $VENV/github-status create
+
 cd $WORKSPACE/src/ceph-volume/tests/functional
 
 scenarios=$(find . | grep Vagrantfile | xargs dirname)
