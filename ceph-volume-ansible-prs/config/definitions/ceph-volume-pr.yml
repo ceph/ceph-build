@@ -57,68 +57,9 @@
       # these are injected by the ghprb plugin, and are fully optional but may help in manually triggering
       # a job that can end up updating a PR
       - string:
-          name: ghprbActualCommit
-          description: "The tip (last commit) in the PR, a sha1 like 7d787849556788961155534039886aedfcdb2a88"
+          name: GITHUB_SHA
+          description: "The tip (last commit) in the PR, a sha1 like 7d787849556788961155534039886aedfcdb2a88 (if set, will report status to Github)"
 
-      - string:
-         name: ghprbAuthorRepoGitUrl
-         description: "Injected plugin var: Origin URL like https://github.com/ceph/ceph.git"
-
-      - string:
-         name: ghprbTriggerAuthor
-         description: "Injected plugin var: Full Name of person triggering, like john doe"
-
-      - string:
-         name: ghprbTriggerAuthorLogin
-         description: "Injected plugin var: Github username that triggered, like johndoe"
-
-      - string:
-         name: ghprbTriggerAuthorLoginMention
-         description: "Injected plugin var: Github username that triggered, with '@' like @johndoe"
-
-      - string:
-         name: ghprbPullId
-         description: "Injected plugin var: The ID of the pull request, like 18882"
-
-      - string:
-         name: ghprbTargetBranch
-         description: "Injected plugin var: The destination branch once merged, like master"
-
-      - string:
-         name: ghprbSourceBranch
-         description: "Injected plugin var: The originating branch, like wip-branch"
-
-      - string:
-         name: ghprbPullAuthorLogin
-         description: "Injected plugin var: PR author's Github username like janedoe"
-
-      - string:
-         name: ghprbPullAuthorLoginMention
-         description: "Injected plugin var: PR author's Github username with '@' like @janedoe"
-
-      - string:
-         name: ghprbPullDescription
-         description: "Injected plugin var: like 'GitHub pull request #18882 of commit 7d787849556788961155534039886aedfcdb2a88, no merge conflicts.'"
-
-      - string:
-         name: ghprbPullTitle
-         description: "Injected plugin var: like 'ceph-volume add functional tests'"
-
-      - string:
-         name: ghprbPullLink
-         description: "Injected plugin var: Link to the PR like https://github.com/ceph/ceph/pull/18882"
-
-      - string:
-         name: ghprbCommentBody
-         description: "Injected plugin var: The comment that triggered the job, like 'jenkins test this please'"
-
-      - string:
-         name: ghprbGhRepository
-         description: "Injected plugin var: The url part of the repo, like ceph/ceph"
-
-      - string:
-         name: ghprbCredentialsId
-         description: "Injected plugin var: The credential ID of the user, like eeeeeeee-1111-aaaa-8888-aaaaaaaaaaaa"
 
     triggers:
       - github-pull-request:
@@ -154,14 +95,28 @@
             DISTRO={distro}
             OBJECTSTORE={objectstore}
             SUBCOMMAND={subcommand}
+            GITHUB_REPOSITORY="ceph/ceph"
+            GITHUB_STATUS_CONTEXT="ceph-volume {subcommand} testing {distro}-{objectstore}-{scenario}"
+            GITHUB_STATUS_STARTED="running"
+            GITHUB_STATUS_SUCCESS="OK"
+            GITHUB_STATUS_FAILURE="failed"
+            GITHUB_STATUS_ERROR="completed with errors"
       - shell:
           !include-raw-escape:
             - ../../../scripts/build_utils.sh
             - ../../build/build
+
+    wrappers:
+      - inject-passwords:
+          global: true
+          mask-password-params: true
 
     publishers:
       - postbuildscript:
           script-only-if-succeeded: False
           script-only-if-failed: True
           builders:
-            - shell: !include-raw ../../build/teardown
+            - shell:
+                !include-raw-escape:
+                  - ../../../scripts/build_utils.sh
+                  - ../../build/teardown
