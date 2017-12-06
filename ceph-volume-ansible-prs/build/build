@@ -41,9 +41,13 @@ fi
 # ready to be consumed
 
 # the following two methods exist in scripts/build_utils.sh
-pkgs=( "tox" )
+pkgs=( "tox" "github-status" )
 install_python_packages "pkgs[@]"
+
+GITHUB_STATUS_STATE="pending" $VENV/github-status create
 
 cd src/ceph-volume/ceph_volume/tests/functional/$SUBCOMMAND
 
 CEPH_DEV_BRANCH=$BRANCH CEPH_DEV_SHA1=$SHA $VENV/tox --workdir=$WORKDIR -vre $DISTRO-$OBJECTSTORE-$SCENARIO -- --provider=libvirt
+
+GITHUB_STATUS_STATE="success" $VENV/github-status create
