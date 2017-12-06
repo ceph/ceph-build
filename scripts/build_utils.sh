@@ -411,6 +411,61 @@ setup_pbuilder() {
     fi
 }
 
+setup_pbuilder_for_ppa() {
+    # point gcc,g++ to the newly installed ones
+    local hookdir=$HOME/.pbuilder/hook.d
+    case $vers in
+        10.*)
+            # jewel
+            use_ppa=false;;
+        12.*)
+            # luminous
+            use_ppa=false;;
+        *)
+            # mimic, nautilus, *
+            # in newer releases, the trusty support is dropped. and it's safe to use the new GCC ABI
+            if [ "$DIST" = "trusty" ]; then
+                use_ppa=true
+            else
+                use_ppa=false
+            fi
+    esac
+    if ! $use_ppa; then
+        return
+    fi
+
+    cat >> ~/.pbuilderrc <<EOF
+OTHERMIRROR="deb http://ppa.launchpad.net/ubuntu-toolchain-r/test/ubuntu $DIST main"
+OTHERMIRROR="$OTHERMIRROR | deb http://mirror.cs.uchicago.edu/ubuntu-toolchain-r $DIST main"
+OTHERMIRROR="$OTHERMIRROR | deb http://mirror.yandex.ru/mirrors/launchpad/ubuntu-toolchain-r $DIST main"
+ALLOWUNTRUSTED=yes
+EXTRAPACKAGES="g++-7"
+HOOKDIR=$hookdir
+EOF
+    if [ ! -e $hookdir ]; then
+        mkdir -p $hookdir
+        cat > $hookdir/E10update-gcc-alternatives <<EOF
+old=4.8
+new=7
+
+update-alternatives \
+  --install /usr/bin/gcc gcc /usr/bin/gcc-\${new} 20 \
+  --slave   /usr/bin/g++ g++ /usr/bin/g++-\${new}
+
+update-alternatives \
+  --install /usr/bin/gcc gcc /usr/bin/gcc-\${old} 10 \
+  --slave   /usr/bin/g++ g++ /usr/bin/g++-\${old}
+
+update-alternatives --auto gcc
+
+# cmake uses the latter by default
+ln -nsf /usr/bin/gcc /usr/bin/x86_64-linux-gnu-gcc
+ln -nsf /usr/bin/g++ /usr/bin/x86_64-linux-gnu-g++
+EOF
+        chmod +x $hookdir/E10update-gcc-alternatives
+    fi
+}
+
 delete_libvirt_vms() {
     # Delete any VMs leftover from previous builds.
     # Primarily used for Vagrant VMs leftover from docker builds.

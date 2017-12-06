@@ -83,41 +83,7 @@ echo "BUILD_HOME=`mktemp -d`" >> ~/.pbuilderrc
 # in newer versions. This ticket solves the specific issue in 8.1.1 (which vendors urllib3):
 # https://github.com/shazow/urllib3/issues/567
 echo "USENETWORK=yes" >> ~/.pbuilderrc
-# point gcc,g++ to the newly installed ones
-hookdir=$HOME/.pbuilder/hook.d
-if [ "$DIST" = "trusty" ]; then
-    cat >> ~/.pbuilderrc <<EOF
-OTHERMIRROR="deb http://ppa.launchpad.net/ubuntu-toolchain-r/test/ubuntu $DIST main"
-OTHERMIRROR="$OTHERMIRROR | deb http://mirror.cs.uchicago.edu/ubuntu-toolchain-r $DIST main"
-OTHERMIRROR="$OTHERMIRROR | deb http://mirror.yandex.ru/mirrors/launchpad/ubuntu-toolchain-r $DIST main"
-ALLOWUNTRUSTED=yes
-EXTRAPACKAGES="g++-7"
-HOOKDIR=$hookdir
-EOF
-fi
-
-if [ ! -e $hookdir ]; then
-    mkdir -p $hookdir
-    cat > $hookdir/E10update-gcc-alternatives <<EOF
-old=4.8
-new=7
-
-update-alternatives \
-  --install /usr/bin/gcc gcc /usr/bin/gcc-\${new} 20 \
-  --slave   /usr/bin/g++ g++ /usr/bin/g++-\${new}
-
-update-alternatives \
-  --install /usr/bin/gcc gcc /usr/bin/gcc-\${old} 10 \
-  --slave   /usr/bin/g++ g++ /usr/bin/g++-\${old}
-
-update-alternatives --auto gcc
-
-# cmake uses the latter by default
-ln -nsf /usr/bin/gcc /usr/bin/x86_64-linux-gnu-gcc
-ln -nsf /usr/bin/g++ /usr/bin/x86_64-linux-gnu-g++
-EOF
-    chmod +x $hookdir/E10update-gcc-alternatives
-fi
+setup_pbuilder_for_ppa
 
 sudo pbuilder --clean
 
