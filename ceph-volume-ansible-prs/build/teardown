@@ -3,7 +3,7 @@
 # for every Vagrantfile in scenarios and then just destroys whatever is left.
 
 # the following two methods exist in scripts/build_utils.sh
-pkgs=( "github-status" )
+pkgs=( "tox" "github-status>0.0.3" )
 install_python_packages "pkgs[@]"
 
 GITHUB_STATUS_STATE="failure" $VENV/github-status create

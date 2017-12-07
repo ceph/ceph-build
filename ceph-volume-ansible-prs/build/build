@@ -41,7 +41,7 @@ fi
 # ready to be consumed
 
 # the following two methods exist in scripts/build_utils.sh
-pkgs=( "tox" "github-status" )
+pkgs=( "tox" "github-status>0.0.3" )
 install_python_packages "pkgs[@]"
 
 GITHUB_STATUS_STATE="pending" $VENV/github-status create
