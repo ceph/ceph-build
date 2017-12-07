@@ -8,7 +8,6 @@
       - filestore
     scenario:
       - create
-      - prepare_activate
     subcommand:
       - lvm
 
