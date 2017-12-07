@@ -37,20 +37,47 @@
           wipe-workspace: true
 
     builders:
-      - shell:
-          !include-raw:
-            - ../../../scripts/build_utils.sh
-            - ../../build/notify
-      - trigger-builds:
-        - project: 'ceph-dev'
-          predefined-parameters: |
-            BRANCH=${GIT_BRANCH}
-            FORCE=True
-        - project: 'ceph-dev'
-          predefined-parameters: |
-            BRANCH=${GIT_BRANCH}
-            FORCE=True
-            FLAVOR=notcmalloc
+      - conditional-step:
+          condition-kind: regex-match
+          regex: .*(jewel|luminous).*
+          label: '${GIT_BRANCH}'
+          on-evaluation-failure: dont-run
+          steps:
+            - shell:
+                !include-raw:
+                - ../../../scripts/build_utils.sh
+                - ../../build/notify
+            - trigger-builds:
+                - project: 'ceph-dev'
+                  predefined-parameters: |
+                    BRANCH=${GIT_BRANCH}
+                    FORCE=True
+                - project: 'ceph-dev'
+                  predefined-parameters: |
+                    BRANCH=${GIT_BRANCH}
+                    FORCE=True
+      - conditional-step:
+          condition-kind: shell
+          condition-command: |
+            echo "${GIT_BRANCH}" | grep -v '\(jewel\|luminous\)'
+          on-evaluation-failure: dont-run
+          steps:
+            - shell:
+                !include-raw:
+                - ../../../scripts/build_utils.sh
+                - ../../build/notify
+            - trigger-builds:
+                - project: 'ceph-dev'
+                  predefined-parameters: |
+                    BRANCH=${GIT_BRANCH}
+                    FORCE=True
+                    DISTROS="xenial centos7"
+                - project: 'ceph-dev'
+                  predefined-parameters: |
+                    BRANCH=${GIT_BRANCH}
+                    FORCE=True
+                    DISTROS="xenial centos7"
+                    FLAVOR=notcmalloc
 
     wrappers:
       - inject-passwords:
