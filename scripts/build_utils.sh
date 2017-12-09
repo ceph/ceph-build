@@ -483,6 +483,32 @@ EOF
     fi
 }
 
+extra_cmake_args() {
+    # statically link against libstdc++ for building new releases on old distros
+    case $vers in
+        10.*)
+            # jewel
+            use_ppa=false;;
+        12.*)
+            # luminous
+            use_ppa=false;;
+        *)
+            # mimic, nautilus, *
+            case $DIST in
+                trusty)
+                    use_ppa=true;;
+                xenial)
+                    use_ppa=true;;
+                *)
+                    use_ppa=false;;
+            esac
+            ;;
+    esac
+    if $use_ppa; then
+        echo "-DWITH_STATIC_LIBSTDCXX=ON"
+    fi
+}
+
 delete_libvirt_vms() {
     # Delete any VMs leftover from previous builds.
     # Primarily used for Vagrant VMs leftover from docker builds.

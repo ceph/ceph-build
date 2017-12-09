@@ -72,6 +72,11 @@ echo deb vers $bpvers
 
 
 echo building debs for $DIST
+
+if [ -n $(extra_cmake_args) ]; then
+    CEPH_EXTRA_CMAKE_ARGS="$CEPH_EXTRA_CMAKE_ARGS $(extra_cmake_args)"
+fi
+
 # pass only those env vars specifically noted
 sudo \
     CEPH_EXTRA_CMAKE_ARGS=$CEPH_EXTRA_CMAKE_ARGS \
