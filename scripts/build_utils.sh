@@ -424,11 +424,16 @@ setup_pbuilder_for_ppa() {
         *)
             # mimic, nautilus, *
             # in newer releases, the trusty support is dropped. and it's safe to use the new GCC ABI
-            if [ "$DIST" = "trusty" ]; then
-                use_ppa=true
-            else
-                use_ppa=false
-            fi
+            case $DIST in
+                trusty)
+                    old=4.8
+                    use_ppa=true;;
+                xenial)
+                    old=5
+                    use_ppa=true;;
+                *)
+                    use_ppa=false;;
+            esac
     esac
     if ! $use_ppa; then
         return
@@ -445,7 +450,7 @@ EOF
     if [ ! -e $hookdir ]; then
         mkdir -p $hookdir
         cat > $hookdir/E10update-gcc-alternatives <<EOF
-old=4.8
+old=${old}
 new=7
 
 update-alternatives \
