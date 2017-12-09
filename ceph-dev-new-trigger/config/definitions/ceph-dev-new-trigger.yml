@@ -62,12 +62,12 @@
                   predefined-parameters: |
                     BRANCH=${GIT_BRANCH}
                     FORCE=True
-                    DISTROS="xenial centos7"
+                    DISTROS=xenial centos7
                 - project: 'ceph-dev-new'
                   predefined-parameters: |
                     BRANCH=${GIT_BRANCH}
                     FORCE=True
-                    DISTROS="xenial centos7"
+                    DISTROS=xenial centos7
                     FLAVOR=notcmalloc
 
     wrappers:
