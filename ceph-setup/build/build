@@ -57,6 +57,11 @@ else
     CEPH_EXTRA_CMAKE_ARGS="$CEPH_EXTRA_CMAKE_ARGS -DALLOCATOR=tcmalloc"
 fi
 
+if [ $DIST = trusty -o $DIST = xenial ]; then
+    if echo "${BRANCH}" | grep '\(jewel\|luminous\)'; then
+        CEPH_EXTRA_CMAKE_ARGS="$CEPH_EXTRA_CMAKE_ARGS -DWITH_STATIC_LIBSTDCXX=ON"
+    fi
+fi
 
 # When using autotools/autoconf it is possible to see output from `git diff`
 # since some macros can be copied over to the ceph source, triggering this
