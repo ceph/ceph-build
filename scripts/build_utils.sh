@@ -423,29 +423,46 @@ setup_pbuilder_for_ppa() {
             use_ppa=false;;
         *)
             # mimic, nautilus, *
-            # in newer releases, the trusty support is dropped. and it's safe to use the new GCC ABI
-            if [ "$DIST" = "trusty" ]; then
-                use_ppa=true
-            else
-                use_ppa=false
-            fi
+            case $DIST in
+                trusty)
+                    old=4.8
+                    use_ppa=true;;
+                xenial)
+                    old=5
+                    use_ppa=true;;
+                *)
+                    use_ppa=false
+                    ;;
+            esac
+            ;;
     esac
     if ! $use_ppa; then
         return
     fi
 
-    cat >> ~/.pbuilderrc <<EOF
-OTHERMIRROR="deb http://ppa.launchpad.net/ubuntu-toolchain-r/test/ubuntu $DIST main"
-OTHERMIRROR="$OTHERMIRROR | deb http://mirror.cs.uchicago.edu/ubuntu-toolchain-r $DIST main"
-OTHERMIRROR="$OTHERMIRROR | deb http://mirror.yandex.ru/mirrors/launchpad/ubuntu-toolchain-r $DIST main"
-ALLOWUNTRUSTED=yes
-EXTRAPACKAGES="g++-7"
-HOOKDIR=$hookdir
-EOF
+    echo "HOOKDIR=$hookdir"
+
     if [ ! -e $hookdir ]; then
         mkdir -p $hookdir
+        # need to add the test repo and install gcc-7 after
+        # `pbuilder create|update` finishes apt-get, and before creating
+        # tarball from the chroot. otherwise installing gcc-7 will leave us a
+        # half-configured build-essential and gcc-7, and `pbuilder` command
+        # will fail. because the `build-essential` depends on a certain version
+        # of gcc which is upgraded already by the one in test repo.
+        cat > $hookdir/E05install-gcc-7 <<EOF
+echo "deb http://ppa.launchpad.net/ubuntu-toolchain-r/test/ubuntu $DIST main" >> \
+  /etc/apt/sources.list.d/ubuntu-toolchain-r.list
+echo "deb http://mirror.cs.uchicago.edu/ubuntu-toolchain-r $DIST main" >> \
+  /etc/apt/sources.list.d/ubuntu-toolchain-r.list
+echo deb http://mirror.yandex.ru/mirrors/launchpad/ubuntu-toolchain-r $DIST main" >> \
+  /etc/apt/sources.list.d/ubuntu-toolchain-r.list
+apt-get update
+apt-get install -y --allow-unauthenticated g++-7
+EOF
+
         cat > $hookdir/E10update-gcc-alternatives <<EOF
-old=4.8
+old=$old
 new=7
 
 update-alternatives \
