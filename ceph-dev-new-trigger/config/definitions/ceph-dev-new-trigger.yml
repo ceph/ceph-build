@@ -47,6 +47,7 @@
                   predefined-parameters: |
                     BRANCH=${GIT_BRANCH}
                     FORCE=True
+                    FLAVOR=notcmalloc
       - conditional-step:
           condition-kind: shell
           condition-command: |
