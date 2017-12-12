@@ -83,7 +83,7 @@ echo "BUILD_HOME=`mktemp -d`" >> ~/.pbuilderrc
 # in newer versions. This ticket solves the specific issue in 8.1.1 (which vendors urllib3):
 # https://github.com/shazow/urllib3/issues/567
 echo "USENETWORK=yes" >> ~/.pbuilderrc
-setup_pbuilder_for_ppa
+setup_pbuilder_for_ppa >> ~/.pbuilderrc
 
 sudo pbuilder --clean
 
