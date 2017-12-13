@@ -30,7 +30,13 @@ cd ceph-*
 pwd
 
 $SUDO yum install -y yum-utils
-$SUDO yum install -y centos-release-scl
+if [ "$ARCH" = x86_64 ]; then
+    $SUDO yum install -y centos-release-scl
+elif [ "$ARCH" = arm64 ]; then
+    $SUDO yum install -y centos-release-scl-rh
+    $SUDO yum-config-manager --disable centos-sclo-rh
+    $SUDO yum-config-manager --enable centos-sclo-rh-testing
+fi
 sed -e 's/@//g' < ceph.spec.in > $DIR/ceph.spec
 $SUDO yum-builddep -y $DIR/ceph.spec
 
