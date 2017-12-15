@@ -53,8 +53,11 @@
           name: sha1
           description: "A pull request ID, like 'origin/pr/72/head'"
 
-      # these are injected by the ghprb plugin, and are fully optional but may help in manually triggering
+      # this is injected by the ghprb plugin, and is fully optional but may help in manually triggering
       # a job that can end up updating a PR
+      - string:
+          name: ghprbSourceBranch
+          description: "When manually triggered, and the remote PR isn't a branch in the ceph.git repo This can be specified to determine the actual branch."
       - string:
           name: GITHUB_SHA
           description: "The tip (last commit) in the PR, a sha1 like 7d787849556788961155534039886aedfcdb2a88 (if set, will report status to Github)"
