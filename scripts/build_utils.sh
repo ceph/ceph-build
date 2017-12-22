@@ -453,9 +453,9 @@ setup_pbuilder_for_ppa() {
         cat > $hookdir/E05install-gcc-7 <<EOF
 echo "deb http://ppa.launchpad.net/ubuntu-toolchain-r/test/ubuntu $DIST main" >> \
   /etc/apt/sources.list.d/ubuntu-toolchain-r.list
-echo "deb http://mirror.cs.uchicago.edu/ubuntu-toolchain-r $DIST main" >> \
+echo "deb [arch=amd64] http://mirror.cs.uchicago.edu/ubuntu-toolchain-r $DIST main" >> \
   /etc/apt/sources.list.d/ubuntu-toolchain-r.list
-echo deb http://mirror.yandex.ru/mirrors/launchpad/ubuntu-toolchain-r $DIST main" >> \
+echo "deb [arch=amd64,i386] http://mirror.yandex.ru/mirrors/launchpad/ubuntu-toolchain-r $DIST main" >> \
   /etc/apt/sources.list.d/ubuntu-toolchain-r.list
 # import PPA's signing key into APT's keyring
 apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 1E9377A2BA9EF27F
