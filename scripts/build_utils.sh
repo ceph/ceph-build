@@ -434,49 +434,28 @@ use_ppa() {
     $use_ppa
 }
 
-setup_pbuilder_for_ppa() {
-    # point gcc,g++ to the newly installed ones
-    local hookdir=$HOME/.pbuilder/hook.d
-    if ! use_ppa; then
-        return
-    fi
-    case $DIST in
-        trusty)
-            old=4.8;;
-        xenial)
-            old=5
-    esac
+setup_gcc_hook() {
+    new=$1
+    cat <<EOF
+old=\$(gcc -dumpversion)
+if dpkg --compare-versions \$old eq $new; then
+    return
+fi
 
-    echo "HOOKDIR=$hookdir"
+case \$old in
+    4*)
+        old=4.8;;
+    5*)
+        old=5;;
+    7*)
+        old=7;;
+esac
 
-    if [ ! -e $hookdir ]; then
-        mkdir -p $hookdir
-        # need to add the test repo and install gcc-7 after
-        # `pbuilder create|update` finishes apt-get, and before creating
-        # tarball from the chroot. otherwise installing gcc-7 will leave us a
-        # half-configured build-essential and gcc-7, and `pbuilder` command
-        # will fail. because the `build-essential` depends on a certain version
-        # of gcc which is upgraded already by the one in test repo.
-        cat > $hookdir/E05install-gcc-7 <<EOF
-echo "deb http://ppa.launchpad.net/ubuntu-toolchain-r/test/ubuntu $DIST main" >> \
-  /etc/apt/sources.list.d/ubuntu-toolchain-r.list
-echo "deb [arch=amd64] http://mirror.cs.uchicago.edu/ubuntu-toolchain-r $DIST main" >> \
-  /etc/apt/sources.list.d/ubuntu-toolchain-r.list
-echo "deb [arch=amd64,i386] http://mirror.yandex.ru/mirrors/launchpad/ubuntu-toolchain-r $DIST main" >> \
-  /etc/apt/sources.list.d/ubuntu-toolchain-r.list
-# import PPA's signing key into APT's keyring
-apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 1E9377A2BA9EF27F
-apt-get -y update -o Acquire::Languages=none || true
-apt-get install -y g++-7
-EOF
-
-        cat > $hookdir/E10update-gcc-alternatives <<EOF
-old=$old
-new=7
+update-alternatives --remove-all gcc
 
 update-alternatives \
-  --install /usr/bin/gcc gcc /usr/bin/gcc-\${new} 20 \
-  --slave   /usr/bin/g++ g++ /usr/bin/g++-\${new}
+  --install /usr/bin/gcc gcc /usr/bin/gcc-${new} 20 \
+  --slave   /usr/bin/g++ g++ /usr/bin/g++-${new}
 
 update-alternatives \
   --install /usr/bin/gcc gcc /usr/bin/gcc-\${old} 10 \
@@ -488,8 +467,63 @@ update-alternatives --auto gcc
 ln -nsf /usr/bin/gcc /usr/bin/x86_64-linux-gnu-gcc
 ln -nsf /usr/bin/g++ /usr/bin/x86_64-linux-gnu-g++
 EOF
-        chmod +x $hookdir/E10update-gcc-alternatives
+}
+
+setup_pbuilder_for_new_gcc() {
+    # point gcc,g++ to the newly installed ones
+    local hookdir=$1
+
+    # need to add the test repo and install gcc-7 after
+    # `pbuilder create|update` finishes apt-get, and before creating
+    # tarball from the chroot. otherwise installing gcc-7 will leave us a
+    # half-configured build-essential and gcc-7, and `pbuilder` command
+    # will fail. because the `build-essential` depends on a certain version
+    # of gcc which is upgraded already by the one in test repo.
+    cat > $hookdir/E05install-gcc-7 <<EOF
+echo "deb http://ppa.launchpad.net/ubuntu-toolchain-r/test/ubuntu $DIST main" >> \
+  /etc/apt/sources.list.d/ubuntu-toolchain-r.list
+echo "deb [arch=amd64] http://mirror.cs.uchicago.edu/ubuntu-toolchain-r $DIST main" >> \
+  /etc/apt/sources.list.d/ubuntu-toolchain-r.list
+echo "deb [arch=amd64,i386] http://mirror.yandex.ru/mirrors/launchpad/ubuntu-toolchain-r $DIST main" >> \
+  /etc/apt/sources.list.d/ubuntu-toolchain-r.list
+# import PPA's signing key into APT's keyring
+apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 1E9377A2BA9EF27F
+apt-get -y update -o Acquire::Languages=none || true
+apt-get install -y g++-7
+EOF
+    chmod +x $hookdir/E05install-gcc-7
+
+    setup_gcc_hook 7 > $hookdir/E10update-gcc-alternatives
+    chmod +x $hookdir/E10update-gcc-alternatives
+}
+
+setup_pbuilder_for_old_gcc() {
+    # point gcc,g++ to the ones shipped by distro
+    local hookdir=$1
+    case $DIST in
+        trusty)
+            old=4.8;;
+        xenial)
+            old=5;;
+    esac
+    setup_gcc_hook $old > $hookdir/D10update-gcc-alternatives
+    chmod +x $hookdir/D10update-gcc-alternatives
+}
+
+setup_pbuilder_for_ppa() {
+    local hookdir
+    if use_ppa; then
+        hookdir=$HOME/.pbuilder/hook.d
+        rm -rf $hookdir
+        mkdir -p $hookdir
+        setup_pbuilder_for_new_gcc $hookdir
+    else
+        hookdir=$HOME/.pbuilder/hook-old-gcc.d
+        rm -rf $hookdir
+        mkdir -p $hookdir
+        setup_pbuilder_for_old_gcc $hookdir
     fi
+    echo "HOOKDIR=$hookdir"
 }
 
 extra_cmake_args() {
