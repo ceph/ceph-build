@@ -411,9 +411,7 @@ setup_pbuilder() {
     fi
 }
 
-setup_pbuilder_for_ppa() {
-    # point gcc,g++ to the newly installed ones
-    local hookdir=$HOME/.pbuilder/hook.d
+use_ppa() {
     case $vers in
         10.*)
             # jewel
@@ -425,20 +423,29 @@ setup_pbuilder_for_ppa() {
             # mimic, nautilus, *
             case $DIST in
                 trusty)
-                    old=4.8
                     use_ppa=true;;
                 xenial)
-                    old=5
                     use_ppa=true;;
                 *)
-                    use_ppa=false
-                    ;;
+                    use_ppa=false;;
             esac
             ;;
     esac
-    if ! $use_ppa; then
+    $use_ppa
+}
+
+setup_pbuilder_for_ppa() {
+    # point gcc,g++ to the newly installed ones
+    local hookdir=$HOME/.pbuilder/hook.d
+    if ! use_ppa; then
         return
     fi
+    case $DIST in
+        trusty)
+            old=4.8;;
+        xenial)
+            old=5
+    esac
 
     echo "HOOKDIR=$hookdir"
 
@@ -487,26 +494,7 @@ EOF
 
 extra_cmake_args() {
     # statically link against libstdc++ for building new releases on old distros
-    case $vers in
-        10.*)
-            # jewel
-            use_ppa=false;;
-        12.*)
-            # luminous
-            use_ppa=false;;
-        *)
-            # mimic, nautilus, *
-            case $DIST in
-                trusty)
-                    use_ppa=true;;
-                xenial)
-                    use_ppa=true;;
-                *)
-                    use_ppa=false;;
-            esac
-            ;;
-    esac
-    if $use_ppa; then
+    if use_ppa; then
         echo "-DWITH_STATIC_LIBSTDCXX=ON"
     fi
 }
