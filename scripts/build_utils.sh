@@ -325,6 +325,8 @@ get_distro_and_target() {
 
 
 setup_pbuilder() {
+    local use_gcc=$1
+
     # This function will set the tgz images needed for pbuilder on a given host. It has
     # some hard-coded values like `/srv/debian-base` because it gets built every
     # time this file is executed - completely ephemeral.  If a Debian host will use
@@ -393,6 +395,19 @@ setup_pbuilder() {
     echo "$components" > ~/.pbuilderrc
     echo "$debootstrapopts" >> ~/.pbuilderrc
 
+    if [ -n "$use_gcc" ]; then
+        # Newer pbuilder versions set $HOME to /nonexistent which breaks all kinds of
+        # things that rely on a proper (writable) path. Setting this to the system user's $HOME is not enough
+        # because of how pbuilder uses a chroot environment for builds, using a temporary directory here ensures
+        # that writes will be successful.
+        echo "BUILD_HOME=`mktemp -d`" >> ~/.pbuilderrc
+        # Some Ceph components will want to use cached wheels that may have older versions of buggy executables
+        # like: /usr/share/python-wheels/pip-8.1.1-py2.py3-none-any.whl which causes errors that are already fixed
+        # in newer versions. This ticket solves the specific issue in 8.1.1 (which vendors urllib3):
+        # https://github.com/shazow/urllib3/issues/567
+        echo "USENETWORK=yes" >> ~/.pbuilderrc
+        setup_pbuilder_for_ppa >> ~/.pbuilderrc
+    fi
     sudo pbuilder --clean
 
     if [ -e $basedir/$DIST.tgz ]; then
@@ -480,6 +495,8 @@ setup_pbuilder_for_new_gcc() {
     # will fail. because the `build-essential` depends on a certain version
     # of gcc which is upgraded already by the one in test repo.
     cat > $hookdir/E05install-gcc-7 <<EOF
+echo "deb http://security.ubuntu.com/ubuntu $DIST-security main" >> \
+  /etc/apt/sources.list.d/ubuntu-toolchain-r.list
 echo "deb http://ppa.launchpad.net/ubuntu-toolchain-r/test/ubuntu $DIST main" >> \
   /etc/apt/sources.list.d/ubuntu-toolchain-r.list
 echo "deb [arch=amd64] http://mirror.cs.uchicago.edu/ubuntu-toolchain-r $DIST main" >> \

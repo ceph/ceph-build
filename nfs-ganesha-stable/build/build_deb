@@ -33,7 +33,7 @@ dch -v "$NTIRPC_VERSION-1${DIST}" "$NTIRPC_VERSION for download.ceph.com"
 sudo dpkg-buildpackage -S -us -uc -d
 
 ## Setup the pbuilder
-setup_pbuilder
+setup_pbuilder use_gcc
 PBUILDDIR="/srv/debian-base"
 
 ## Build with pbuilder
