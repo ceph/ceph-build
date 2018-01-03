@@ -489,12 +489,12 @@ setup_pbuilder_for_new_gcc() {
     local hookdir=$1
 
     # need to add the test repo and install gcc-7 after
-    # `pbuilder create|update` finishes apt-get, and before creating
-    # tarball from the chroot. otherwise installing gcc-7 will leave us a
-    # half-configured build-essential and gcc-7, and `pbuilder` command
-    # will fail. because the `build-essential` depends on a certain version
-    # of gcc which is upgraded already by the one in test repo.
-    cat > $hookdir/E05install-gcc-7 <<EOF
+    # `pbuilder create|update` finishes apt-get instead of using "extrapackages".
+    # otherwise installing gcc-7 will leave us a half-configured build-essential
+    # and gcc-7, and `pbuilder` command will fail. because the `build-essential`
+    # depends on a certain version of gcc which is upgraded already by the one
+    # in test repo.
+    cat > $hookdir/D05install-gcc-7 <<EOF
 echo "deb http://security.ubuntu.com/ubuntu $DIST-security main" >> \
   /etc/apt/sources.list.d/ubuntu-toolchain-r.list
 echo "deb http://ppa.launchpad.net/ubuntu-toolchain-r/test/ubuntu $DIST main" >> \
@@ -508,10 +508,10 @@ apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 1E9377A2BA9EF27F
 apt-get -y update -o Acquire::Languages=none -o Acquire::Translation=none || true
 apt-get install -y g++-7
 EOF
-    chmod +x $hookdir/E05install-gcc-7
+    chmod +x $hookdir/D05install-gcc-7
 
-    setup_gcc_hook 7 > $hookdir/E10update-gcc-alternatives
-    chmod +x $hookdir/E10update-gcc-alternatives
+    setup_gcc_hook 7 > $hookdir/D10update-gcc-alternatives
+    chmod +x $hookdir/D10update-gcc-alternatives
 }
 
 setup_pbuilder_for_old_gcc() {
