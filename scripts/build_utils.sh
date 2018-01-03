@@ -374,7 +374,7 @@ setup_pbuilder() {
     is_not_tar=`python -c "exec 'try: import tarfile;print int(not int(tarfile.is_tarfile(\"$pbuild_tar\")))\nexcept IOError: print 1'"`
     file_size_kb=`du -k "$pbuild_tar" | cut -f1`
 
-    if $is_not_tar; then
+    if [ "$is_not_tar" = "1" ]; then
         sudo rm -f "$pbuild_tar"
     fi
 
