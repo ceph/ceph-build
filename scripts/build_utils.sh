@@ -488,7 +488,7 @@ echo "deb [arch=amd64,i386] http://mirror.yandex.ru/mirrors/launchpad/ubuntu-too
   /etc/apt/sources.list.d/ubuntu-toolchain-r.list
 # import PPA's signing key into APT's keyring
 apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 1E9377A2BA9EF27F
-apt-get -y update -o Acquire::Languages=none || true
+apt-get -y update -o Acquire::Languages=none -o Acquire::Translation=none || true
 apt-get install -y g++-7
 EOF
     chmod +x $hookdir/E05install-gcc-7
