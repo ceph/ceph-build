@@ -36,8 +36,6 @@
       - xenial_cluster
       - docker_cluster
       - update_cluster
-      - lvm_osds
-      - purge_lvm_osds
       - docker_cluster_collocation
       - update_docker_cluster
       - switch_to_containers
