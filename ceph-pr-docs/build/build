@@ -5,9 +5,10 @@ set -ex
 # make sure any shaman list file is removed. At some point if all nodes
 # are clean this will not be needed.
 sudo rm -f /etc/apt/sources.list.d/shaman*
+sudo rm -f /etc/apt/sources.list.d/ubuntu-toolchain-r*
 
 # Ceph doc build deps, Ubuntu only because ditaa is not packaged for CentOS
-sudo apt-get update
+sudo apt-get update -o Acquire::Languages=none -o Acquire::Translation=none
 sudo apt-get install -y gcc python-dev python-pip python-virtualenv libxml2-dev libxslt-dev doxygen graphviz ant ditaa cython
 
 ./admin/build-doc

@@ -41,7 +41,7 @@ NORMAL_ARCH=$ARCH
 create_build_status "started" "nfs-ganesha" $NORMAL_DISTRO $NORMAL_DISTRO_VERSION $NORMAL_ARCH
 
 ## Setup the pbuilder
-setup_pbuilder
+setup_pbuilder use_gcc
 
 cd $WORKSPACE/nfs-ganesha
 git submodule update --init || git submodule sync
