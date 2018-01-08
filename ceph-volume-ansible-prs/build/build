@@ -36,6 +36,16 @@ if [ -z "$BRANCH" ]; then
     exit 1
 fi
 
+# if ghprbActualCommit is not available, and the previous checks were not able to determine
+# the SHA1, then the last attempt should be to try and set it to the env passed in as a parameter (GITHUB_SHA)
+SHA="${ghprbActualCommit:-$GITHUB_SHA}"
+if [ -z "$SHA" ]; then
+    echo "Could not determine \$SHA var from \$ghprbActualCommit"
+    echo "or by using \$GIT_PREVIOUS_COMMIT or \$GIT_COMMIT"
+    echo "or even looking at the \$GITHUB_SHA parameter for this job"
+    exit 1
+fi
+
 
 # TODO: at this point a `curl` to shaman is needed to verify that the repo is
 # ready to be consumed
