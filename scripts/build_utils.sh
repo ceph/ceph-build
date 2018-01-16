@@ -596,11 +596,34 @@ update_vagrant_boxes() {
 }
 
 start_tox() {
-# $1 = CEPH_DOCKER_IMAGE_TAG
 # the $SCENARIO var is injected by the job template. It maps
 # to an actual, defined, tox environment
-local release=${2:-$RELEASE}
-  if ! CEPH_DOCKER_IMAGE_TAG=$1 CEPH_STABLE_RELEASE=$RELEASE timeout 3h $VENV/tox -rv -e=$RELEASE-$ANSIBLE_VERSION-$SCENARIO --workdir=$WORKDIR -- --provider=libvirt; then echo "ERROR: Job didn't complete successfully or got stuck for more than 3h."
-    exit 1
-  fi
+while true; do
+  case $1 in
+    CEPH_DOCKER_IMAGE_TAG=?*)
+      local ceph_docker_image_tag=${1#*=}
+      shift
+      ;;
+    RELEASE=?*)
+      local release=${1#*=}
+      shift
+      ;;
+    *)
+      break
+      ;;
+  esac
+done
+TOX_RUN_ENV=("timeout 3h")
+if [ -n "$ceph_docker_image_tag" ]; then
+  TOX_RUN_ENV=("CEPH_DOCKER_IMAGE_TAG=$ceph_docker_image_tag" "${TOX_RUN_ENV[@]}")
+fi
+if [ -n "$release" ]; then
+  TOX_RUN_ENV=("CEPH_STABLE_RELEASE=$release" "${TOX_RUN_ENV[@]}")
+else
+  TOX_RUN_ENV=("CEPH_STABLE_RELEASE=$RELEASE" "${TOX_RUN_ENV[@]}")
+fi
+# shellcheck disable=SC2116
+if ! eval "$(echo "${TOX_RUN_ENV[@]}")" "$VENV"/tox -rv -e="$RELEASE"-"$ANSIBLE_VERSION"-"$SCENARIO" --workdir="$WORKDIR" -- --provider=libvirt; then echo "ERROR: Job didn't complete successfully or got stuck for more than 3h."
+  exit 1
+fi
 }

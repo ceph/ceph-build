@@ -15,10 +15,10 @@ restart_libvirt_services
 update_vagrant_boxes
 
 if [ "$RELEASE" == 'jewel' ] && [ "$CEPH_ANSIBLE_BRANCH" == 'stable-2.2' -o "$CEPH_ANSIBLE_BRANCH" == 'stable-3.0' ]; then
-  start_tox tag-stable-3.0-jewel-centos-7
+  start_tox CEPH_DOCKER_IMAGE_TAG=tag-stable-3.0-jewel-centos-7
 elif [ "$RELEASE" == 'luminous' ] && [ "$CEPH_ANSIBLE_BRANCH" == 'stable-3.0' ]; then
   # start_tox(): <CEPH_DOCKER_IMAGE_TAG> <CEPH_STABLE_RELEASE>
-  start_tox tag-stable-3.0-luminous-centos-7
+  start_tox CEPH_DOCKER_IMAGE_TAG=tag-stable-3.0-luminous-centos-7
 elif [ "$RELEASE" == 'luminous' ] && [ "$CEPH_ANSIBLE_BRANCH" == 'master' ]; then
-  start_tox tag-build-master-luminous-ubuntu-16.04
+  start_tox CEPH_DOCKER_IMAGE_TAG=tag-build-master-luminous-ubuntu-16.04
 fi
