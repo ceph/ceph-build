@@ -26,10 +26,4 @@ for scenario in $scenarios; do
 done
 popd
 
-if [ "$RELEASE" == 'jewel' ]; then
-  start_tox tag-build-master-jewel-ubuntu-16.04
-elif [ "$RELEASE" == 'luminous' ]; then
-  start_tox tag-build-master-luminous-ubuntu-16.04
-else
-  start_tox latest
-fi
+start_tox
