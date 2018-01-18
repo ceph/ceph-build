@@ -76,7 +76,7 @@
         allow-whitelist-orgs-as-admins: true
         org-list:
         - ceph
-        trigger-phrase: ''
+        trigger-phrase: 'jenkins test make check arm64'
         skip-build-phrase: '^jenkins do not test.*'
         only-trigger-phrase: false
         github-hooks: true
