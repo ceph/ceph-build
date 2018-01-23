@@ -81,6 +81,9 @@ gzip ${DESTDIR}/usr/share/man/man8/tcmu-runner.8
 RELEASE="$(lsb_release --short -r | cut -d '.' -f 1)" # system release
 VERSION="$(git describe --abbrev=0 --tags HEAD | cut -d - -f 1)"
 REVISION="$(git describe --tags HEAD | cut -d - -f 2- | sed 's/-/./g' | sed 's/^rc/0./')"
+if [ "$VERSION" = "$REVISION" ]; then
+  REVISION="1"
+fi
 
 ## Create the package
 # Make sure there are no other packages, first
