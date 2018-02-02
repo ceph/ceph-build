@@ -71,7 +71,7 @@
           org-list:
             - ceph
           only-trigger-phrase: true
-          trigger-phrase: '^jenkins test ceph-volume {subcommand} {distro}-{objectstore}-{scenario}|jenkins test ceph-volume all.*|jenkins test ceph-volume {subcommand} all.*'
+          trigger-phrase: '^jenkins test ceph-volume {subcommand} {distro}-{objectstore}-{scenario}|jenkins test ceph-volume all.*|jenkins test ceph-volume {subcommand} all.*|jenkins test ceph-volume {subcommand} {scenario}.*'
           github-hooks: true
           permit-all: true
           auto-close-on-fail: false
