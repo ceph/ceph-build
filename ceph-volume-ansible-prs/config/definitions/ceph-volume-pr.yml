@@ -25,6 +25,8 @@
       - filestore
     scenario:
       - activate
+      - dmcrypt_luks
+      - dmcrypt_plain
     subcommand:
       - simple
 
