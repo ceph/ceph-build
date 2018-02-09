@@ -1,0 +1,17 @@
+#!/bin/bash
+set -ex
+WORKDIR=$(mktemp -td tox.XXXXXXXXXX)
+
+# the following two methods exist in scripts/build_utils.sh
+pkgs=( "tox" )
+install_python_packages "pkgs[@]"
+
+
+delete_libvirt_vms
+clear_libvirt_networks
+restart_libvirt_services
+update_vagrant_boxes
+
+cd src/ceph-volume/ceph_volume/tests/functional/$SUBCOMMAND
+
+CEPH_DEV_BRANCH=$CEPH_BRANCH $VENV/tox --workdir=$WORKDIR -vre $DISTRO-$OBJECTSTORE-$SCENARIO -- --provider=libvirt
