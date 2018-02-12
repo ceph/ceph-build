@@ -1,0 +1,99 @@
+- project:
+    name: ceph-volume-nightly-lvm
+    distro:
+      - xenial
+      - centos7
+    objectstore:
+      - bluestore
+      - filestore
+    scenario:
+      - create
+      - dmcrypt
+    subcommand:
+      - lvm
+    ceph_branch:
+      - master
+      - luminous
+
+    jobs:
+      - 'ceph-volume-nightly-{ceph_branch}-{subcommand}-{distro}-{objectstore}-{scenario}'
+
+- project:
+    name: ceph-volume-nightly-simple
+    distro:
+      - xenial
+      - centos7
+    objectstore:
+      - bluestore
+      - filestore
+    scenario:
+      - activate
+      - dmcrypt_luks
+      - dmcrypt_plain
+    subcommand:
+      - simple
+    ceph_branch:
+      - master
+      - luminous
+
+    jobs:
+      - 'ceph-volume-nightly-{ceph_branch}-{subcommand}-{distro}-{objectstore}-{scenario}'
+
+
+- job-template:
+    name: 'ceph-volume-nightly-{ceph_branch}-{subcommand}-{distro}-{objectstore}-{scenario}'
+    display-name: 'ceph-volume {ceph_branch} {subcommand}: [{distro}-{objectstore}-{scenario}]'
+    node: vagrant&&libvirt
+    concurrent: true
+    project-type: freestyle
+    defaults: global
+    quiet-period: 5
+    block-downstream: false
+    block-upstream: false
+    properties:
+      - github:
+          url: https://github.com/ceph/ceph
+    discard-old-builds: true
+    logrotate:
+      daysToKeep: 30
+
+    triggers:
+      - timed: '@daily'
+
+    scm:
+      - git:
+          url: https://github.com/ceph/ceph.git
+          branches:
+            - ${{ceph_branch}}
+          browser: auto
+          timeout: 20
+          skip-tag: true
+          wipe-workspace: false
+
+    builders:
+      - inject:
+          properties-content: |
+            SCENARIO={scenario}
+            DISTRO={distro}
+            OBJECTSTORE={objectstore}
+            SUBCOMMAND={subcommand}
+            CEPH_BRANCH={ceph_branch}
+      - shell:
+          !include-raw-escape:
+            - ../../../scripts/build_utils.sh
+            - ../../build/build
+
+    wrappers:
+      - inject-passwords:
+          global: true
+          mask-password-params: true
+
+    publishers:
+      - postbuildscript:
+          script-only-if-succeeded: False
+          script-only-if-failed: True
+          builders:
+            - shell:
+                !include-raw-escape:
+                  - ../../../scripts/build_utils.sh
+                  - ../../build/teardown
