@@ -74,6 +74,11 @@
           default: "luminous"
 
       - string:
+          name: CEPH_VERSION
+          description: "The version of Ceph to specify for installing ceph libraries"
+          default: "12.2.2"
+
+      - string:
           name: DISTROS
           description: "A list of distros to build for. Available options are: xenial, centos7"
           default: "centos7 xenial"
@@ -95,6 +100,7 @@ Default: False. When True it will not POST binaries to chacra. Artifacts will no
 If this is unchecked, then nothing is built or pushed if they already exist in chacra. This is the default.
 
 If this is checked, then the binaries will be built and pushed to chacra even if they already exist in chacra."
+          default: true
 
       - string:
           name: BUILD_VIRTUALENV
