@@ -103,11 +103,6 @@ fpm -s dir -t rpm -n libtcmu -C ${DESTDIR} \
     --after-remove SCRIPTLET \
     usr/lib64/libtcmu.so.2
 
-fpm -s dir -t rpm -n libtcmu-devel -C ${DESTDIR} \
-    -v ${VERSION} --iteration ${REVISION} \
-    -d "libtcmu = ${VERSION}-${REVISION}" \
-    usr/lib64/libtcmu.so
-
 
 ## Upload the created RPMs to chacra
 chacra_endpoint="tcmu-runner/${BRANCH}/${GIT_COMMIT}/${DISTRO}/${RELEASE}"
