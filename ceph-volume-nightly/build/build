@@ -14,4 +14,4 @@ update_vagrant_boxes
 
 cd src/ceph-volume/ceph_volume/tests/functional/$SUBCOMMAND
 
-CEPH_DEV_BRANCH=$CEPH_BRANCH $VENV/tox --workdir=$WORKDIR -vre $DISTRO-$OBJECTSTORE-$SCENARIO -- --provider=libvirt
+CEPH_DEV_BRANCH=$CEPH_BRANCH CEPH_DEV_SHA1=$CEPH_SHA1 $VENV/tox --workdir=$WORKDIR -vre $DISTRO-$OBJECTSTORE-$SCENARIO -- --provider=libvirt

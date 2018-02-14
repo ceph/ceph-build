@@ -60,11 +60,21 @@
     triggers:
       - timed: '@daily'
 
+    parameters:
+      - string:
+          name: CEPH_BRANCH
+          description: "The ceph branch to test and checkout"
+          default: "{ceph_branch}"
+      - string:
+          name: CEPH_SHA1
+          description: "The ceph sha1 to test"
+          default: "latest"
+
     scm:
       - git:
           url: https://github.com/ceph/ceph.git
           branches:
-            - '{ceph_branch}'
+            - $CEPH_BRANCH
           browser: auto
           timeout: 20
           skip-tag: true
@@ -77,7 +87,6 @@
             DISTRO={distro}
             OBJECTSTORE={objectstore}
             SUBCOMMAND={subcommand}
-            CEPH_BRANCH={ceph_branch}
       - shell:
           !include-raw-escape:
             - ../../../scripts/build_utils.sh
