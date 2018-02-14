@@ -1,0 +1,64 @@
+
+- job:
+    name: 'ceph-volume-scenario'
+    node: vagrant&&libvirt
+    concurrent: true
+    defaults: global
+    display-name: 'ceph-volume: individual scenario testing'
+    quiet-period: 5
+    block-downstream: false
+    block-upstream: false
+    retry-count: 3
+    properties:
+      - github:
+          url: https://github.com/ceph/ceph
+    logrotate:
+      daysToKeep: 15
+      numToKeep: 30
+      artifactDaysToKeep: -1
+      artifactNumToKeep: -1
+
+    parameters:
+      - string:
+          name: SUBCOMMAND 
+          description: "The subcommand in ceph-volume we are testing. (lvm or simple)"
+          default: "lvm"
+      - string:
+          name: SCENARIO
+          description: "A full scenario name for ceph-volume testing, like xenial-bluestore-create"
+      - string:
+          name: CEPH_BRANCH
+          description: "The ceph branch to test against"
+          default: "master"
+      - string:
+          name: CEPH_SHA1
+          description: "The ceph sha1 to test against"
+          default: "latest"
+      - string:
+          name: CEPH_ANSIBLE_BRANCH
+          description: "The ceph-ansible branch to test against"
+          default: "master"
+
+    scm:
+      - git:
+          url: https://github.com/ceph/ceph.git
+          branches:
+            - $CEPH_BRANCH
+          refspec: +refs/pull/*:refs/remotes/origin/pr/*
+          browser: auto
+          timeout: 20
+          skip-tag: true
+          wipe-workspace: true
+
+    builders:
+      - shell:
+          !include-raw:
+            - ../../../scripts/build_utils.sh
+            - ../../build/build
+
+    publishers:
+      - postbuildscript:
+          script-only-if-succeeded: False
+          script-only-if-failed: True
+          builders:
+            - shell: !include-raw ../../build/teardown
