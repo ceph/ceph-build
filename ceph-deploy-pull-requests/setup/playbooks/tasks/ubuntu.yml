@@ -1,7 +1,4 @@
 ---
-  - name: add deadsnakes ppa
-    action: apt_repository repo=ppa:fkrull/deadsnakes state=present
-
   - name: "update apt repo"
     action: apt update_cache=yes
 
@@ -10,10 +7,8 @@
     with_items:
       - python-software-properties
       - python-dev
-      - python2.6-dev
-      - python-setuptools
-      - python2.6
       - python2.7
+      - python3.5
 
   - name: install pip
     action: easy_install name=pip
