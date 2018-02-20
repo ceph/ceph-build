@@ -49,6 +49,7 @@
       - purge_cluster_non_container
       - purge_filestore_osds_container
       - purge_filestore_osds_non_container
+      - ooo_collocation
     ceph_ansible_branch:
       - stable-3.0
     jobs:
@@ -84,6 +85,7 @@
       - purge_filestore_osds_non_container
       - purge_bluestore_osds_container
       - purge_bluestore_osds_non_container
+      - ooo_collocation
     ceph_ansible_branch:
       - stable-3.0
       - master
