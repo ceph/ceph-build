@@ -12,6 +12,9 @@ RELEASE="$(lsb_release --short -r | cut -d '.' -f 1)" # sytem release
 # Make sure old rpms are not leftover on the system
 sudo yum remove -y librados2 librgw2 libcephfs2 librados-devel librgw-devel libcephfs-devel
 
+# Make sure old repo metadata are not leftover on the system
+sudo yum clean all
+
 # Get .repo file from appropriate shaman build
 REPO_URL="https://shaman.ceph.com/api/repos/ceph/$CEPH_BRANCH/$CEPH_SHA1/$DISTRO/$RELEASE/flavors/default/repo"
 TIME_LIMIT=1200
@@ -71,11 +74,11 @@ mkdir build
 cd build
 
 # generate .spec file, edit .spec file for correct versions of libs and make source tarball
-cmake -DCMAKE_BUILD_TYPE=Release -DUSE_FSAL_GLUSTER=OFF -DUSE_FSAL_CEPH=ON -DUSE_FSAL_RGW=ON -DRADOS_URLS=ON -DUSE_RADOS_RECOV=ON $WORKSPACE/nfs-ganesha/src && make dist || exit 1
+cmake -DCMAKE_BUILD_TYPE=Maintainer -DUSE_FSAL_GLUSTER=OFF -DUSE_FSAL_CEPH=ON -DUSE_FSAL_RGW=ON -DRADOS_URLS=ON -DUSE_RADOS_RECOV=ON $WORKSPACE/nfs-ganesha/src && make dist || exit 1
 
 sed -i 's/libcephfs1-devel/libcephfs-devel/' $WORKSPACE/nfs-ganesha/src/nfs-ganesha.spec
 sed -i 's/librgw2-devel/librgw-devel/' $WORKSPACE/nfs-ganesha/src/nfs-ganesha.spec
-sed -i 's/CMAKE_BUILD_TPYE=Debug/CMAKE_BUILD_TYPE=Release/' $WORKSPACE/nfs-ganesha/src/nfs-ganesha.spec
+sed -i 's/CMAKE_BUILD_TPYE=Debug/CMAKE_BUILD_TYPE=Maintainer/' $WORKSPACE/nfs-ganesha/src/nfs-ganesha.spec
 
 ## Create the source rpm
 echo "Building SRPM"
