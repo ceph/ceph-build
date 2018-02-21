@@ -29,6 +29,10 @@
     properties:
       - github:
           url: https://github.com/nfs-ganesha/nfs-ganesha
+      - build-discarder:
+          days-to-keep: 90
+          artifact-days-to-keep: 90
+
     concurrent: true
     parameters:
       - string:
