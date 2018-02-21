@@ -10,6 +10,10 @@
     properties:
       - github:
           url: https://github.com/ceph/ceph
+      - build-discarder:
+          days-to-keep: 30
+          artifact-days-to-keep: 30
+
     execution-strategy:
        combination-filter: |
          DIST == AVAILABLE_DIST && ARCH == AVAILABLE_ARCH &&
