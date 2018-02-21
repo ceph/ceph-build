@@ -32,11 +32,13 @@ export LC_ALL=C # the following is vulnerable to i18n
 if test -f /etc/redhat-release ; then
     $SUDO yum install -y redhat-lsb-core
     $SUDO yum install -y elfutils-libelf-devel  # for ORC unwinder
+    $SUDO yum install -y flex bison  # for Kconfig
 fi
 
 if which apt-get > /dev/null ; then
     $SUDO apt-get install -y lsb-release
     $SUDO apt-get install -y libelf-dev  # for ORC unwinder
+    $SUDO apt-get install -y flex bison  # for Kconfig
 fi
 
 case $(lsb_release -si) in
