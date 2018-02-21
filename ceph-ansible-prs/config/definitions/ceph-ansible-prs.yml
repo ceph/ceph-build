@@ -13,6 +13,7 @@
       - docker_cluster_collocation
       - purge_bluestore_osds_container
       - purge_bluestore_osds_non_container
+      - ooo_collocation
     jobs:
         - 'ceph-ansible-prs-auto'
 
@@ -27,6 +28,7 @@
       - centos7_cluster
       - xenial_cluster
       - docker_cluster
+      - ooo_collocation
     jobs:
         - 'ceph-ansible-prs-oldstable-trigger'
 
