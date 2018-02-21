@@ -2,6 +2,10 @@
     name: bz-mill
     defaults: global
     display-name: 'bz-mill'
+    properties:
+      - build-discarder:
+          days-to-keep: 90
+          artifact-days-to-keep: 90
 
     triggers:
       - timed: '@hourly'
