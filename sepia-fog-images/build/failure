@@ -49,9 +49,7 @@ done
 
 set +e
 
-# Try to update lock DB (in case whomever debugs Jenkins job failure forgets)
+# Just unlock machines.  FOG will reimage them on the next job they run.
 for host in $allhosts; do
-  teuthology-updatekeys ubuntu@${host}
-  teuthology-update-inventory ${host}
   teuthology-lock --unlock $host
 done
