@@ -4,8 +4,8 @@
     display-name: 'bz-mill'
     properties:
       - build-discarder:
-          days-to-keep: 90
-          artifact-days-to-keep: 90
+          days-to-keep: 15
+          artifact-days-to-keep: 15
 
     triggers:
       - timed: '@hourly'
