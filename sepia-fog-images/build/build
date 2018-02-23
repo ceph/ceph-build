@@ -163,27 +163,9 @@ while [ $capturetasks -gt 0 ]; do
   capturetasks=$(curl -s -k -H "fog-api-token: ${FOG_API_TOKEN}" -H "fog-user-token: ${FOG_USER_TOKEN}" http://fog.front.sepia.ceph.com/fog/task/active -d '{"typeID": "'${fogcaptureid}'"}' -X GET | jq -r '.count')
 done
 
-# Don't bail if machines aren't ready yet
-set +e
-
-# Wait for hosts to come back up after getting images captured
-remaininghosts=$allhosts
-while [ "$remaininghosts" != "" ]; do
-  for host in $remaininghosts; do
-    if ssh -q ubuntu@${host}.front.sepia.ceph.com stat /ceph-qa-ready \> /dev/null 2\>\&1; then
-      remaininghosts=$(echo $remaininghosts | sed -e "s/ *$host *//")
-    else
-      echo "$(date) -- $host is not ready.  Sleeping for 10sec"
-      sleep 10
-    fi
-  done
-done
-
 set -ex
 
-# Update lock db and unlock machines!
+# Unlock all machines after all capture images are finished
 for host in $allhosts; do
-  teuthology-updatekeys ubuntu@${host}
-  teuthology-update-inventory ${host}
   teuthology-lock --unlock $host
 done
