@@ -19,6 +19,9 @@ funSetProfiles () {
   elif [ "$1" == "centos" ]; then
     cobblerprofile="CentOS-7.4-x86_64"
     fogprofile="centos_7.4"
+  elif [ "$1" == "rhel" ]; then
+    cobblerprofile="RHEL-7.4-Server-x86_64"
+    fogprofile="rhel_7.4"
   else
     echo "Unknown profile $1"
     exit 1

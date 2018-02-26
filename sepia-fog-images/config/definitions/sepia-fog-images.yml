@@ -17,7 +17,7 @@
     parameters:
       - string:
           name: DISTROS
-          default: "trusty xenial centos"
+          default: "trusty xenial centos rhel"
           description: "Distro to capture images for: (e.g., 'trusty', 'xenial', 'centos' or 'trusty xenial' for multiple distros)"
       - string:
           name: MACHINETYPES
