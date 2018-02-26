@@ -97,3 +97,5 @@
                 !include-raw-escape:
                   - ../../../scripts/build_utils.sh
                   - ../../build/teardown
+      - email:
+          recipients: aschoen@redhat.com adeza@redhat.com
