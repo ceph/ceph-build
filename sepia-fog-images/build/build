@@ -136,7 +136,7 @@ while [ "$remaininghosts" != "" ]; do
       ssh ubuntu@store01.front.sepia.ceph.com "sudo /usr/local/sbin/set-next-server.sh $host fog"
       # Prep the host for FOG image capture
       ansible-playbook $WORKSPACE/ceph-cm-ansible/tools/prep-fog-capture.yml -e ansible_ssh_user=ubuntu --limit="$host*"
-      remaininghosts=$(echo $remaininghosts | sed -e "s/ *$host *//")
+      remaininghosts=${remaininghosts//$host/}
     else
       # This gets noisy
       set +ex
