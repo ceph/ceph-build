@@ -127,7 +127,9 @@ set +e
 
 # Set DHCP next-server back to FOG and prep each machine for FOG capturing
 remaininghosts=$allhosts
-while [ "$remaininghosts" != "" ]; do
+# Once all the hostnames are removed from $remaininghosts, trailing spaces are all that's left.
+# I'm sure there's a cleaner way to compile the list of hostnames above.  PRs welcome.
+while [[ $(echo $remaininghosts | wc -w) != 0 ]]; do
   for host in $remaininghosts; do
     if ssh -q ubuntu@${host}.front.sepia.ceph.com stat /ceph-qa-ready \> /dev/null 2\>\&1; then
       # Bail if anything fails
