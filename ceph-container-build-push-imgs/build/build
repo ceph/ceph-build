@@ -2,32 +2,5 @@
 set -e
 
 
-#############
-# FUNCTIONS #
-#############
-
-function login_docker_hub {
-  echo "Login in the Docker Hub"
-  docker login -u "$DOCKER_HUB_USERNAME" -p "$DOCKER_HUB_PASSWORD"
-}
-
-function build_ceph_imgs {
-  make build.parallel
-}
-
-function push_ceph_imgs {
-  make push
-}
-
-
-########
-# MAIN #
-########
-
-login_docker_hub
-set -x
 cd "$WORKSPACE"/ceph-container/ || exit
-build_ceph_imgs
-push_ceph_imgs
-cd - || exit
-
+bash -x contrib/build-push-ceph-container-imgs.sh
