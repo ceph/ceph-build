@@ -1,0 +1,41 @@
+- job:
+    name: ceph-container-build-push-imgs
+    node: small && trusty
+    project-type: freestyle
+    defaults: global
+    display-name: 'ceph-container: build and push container images to Docker Hub'
+    quiet-period: 5
+    block-downstream: false
+    block-upstream: false
+    retry-count: 3
+    properties:
+      - github:
+          url: https://github.com/ceph/ceph-container
+    logrotate:
+      daysToKeep: -1
+      numToKeep: -1
+      artifactDaysToKeep: -1
+      artifactNumToKeep: -1
+
+    triggers:
+      - github
+
+    scm:
+      - git:
+          url: https://github.com/ceph/ceph-container.git
+          branches:
+            - master
+          browser: auto
+          basedir: "ceph-container"
+          timeout: 20
+
+    builders:
+      - shell:
+          !include-raw:
+            - ../../../scripts/build_utils.sh
+            - ../../build/build
+
+    wrappers:
+      - inject-passwords:
+          global: true
+          mask-password-params: true
