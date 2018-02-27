@@ -74,11 +74,11 @@ mkdir build
 cd build
 
 # generate .spec file, edit .spec file for correct versions of libs and make source tarball
-cmake -DCMAKE_BUILD_TYPE=Maintainer -DUSE_FSAL_GLUSTER=OFF -DUSE_FSAL_CEPH=ON -DUSE_FSAL_RGW=ON -DRADOS_URLS=ON -DUSE_RADOS_RECOV=ON $WORKSPACE/nfs-ganesha/src && make dist || exit 1
+cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo -DSTRICT_PACKAGE=ON -DUSE_FSAL_ZFS=OFF -DUSE_FSAL_GLUSTER=OFF -DUSE_FSAL_CEPH=ON -DUSE_FSAL_RGW=ON -DRADOS_URLS=ON -DUSE_RADOS_RECOV=ON $WORKSPACE/nfs-ganesha/src && make dist || exit 1
 
 sed -i 's/libcephfs1-devel/libcephfs-devel/' $WORKSPACE/nfs-ganesha/src/nfs-ganesha.spec
 sed -i 's/librgw2-devel/librgw-devel/' $WORKSPACE/nfs-ganesha/src/nfs-ganesha.spec
-sed -i 's/CMAKE_BUILD_TPYE=Debug/CMAKE_BUILD_TYPE=Maintainer/' $WORKSPACE/nfs-ganesha/src/nfs-ganesha.spec
+sed -i 's/CMAKE_BUILD_TYPE=Debug/CMAKE_BUILD_TYPE=RelWithDebInfo/' $WORKSPACE/nfs-ganesha/src/nfs-ganesha.spec
 
 ## Create the source rpm
 echo "Building SRPM"
@@ -110,6 +110,18 @@ chacra_repo_endpoint="${chacra_endpoint}/flavors/${FLAVOR}"
 RPM_RELEASE=`grep Release $WORKSPACE/nfs-ganesha/src/nfs-ganesha.spec | sed 's/Release:[ \t]*//g' | cut -d '%' -f 1`
 RPM_VERSION=`grep Version $WORKSPACE/nfs-ganesha/src/nfs-ganesha.spec | sed 's/Version:[ \t]*//g'`
 PACKAGE_MANAGER_VERSION="$RPM_VERSION-$RPM_RELEASE"
+
+# check to make sure nfs-ganesha-ceph package built
+if [ ! -f $WORKSPACE/dist/RPMS/nfs-ganesha-ceph-*.rpm ]; then
+    echo "nfs-ganesha-ceph rpm not built!"
+    exit 1
+fi
+
+# check to make sure nfs-ganesha-rgw package built
+if [ ! -f $WORKSPACE/dist/RPMS/nfs-ganesha-rgw-*.rpm ]; then
+    echo "nfs-ganesha-rgw rpm not built!"
+    exit 1
+fi
 
 [ "$FORCE" = true ] && chacra_flags="--force" || chacra_flags=""
 
