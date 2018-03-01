@@ -431,6 +431,9 @@ use_ppa() {
         10.*)
             # jewel
             use_ppa=false;;
+        11.*)
+            # kraken
+            use_ppa=false;;
         12.*)
             # luminous
             use_ppa=false;;

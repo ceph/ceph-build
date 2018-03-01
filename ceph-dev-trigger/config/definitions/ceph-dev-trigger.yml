@@ -39,7 +39,7 @@
     builders:
       - conditional-step:
           condition-kind: regex-match
-          regex: .*(jewel|luminous).*
+          regex: .*(jewel|kraken|luminous).*
           label: '${GIT_BRANCH}'
           on-evaluation-failure: dont-run
           steps:
@@ -60,7 +60,7 @@
       - conditional-step:
           condition-kind: shell
           condition-command: |
-            echo "${GIT_BRANCH}" | grep -v '\(jewel\|luminous\)'
+            echo "${GIT_BRANCH}" | grep -v '\(jewel\|kraken\|luminous\)'
           on-evaluation-failure: dont-run
           steps:
             - shell:
