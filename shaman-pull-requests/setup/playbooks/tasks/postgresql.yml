@@ -9,7 +9,7 @@
   apt:
     name: "{{ item }}"
     state: present
-  with_items: 
+  with_items:
     - postgresql
     - postgresql-common
     - postgresql-contrib
@@ -25,7 +25,18 @@
     enabled: yes
   become: yes
 
-- name: allow users to connect locally
+- name: allow users to connect locally (ipv6)
+  sudo: yes
+  lineinfile:
+     # TODO: should not hardcode that version
+     # 9.3 is available on trusty, 9.5 on Xenial
+     dest: /etc/postgresql/9.5/main/pg_hba.conf
+     regexp: '^host\s+all\s+all\s+127.0.0.1/32'
+     line: 'host    all             all             ::1/128            trust'
+     backrefs: yes
+  register: pg_hba_conf
+
+- name: allow users to connect locally (ipv4)
   sudo: yes
   lineinfile:
      # TODO: should not hardcode that version
