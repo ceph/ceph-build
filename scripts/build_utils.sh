@@ -630,3 +630,50 @@ if ! eval "$(echo "${TOX_RUN_ENV[@]}")" "$VENV"/tox -rv -e="$RELEASE"-"$ANSIBLE_
   exit 1
 fi
 }
+
+github_status_setup() {
+
+    # This job is meant to be triggered from a Github Pull Request, only when the
+    # job is executed in that way a few "special" variables become available. So
+    # this build script tries to use those first but then it will try to figure it
+    # out using Git directly so that if triggered manually it can attempt to
+    # actually work.
+    SHA=$ghprbActualCommit
+    BRANCH=$ghprbSourceBranch
+
+
+    # Find out the name of the remote branch from the Pull Request. This is otherwise not
+    # available by the plugin. Without grepping for `heads` output will look like:
+    #
+    # 855ce630695ed9ca53c314b7e261ec3cc499787d    refs/heads/wip-volume-tests
+    if [ -z "$ghprbSourceBranch" ]; then
+        BRANCH=`git ls-remote origin | grep $GIT_PREVIOUS_COMMIT | grep heads | cut -d '/' -f 3`
+        SHA=$GIT_PREVIOUS_COMMIT
+    fi
+
+    # sometimes, $GIT_PREVIOUS_COMMIT will not help grep from ls-remote, so we fallback
+    # to looking for GIT_COMMIT (e.g. if the branch has not been rebased to be the tip)
+    if [ -z "$BRANCH" ]; then
+        BRANCH=`git ls-remote origin | grep $GIT_COMMIT | grep heads | cut -d '/' -f 3`
+        SHA=$GIT_COMMIT
+    fi
+
+    # Finally, we verify one last time to bail if nothing really worked here to determine
+    # this
+    if [ -z "$BRANCH" ]; then
+        echo "Could not determine \$BRANCH var from \$ghprbSourceBranch"
+        echo "or by using \$GIT_PREVIOUS_COMMIT and \$GIT_COMMIT"
+        exit 1
+    fi
+
+    # if ghprbActualCommit is not available, and the previous checks were not able to determine
+    # the SHA1, then the last attempt should be to try and set it to the env passed in as a parameter (GITHUB_SHA)
+    SHA="${ghprbActualCommit:-$GITHUB_SHA}"
+    if [ -z "$SHA" ]; then
+        echo "Could not determine \$SHA var from \$ghprbActualCommit"
+        echo "or by using \$GIT_PREVIOUS_COMMIT or \$GIT_COMMIT"
+        echo "or even looking at the \$GITHUB_SHA parameter for this job"
+        exit 1
+    fi
+
+}

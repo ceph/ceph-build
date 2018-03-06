@@ -14,6 +14,20 @@
     logrotate:
       daysToKeep: 14
 
+    parameters:
+      - string:
+          name: sha1
+          description: "A pull request ID, like 'origin/pr/72/head'"
+
+      # this is injected by the ghprb plugin, and is fully optional but may help in manually triggering
+      # a job that can end up updating a PR
+      - string:
+          name: ghprbSourceBranch
+          description: "When manually triggered, and the remote PR isn't a branch in the ceph.git repo This can be specified to determine the actual branch."
+      - string:
+          name: GITHUB_SHA
+          description: "The tip (last commit) in the PR, a sha1 like 7d787849556788961155534039886aedfcdb2a88 (if set, will report status to Github)"
+
     triggers:
       - github-pull-request:
           cancel-builds-on-update: true
@@ -39,7 +53,30 @@
           wipe-workspace: true
 
     builders:
+      - inject:
+          properties-content: |
+            GITHUB_REPOSITORY="ceph/ceph"
+            GITHUB_STATUS_CONTEXT="ceph-volume tox tests"
+            GITHUB_STATUS_STARTED="running"
+            GITHUB_STATUS_SUCCESS="OK"
+            GITHUB_STATUS_FAILURE="failed"
+            GITHUB_STATUS_ERROR="completed with errors"
       - shell:
           !include-raw:
             - ../../../scripts/build_utils.sh
             - ../../build/build
+
+    wrappers:
+      - inject-passwords:
+          global: true
+          mask-password-params: true
+
+    publishers:
+      - postbuildscript:
+          script-only-if-succeeded: False
+          script-only-if-failed: True
+          builders:
+            - shell:
+                !include-raw-escape:
+                  - ../../../scripts/build_utils.sh
+                  - ../../build/teardown
