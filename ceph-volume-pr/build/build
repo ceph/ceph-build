@@ -1,12 +1,21 @@
 #!/bin/bash
 set -ex
 
+# set up variables needed for
+# githubstatus to report back to the github PR
+# if this project was started manually
+github_status_setup
+
 # the following two methods exist in scripts/build_utils.sh
-pkgs=( "tox" )
+pkgs=( "tox" "github-status>0.0.3")
 install_python_packages "pkgs[@]"
 
 cd src/ceph-volume
 
+GITHUB_STATUS_STATE="pending" $VENV/github-status create
+
 # ceph-volume has a 3.6 environ but most machines don't have it,
 # so until then, we do them piecemeal
 $VENV/tox -v -e py27,py35,flake8
+
+GITHUB_STATUS_STATE="success" $VENV/github-status create
