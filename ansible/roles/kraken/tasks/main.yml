@@ -1,0 +1,103 @@
+---
+
+- name: Create a home for Helga.
+  become: yes
+  file:
+    path: "{{ helga_home }}"
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    state: directory
+    recurse: yes
+
+- name: Install ssl requirements.
+  become: yes
+  yum:
+    name: "{{ item }}"
+    state: present
+  with_items: helga_ssl_requirements
+  when: helga_use_ssl
+
+- name: Install GCC
+  become: yes
+  yum:
+    name: gcc
+    state: present
+
+- name: Enable EPEL
+  become: yes
+  yum:
+    name: epel-release
+    state: present
+
+- name: Retrieve software requirements.
+  become: yes
+  yum:
+    name: "{{ item }}"
+    state: present
+  with_items: "{{ helga_system_packages }}"
+
+- name: Create a virtualenv with latest pip.
+  pip:
+    name: pip
+    virtualenv: "{{ helga_home }}"
+    extra_args: '--upgrade'
+
+- name: Install Helga.
+  pip:
+    name: helga
+    virtualenv: "{{ helga_home }}"
+
+- name: Install Helga unreleased enhancements.
+  pip:
+    name: "{{ item }}"
+    state: present
+    extra_args: "-e"
+    virtualenv: "{{ helga_home }}"
+  with_items: "{{ helga_external_plugins }}"
+  notify: restart helga service
+
+- name: Install Helga released enhancements.
+  pip:
+    name: "{{ item }}"
+    state: latest
+    virtualenv: "{{ helga_home }}"
+  with_items: "{{ helga_pypi_plugins }}"
+  notify: restart helga service
+
+- name: Create settings directory
+  file:
+    path: "{{ helga_settings_path }}"
+    state: directory
+
+- name: Install base personality.
+  template:
+    src: custom_settings.j2
+    dest: "{{ helga_settings_path }}/00_base_settings.py"
+
+- name: Install personality customizations (files).
+  copy:
+    src: "{{ item }}"
+    dest: "{{ helga_settings_path }}"
+# this one is tricky, because the relative path is relative to
+# roles/common/files
+  with_fileglob:
+      - helga/settings.d/*
+
+- name: Custom settings, ASSEMBLE!
+  assemble:
+    src: "{{ helga_settings_path }}/"
+    dest: "{{ helga_home }}/bin/custom_settings.py"
+
+- name: ensure mongod is running
+  become: true
+  service:
+    name: mongod
+    state: started
+
+- name: ensure mongod is set to start at boot (enabled)
+  become: true
+  service:
+    name: mongod
+    enabled: true
+
+- include: systemd.yml

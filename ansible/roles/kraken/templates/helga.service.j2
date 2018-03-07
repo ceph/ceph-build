@@ -1,0 +1,15 @@
+[Unit]
+Description=helga (kraken) bot service
+After=network.target
+
+[Service]
+Type=simple
+ExecStart={{ helga_home }}/bin/helga
+EnvironmentFile=/etc/sysconfig/helga
+User={{ ansible_ssh_user }}
+WorkingDirectory={{ helga_home }}/src/
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

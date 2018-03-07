@@ -1,0 +1,11 @@
+---
+
+- name: restart helga service
+  service:
+    name: helga
+    status: restarted
+
+# prevents issues when updating systemd files
+- name: reload systemd
+  sudo: yes
+  command: systemctl daemon-reload

@@ -1,0 +1,41 @@
+---
+helga_home: /opt/helga
+helga_settings_path: '{{ helga_home }}/bin/settings.d'
+helga_nick: helga
+helga_irc_host: localhost
+helga_irc_port: 6667
+helga_use_ssl: yes
+helga_operators: []
+helga_irc_channels:
+- "#bots"
+helga_timezone: 'UTC'
+helga_default_plugins:
+- dubstep
+- facts
+- help
+- manager
+- meant_to_say
+- oneliner
+- operator
+- poems
+- reminders
+- stfu
+
+helga_external_plugins: []
+helga_cmd_prefix: '!'
+helga_webhooks_port: 8080
+helga_twitter_api_key: null
+helga_twitter_api_secret: null
+helga_twitter_oauth_token: null
+helga_twitter_oauth_secret: null
+helga_twitter_username: null
+helga_system_packages:
+  - python-devel
+  - git
+  - python-virtualenv
+  - mongodb-server
+  - gcc-c++
+
+helga_ssl_requirements:
+  - openssl
+  - openssl-devel

@@ -1,0 +1,71 @@
+NICK = '{{ helga_nick }}'
+
+SERVER = {
+    'HOST': '{{ helga_irc_host }}',
+    'PORT': {{ helga_irc_port }},
+    'SSL': {{ helga_use_ssl }},
+}
+
+CHANNELS = [
+    {% for channel in helga_irc_channels %}
+    ('{{ channel }}',),
+    {% endfor %}
+]
+
+OPERATORS = [
+    {% for operator in helga_operators %}
+    '{{ operator }}',
+    {% endfor %}
+]
+
+TIMEZONE = '{{ helga_timezone }}'
+
+ENABLED_PLUGINS = [
+    {% for plugin in helga_default_plugins %}
+    '{{ plugin }}',
+    {% endfor %}
+    {% for plugin in helga_external_plugins %}
+    '{{ plugin }}',
+    {% endfor %}
+]
+
+COMMAND_PREFIX_CHAR = '{{ helga_cmd_prefix }}'
+WEBHOOKS_PORT = {{ helga_webhooks_port }}
+
+# Twitter API
+TWITTER_CONSUMER_KEY = '{{ helga_twitter_api_key }}'
+TWITTER_CONSUMER_SECRET = '{{ helga_twitter_api_secret }}'
+TWITTER_OAUTH_TOKEN = '{{ helga_twitter_oauth_token }}'
+TWITTER_OAUTH_TOKEN_SECRET = '{{ helga_twitter_oauth_secret }}'
+TWITTER_USERNAME = '{{ helga_twitter_username }}'
+
+BUGZILLA_XMLRPC_URL = "{{ bugzilla_xmlrpc_url }}"
+BUGZILLA_TICKET_URL = "{{ bugzilla_ticket_url }}"
+
+FACTS_REQUIRE_NICKNAME = True
+
+RABBITMQ_USER = "{{ rabbitmq_user }}"
+RABBITMQ_PASSWORD= "{{ rabbitmq_password }}"
+RABBITMQ_HOST = "{{ rabbitmq_host }}"
+RABBITMQ_EXCHANGE= "{{ rabbitmq_exchange }}"
+
+RABBITMQ_ROUTING_KEYS = [
+    {% for key in rabbitmq_routing_keys %}
+    '{{ key }}',
+    {% endfor %}
+]
+
+REDMINE_URL = '{{ redmine_url }}'
+# This API key corresponds to the Kraken system account in Ceph's Redmine.
+REDMINE_API_KEY = '{{ redmine_api_key }}'
+
+JENKINS_URL = '{{ jenkins_url }}'
+
+JENKINS_CREDENTIALS = {
+    {% for key, value in jenkins_credentials.iteritems() %}
+    '{{ key }}': {
+        'username': '{{ value.username }}',
+        'token': '{{ value.token }}',
+    },
+    {% endfor %}
+}
