@@ -1,0 +1,6 @@
+---
+
+- name: restart helga service
+  service:
+    name: helga
+    status: restarted

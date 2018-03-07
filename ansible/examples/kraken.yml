@@ -1,0 +1,83 @@
+---
+
+- hosts: kraken
+  roles:
+    - kraken
+  vars:
+     ansible_ssh_user: "centos"
+
+     # bot specific vars
+     venv: "{{ helga_home }}/venv"
+     helga_nick: 'kraken'
+     helga_irc_host: irc.devel.redhat.com
+     helga_irc_port: 6667
+     helga_use_ssl: false
+     helga_cmd_prefix: '!'
+
+     helga_irc_channels:
+       - bogus
+
+     helga_operators: ['alfredodeza', 'ktdreyer', 'andrewschoen']
+     helga_default_plugins:
+       - dubstep
+       - facts
+       - help
+       - manager
+       - meant_to_say
+       - oneliner
+       - operator
+       - stfu
+       # custom ones
+       - norris
+       - redmine
+       - yall
+       - ugrep
+       - wut
+       - jenkins
+       - excuses
+       - poems
+       - reminders
+       - karma
+       - bugzilla
+
+     helga_external_plugins:
+       - git+https://github.com/alfredodeza/helga-norris#egg=helga-norris
+       - git+https://github.com/alfredodeza/helga-yall#egg=helga-yall
+       - git+https://github.com/alfredodeza/helga-ugrep#egg=helga-ugrep
+       - git+https://github.com/alfredodeza/helga-wut#egg=helga-wut
+       - git+https://github.com/alfredodeza/helga-karma#egg=helga-karma
+       - git+https://github.com/alfredodeza/helga-jenkins#egg=helga-jenkins
+       - git+https://github.com/alfredodeza/helga-excuses#egg=helga-excuses
+
+     helga_pypi_plugins:
+       - helga-redmine
+       - helga-poems
+       - helga-reminders
+       - helga-facts
+       - helga-bugzilla
+       - helga-pika
+
+     bugzilla_xmlrpc_url: 'https://bugzilla.redhat.com/xmlrpc.cgi'
+     bugzilla_ticket_url: 'https://bugzilla.redhat.com/%(ticket)s'
+
+     helga_twitter_consumer_key: "key"
+     helga_twitter_consumer_secret: "consumer_secret"
+     helga_twitter_oauth_token: "token"
+     helga_twitter_oauth_token_secret: "token_secret"
+     helga_twitter_username: "username"
+
+     # needed for helga-pika
+     rabbitmq_user: ""
+     rabbitmq_password: ""
+     rabbitmq_host: ""
+     rabbitmq_exchange:""
+     rabbitmq_routing_keys: []
+
+     # needed for helga-redmine
+     redmine_url:  ''
+     # This API key corresponds to the Kraken system account in Ceph's Redmine.
+     redmine_api_key: ''
+
+     # needed for helga-jenkins
+     jenkins_url: ''
+     jenkins_credentials: {}
