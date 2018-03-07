@@ -33,11 +33,11 @@ COMMAND_PREFIX_CHAR = '{{ helga_cmd_prefix }}'
 WEBHOOKS_PORT = {{ helga_webhooks_port }}
 
 # Twitter API
-TWITTER_CONSUMER_KEY = {{ helga_twitter_api_key }}
-TWITTER_CONSUMER_SECRET = {{ helga_twitter_api_secret }}
-TWITTER_OAUTH_TOKEN = {{ helga_twitter_oauth_token }}
-TWITTER_OAUTH_TOKEN_SECRET = {{ helga_twitter_oauth_secret }}
-TWITTER_USERNAME = {{ helga_twitter_username }}
+TWITTER_CONSUMER_KEY = '{{ helga_twitter_api_key }}'
+TWITTER_CONSUMER_SECRET = '{{ helga_twitter_api_secret }}'
+TWITTER_OAUTH_TOKEN = '{{ helga_twitter_oauth_token }}'
+TWITTER_OAUTH_TOKEN_SECRET = '{{ helga_twitter_oauth_secret }}'
+TWITTER_USERNAME = '{{ helga_twitter_username }}'
 
 BUGZILLA_XMLRPC_URL = "{{ bugzilla_xmlrpc_url }}"
 BUGZILLA_TICKET_URL = "{{ bugzilla_ticket_url }}"
@@ -63,7 +63,7 @@ JENKINS_URL = '{{ jenkins_url }}'
 
 JENKINS_CREDENTIALS = {
     {% for key, value in jenkins_credentials.iteritems() %}
-    '{{ key }': {
+    '{{ key }}': {
         'username': '{{ value.username }}',
         'token': '{{ value.token }}',
     },

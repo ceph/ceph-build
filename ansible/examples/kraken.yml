@@ -70,7 +70,7 @@
      rabbitmq_user: ""
      rabbitmq_password: ""
      rabbitmq_host: ""
-     rabbitmq_exchange:""
+     rabbitmq_exchange: ""
      rabbitmq_routing_keys: []
 
      # needed for helga-redmine
