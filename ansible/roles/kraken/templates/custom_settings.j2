@@ -44,17 +44,28 @@ BUGZILLA_TICKET_URL = "{{ bugzilla_ticket_url }}"
 
 FACTS_REQUIRE_NICKNAME = True
 
-RABBITMQ_USER = ""
-RABBITMQ_PASSWORD= ""
-RABBITMQ_HOST = ""
-RABBITMQ_EXCHANGE= ""
+RABBITMQ_USER = "{{ rabbitmq_user }}"
+RABBITMQ_PASSWORD= "{{ rabbitmq_password }}"
+RABBITMQ_HOST = "{{ rabbitmq_host }}"
+RABBITMQ_EXCHANGE= "{{ rabbitmq_exchange }}"
 
-RABBITMQ_ROUTING_KEYS = []
+RABBITMQ_ROUTING_KEYS = [
+    {% for key in rabbitmq_routing_keys %}
+    '{{ key }}',
+    {% endfor %}
+]
 
-REDMINE_URL = ''
+REDMINE_URL = '{{ redmine_url }}'
 # This API key corresponds to the Kraken system account in Ceph's Redmine.
-REDMINE_API_KEY = ''
+REDMINE_API_KEY = '{{ redmine_api_key }}'
 
-JENKINS_URL = ''
+JENKINS_URL = '{{ jenkins_url }}'
 
-JENKINS_CREDENTIALS = {}
+JENKINS_CREDENTIALS = {
+    {% for key, value in jenkins_credentials.iteritems() %}
+    '{{ key }': {
+        'username': '{{ value.username }}',
+        'token': '{{ value.token }}',
+    },
+    {% endfor %}
+}
