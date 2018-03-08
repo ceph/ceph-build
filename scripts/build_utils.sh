@@ -677,3 +677,30 @@ github_status_setup() {
     fi
 
 }
+
+write_collect_logs_playbook() {
+    cat > $WORKSPACE/collect-logs.yml << EOF
+- hosts: all
+  become: yes
+  tasks:
+    - name: collect ceph-volume logs
+      fetch:
+        src: "{{ item }}"
+        dest: "{{ archive_path }}"
+        fail_on_missing: no
+        flat: yes
+      failed_when: false
+      with_fileglob:
+        - "/var/log/ceph-volume*"
+
+    - name: collect ceph-osd logs
+      fetch:
+        src: "{{ item }}"
+        dest: "{{ archive_path }}"
+        fail_on_missing: no
+        flat: yes
+      failed_when: false
+      with_fileglob:
+        - "/var/log/ceph-osd*"
+EOF
+}
