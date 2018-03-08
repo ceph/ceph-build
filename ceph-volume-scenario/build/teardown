@@ -7,23 +7,10 @@ cd $WORKSPACE/src/ceph-volume/ceph_volume/tests/functional
 
 scenarios=$(find . | grep Vagrantfile | xargs dirname)
 
-mkdir -p $WORKSPACE/logs
-
-pkgs=( "ansible" )
-install_python_packages "pkgs[@]"
-
-# in scripts/build_utils.yml
-# writes out the playbook that is used to
-# collect logs from testing vms
-write_collect_logs_playbook
-
 for scenario in $scenarios; do
     cd $scenario
-    if [ -f "./vagrant_ssh_config" ]; then
-        export ANSIBLE_SSH_ARGS='-F ./vagrant_ssh_config'
-        export ANSIBLE_STDOUT_CALLBACK='debug'
-        $VENV/ansible-playbook -vv -i hosts --limit osds --extra-vars "archive_path=$WORKSPACE/logs" $WORKSPACE/collect-logs.yml
-    fi
+    # collect all ceph logs from all test nodes
+    collect_ceph_logs all
     vagrant destroy -f
     cd -
 done
