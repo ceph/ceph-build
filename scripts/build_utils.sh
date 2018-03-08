@@ -690,7 +690,7 @@ write_collect_logs_playbook() {
     - name: collect ceph logs
       fetch:
         src: "{{ item }}"
-        dest: "{{ archive_path }}"
+        dest: "{{ archive_path }}/{{ inventory_hostname }}/"
         fail_on_missing: no
         flat: yes
       failed_when: false
