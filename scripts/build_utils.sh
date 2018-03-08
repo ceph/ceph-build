@@ -683,24 +683,17 @@ write_collect_logs_playbook() {
 - hosts: all
   become: yes
   tasks:
-    - name: collect ceph-volume logs
-      fetch:
-        src: "{{ item }}"
-        dest: "{{ archive_path }}"
-        fail_on_missing: no
-        flat: yes
-      failed_when: false
-      with_fileglob:
-        - "/var/log/ceph-volume*"
+    - name: find ceph logs
+      command: find /var/log/ceph -name "ceph*.log"
+      register: ceph_logs
 
-    - name: collect ceph-osd logs
+    - name: collect ceph logs
       fetch:
         src: "{{ item }}"
         dest: "{{ archive_path }}"
         fail_on_missing: no
         flat: yes
       failed_when: false
-      with_fileglob:
-        - "/var/log/ceph-osd*"
+      with_items: "{{ ceph_logs.stdout_lines }}"
 EOF
 }
