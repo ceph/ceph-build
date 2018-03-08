@@ -68,5 +68,5 @@
 
       - archive:
           artifacts: 'logs/**'
-          allow-empty: false
+          allow-empty: true
           latest-only: false
