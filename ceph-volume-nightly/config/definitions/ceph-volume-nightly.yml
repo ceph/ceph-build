@@ -97,5 +97,11 @@
                 !include-raw-escape:
                   - ../../../scripts/build_utils.sh
                   - ../../build/teardown
+
+      - archive:
+          artifacts: 'logs/**'
+          allow-empty: true
+          latest-only: false
+
       - email:
           recipients: aschoen@redhat.com adeza@redhat.com

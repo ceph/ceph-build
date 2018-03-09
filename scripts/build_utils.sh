@@ -677,3 +677,45 @@ github_status_setup() {
     fi
 
 }
+
+write_collect_logs_playbook() {
+    cat > $WORKSPACE/collect-logs.yml << EOF
+- hosts: all
+  become: yes
+  tasks:
+    - name: find ceph logs
+      command: find /var/log/ceph -name "{{ cluster|default('ceph') }}*.log"
+      register: ceph_logs
+
+    - name: collect ceph logs
+      fetch:
+        src: "{{ item }}"
+        dest: "{{ archive_path }}/{{ inventory_hostname }}/"
+        fail_on_missing: no
+        flat: yes
+      failed_when: false
+      with_items: "{{ ceph_logs.stdout_lines }}"
+EOF
+}
+
+collect_ceph_logs() {
+    # this is meant to be run in a testing scenario directory
+    # with running vagrant vms. the ansible playbook will connect
+    # to your test nodes and fetch any ceph logs that are present
+    # in /var/log/ceph and store them on the jenkins slave.
+    # these logs can then be archived using the JJB archive publisher
+    limit=$1
+
+    if [ -f "./vagrant_ssh_config" ]; then
+        mkdir -p $WORKSPACE/logs
+
+        write_collect_logs_playbook
+
+        pkgs=( "ansible" )
+        install_python_packages "pkgs[@]"
+
+        export ANSIBLE_SSH_ARGS='-F ./vagrant_ssh_config'
+        export ANSIBLE_STDOUT_CALLBACK='debug'
+        $VENV/ansible-playbook -vv -i hosts --limit $limit --extra-vars "archive_path=$WORKSPACE/logs" $WORKSPACE/collect-logs.yml
+    fi
+}
