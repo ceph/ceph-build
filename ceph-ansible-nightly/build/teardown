@@ -8,6 +8,8 @@ scenarios=$(find . | grep Vagrantfile | xargs dirname)
 
 for scenario in $scenarios; do
     cd $scenario
+    # collect all ceph logs from all test nodes
+    collect_ceph_logs all
     vagrant destroy -f
     cd -
 done
