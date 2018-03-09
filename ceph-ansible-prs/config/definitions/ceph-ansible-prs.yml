@@ -162,7 +162,15 @@
           script-only-if-succeeded: False
           script-only-if-failed: True
           builders:
-            - shell: !include-raw ../../build/teardown
+            - shell:
+                !include-raw-escape:
+                  - ../../../scripts/build_utils.sh
+                  - ../../build/teardown
+
+      - archive:
+          artifacts: 'logs/**'
+          allow-empty: true
+          latest-only: false
 
 - job-template:
     name: 'ceph-ansible-prs-{release}-{ansible_version}-{scenario}'
@@ -233,7 +241,15 @@
           script-only-if-succeeded: False
           script-only-if-failed: True
           builders:
-            - shell: !include-raw ../../build/teardown
+            - shell:
+                !include-raw-escape:
+                  - ../../../scripts/build_utils.sh
+                  - ../../build/teardown
+
+      - archive:
+          artifacts: 'logs/**'
+          allow-empty: true
+          latest-only: false
 
 - job-template:
     name: 'ceph-ansible-prs-{release}-{ansible_version}-{scenario}'
@@ -304,4 +320,12 @@
           script-only-if-succeeded: False
           script-only-if-failed: True
           builders:
-            - shell: !include-raw ../../build/teardown
+            - shell:
+                !include-raw-escape:
+                  - ../../../scripts/build_utils.sh
+                  - ../../build/teardown
+
+      - archive:
+          artifacts: 'logs/**'
+          allow-empty: true
+          latest-only: false
