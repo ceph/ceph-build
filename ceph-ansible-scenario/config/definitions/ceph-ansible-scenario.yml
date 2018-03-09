@@ -57,4 +57,12 @@
           script-only-if-succeeded: False
           script-only-if-failed: True
           builders:
-            - shell: !include-raw ../../build/teardown
+            - shell:
+                !include-raw:
+                  - ../../../scripts/build_utils.sh
+                  - ../../build/teardown
+
+      - archive:
+          artifacts: 'logs/**'
+          allow-empty: true
+          latest-only: false
