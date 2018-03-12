@@ -14,4 +14,4 @@ update_vagrant_boxes
 
 cd src/ceph-volume/ceph_volume/tests/functional/$SUBCOMMAND
 
-CEPH_DEV_BRANCH=$CEPH_BRANCH $VENV/tox --workdir=$WORKDIR -vre $DISTRO-$OBJECTSTORE-$SCENARIO -- --provider=libvirt
+VAGRANT_RELOAD_FLAGS="--debug --no-provision" CEPH_DEV_BRANCH=$CEPH_BRANCH $VENV/tox --workdir=$WORKDIR -vre $DISTRO-$OBJECTSTORE-$SCENARIO -- --provider=libvirt
