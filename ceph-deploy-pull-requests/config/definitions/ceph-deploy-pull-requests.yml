@@ -39,13 +39,13 @@
     block-upstream: false
     retry-count: 3
     properties:
+      - build-discarder:
+          days-to-keep: 15
+          num-to-keep: 30
+          artifact-days-to-keep: -1
+          artifact-num-to-keep: -1
       - github:
           url: https://github.com/ceph/ceph-deploy/
-    logrotate:
-      daysToKeep: 15
-      numToKeep: 30
-      artifactDaysToKeep: -1
-      artifactNumToKeep: -1
 
     parameters:
       - string:

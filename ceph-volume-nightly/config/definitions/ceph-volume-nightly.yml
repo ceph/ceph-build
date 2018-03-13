@@ -53,9 +53,9 @@
     properties:
       - github:
           url: https://github.com/ceph/ceph
+      - build-discarder:
+          days-to-keep: 30
     discard-old-builds: true
-    logrotate:
-      daysToKeep: 30
 
     triggers:
       - timed: '@daily'
