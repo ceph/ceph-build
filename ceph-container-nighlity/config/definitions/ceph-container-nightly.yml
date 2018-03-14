@@ -66,4 +66,5 @@
           script-only-if-succeeded: False
           script-only-if-failed: True
           builders:
-            - shell: !include-raw ../../build/teardown
+            - build-steps:
+                - shell: !include-raw ../../build/teardown

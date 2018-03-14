@@ -147,10 +147,11 @@
           script-only-if-succeeded: False
           script-only-if-failed: True
           builders:
-            - shell:
-                !include-raw-escape:
-                  - ../../../scripts/build_utils.sh
-                  - ../../build/teardown
+            - build-steps:
+                - shell:
+                    !include-raw-escape:
+                      - ../../../scripts/build_utils.sh
+                      - ../../build/teardown
 
       - archive:
           artifacts: 'logs/**'

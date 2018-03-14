@@ -83,10 +83,11 @@
           script-only-if-failed: True
           script-only-if-succeeded: False
           builders:
-            - inject:
-                properties-file: ${WORKSPACE}/build_info
-            - shell:
-                !include-raw:
+            - build-steps:
+                - inject:
+                    properties-file: ${WORKSPACE}/build_info
+                - shell:
+                    !include-raw:
                   - ../../../scripts/build_utils.sh
                   - ../../build/failure
 

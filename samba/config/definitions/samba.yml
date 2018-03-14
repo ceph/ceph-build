@@ -116,4 +116,5 @@ If this is checked, then the binaries will be built and pushed to chacra even if
           script-only-if-succeeded: False
           script-only-if-failed: False
           builders:
-            - shell: "sudo rm -f /etc/apt/sources.list.d/shaman.list /etc/yum.repos.d/shaman.repo"
+            - build-steps:
+                - shell: "sudo rm -f /etc/apt/sources.list.d/shaman.list /etc/yum.repos.d/shaman.repo"

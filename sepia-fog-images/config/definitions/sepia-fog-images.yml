@@ -35,9 +35,10 @@
           script-only-if-failed: True
           script-only-if-succeeded: False
           builders:
-            - shell:
-                !include-raw:
-                  - ../../build/failure
+            - build-steps:
+                - shell:
+                    !include-raw:
+                      - ../../build/failure
 
     wrappers:
       - mask-passwords:

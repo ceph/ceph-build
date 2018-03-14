@@ -48,10 +48,11 @@
           script-only-if-failed: True
           script-only-if-succeeded: False
           builders:
-            - shell:
-                !include-raw:
-                  - ../../../scripts/build_utils.sh
-                  - ../../build/failure
+            - build-steps:
+                - shell:
+                    !include-raw:
+                      - ../../../scripts/build_utils.sh
+                      - ../../build/failure
 
     wrappers:
       - inject-passwords:
