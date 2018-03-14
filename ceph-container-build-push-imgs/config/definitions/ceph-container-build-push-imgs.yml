@@ -1,6 +1,6 @@
 - job:
     name: ceph-container-build-push-imgs
-    node: small && trusty
+    node: huge && trusty && x86_64
     project-type: freestyle
     defaults: global
     display-name: 'ceph-container: build and push container images to Docker Hub'
