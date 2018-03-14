@@ -10,13 +10,13 @@
     block-upstream: false
     retry-count: 3
     properties:
+      - build-discarder:
+          days-to-keep: 15
+          num-to-keep: 30
+          artifact-days-to-keep: -1
+          artifact-num-to-keep: -1
       - github:
           url: https://github.com/ceph/ceph-ansible
-    logrotate:
-      daysToKeep: 15
-      numToKeep: 30
-      artifactDaysToKeep: -1
-      artifactNumToKeep: -1
 
     parameters:
       - string:
@@ -57,10 +57,11 @@
           script-only-if-succeeded: False
           script-only-if-failed: True
           builders:
-            - shell:
-                !include-raw:
-                  - ../../../scripts/build_utils.sh
-                  - ../../build/teardown
+            - build-steps:
+                - shell:
+                    !include-raw:
+                      - ../../../scripts/build_utils.sh
+                      - ../../build/teardown
 
       - archive:
           artifacts: 'logs/**'

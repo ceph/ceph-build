@@ -47,9 +47,9 @@
     properties:
       - github:
           url: https://github.com/ceph/ceph
+      - build-discarder:
+          days-to-keep: 30
     discard-old-builds: true
-    logrotate:
-      daysToKeep: 30
 
     parameters:
       - string:
@@ -121,10 +121,11 @@
           script-only-if-succeeded: False
           script-only-if-failed: True
           builders:
-            - shell:
-                !include-raw-escape:
-                  - ../../../scripts/build_utils.sh
-                  - ../../build/teardown
+            - build-steps:
+                - shell:
+                    !include-raw-escape:
+                      - ../../../scripts/build_utils.sh
+                      - ../../build/teardown
 
       - archive:
           artifacts: 'logs/**'

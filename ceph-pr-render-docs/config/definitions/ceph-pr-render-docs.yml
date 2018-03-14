@@ -10,9 +10,9 @@
     properties:
       - github:
           url: https://github.com/ceph/ceph
+      - build-discarder:
+          days-to-keep: 14
     discard-old-builds: true
-    logrotate:
-      daysToKeep: 14
 
     triggers:
       - github-pull-request:

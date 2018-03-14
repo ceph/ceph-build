@@ -9,13 +9,13 @@
     block-upstream: false
     retry-count: 3
     properties:
+      - build-discarder:
+          days-to-keep: -1
+          num-to-keep: -1
+          artifact-days-to-keep: -1
+          artifact-num-to-keep: -1
       - github:
           url: https://github.com/ceph/ceph-container
-    logrotate:
-      daysToKeep: -1
-      numToKeep: -1
-      artifactDaysToKeep: -1
-      artifactNumToKeep: -1
 
     triggers:
       - github

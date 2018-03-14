@@ -5,15 +5,15 @@
     # FIXME: unpin when this gets ported over
     node: huge && trusty && x86_64
     display-name: 'ceph-dev-setup'
-    logrotate:
-      daysToKeep: -1
-      numToKeep: 25
-      artifactDaysToKeep: -1
-      artifactNumToKeep: -1
     block-downstream: false
     block-upstream: false
     concurrent: true
     properties:
+      - build-discarder:
+          days-to-keep: -1
+          num-to-keep: 25
+          artifact-days-to-keep: -1
+          artifact-num-to-keep: -1
       - github:
           url: https://github.com/ceph/ceph
 
@@ -46,12 +46,13 @@
 
       - postbuildscript:
           script-only-if-failed: True
-          script-only-if-succeeded: False 
+          script-only-if-succeeded: False
           builders:
-            - shell:
-                !include-raw:
-                  - ../../../scripts/build_utils.sh
-                  - ../../build/failure
+            - build-steps:
+                - shell:
+                    !include-raw:
+                      - ../../../scripts/build_utils.sh
+                      - ../../build/failure
 
     wrappers:
       - inject-passwords:

@@ -7,14 +7,14 @@
     block-downstream: false
     block-upstream: false
     properties:
+      - build-discarder:
+          days-to-keep: 1
+          num-to-keep: 10
+          artifact-days-to-keep: -1
+          artifact-num-to-keep: -1
       - github:
           url: https://github.com/ceph/rtslib-fb
     discard-old-builds: true
-    logrotate:
-      daysToKeep: 1
-      numToKeep: 10
-      artifactDaysToKeep: -1
-      artifactNumToKeep: -1
 
     triggers:
       - github
