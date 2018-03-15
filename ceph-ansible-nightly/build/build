@@ -14,11 +14,16 @@ clear_libvirt_networks
 restart_libvirt_services
 update_vagrant_boxes
 
+sudo yum -y install jq
+
+LAST_JEWEL_STABLE_TAG=$(curl -s https://registry.hub.docker.com/v2/repositories/ceph/daemon/tags/ | jq '."results"[] | select((.name | contains("stable")) and (.name | contains("jewel-ubuntu-16.04"))) | .name' | sort)
+LAST_LUMINOUS_STABLE_TAG=$(curl -s https://registry.hub.docker.com/v2/repositories/ceph/daemon/tags/ | jq '."results"[] | select((.name | contains("stable")) and (.name | contains("luminous-ubuntu-16.04"))) | .name' | sort)
+
 if [ "$RELEASE" == 'jewel' ] && [ "$CEPH_ANSIBLE_BRANCH" == 'stable-2.2' -o "$CEPH_ANSIBLE_BRANCH" == 'stable-3.0' ]; then
-  start_tox CEPH_DOCKER_IMAGE_TAG=tag-stable-3.0-jewel-centos-7
+  start_tox CEPH_DOCKER_IMAGE_TAG="$LAST_JEWEL_STABLE_TAG"
 elif [ "$RELEASE" == 'luminous' ] && [ "$CEPH_ANSIBLE_BRANCH" == 'stable-3.0' ]; then
   # start_tox(): <CEPH_DOCKER_IMAGE_TAG> <CEPH_STABLE_RELEASE>
-  start_tox CEPH_DOCKER_IMAGE_TAG=tag-stable-3.0-luminous-centos-7
+  start_tox CEPH_DOCKER_IMAGE_TAG="$LAST_LUMINOUS_STABLE_TAG"
 elif [ "$RELEASE" == 'luminous' ] && [ "$CEPH_ANSIBLE_BRANCH" == 'master' ]; then
-  start_tox CEPH_DOCKER_IMAGE_TAG=tag-build-master-luminous-ubuntu-16.04
+  start_tox CEPH_DOCKER_IMAGE_TAG=latest
 fi
