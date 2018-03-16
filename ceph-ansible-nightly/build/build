@@ -9,16 +9,49 @@ source $VENV/activate
 
 WORKDIR=$(mktemp -td tox.XXXXXXXXXX)
 
+
+#############
+# FUNCTIONS #
+#############
+function count_tag_pages {
+  sudo yum -y install jq
+  tag_count=$(curl -s "https://registry.hub.docker.com/v2/repositories/ceph/daemon/tags/" | jq '.count')
+  total_pages=$((tag_count / 10))
+}
+
+function find_latest_tag {
+  release="$1"
+  for page in $(seq 1 $total_pages); do
+    tag=$(curl -s "https://registry.hub.docker.com/v2/repositories/ceph/daemon/tags/?page=$page" | jq ".\"results\"[] | select((.name | contains(\"stable\")) and (.name | contains(\"${release}-ubuntu-16.04-x86_64\"))) | .name")
+    if [ -n "$tag" ]; then
+      echo "$tag" | cut -d '"' -f 2
+      return
+    fi
+  done
+}
+
+function run_tox {
+  case "$CEPH_ANSIBLE_BRANCH" in
+    stable-*)
+      CEPH_DOCKER_IMAGE_TAG=$(find_latest_tag "$RELEASE")
+      ;;
+    master)
+      CEPH_DOCKER_IMAGE_TAG="latest"
+      ;;
+    *)
+      CEPH_DOCKER_IMAGE_TAG=""
+      ;;
+  esac
+
+  [ -n "$CEPH_DOCKER_IMAGE_TAG" ] && start_tox CEPH_DOCKER_IMAGE_TAG="$CEPH_DOCKER_IMAGE_TAG"
+}
+
+########
+# MAIN #
+########
 delete_libvirt_vms
 clear_libvirt_networks
 restart_libvirt_services
 update_vagrant_boxes
-
-if [ "$RELEASE" == 'jewel' ] && [ "$CEPH_ANSIBLE_BRANCH" == 'stable-2.2' -o "$CEPH_ANSIBLE_BRANCH" == 'stable-3.0' ]; then
-  start_tox CEPH_DOCKER_IMAGE_TAG=tag-stable-3.0-jewel-centos-7
-elif [ "$RELEASE" == 'luminous' ] && [ "$CEPH_ANSIBLE_BRANCH" == 'stable-3.0' ]; then
-  # start_tox(): <CEPH_DOCKER_IMAGE_TAG> <CEPH_STABLE_RELEASE>
-  start_tox CEPH_DOCKER_IMAGE_TAG=tag-stable-3.0-luminous-centos-7
-elif [ "$RELEASE" == 'luminous' ] && [ "$CEPH_ANSIBLE_BRANCH" == 'master' ]; then
-  start_tox CEPH_DOCKER_IMAGE_TAG=tag-build-master-luminous-ubuntu-16.04
-fi
+count_tag_pages
+run_tox

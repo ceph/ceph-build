@@ -16,14 +16,14 @@
     node: trusty
     description: "This job clones from upstream Ceph, sets the right version from the tag and pushes changes to ceph-releases"
     display-name: 'ceph-tag'
-    logrotate:
-      daysToKeep: -1
-      numToKeep: 25
-      artifactDaysToKeep: -1
-      artifactNumToKeep: -1
     block-downstream: false
     block-upstream: false
     properties:
+      - build-discarder:
+          days-to-keep: -1
+          num-to-keep: 25
+          artifact-days-to-keep: -1
+          artifact-num-to-keep: -1
       - github:
           url: https://github.com/ceph/ceph
 

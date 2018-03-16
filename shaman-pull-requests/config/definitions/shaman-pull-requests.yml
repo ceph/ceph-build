@@ -1,5 +1,5 @@
 - scm:
-    name: shaman 
+    name: shaman
     scm:
       - git:
           url: https://github.com/ceph/shaman
@@ -38,13 +38,13 @@
     quiet-period: 5
     retry-count: 3
 
-    logrotate:
-      daysToKeep: 15
-      numToKeep: 30
-      artifactDaysToKeep: 15
-      artifactNumToKeep: 15
 
     properties:
+      - build-discarder:
+          days-to-keep: 15
+          num-to-keep: 30
+          artifact-days-to-keep: 15
+          artifact-num-to-keep: 15
       - github:
           url: https://github.com/ceph/shaman/
 
@@ -68,7 +68,7 @@
           auto-close-on-fail: false
 
     scm:
-      - shaman 
+      - shaman
       - ceph-build
 
     builders:

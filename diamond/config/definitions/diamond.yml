@@ -5,14 +5,14 @@
     defaults: global
     concurrent: true
     display-name: 'diamond'
-    logrotate:
-      daysToKeep: -1
-      numToKeep: 25
-      artifactDaysToKeep: 25
-      artifactNumToKeep: 25
     block-downstream: false
     block-upstream: false
     properties:
+      - build-discarder:
+          days-to-keep: -1
+          num-to-keep: 25
+          artifact-days-to-keep: 25
+          artifact-num-to-keep: 25
       - github:
           url: https://github.com/ceph/Diamond
 

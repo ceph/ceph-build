@@ -31,11 +31,11 @@
     properties:
       - github:
           url: https://github.com/ceph/ceph-container
-    logrotate:
-      daysToKeep: 15
-      numToKeep: -1
-      artifactDaysToKeep: -1
-      artifactNumToKeep: -1
+      - build-discarder:
+          days-to-keep: 15
+          num-to-keep: -1
+          artifact-days-to-keep: -1
+          artifact-num-to-keep: -1
 
     parameters:
       - string:
@@ -83,4 +83,5 @@
           script-only-if-succeeded: False
           script-only-if-failed: True
           builders:
-            - shell: !include-raw ../../build/teardown
+            - build-steps:
+                - shell: !include-raw ../../build/teardown

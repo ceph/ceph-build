@@ -1,5 +1,5 @@
 - scm:
-    name: ceph-medic 
+    name: ceph-medic
     scm:
       - git:
           url: https://github.com/ceph/ceph-medic
@@ -25,13 +25,13 @@
     quiet-period: 5
     retry-count: 3
 
-    logrotate:
-      daysToKeep: 15
-      numToKeep: 30
-      artifactDaysToKeep: 15
-      artifactNumToKeep: 15
 
     properties:
+      - build-discarder:
+          days-to-keep: 15
+          num-to-keep: 30
+          artifact-days-to-keep: 15
+          artifact-num-to-keep: 15
       - github:
           url: https://github.com/ceph/ceph-medic/
 

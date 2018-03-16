@@ -169,14 +169,15 @@ If this is checked, then the binaries will be built and pushed to chacra even if
     publishers:
       - postbuildscript:
           script-only-if-failed: True
-          script-only-if-succeeded: False 
+          script-only-if-succeeded: False
           builders:
-            - inject:
-                properties-file: ${WORKSPACE}/build_info
-            - shell:
-                !include-raw:
-                  - ../../../scripts/build_utils.sh
-                  - ../../build/failure
+            - build-steps:
+                - inject:
+                    properties-file: ${WORKSPACE}/build_info
+                - shell:
+                    !include-raw:
+                      - ../../../scripts/build_utils.sh
+                      - ../../build/failure
 
     wrappers:
       - inject-passwords:
