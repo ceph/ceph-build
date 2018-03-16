@@ -42,6 +42,8 @@ This job:
 
 #. Configures the DHCP server so the testnodes PXE boot back to the FOG server.
 
+#. Pauses the teuthology queue (if needed) so active FOG deployments aren't interrupted.
+
 #. Reboots all the testnodes so FOG captures the assigned images.
 
 #. Updates the teuthology lock DB with the new host keys and OS info.
