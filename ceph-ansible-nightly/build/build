@@ -15,44 +15,19 @@ WORKDIR=$(mktemp -td tox.XXXXXXXXXX)
 #############
 function count_tag_pages {
   sudo yum -y install jq
-  for i in $(seq 1 10000); do
-    rc=$(curl -s -o /dev/null -w "%{http_code}" "https://registry.hub.docker.com/v2/repositories/ceph/daemon/tags/?page=${i}")
-    if [[ "$rc" != "200" ]]; then
-      break
-    else
-      total_page=$((total_page+1))
+  tag_count=$(curl -s "https://registry.hub.docker.com/v2/repositories/ceph/daemon/tags/" | jq '.count')
+  total_pages=$((tag_count / 10))
+}
+
+function find_latest_tag {
+  release="$1"
+  for page in $(seq 1 $total_pages); do
+    tag=$(curl -s "https://registry.hub.docker.com/v2/repositories/ceph/daemon/tags/?page=$page" | jq ".\"results\"[] | select((.name | contains(\"stable\")) and (.name | contains(\"${release}-ubuntu-16.04-x86_64\"))) | .name")
+    if [ -n "$tag" ]; then
+      echo "$tag" | cut -d '"' -f 2
+      return
     fi
   done
-}
-
-function find_latest_jewel_tag {
-  for page in $(seq 1 $total_page); do
-    tag=$(curl -s "https://registry.hub.docker.com/v2/repositories/ceph/daemon/tags/?page=$page" | jq '."results"[] | select((.name | contains("stable")) and (.name | contains("jewel-ubuntu-16.04-x86_64"))) | .name')
-    tags="${tags} ${tag}"
-  done
-  # build array
-  array_jewel=()
-  for i in $tags; do
-    array_jewel+=("$i")
-  done
-  IFS=$'\n' sorted_jewel=($(sort <<<"${array_jewel[*]}"))
-  unset IFS
-  LAST_JEWEL_STABLE_TAG="${sorted_jewel[-1]}"
-}
-
-function find_latest_luminous_tag {
-  for page in $(seq 1 $total_page); do
-    tag=$(curl -s "https://registry.hub.docker.com/v2/repositories/ceph/daemon/tags/?page=$page" | jq '."results"[] | select((.name | contains("stable")) and (.name | contains("luminous-ubuntu-16.04-x86_64"))) | .name')
-    tags="${tags} ${tag}"
-  done
-  # build array
-  array_luminous=()
-  for i in $tags; do
-    array_luminous+=("$i")
-  done
-  IFS=$'\n' sorted_luminous=($(sort <<<"${array_luminous[*]}"))
-  unset IFS
-  LAST_LUMINOUS_STABLE_TAG="${sorted_luminous[-1]}"
 }
 
 function run_tox {
@@ -75,6 +50,6 @@ clear_libvirt_networks
 restart_libvirt_services
 update_vagrant_boxes
 count_tag_pages
-find_latest_jewel_tag
-find_latest_luminous_tag
+LAST_JEWEL_STABLE_TAG=$(find_latest_tag jewel)
+LAST_LUMINOUS_STABLE_TAG=$(find_latest_tag luminous)
 run_tox
