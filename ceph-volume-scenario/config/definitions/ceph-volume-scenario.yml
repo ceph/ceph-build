@@ -58,10 +58,12 @@
 
     publishers:
       - postbuildscript:
-          script-only-if-succeeded: False
-          script-only-if-failed: True
           builders:
-            - build-steps:
+            - role: SLAVE
+              build-on:
+                  - FAILURE
+                  - ABORTED
+              build-steps:
                 - shell:
                     !include-raw:
                       - ../../../scripts/build_utils.sh

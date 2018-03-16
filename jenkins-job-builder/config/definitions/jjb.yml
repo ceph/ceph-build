@@ -47,7 +47,12 @@ If this is checked, JJB will wipe out its cache and force each job to align with
     publishers:
       - postbuildscript:
           builders:
-            - build-steps:
+            - role: SLAVE
+              build-on:
+                  - SUCCESS
+                  - NOT_BUILT
+                  - UNSTABLE
+                  - FAILURE
+                  - ABORTED
+              build-steps:
                 - shell: 'rm $HOME/.jenkins_jobs.*.ini'
-        script-only-if-succeeded: false
-        script-only-if-failed: false
