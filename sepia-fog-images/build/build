@@ -38,6 +38,16 @@ funPowerCycle () {
   fi
 }
 
+# There's a few loops that could hang indefinitely if a curl command fails.
+# This function takes two arguments: Current and Max number of retries.
+# It will fail the job if Current > Max retries.
+funRetry () {
+  if [ $1 -gt $2 ]; then
+    echo "Maximum retries exceeded.  Failing job."
+    exit 1
+  fi
+}
+
 # Clone or update teuthology
 if [ ! -d teuthology ]; then
   git clone https://github.com/ceph/teuthology
@@ -71,6 +81,7 @@ numdistros=$(echo $DISTROS | wc -w)
 # Keep trying to lock machines
 for type in $MACHINETYPES; do
   numlocked=$(teuthology-lock --brief --machine-type $type | grep "Locked to capture FOG image for Jenkins build $BUILD_NUMBER" | wc -l)
+  currentretries=0
   while [ $numlocked -lt $numdistros ]; do
     # Lock one at a time since we have a better shot of getting one instead of all at once.
     # Setting the BUILD_NUMBER in the description makes sure each Jenkins job uses the right machines.
@@ -81,6 +92,9 @@ for type in $MACHINETYPES; do
       sleep 5
     fi
     numlocked=$(teuthology-lock --brief --machine-type $type | grep "Locked to capture FOG image for Jenkins build $BUILD_NUMBER" | wc -l)
+    ((++currentretries))
+    # Retry for 1hr
+    funRetry $currentretries 720
   done
 done
 
@@ -129,6 +143,7 @@ set +e
 remaininghosts=$allhosts
 # Once all the hostnames are removed from $remaininghosts, trailing spaces are all that's left.
 # I'm sure there's a cleaner way to compile the list of hostnames above.  PRs welcome.
+currentretries=0
 while [[ $(echo $remaininghosts | wc -w) != 0 ]]; do
   for host in $remaininghosts; do
     if ssh -q ubuntu@${host}.front.sepia.ceph.com stat /ceph-qa-ready \> /dev/null 2\>\&1; then
@@ -144,6 +159,9 @@ while [[ $(echo $remaininghosts | wc -w) != 0 ]]; do
       set +ex
       echo "$(date) -- $host is not ready.  Sleeping for 2min"
       sleep 120
+      ((++currentretries))
+      # Retry for 2h
+      funRetry $currentretries 60
     fi
   done
 done
@@ -153,22 +171,54 @@ set -ex
 # Restart dhcpd so servers PXE boot to FOG server
 ssh ubuntu@store01.front.sepia.ceph.com "sudo service dhcpd restart"
 
+# Get FOG 'Deploy' TaskID
+fogdeployid=$(curl -s -k -H "fog-api-token: ${FOG_API_TOKEN}" -H "fog-user-token: ${FOG_USER_TOKEN}" http://fog.front.sepia.ceph.com/fog/tasktype -d '{"name": "Deploy"}' -X GET | jq -r '.tasktypes[0].id')
+
+# Check for scheduled deploy tasks
+deploytasks=$(curl -s -k -H "fog-api-token: ${FOG_API_TOKEN}" -H "fog-user-token: ${FOG_USER_TOKEN}" http://fog.front.sepia.ceph.com/fog/task/active -d '{"typeID": "'${fogdeployid}'"}' -X GET | jq -r '.count')
+
+# If there are scheduled or active deploy tasks, pause the queue and let them finish.
+# Capturing a new OS image can interrupt active OS deployments.
+if [ $deploytasks -gt 0 ]; then
+  for type in $MACHINETYPES; do
+    # Only pause the queue for 20 minutes just in case anything goes wrong with the Jenkins job.
+    teuthology-queue --pause 1200 --machine_type $type
+  done
+  pausedqueue=true
+  currentretries=0
+  while [ $deploytasks -gt 0 ]; do
+    echo "$(date) -- $deploytasks FOG deploy tasks still queued.  Sleeping 10sec"
+    sleep 10
+    deploytasks=$(curl -s -k -H "fog-api-token: ${FOG_API_TOKEN}" -H "fog-user-token: ${FOG_USER_TOKEN}" http://fog.front.sepia.ceph.com/fog/task/active -d '{"typeID": "'${fogdeployid}'"}' -X GET | jq -r '.count')
+    ((++currentretries))
+    # Retry for 30min
+    funRetry $currentretries 180
+  done
+fi
+
 # Reboot all hosts so FOG can capture their OSes
 for host in $allhosts; do
   funPowerCycle $host
 done
 
-set +x
-
 # Wait for Capture tasks to finish
 capturetasks=$(curl -s -k -H "fog-api-token: ${FOG_API_TOKEN}" -H "fog-user-token: ${FOG_USER_TOKEN}" http://fog.front.sepia.ceph.com/fog/task/active -d '{"typeID": "'${fogcaptureid}'"}' -X GET | jq -r '.count')
+currentretries=0
 while [ $capturetasks -gt 0 ]; do
   echo "$(date) -- $capturetasks FOG capture tasks still queued.  Sleeping 10sec"
   sleep 10
   capturetasks=$(curl -s -k -H "fog-api-token: ${FOG_API_TOKEN}" -H "fog-user-token: ${FOG_USER_TOKEN}" http://fog.front.sepia.ceph.com/fog/task/active -d '{"typeID": "'${fogcaptureid}'"}' -X GET | jq -r '.count')
+    ((++currentretries))
+    # Retry for 30min
+    funRetry $currentretries 180
 done
 
-set -ex
+# Unpause the queue if we paused it earlier
+if [ "$pausedqueue" = true ]; then
+  for type in $MACHINETYPES; do
+    teuthology-queue --pause 0 --machine_type $type
+  done
+fi
 
 # Unlock all machines after all capture images are finished
 for host in $allhosts; do
