@@ -45,10 +45,12 @@
           latest-only: false
 
       - postbuildscript:
-          script-only-if-failed: True
-          script-only-if-succeeded: False
           builders:
-            - build-steps:
+            - role: SLAVE
+              build-on:
+                  - FAILURE
+                  - ABORTED
+              build-steps:
                 - shell:
                     !include-raw:
                       - ../../../scripts/build_utils.sh

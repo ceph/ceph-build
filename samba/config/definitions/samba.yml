@@ -113,8 +113,13 @@ If this is checked, then the binaries will be built and pushed to chacra even if
 
     publishers:
       - postbuildscript:
-          script-only-if-succeeded: False
-          script-only-if-failed: False
           builders:
-            - build-steps:
+            - role: SLAVE
+              build-on:
+                  - SUCCESS
+                  - UNSTABLE
+                  - FAILURE
+                  - ABORTED
+                  - NOT_BUILT
+              build-steps:
                 - shell: "sudo rm -f /etc/apt/sources.list.d/shaman.list /etc/yum.repos.d/shaman.repo"

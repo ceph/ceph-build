@@ -144,10 +144,12 @@ If this is checked, then the binaries will be built and pushed to chacra even if
 
     publishers:
       - postbuildscript:
-          script-only-if-failed: True
-          script-only-if-succeeded: False
           builders:
-            - build-steps:
+            - role: SLAVE
+              build-on:
+                  - FAILURE
+                  - ABORTED
+              build-steps:
                 - inject:
                     properties-file: ${WORKSPACE}/build_info
 
