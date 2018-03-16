@@ -9,21 +9,72 @@ source $VENV/activate
 
 WORKDIR=$(mktemp -td tox.XXXXXXXXXX)
 
+
+#############
+# FUNCTIONS #
+#############
+function count_tag_pages {
+  sudo yum -y install jq
+  for i in $(seq 1 10000); do
+    rc=$(curl -s -o /dev/null -w "%{http_code}" "https://registry.hub.docker.com/v2/repositories/ceph/daemon/tags/?page=${i}")
+    if [[ "$rc" != "200" ]]; then
+      break
+    else
+      total_page=$((total_page+1))
+    fi
+  done
+}
+
+function find_latest_jewel_tag {
+  for page in $(seq 1 $total_page); do
+    tag=$(curl -s "https://registry.hub.docker.com/v2/repositories/ceph/daemon/tags/?page=$page" | jq '."results"[] | select((.name | contains("stable")) and (.name | contains("jewel-ubuntu-16.04-x86_64"))) | .name')
+    tags="${tags} ${tag}"
+  done
+  # build array
+  array_jewel=()
+  for i in $tags; do
+    array_jewel+=("$i")
+  done
+  IFS=$'\n' sorted_jewel=($(sort <<<"${array_jewel[*]}"))
+  unset IFS
+  LAST_JEWEL_STABLE_TAG="${sorted_jewel[-1]}"
+}
+
+function find_latest_luminous_tag {
+  for page in $(seq 1 $total_page); do
+    tag=$(curl -s "https://registry.hub.docker.com/v2/repositories/ceph/daemon/tags/?page=$page" | jq '."results"[] | select((.name | contains("stable")) and (.name | contains("luminous-ubuntu-16.04-x86_64"))) | .name')
+    tags="${tags} ${tag}"
+  done
+  # build array
+  array_luminous=()
+  for i in $tags; do
+    array_luminous+=("$i")
+  done
+  IFS=$'\n' sorted_luminous=($(sort <<<"${array_luminous[*]}"))
+  unset IFS
+  LAST_LUMINOUS_STABLE_TAG="${sorted_luminous[-1]}"
+}
+
+function run_tox {
+  if [ "$RELEASE" == 'jewel' ] && [ "$CEPH_ANSIBLE_BRANCH" == 'stable-2.2' -o "$CEPH_ANSIBLE_BRANCH" == 'stable-3.0' ]; then
+    start_tox CEPH_DOCKER_IMAGE_TAG="$LAST_JEWEL_STABLE_TAG"
+  elif [ "$RELEASE" == 'luminous' ] && [ "$CEPH_ANSIBLE_BRANCH" == 'stable-3.0' ]; then
+    # start_tox(): <CEPH_DOCKER_IMAGE_TAG> <CEPH_STABLE_RELEASE>
+    start_tox CEPH_DOCKER_IMAGE_TAG="$LAST_LUMINOUS_STABLE_TAG"
+  elif [ "$RELEASE" == 'luminous' ] && [ "$CEPH_ANSIBLE_BRANCH" == 'master' ]; then
+    start_tox CEPH_DOCKER_IMAGE_TAG=latest
+  fi
+}
+
+
+########
+# MAIN #
+########
 delete_libvirt_vms
 clear_libvirt_networks
 restart_libvirt_services
 update_vagrant_boxes
-
-sudo yum -y install jq
-
-LAST_JEWEL_STABLE_TAG=$(curl -s https://registry.hub.docker.com/v2/repositories/ceph/daemon/tags/ | jq '."results"[] | select((.name | contains("stable")) and (.name | contains("jewel-ubuntu-16.04"))) | .name' | sort)
-LAST_LUMINOUS_STABLE_TAG=$(curl -s https://registry.hub.docker.com/v2/repositories/ceph/daemon/tags/ | jq '."results"[] | select((.name | contains("stable")) and (.name | contains("luminous-ubuntu-16.04"))) | .name' | sort)
-
-if [ "$RELEASE" == 'jewel' ] && [ "$CEPH_ANSIBLE_BRANCH" == 'stable-2.2' -o "$CEPH_ANSIBLE_BRANCH" == 'stable-3.0' ]; then
-  start_tox CEPH_DOCKER_IMAGE_TAG="$LAST_JEWEL_STABLE_TAG"
-elif [ "$RELEASE" == 'luminous' ] && [ "$CEPH_ANSIBLE_BRANCH" == 'stable-3.0' ]; then
-  # start_tox(): <CEPH_DOCKER_IMAGE_TAG> <CEPH_STABLE_RELEASE>
-  start_tox CEPH_DOCKER_IMAGE_TAG="$LAST_LUMINOUS_STABLE_TAG"
-elif [ "$RELEASE" == 'luminous' ] && [ "$CEPH_ANSIBLE_BRANCH" == 'master' ]; then
-  start_tox CEPH_DOCKER_IMAGE_TAG=latest
-fi
+count_tag_pages
+find_latest_jewel_tag
+find_latest_luminous_tag
+run_tox
