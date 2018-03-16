@@ -10,6 +10,8 @@ These steps should only have to be performed when a new teuthology host is being
 
 #. Run the ``ansible/examples/slave_teuthology.yml`` playbook against the teuthology host.
 
+#. Copy ``/etc/teuthology.yaml`` to ``/home/jenkins-build/.teuthology.yml`` and remove the ``fog:`` yaml block.  This is so the job doesn't attempt to provision testnodes using FOG when locking machines.
+
 #. As the ``jenkins-build`` user on the teuthology host, generate a new RSA SSH key (``ssh-keygen -t rsa``).
 
 #. Copy the public key to jenkins-build.pub_ in the keys repo. (This is so the jenkins-build user can ssh to testnodes and VPSHOSTs)
@@ -20,7 +22,6 @@ These steps should only have to be performed when a new teuthology host is being
 
 **NOTE:** This job also relies on:
 
-- teuthology.yaml_ -- If the job is being run on the teuthology host, this should already be in place at ``/etc/teuthology.yaml``.
 - ceph-sepia-secrets_ -- If the job is being run on a teuthology host, ``/etc/ansible`` should already be symlinked to a ceph-sepia-secrets checkout.
 - ceph-cm-ansible/tools_ -- There's a playbook that preps a host for capturing after Cobbler reimage along with a script to update DHCP entries.
 
