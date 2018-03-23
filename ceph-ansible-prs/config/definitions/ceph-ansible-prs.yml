@@ -124,7 +124,7 @@
           allow-whitelist-orgs-as-admins: true
           org-list:
             - ceph
-          skip-build-phrase: '^jenkins do not test.*|.*\[skip\W+ci\].*'
+          skip-build-phrase: '^jenkins do not test.*|.*\[skip ci\].*'
           trigger-phrase: '^jenkins test oldstable {release}-{ansible_version}-{scenario}|jenkins test oldstable.*'
           only-trigger-phrase: true
           github-hooks: true
@@ -206,7 +206,7 @@
           allow-whitelist-orgs-as-admins: true
           org-list:
             - ceph
-          skip-build-phrase: '^jenkins do not test.*|.*\[skip\W+ci\].*'
+          skip-build-phrase: '^jenkins do not test.*|.*\[skip ci\].*'
           trigger-phrase: '^jenkins test {release}-{ansible_version}-{scenario}|jenkins test all.*'
           only-trigger-phrase: false
           github-hooks: true
@@ -288,7 +288,7 @@
           allow-whitelist-orgs-as-admins: true
           org-list:
             - ceph
-          skip-build-phrase: '^jenkins do not test.*|.*\[skip\W+ci\].*'
+          skip-build-phrase: '^jenkins do not test.*|.*\[skip ci\].*'
           trigger-phrase: '^jenkins test {release}-{ansible_version}-{scenario}|jenkins test all.*'
           only-trigger-phrase: true
           github-hooks: true

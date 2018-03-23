@@ -48,7 +48,7 @@
           allow-whitelist-orgs-as-admins: true
           org-list:
             - ceph
-          skip-build-phrase: '^jenkins do not test.*|.*\[skip\W+ci\].*'
+          skip-build-phrase: '^jenkins do not test.*|.*\[skip ci\].*'
           trigger-phrase: 'jenkins test ceph_ansible-{ceph-version}-{os}-{test}'
           only-trigger-phrase: false
           github-hooks: true
