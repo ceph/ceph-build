@@ -5,7 +5,7 @@
 
 cd $WORKSPACE/src/ceph-volume/ceph_volume/tests/functional
 
-scenarios=$(find . | grep Vagrantfile | xargs dirname)
+scenarios=$(find . | grep vagrant_ssh_config | xargs dirname)
 
 for scenario in $scenarios; do
     cd $scenario
