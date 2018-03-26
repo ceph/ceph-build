@@ -10,7 +10,7 @@ GITHUB_STATUS_STATE="failure" $VENV/github-status create
 
 cd $WORKSPACE/src/ceph-volume/tests/functional
 
-scenarios=$(find . | grep Vagrantfile | xargs dirname)
+scenarios=$(find . | grep vagrant_ssh_config | xargs dirname)
 
 for scenario in $scenarios; do
     cd $scenario
