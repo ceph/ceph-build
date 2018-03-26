@@ -719,3 +719,24 @@ collect_ceph_logs() {
         $VENV/ansible-playbook -vv -i hosts --limit $limit --extra-vars "archive_path=$WORKSPACE/logs" $WORKSPACE/collect-logs.yml
     fi
 }
+
+teardown_vagrant_tests() {
+    # collect ceph logs and teardown any running vagrant vms
+    # this also cleans up any lingering livirt networks
+    scenarios=$(find . | grep vagrant_ssh_config | xargs dirname)
+
+    for scenario in $scenarios; do
+        cd $scenario
+        # collect all ceph logs from all test nodes
+        collect_ceph_logs all
+        vagrant destroy -f
+        cd -
+    done
+
+    # Sometimes, networks may linger around, so we must ensure they are killed:
+    networks=`sudo virsh net-list --all | grep active | egrep -v "(default|libvirt)" | cut -d ' ' -f 2`
+    for network in $networks; do
+        sudo virsh net-destroy $network || true
+        sudo virsh net-undefine $network || true
+    done
+}
