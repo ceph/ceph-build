@@ -40,41 +40,8 @@ function cleanup() {
 }
 trap cleanup EXIT
 
-# Copy the repo
-sudo cp $WORKSPACE/shaman.repo /etc/yum.repos.d/
-
-## Install any setup-time deps
-# We need these for the build
-sudo yum install -y cmake kernel-headers glib2-devel libnl3-devel \
-                    glusterfs-api-devel kmod-devel zlib-devel librbd1-devel
-
-# We use fpm to create the package
-sudo yum install -y rubygems ruby-devel
-sudo gem install fpm
-
-# Mimic koji/brew environment
-export CFLAGS='-O2 -g -pipe -Wall -Wp,-D_FORTIFY_SOURCE=2 -fexceptions -fstack-protector-strong --param=ssp-buffer-size=4 -grecord-gcc-switches   -m64 -mtune=generic'
-export CXXFLAGS='-O2 -g -pipe -Wall -Wp,-D_FORTIFY_SOURCE=2 -fexceptions -fstack-protector-strong --param=ssp-buffer-size=4 -grecord-gcc-switches   -m64 -mtune=generic'
-export LDFLAGS='-Wl,-z,relro '
-
-# Prepare the build
-DESTDIR="install.tmp"
-install -d -m0755 -- "$DESTDIR"
-cmake -DCMAKE_C_FLAGS_RELEASE:STRING=-DNDEBUG \
-      -DCMAKE_CXX_FLAGS_RELEASE:STRING=-DNDEBUG \
-      -DCMAKE_VERBOSE_MAKEFILE:BOOL=ON \
-      -DCMAKE_INSTALL_PREFIX:PATH='/usr' \
-      -DLIB_SUFFIX=64 \
-      -DBUILD_SHARED_LIBS:BOOL=ON \
-      -DSUPPORT_SYSTEMD=ON .
-
-# Perform the build and install the files to DESTDIR
-NCPU=$(grep -c processor /proc/cpuinfo)
-make -j$NCPU
-
-make -j$NCPU install DESTDIR=${DESTDIR}
-gzip ${DESTDIR}/usr/share/man/man8/tcmu-runner.8
-
+# Install the dependencies
+sudo yum install -y mock
 
 ## Get some basic information about the system and the repository
 # Get version
@@ -85,24 +52,42 @@ if [ "$VERSION" = "$REVISION" ]; then
   REVISION="1"
 fi
 
-## Create the package
-# Make sure there are no other packages, first
-rm -f *.rpm
+# Create dummy dist tar
+tar cf dist/${PROJECT}-${VERSION}.tar.gz \
+        --exclude .git --exclude dist \
+        --transform "s,^,${PROJECT}-${VERSION}/," *
+tar tfv dist/${PROJECT}-${VERSION}.tar.gz
 
-# Create the package
-fpm -s dir -t rpm -n tcmu-runner -C ${DESTDIR} \
-    -v ${VERSION} --iteration ${REVISION} \
-    --exclude usr/lib64/libtcmu.so*
+# Update spec version
+sed -i "s/^Version:.*$/Version:\t${VERSION}/g" $WORKSPACE/${PROJECT}.spec
+sed -i "s/^Release:.*$/Release:\t${REVISION}%{?dist}/g" $WORKSPACE/${PROJECT}.spec
+sed -i 's/^%define _RC.*$//g' tcmu-runner.spec
+# for debugging
+cat $WORKSPACE/${PROJECT}.spec
 
-cat > SCRIPTLET <<EOF
-/sbin/ldconfig
-EOF
-fpm -s dir -t rpm -n libtcmu -C ${DESTDIR} \
-    -v ${VERSION} --iteration ${REVISION} \
-    --after-install SCRIPTLET \
-    --after-remove SCRIPTLET \
-    usr/lib64/libtcmu.so.2
+## Create the source rpm
+echo "Building SRPM"
+rpmbuild \
+    --define "_sourcedir $WORKSPACE/dist" \
+    --define "_specdir $WORKSPACE/dist" \
+    --define "_builddir $WORKSPACE/dist" \
+    --define "_srcrpmdir $WORKSPACE/dist/SRPMS" \
+    --define "_rpmdir $WORKSPACE/dist/RPMS" \
+    --nodeps -bs $WORKSPACE/${PROJECT}.spec
+SRPM=$(readlink -f $WORKSPACE/dist/SRPMS/*.src.rpm)
 
+# add repo file to mock config
+sudo head -n -1 /etc/mock/${MOCK_TARGET}-${RELEASE}-${ARCH}.cfg > temp.cfg
+echo >> temp
+sudo cat temp.cfg $WORKSPACE/shaman.repo > tcmu-runner.cfg
+echo "\"\"\"" >> tcmu-runner.cfg
+# for debugging
+cat tcmu-runner.cfg
+
+## Build the binaries with mock
+echo "Building RPMs"
+sudo mock --verbose -r tcmu-runner.cfg --scrub=all
+sudo mock --verbose -r tcmu-runner.cfg --define "dist .el7" --resultdir=$WORKSPACE/dist/RPMS/ ${SRPM} || ( tail -n +1 $WORKSPACE/dist/RPMS/{root,build}.log && exit 1 )
 
 ## Upload the created RPMs to chacra
 chacra_endpoint="tcmu-runner/${BRANCH}/${GIT_COMMIT}/${DISTRO}/${RELEASE}"
@@ -110,8 +95,8 @@ chacra_endpoint="tcmu-runner/${BRANCH}/${GIT_COMMIT}/${DISTRO}/${RELEASE}"
 [ "$FORCE" = true ] && chacra_flags="--force" || chacra_flags=""
 
 # push binaries to chacra
-find *.rpm | $VENV/chacractl binary ${chacra_flags} create ${chacra_endpoint}/$ARCH/
-PACKAGE_MANAGER_VERSION=$(rpm --queryformat '%{VERSION}-%{RELEASE}\n' -qp $(find *.rpm | egrep "\.$ARCH\.rpm" | head -1))
+find $WORKSPACE/dist/RPMS/ | $VENV/chacractl binary ${chacra_flags} create ${chacra_endpoint}/$ARCH/
+PACKAGE_MANAGER_VERSION=$(rpm --queryformat '%{VERSION}-%{RELEASE}\n' -qp $(find $WORKSPACE/dist/RPMS/ | egrep "\.$ARCH\.rpm" | head -1))
 
 # write json file with build info
 cat > $WORKSPACE/repo-extra.json << EOF
