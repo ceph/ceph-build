@@ -1,6 +1,7 @@
 #! /usr/bin/bash
 set -ex
 
+PROJECT=tcmu-runner
 BRANCH=`branch_slash_filter $BRANCH`
 CEPH_BRANCH=$(branch_slash_filter $CEPH_BRANCH)
 
