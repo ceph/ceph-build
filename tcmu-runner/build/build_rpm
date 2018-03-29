@@ -36,11 +36,6 @@ if [[ "$REPO_FOUND" -eq 0 ]]; then
   exit 1
 fi
 
-function cleanup() {
-  sudo rm -rf /etc/yum.repos.d/shaman.repo || true
-}
-trap cleanup EXIT
-
 # Install the dependencies
 sudo yum install -y mock
 
