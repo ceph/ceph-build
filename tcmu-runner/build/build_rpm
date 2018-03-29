@@ -91,7 +91,7 @@ chacra_endpoint="tcmu-runner/${BRANCH}/${GIT_COMMIT}/${DISTRO}/${RELEASE}"
 [ "$FORCE" = true ] && chacra_flags="--force" || chacra_flags=""
 
 # push binaries to chacra
-find $WORKSPACE/dist/RPMS/ | $VENV/chacractl binary ${chacra_flags} create ${chacra_endpoint}/$ARCH/
+find $WORKSPACE/dist/RPMS/ | egrep "\.$ARCH\.rpm" | $VENV/chacractl binary ${chacra_flags} create ${chacra_endpoint}/$ARCH/
 PACKAGE_MANAGER_VERSION=$(rpm --queryformat '%{VERSION}-%{RELEASE}\n' -qp $(find $WORKSPACE/dist/RPMS/ | egrep "\.$ARCH\.rpm" | head -1))
 
 # write json file with build info
