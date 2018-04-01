@@ -23,6 +23,17 @@ branch_slash_filter() {
     echo $FILTERED_BRANCH
 }
 
+pip_download() {
+    local package=$1
+    shift
+    local options=$@
+    if ! $VENV/pip download $options --dest="$PIP_SDIST_INDEX" $package; then
+        # pip <8.0.0 does not have "download" command
+        $VENV/pip install $options \
+                  --upgrade --exists-action=i --download="$PIP_SDIST_INDEX" \
+                  $package
+    fi
+}
 
 install_python_packages_no_binary () {
     # Use this function to create a virtualenv and install python packages
@@ -48,17 +59,17 @@ install_python_packages_no_binary () {
     mkdir -p $PIP_SDIST_INDEX
 
     echo "Ensuring latest pip is installed"
-    $VENV/pip install --upgrade --exists-action=i --download="$PIP_SDIST_INDEX" pip
+    pip_download pip
     $VENV/pip install --upgrade --exists-action=i --find-links="file://$PIP_SDIST_INDEX" --no-index pip
 
     echo "Updating setuptools"
-    $VENV/pip install --upgrade --exists-action=i --download="$PIP_SDIST_INDEX" setuptools
+    pip_download setuptools
 
     pkgs=("${!1}")
     for package in ${pkgs[@]}; do
         echo $package
         # download packages to the local pip cache
-        $VENV/pip install --no-binary=:all: --upgrade --exists-action=i --download="$PIP_SDIST_INDEX" $package
+        pip_download $package --no-binary=:all:
         # install packages from the local pip cache, ignoring pypi
         $VENV/pip install --no-binary=:all: --upgrade --exists-action=i --find-links="file://$PIP_SDIST_INDEX" --no-index $package
     done
@@ -82,17 +93,18 @@ install_python_packages () {
     mkdir -p $PIP_SDIST_INDEX
 
     echo "Ensuring latest pip is installed"
-    $VENV/pip install --upgrade --exists-action=i --download="$PIP_SDIST_INDEX" pip
+
+    pip_download pip
     $VENV/pip install --upgrade --exists-action=i --find-links="file://$PIP_SDIST_INDEX" --no-index pip
 
     echo "Updating setuptools"
-    $VENV/pip install --upgrade --exists-action=i --download="$PIP_SDIST_INDEX" setuptools
+    pip_download setuptools
 
     pkgs=("${!1}")
     for package in ${pkgs[@]}; do
         echo $package
         # download packages to the local pip cache
-        $VENV/pip install --upgrade --exists-action=i --download="$PIP_SDIST_INDEX" $package
+        pip_download $package
         # install packages from the local pip cache, ignoring pypi
         $VENV/pip install --upgrade --exists-action=i --find-links="file://$PIP_SDIST_INDEX" --no-index $package
     done
