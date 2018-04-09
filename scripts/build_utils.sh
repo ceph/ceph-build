@@ -23,16 +23,11 @@ branch_slash_filter() {
     echo $FILTERED_BRANCH
 }
 
-pip_download() {
+pip_install() {
     local package=$1
     shift
     local options=$@
-    if ! $VENV/pip download $options --dest="$PIP_SDIST_INDEX" $package; then
-        # pip <8.0.0 does not have "download" command
-        $VENV/pip install $options \
-                  --upgrade --exists-action=i --download="$PIP_SDIST_INDEX" \
-                  $package
-    fi
+    $VENV/pip install $options --upgrade --exists-action=i $package
 }
 
 install_python_packages_no_binary () {
@@ -59,17 +54,17 @@ install_python_packages_no_binary () {
     mkdir -p $PIP_SDIST_INDEX
 
     echo "Ensuring latest pip is installed"
-    pip_download pip
+    pip_install pip
     $VENV/pip install --upgrade --exists-action=i --find-links="file://$PIP_SDIST_INDEX" --no-index pip
 
     echo "Updating setuptools"
-    pip_download setuptools
+    pip_install setuptools
 
     pkgs=("${!1}")
     for package in ${pkgs[@]}; do
         echo $package
         # download packages to the local pip cache
-        pip_download $package --no-binary=:all:
+        pip_install $package --no-binary=:all:
         # install packages from the local pip cache, ignoring pypi
         $VENV/pip install --no-binary=:all: --upgrade --exists-action=i --find-links="file://$PIP_SDIST_INDEX" --no-index $package
     done
@@ -94,17 +89,17 @@ install_python_packages () {
 
     echo "Ensuring latest pip is installed"
 
-    pip_download pip
+    pip_install pip
     $VENV/pip install --upgrade --exists-action=i --find-links="file://$PIP_SDIST_INDEX" --no-index pip
 
     echo "Updating setuptools"
-    pip_download setuptools
+    pip_install setuptools
 
     pkgs=("${!1}")
     for package in ${pkgs[@]}; do
         echo $package
         # download packages to the local pip cache
-        pip_download $package
+        pip_install $package
         # install packages from the local pip cache, ignoring pypi
         $VENV/pip install --upgrade --exists-action=i --find-links="file://$PIP_SDIST_INDEX" --no-index $package
     done
