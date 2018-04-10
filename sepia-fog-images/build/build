@@ -16,12 +16,18 @@ funSetProfiles () {
   elif [ "$1" == "xenial" ]; then
     cobblerprofile="Ubuntu-16.04-server-x86_64"
     fogprofile="ubuntu_16.04"
-  elif [ "$1" == "centos" ]; then
+  elif [ "$1" == "centos74" ]; then
     cobblerprofile="CentOS-7.4-x86_64"
     fogprofile="centos_7.4"
-  elif [ "$1" == "rhel" ]; then
+  elif [ "$1" == "centos75" ]; then
+    cobblerprofile="CentOS-7.5-x86_64"
+    fogprofile="centos_7.5"
+  elif [ "$1" == "rhel74" ]; then
     cobblerprofile="RHEL-7.4-Server-x86_64"
     fogprofile="rhel_7.4"
+  elif [ "$1" == "rhel75" ]; then
+    cobblerprofile="RHEL-7.5-Server-x86_64"
+    fogprofile="rhel_7.5"
   else
     echo "Unknown profile $1"
     exit 1
