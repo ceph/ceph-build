@@ -1,0 +1,46 @@
+- job:
+    name: ceph-container-build-push-imgs-arm64
+    node: arm64
+    project-type: freestyle
+    defaults: global
+    display-name: 'ceph-container: build and push container images to Docker Hub on arm64'
+    quiet-period: 5
+    block-downstream: false
+    block-upstream: false
+    retry-count: 3
+    properties:
+      - build-discarder:
+          days-to-keep: -1
+          num-to-keep: -1
+          artifact-days-to-keep: -1
+          artifact-num-to-keep: -1
+      - github:
+          url: https://github.com/ceph/ceph-container
+
+    triggers:
+      - github
+
+    scm:
+      - git:
+          url: https://github.com/ceph/ceph-container.git
+          branches:
+            - master
+          browser: auto
+          basedir: "ceph-container"
+          timeout: 20
+
+    builders:
+      - shell:
+          !include-raw:
+            - ../../../scripts/build_utils.sh
+            - ../../build/build
+
+    wrappers:
+      - inject-passwords:
+          global: true
+          mask-password-params: true
+      - credentials-binding:
+          - username-password-separated:
+              credential-id: docker-hub-leseb
+              username: DOCKER_HUB_USERNAME
+              password: DOCKER_HUB_PASSWORD
