@@ -30,7 +30,7 @@ pip_download() {
     if ! $VENV/pip download $options --dest="$PIP_SDIST_INDEX" $package; then
         # pip <8.0.0 does not have "download" command
         $VENV/pip install $options \
-                  --upgrade --exists-action=i --download="$PIP_SDIST_INDEX" \
+                  --upgrade --exists-action=i --cache-dir="$PIP_SDIST_INDEX" \
                   $package
     fi
 }
