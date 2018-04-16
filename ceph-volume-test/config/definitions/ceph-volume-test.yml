@@ -29,6 +29,10 @@
           name: CEPH_ANSIBLE_BRANCH
           description: "The ceph-ansible branch to test against"
           default: "master"
+      - string:
+          name: CEPH_REPO_URL
+          description: "The full https url to clone from"
+          default: "https://github.com/ceph/ceph.git"
 
     builders:
       - multijob:
