@@ -96,8 +96,10 @@ install_python_packages () {
     mkdir -p $PIP_SDIST_INDEX
 
     echo "Ensuring latest pip is installed"
-
-    pip_download pip
+    # XXX This means we are now pinning to 10.0.0, to prevent issues on pip
+    # mismtaching versions, but also that we need to revisit this when newer
+    # options are needed
+    $VENV/pip install "pip==10.0.0"
     $VENV/pip install --upgrade --exists-action=i --find-links="file://$PIP_SDIST_INDEX" --no-index pip
 
     echo "Updating setuptools"
