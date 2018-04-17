@@ -1,6 +1,6 @@
 - job:
     name: ceph-container-build-push-imgs-arm64
-    node: arm64
+    node: arm64 xenial
     project-type: freestyle
     defaults: global
     display-name: 'ceph-container: build and push container images to Docker Hub on arm64'
