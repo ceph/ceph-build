@@ -8,7 +8,7 @@ install_python_packages "pkgs[@]"
 
 GITHUB_STATUS_STATE="failure" $VENV/github-status create
 
-cd $WORKSPACE/src/ceph-volume/tests/functional
+cd $WORKSPACE/src/ceph-volume/ceph_volume/tests/functional
 
 # the method exists in scripts/build_utils.sh
 teardown_vagrant_tests
