@@ -1,0 +1,59 @@
+- scm:
+    name: ceph-container
+    scm:
+      - git:
+          url: https://github.com/ceph/ceph-container.git
+          branches:
+            - ${sha1}
+          refspec: +refs/pull/*:refs/remotes/origin/pr/*
+          browser: auto
+          timeout: 20
+          skip-tag: true
+          wipe-workspace: false
+          basedir: "ceph-container"
+
+- job:
+    name: ceph-container-stage-test
+    node: small && centos7
+    defaults: global
+    display-name: 'ceph-container-stage-test'
+    properties:
+      - build-discarder:
+          days-to-keep: 15
+          num-to-keep: 30
+          artifact-days-to-keep: -1
+          artifact-num-to-keep: -1
+      - github:
+          url: https://github.com/ceph/ceph-container/
+
+    parameters:
+      - string:
+          name: sha1
+          description: "A pull request ID, like 'origin/pr/72/head'"
+
+    triggers:
+      - github-pull-request:
+          admin-list:
+            - alfredodeza
+            - ktdreyer
+            - gmeno
+            - zcerza
+          org-list:
+            - ceph
+          trigger-phrase: 'jenkins test.staging'
+          only-trigger-phrase: false
+          github-hooks: true
+          permit-all: true
+          auto-close-on-fail: false
+          status-context: "Testing: image staging integration test"
+          started-status: "Running: make test.staging"
+          success-status: "OK - nice work"
+          failure-status: "FAIL - Staging is broken. Images may not build as expected."
+
+    scm:
+      - ceph-container
+
+    builders:
+      - shell:
+          !include-raw:
+            - ../../build/build
