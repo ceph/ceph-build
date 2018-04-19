@@ -1,9 +1,0 @@
-#!/usr/bin/expect -f
-
-# First parameter should be the key:
-#   --define "_gpg_name 03C3951A"
-
-spawn rpm --addsign {*}$argv
-expect -exact "Enter pass phrase: "
-send -- "\r"
-expect eof
