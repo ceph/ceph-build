@@ -3,4 +3,4 @@ set -e
 
 
 cd "$WORKSPACE"/ceph-container/ || exit
-bash -x contrib/build-push-ceph-container-imgs.sh
+bash -x contrib/build-push-ceph-container-imgs-arm64.sh
