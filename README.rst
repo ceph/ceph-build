@@ -24,8 +24,12 @@ job.
 
 Deprecation
 -----------
-Any script in the top level of this repo is now deprecated and should be moved
-to follow the structure of the Jenkins Job Builder project.
+Any script in the top level of this repo has been removed, and temporarily
+placed in the ``deprecated`` branch. If a job requires any of those it should
+be ported to follow the structure of the Jenkins Job Builder project, like all
+the current jobs in this repository.
+
+The ``deprecated`` branch will be removed by the end of 2018.
 
 Any jobs removed from this repo will be automatically deleted by JJB.
 
