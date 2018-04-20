@@ -22,7 +22,7 @@ function count_tag_pages {
 function find_latest_tag {
   release="$1"
   for page in $(seq 1 $total_pages); do
-    tag=$(curl -s "https://registry.hub.docker.com/v2/repositories/ceph/daemon/tags/?page=$page" | jq ".\"results\"[] | select((.name | contains(\"stable\")) and (.name | contains(\"${release}-ubuntu-16.04-x86_64\"))) | .name")
+    tag=$(curl -s "https://registry.hub.docker.com/v2/repositories/ceph/daemon/tags/?page=$page" | jq ".\"results\"[] | select((.name | contains(\"stable\")) and (.name | contains(\"${release}-centos-7-x86_64\"))) | .name")
     if [ -n "$tag" ]; then
       echo "$tag" | cut -d '"' -f 2
       return
