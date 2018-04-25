@@ -3,6 +3,6 @@ NPROC=$(nproc)
 testnproc=$(($NPROC / 4))
 export CHECK_MAKEOPTS="-j${testnproc}"
 export BUILD_MAKEOPTS="-j${NPROC}"
-./run-make-check.sh
+timeout 3h ./run-make-check.sh
 sleep 5
 ps -ef | grep ceph || true
