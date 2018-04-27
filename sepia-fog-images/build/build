@@ -16,6 +16,9 @@ funSetProfiles () {
   elif [ "$1" == "xenial" ]; then
     cobblerprofile="Ubuntu-16.04-server-x86_64"
     fogprofile="ubuntu_16.04"
+  elif [ "$1" == "bionic" ]; then
+    cobblerprofile="Ubuntu-18.04-server-x86_64"
+    fogprofile="ubuntu_18.04"
   elif [ "$1" == "centos74" ]; then
     cobblerprofile="CentOS-7.4-x86_64"
     fogprofile="centos_7.4"
