@@ -72,8 +72,8 @@ Defaults to un-checked"
 
       - string:
           name: DISTROS
-          description: "A list of distros to build for. Available options are: xenial, centos7, centos6, trusty, precise, wheezy, and jessie"
-          default: "xenial centos7"
+          description: "A list of distros to build for. Available options are: centos7, centos6, bionic, xenial, trusty, precise, wheezy, and jessie"
+          default: "bionic xenial centos7"
 
       - string:
           name: ARCHS

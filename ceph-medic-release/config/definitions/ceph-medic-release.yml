@@ -57,6 +57,7 @@ If this is checked, then the binaries will be built and pushed to chacra even if
           values:
             - centos7
             - xenial
+            - bionic
       - axis:
           type: dynamic
           name: DIST
