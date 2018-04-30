@@ -11,7 +11,6 @@
       - xenial_cluster
       - docker_cluster
       - docker_cluster_collocation
-      - purge_bluestore_osds_container
       - purge_bluestore_osds_non_container
       - ooo_collocation
     jobs:
