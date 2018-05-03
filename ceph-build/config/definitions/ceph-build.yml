@@ -55,12 +55,12 @@
           condition-operands:
             - condition-kind: regex-match
               regex: (jewel|kraken|luminous)
-              label: '${GIT_BRANCH}'
+              label: '${BRANCH}'
             - condition-kind: and
               condition-operands:
                 - condition-kind: regex-match
                   regex: (mimic|nautilus)
-                  label: '${GIT_BRANCH}'
+                  label: '${BRANCH}'
                 - condition-kind: regex-match
                   regex: (xenial|bionic|centos7|centos8|buster|bullseye)
                   label: '${DIST}'
