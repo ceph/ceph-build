@@ -49,35 +49,50 @@
             - ARCHS
 
     builders:
-      - shell: |
-          echo "Cleaning up top-level workarea (shared among workspaces)"
-          rm -rf dist
-          rm -rf venv
-          rm -rf release
-      - copyartifact:
-          project: ceph-setup
-          filter: 'dist/**'
-          which-build: multijob-build
-      - inject:
-          properties-file: ${WORKSPACE}/dist/sha1
-      - inject:
-          properties-file: ${WORKSPACE}/dist/other_envvars
-      # debian build scripts
-      - shell:
-          !include-raw:
-            - ../../build/validate_deb
-            - ../../../scripts/build_utils.sh
-            - ../../build/setup_deb
-            - ../../build/setup_pbuilder
-            - ../../build/build_deb
-      # rpm build scripts
-      - shell:
-          !include-raw:
-            - ../../build/validate_rpm
-            - ../../../scripts/build_utils.sh
-            - ../../build/setup_rpm
-            - ../../build/build_rpm
-
+      - conditional-step:
+          condition-kind: or
+          condition-operands:
+            - condition-kind: regex-match
+              regex: (jewel|kraken|luminous)
+              label: '${GIT_BRANCH}'
+            - condition-kind: and
+              condition-operands:
+                - condition-kind: regex-match
+                  regex: (mimic|nautilus)
+                  label: '${GIT_BRANCH}'
+                - condition-kind: regex-match
+                  regex: (xenial|bionic|centos7|centos8|buster|bullseye)
+                  label: '${DIST}'
+          on-evaluation-failure: dont-run
+          steps:
+            - shell: |
+                echo "Cleaning up top-level workarea (shared among workspaces)"
+                rm -rf dist
+                rm -rf venv
+                rm -rf release
+            - copyartifact:
+                project: ceph-setup
+                filter: 'dist/**'
+                which-build: multijob-build
+            - inject:
+                properties-file: ${WORKSPACE}/dist/sha1
+            - inject:
+                properties-file: ${WORKSPACE}/dist/other_envvars
+            # debian build scripts
+            - shell:
+                !include-raw:
+                  - ../../build/validate_deb
+                  - ../../../scripts/build_utils.sh
+                  - ../../build/setup_deb
+                  - ../../build/setup_pbuilder
+                  - ../../build/build_deb
+            # rpm build scripts
+            - shell:
+                !include-raw:
+                  - ../../build/validate_rpm
+                  - ../../../scripts/build_utils.sh
+                  - ../../build/setup_rpm
+                  - ../../build/build_rpm
     publishers:
       - postbuildscript:
           builders:
