@@ -318,6 +318,10 @@ get_distro_and_target() {
             DIST=wheezy
             DISTRO="debian"
             ;;
+        bionic*)
+            DIST=bionic
+            DISTRO="ubuntu"
+            ;;
         xenial*)
             DIST=xenial
             DISTRO="ubuntu"

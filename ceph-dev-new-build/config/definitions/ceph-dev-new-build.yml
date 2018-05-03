@@ -36,6 +36,7 @@
           values:
             - trusty
             - xenial
+            - bionic
             - centos7
             - jessie
             - precise

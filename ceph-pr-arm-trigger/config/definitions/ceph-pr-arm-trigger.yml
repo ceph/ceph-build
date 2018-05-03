@@ -51,7 +51,7 @@
             # source of the PR
             BRANCH=${GIT_BRANCH}
             FORCE=True
-            DISTROS=xenial centos7
+            DISTROS=bionic xenial centos7
             ARCHS="arm64"
             # Do not post to chacra
             THROWAWAY=True

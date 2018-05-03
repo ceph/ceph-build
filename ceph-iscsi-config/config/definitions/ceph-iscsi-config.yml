@@ -14,8 +14,8 @@
 
       - string:
           name: DISTROS
-          description: "A list of distros to build for. Available options are: xenial, centos7, centos6, trusty-pbuilder, precise, wheezy, and jessie"
-          default: "centos7 xenial"
+          description: "A list of distros to build for. Available options are: centos7, centos6, bionic, xenial, trusty-pbuilder, precise, wheezy, and jessie"
+          default: "centos7 xenial bionic"
 
       - string:
           name: ARCHS
@@ -53,6 +53,7 @@ If this is checked, then the binaries will be built and pushed to chacra even if
           values:
             - centos7
             - xenial
+            - bionic
       - axis:
           type: dynamic
           name: DIST
