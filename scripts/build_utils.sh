@@ -380,6 +380,7 @@ setup_pbuilder() {
     [ "$DIST" = "saucy" ] && os="ubuntu"
     [ "$DIST" = "trusty" ] && os="ubuntu"
     [ "$DIST" = "xenial" ] && os="ubuntu"
+    [ "$DIST" = "bionic" ] && os="ubuntu"
 
     if [ $os = "debian" ]; then
         mirror="http://www.gtlib.gatech.edu/pub/debian"
