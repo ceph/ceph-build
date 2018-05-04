@@ -555,6 +555,8 @@ setup_pbuilder_for_old_gcc() {
             old=4.8;;
         xenial)
             old=5;;
+        bionic)
+            old=7.3;;
     esac
     setup_gcc_hook $old > $hookdir/D10update-gcc-alternatives
     chmod +x $hookdir/D10update-gcc-alternatives
