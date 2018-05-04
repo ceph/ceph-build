@@ -1,7 +1,6 @@
 - project:
     name: ceph-volume-nightly-lvm
     distro:
-      - bionic
       - xenial
       - centos7
     objectstore:
@@ -22,7 +21,6 @@
 - project:
     name: ceph-volume-nightly-simple
     distro:
-      - bionic
       - xenial
       - centos7
     objectstore:
