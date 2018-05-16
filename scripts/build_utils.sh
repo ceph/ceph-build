@@ -67,7 +67,6 @@ install_python_packages_no_binary () {
     # circumvents the problem
     $VENV/easy_install --upgrade pip
     $VENV/pip install "pip==10.0.0"
-    $VENV/pip install --upgrade --exists-action=i --find-links="file://$PIP_SDIST_INDEX" --no-index pip
 
     echo "Updating setuptools"
     pip_download setuptools
@@ -108,7 +107,6 @@ install_python_packages () {
     # circumvents the problem
     $VENV/easy_install --upgrade pip
     $VENV/pip install "pip==10.0.0"
-    $VENV/pip install --upgrade --exists-action=i --find-links="file://$PIP_SDIST_INDEX" --no-index pip
 
     echo "Updating setuptools"
     pip_download setuptools
