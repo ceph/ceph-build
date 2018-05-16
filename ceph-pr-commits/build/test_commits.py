@@ -54,7 +54,7 @@ class TestSignedOffByCommits(object):
                 msg = (
                     "\nFollowing commit is not signed, please make sure all commits",
                     "\nare signed following the 'Submitting Patches' guide:",
-                    "\nhttps://github.com/ceph/ceph/blob/master/SubmittingPatches#L61",
+                    "\nhttps://github.com/ceph/ceph/blob/master/SubmittingPatches.rst#1-sign-your-work",
                     "\n",
                     commit)
                 raise AssertionError, ' '.join(msg)
