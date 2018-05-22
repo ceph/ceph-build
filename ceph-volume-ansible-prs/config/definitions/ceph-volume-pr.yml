@@ -1,7 +1,6 @@
 - project:
     name: ceph-volume-ansible-prs-lvm
     distro:
-      - bionic
       - xenial
       - centos7
     objectstore:
@@ -19,7 +18,6 @@
 - project:
     name: ceph-volume-ansible-prs-simple
     distro:
-      - bionic
       - xenial
       - centos7
     objectstore:
