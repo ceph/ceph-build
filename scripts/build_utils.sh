@@ -761,6 +761,7 @@ teardown_vagrant_tests() {
         collect_ceph_logs all
         vagrant destroy -f
         stat ./fetch > /dev/null 2>&1 && rm -rf ./fetch
+        vagrant global-status --prune
         cd -
     done
 
