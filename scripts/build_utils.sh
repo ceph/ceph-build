@@ -716,6 +716,7 @@ write_collect_logs_playbook() {
     - name: find ceph logs
       command: find /var/log/ceph -name "{{ cluster|default('ceph') }}*.log"
       register: ceph_logs
+      failed_when: false
 
     - name: collect ceph logs
       fetch:
