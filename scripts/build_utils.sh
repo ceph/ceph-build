@@ -510,8 +510,8 @@ update-alternatives \
 update-alternatives --auto gcc
 
 # cmake uses the latter by default
-ln -nsf /usr/bin/gcc /usr/bin/x86_64-linux-gnu-gcc
-ln -nsf /usr/bin/g++ /usr/bin/x86_64-linux-gnu-g++
+ln -nsf /usr/bin/gcc /usr/bin/\$(arch)-linux-gnu-gcc
+ln -nsf /usr/bin/g++ /usr/bin/\$(arch)-linux-gnu-g++
 EOF
 }
 
