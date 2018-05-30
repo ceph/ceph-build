@@ -729,6 +729,18 @@ write_collect_logs_playbook() {
 - hosts: all
   become: yes
   tasks:
+    - name: get yum repoinfo result
+      command: yum repoinfo
+      failed_when: false
+
+    - name: get date result
+      command: date
+      failed_when: false
+
+    - name: get yum check-update result
+      command: yum check-update
+      failed_when: false
+
     - name: find ceph logs
       command: find /var/log/ceph -name "{{ cluster|default('ceph') }}*.log"
       register: ceph_logs
