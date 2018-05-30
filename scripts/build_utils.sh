@@ -525,7 +525,19 @@ setup_pbuilder_for_new_gcc() {
     # and gcc-7, and `pbuilder` command will fail. because the `build-essential`
     # depends on a certain version of gcc which is upgraded already by the one
     # in test repo.
-    cat > $hookdir/D05install-gcc-7 <<EOF
+    if [ "$ARCH" = "arm64" ]; then
+        cat > $hookdir/D05install-gcc-7 <<EOF
+echo "deb http://ppa.launchpad.net/ubuntu-toolchain-r/test/ubuntu $DIST main" >> \
+  /etc/apt/sources.list.d/ubuntu-toolchain-r.list
+echo "deb http://ports.ubuntu.com/ubuntu-ports $DIST-updates main" >> \
+  /etc/apt/sources.list.d/ubuntu-toolchain-r.list
+# import PPA's signing key into APT's keyring
+apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 1E9377A2BA9EF27F
+apt-get update -y -o Acquire::Languages=none -o Acquire::Translation=none || true
+apt-get install -y g++-7
+EOF
+    elif [ "$ARCH" = "x86_64" ]; then
+        cat > $hookdir/D05install-gcc-7 <<EOF
 echo "deb http://security.ubuntu.com/ubuntu $DIST-security main" >> \
   /etc/apt/sources.list.d/ubuntu-toolchain-r.list
 echo "deb http://ppa.launchpad.net/ubuntu-toolchain-r/test/ubuntu $DIST main" >> \
@@ -539,6 +551,10 @@ apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 1E9377A2BA9EF27F
 apt-get -y update -o Acquire::Languages=none -o Acquire::Translation=none || true
 apt-get install -y g++-7
 EOF
+    else
+        echo "unsupported arch: $ARCH"
+        exit 1
+    fi
     chmod +x $hookdir/D05install-gcc-7
 
     setup_gcc_hook 7 > $hookdir/D10update-gcc-alternatives
