@@ -732,14 +732,17 @@ write_collect_logs_playbook() {
     - name: get yum repoinfo result
       command: yum repoinfo
       failed_when: false
+      when: ansible_distribution == 'CentOS'
 
     - name: get date result
       command: date
       failed_when: false
+      when: ansible_distribution == 'CentOS'
 
     - name: get yum check-update result
       command: yum check-update
       failed_when: false
+      when: ansible_distribution == 'CentOS'
 
     - name: find ceph logs
       command: find /var/log/ceph -name "{{ cluster|default('ceph') }}*.log"
