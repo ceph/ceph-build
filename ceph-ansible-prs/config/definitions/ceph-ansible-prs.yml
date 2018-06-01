@@ -1,4 +1,7 @@
-# tests that will auto start for every PR created and run on smithi or ovh
+## tests that will auto start for every PR created and run on smithi or ovh
+##
+## NOTE: When adding a new scenario to this project you must also add it to
+## the ceph-build.git/ceph-ansible-pipeline job config for it to run
 - project:
     name: ceph-ansible-prs-auto
     slave_labels: 'vagrant && libvirt && (smithi || centos7)'
@@ -351,3 +354,4 @@
           artifacts: 'logs/**'
           allow-empty: true
           latest-only: false
+

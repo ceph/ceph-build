@@ -1,0 +1,73 @@
+- job:
+    name: ceph-ansible-pipeline
+    description: 'This is the main ceph-ansible job that triggers the linter, docs, and scenario jobs'
+    node: master
+    project-type: multijob
+    defaults: global
+    concurrent: true
+    display-name: 'ceph-ansible PR Pipeline Job'
+    block-downstream: false
+    block-upstream: false
+    properties:
+      - build-discarder:
+          days-to-keep: -1
+          num-to-keep: 25
+          artifact-days-to-keep: 25
+          artifact-num-to-keep: 25
+      - github:
+          url: https://github.com/ceph/ceph-ansible
+
+    parameters:
+      - string:
+          name: sha1
+          description: "A pull request ID, like 'origin/pr/72/head'"
+
+    triggers:
+      - github-pull-request:
+          cancel-builds-on-update: true
+          allow-whitelist-orgs-as-admins: true
+          org-list:
+            - ceph
+          skip-build-phrase: '^jenkins do not test.*|.*\[skip ci\].*'
+          trigger-phrase: 'jenkins test pipeline'
+          only-trigger-phrase: false
+          github-hooks: true
+          permit-all: true
+          auto-close-on-fail: false
+          status-context: "Testing: ceph-ansible PR Pipeline"
+          started-status: "Running: ceph-ansible PR Pipeline"
+          success-status: "OK - ceph-ansible PR Pipeline"
+          failure-status: "FAIL - A sub-job in the Pipeline failed"
+
+    builders:
+      - multijob:
+          name: 'ceph-ansible docs and syntax check phase'
+          condition: ALWAYS
+          execution-type: PARALLEL
+          projects:
+            - name: ceph-ansible-docs-pull-requests
+              current-parameters: true
+            - name: ceph-ansible-pr-syntax-check
+              current-parameters: true
+      - multijob:
+          name: 'ceph-ansible pr testing phase'
+          condition: SUCCESSFUL
+          execution-type: PARALLEL
+          projects:
+            - name: 'ceph-ansible-prs-luminous-ansible2.4-centos7_cluster'
+              current-parameters: true
+            - name: 'ceph-ansible-prs-luminous-ansible2.4-docker_cluster'
+              current-parameters: true
+            - name: 'ceph-ansible-prs-luminous-ansible2.4-docker_cluster_collocation'
+              current-parameters: true
+            - name: 'ceph-ansible-prs-luminous-ansible2.4-ooo_collocation'
+              current-parameters: true
+            - name: 'ceph-ansible-prs-luminous-ansible2.4-purge_bluestore_osds_non_container'
+              current-parameters: true
+            - name: 'ceph-ansible-prs-luminous-ansible2.4-xenial_cluster'
+              current-parameters: true
+
+    wrappers:
+      - inject-passwords:
+          global: true
+          mask-password-params: true
