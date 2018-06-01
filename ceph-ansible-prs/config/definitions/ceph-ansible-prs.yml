@@ -234,10 +234,23 @@
             SCENARIO={scenario}
             RELEASE={release}
             ANSIBLE_VERSION={ansible_version}
-      - shell:
-          !include-raw-escape:
-            - ../../../scripts/build_utils.sh
-            - ../../build/build
+      - conditional-step:
+          condition-kind: shell
+          condition-command: |
+            #!/bin/bash
+            # Returns 1 if only .rst and README files were modified
+            echo "Checking if only rst and READMEs were modified"
+            git diff --name-only $(git show HEAD | grep Merge | head -n 1 | cut -d ':' -f2) | grep -v '\.rst\|README'
+            if [ $? -eq 1 ]; then
+              echo "Only docs were modified.  Skipping the rest of the job."
+              exit 1
+            fi
+          on-evaluation-failure: dont-run
+          steps:
+            - shell:
+                !include-raw-escape:
+                  - ../../../scripts/build_utils.sh
+                  - ../../build/build
 
     publishers:
       - postbuildscript:
