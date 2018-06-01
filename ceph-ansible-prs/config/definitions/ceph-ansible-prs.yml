@@ -211,9 +211,9 @@
             - ceph
           skip-build-phrase: '^jenkins do not test.*|.*\[skip ci\].*'
           trigger-phrase: '^jenkins test {release}-{ansible_version}-{scenario}|jenkins test all.*'
-          only-trigger-phrase: false
+          only-trigger-phrase: true
           github-hooks: true
-          permit-all: true
+          permit-all: false
           auto-close-on-fail: false
           status-context: "Testing: {release}-{ansible_version}-{scenario}"
           started-status: "Running: {release}-{ansible_version}-{scenario}"
