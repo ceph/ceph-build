@@ -1,0 +1,89 @@
+#! /usr/bin/bash
+set -ex
+
+# Install the dependencies
+sudo yum install -y mock
+
+# Loop through the projects and build RPMs
+# Some of this might not need to be repeated 3 times
+for project in $(ls -h | grep -v dist); do
+
+  PROJECT=$project
+  cd $WORKSPACE/$PROJECT
+  
+  # Get some basic information about the system and the repository
+  RELEASE="$(lsb_release --short -r | cut -d '.' -f 1)" # system release
+  VERSION="$(git describe --abbrev=0 --tags HEAD)" # for ceph-iscsi, this will return the major version number (e.g., 2)
+  REVISION="$(git describe --tags HEAD | cut -d - -f 2- | sed 's/-/./')"
+  
+  # Create dummy dist tar
+  tar cf ../dist/${PROJECT}-${VERSION}.tar.gz \
+  	--exclude .git --exclude dist \
+  	--transform "s,^,${PROJECT}-${VERSION}/," *
+  tar tfv ../dist/${PROJECT}-${VERSION}.tar.gz
+  
+  # Update spec version
+  sed -i "s/^Version:.*$/Version:\t${VERSION}/g" $WORKSPACE/$PROJECT/${PROJECT}.spec
+  sed -i "s/^Release:.*$/Release:\t${REVISION}%{?dist}/g" $WORKSPACE/$PROJECT/${PROJECT}.spec
+  # for debugging
+  cat $WORKSPACE/$PROJECT/${PROJECT}.spec
+  
+  # Update setup.py version
+  sed -i "s/version=\"[^\"]*\"/version=\"${VERSION}\"/g" $WORKSPACE/$PROJECT/setup.py
+  # for debugging
+  cat $WORKSPACE/$PROJECT/setup.py
+  
+  # Create the source rpm
+  echo "Building SRPM"
+  rpmbuild \
+      --define "_sourcedir $WORKSPACE/dist" \
+      --define "_specdir $WORKSPACE/dist" \
+      --define "_builddir $WORKSPACE/dist" \
+      --define "_srcrpmdir $WORKSPACE/dist/SRPMS" \
+      --define "_rpmdir $WORKSPACE/dist/RPMS" \
+      --nodeps -bs $WORKSPACE/$PROJECT/${PROJECT}.spec
+  SRPM=$(readlink -f $WORKSPACE/dist/SRPMS/*.src.rpm)
+  
+  # Build the binaries with mock
+  echo "Building RPMs"
+  sudo mock --verbose -r ${MOCK_TARGET}-${RELEASE}-${ARCH} --scrub=all
+  sudo mock --verbose -r ${MOCK_TARGET}-${RELEASE}-${ARCH} --define "dist .el7" --resultdir=$WORKSPACE/dist/RPMS/ ${SRPM} || ( tail -n +1 $WORKSPACE/dist/RPMS/{root,build}.log && exit 1 )
+done
+
+cd $WORKSPACE
+
+# All three projects should share the same major version so we'll use that
+VERSION=$(echo $VERSION | cut -d '.' -f1)
+# The VERSION and GIT_COMMIT aren't really important here.  We just feed it the last project's info so the CI works.
+chacra_endpoint="ceph-iscsi/${VERSION}/${GIT_COMMIT}/${DISTRO}/${RELEASE}"
+chacra_repo_endpoint="${chacra_endpoint}/flavors/default"
+
+# check to make sure ceph-iscsi-config package built
+if [ ! -f $WORKSPACE/dist/RPMS/ceph-iscsi-config-*.rpm ]; then
+    echo "ceph-iscsi-config rpm not built!"
+    exit 1
+fi
+
+# check to make sure ceph-iscsi-cli package built
+if [ ! -f $WORKSPACE/dist/RPMS/ceph-iscsi-cli-*.rpm ]; then
+    echo "ceph-iscsi-cli rpm not built!"
+    exit 1
+fi
+
+# check to make sure ceph-iscsi-tools package built
+if [ ! -f $WORKSPACE/dist/RPMS/ceph-iscsi-tools-*.rpm ]; then
+    echo "ceph-iscsi-tools rpm not built!"
+    exit 1
+fi
+
+[ "$FORCE" = true ] && chacra_flags="--force" || chacra_flags=""
+
+if [ "$THROWAWAY" = false ] ; then
+    # push binaries to chacra
+    find $WORKSPACE/dist/SRPMS | grep rpm | $VENV/chacractl binary ${chacra_flags} create ${chacra_endpoint}/source/
+    find $WORKSPACE/dist/RPMS/ | grep rpm | $VENV/chacractl binary ${chacra_flags} create ${chacra_endpoint}/noarch/
+    # start repo creation
+    $VENV/chacractl repo update ${chacra_repo_endpoint}
+fi
+
+sudo rm -rf $WORKSPACE/dist
