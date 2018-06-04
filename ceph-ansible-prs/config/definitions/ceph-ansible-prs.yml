@@ -86,6 +86,7 @@
     ansible_version:
       - ansible2.4
     scenario:
+      - centos7_cluster
       - lvm_osds
       - purge_lvm_osds
       - bluestore_lvm_osds
