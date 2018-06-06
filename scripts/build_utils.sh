@@ -402,7 +402,7 @@ setup_pbuilder() {
     # again
     pbuild_tar="$basedir/$DIST.tgz"
     is_not_tar=`python -c "exec 'try: import tarfile;print int(not int(tarfile.is_tarfile(\"$pbuild_tar\")))\nexcept IOError: print 1'"`
-    file_size_kb=`du -k "$pbuild_tar" | cut -f1`
+    file_size_kb=`test -f $pbuild_tar && du -k "$pbuild_tar" | cut -f1 || echo 0`
 
     if [ "$is_not_tar" = "1" ]; then
         sudo rm -f "$pbuild_tar"
