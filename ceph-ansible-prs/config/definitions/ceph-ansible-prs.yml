@@ -1,7 +1,7 @@
-# tests that will auto start for every PR created and run on smithi
+# tests that will auto start for every PR created and run on smithi or ovh
 - project:
     name: ceph-ansible-prs-auto
-    slave_labels: 'vagrant && libvirt && smithi'
+    slave_labels: 'vagrant && libvirt && (smithi || centos7)'
     release:
       - luminous
     ansible_version:
