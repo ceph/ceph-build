@@ -39,6 +39,9 @@
           success-status: "OK - ceph-ansible PR Pipeline"
           failure-status: "FAIL - A sub-job in the Pipeline failed"
 
+# Surely there's a saner way to do this but it works...
+# The 'included/excluded regions' parameters for the Git plugin could've been
+# used in ceph-ansible-prs.yml but https://issues.jenkins-ci.org/browse/JENKINS-20607
     builders:
       - multijob:
           name: 'ceph-ansible docs and syntax check phase'
@@ -49,23 +52,146 @@
               current-parameters: true
             - name: ceph-ansible-pr-syntax-check
               current-parameters: true
-      - multijob:
-          name: 'ceph-ansible pr testing phase'
-          condition: SUCCESSFUL
-          execution-type: PARALLEL
-          projects:
-            - name: 'ceph-ansible-prs-luminous-ansible2.4-centos7_cluster'
-              current-parameters: true
-            - name: 'ceph-ansible-prs-luminous-ansible2.4-docker_cluster'
-              current-parameters: true
-            - name: 'ceph-ansible-prs-luminous-ansible2.4-docker_cluster_collocation'
-              current-parameters: true
-            - name: 'ceph-ansible-prs-luminous-ansible2.4-ooo_collocation'
-              current-parameters: true
-            - name: 'ceph-ansible-prs-luminous-ansible2.4-purge_bluestore_osds_non_container'
-              current-parameters: true
-            - name: 'ceph-ansible-prs-luminous-ansible2.4-xenial_cluster'
-              current-parameters: true
+      - conditional-step:
+          condition-kind: shell
+          condition-command: |
+            #!/bin/bash
+            git diff --name-only $(git show HEAD | grep Merge | head -n 1 | cut -d ':' -f2) | grep 'infrastructure-playbooks/purge'
+          on-evaluation-failure: dont-run
+          steps:
+            - multijob:
+                name: 'ceph-ansible purge playbook testing'
+                condition: SUCCESSFUL
+                execution-type: PARALLEL
+                projects:
+                  - name: 'ceph-ansible-prs-luminous-ansible2.4-purge_bluestore_osds_non_container'
+                    current-parameters: true
+                  - name: 'ceph-ansible-prs-luminous-ansible2.4-purge_cluster_container'
+                    current-parameters: true
+                  - name: 'ceph-ansible-prs-luminous-ansible2.4-purge_cluster_non_container'
+                    current-parameters: true
+                  - name: 'ceph-ansible-prs-luminous-ansible2.4-purge_filestore_osds_container'
+                    current-parameters: true
+                  - name: 'ceph-ansible-prs-luminous-ansible2.4-purge_filestore_osds_non_container'
+                    current-parameters: true
+                  - name: 'ceph-ansible-prs-luminous-ansible2.4-purge_lvm_osds'
+                    current-parameters: true
+      - conditional-step:
+          condition-kind: shell
+          condition-command: |
+            #!/bin/bash
+            git diff --name-only $(git show HEAD | grep Merge | head -n 1 | cut -d ':' -f2) | grep 'infrastructure-playbooks/rolling_update'
+          on-evaluation-failure: dont-run
+          steps:
+            - multijob:
+                name: 'ceph-ansible rolling_update playbook testing'
+                condition: SUCCESSFUL
+                execution-type: PARALLEL
+                projects:
+                  - name: 'ceph-ansible-prs-luminous-ansible2.4-update_cluster'
+                    current-parameters: true
+                  - name: 'ceph-ansible-prs-luminous-ansible2.4-update_docker_cluster'
+                    current-parameters: true
+      - conditional-step:
+          condition-kind: shell
+          condition-command: |
+            #!/bin/bash
+            git diff --name-only $(git show HEAD | grep Merge | head -n 1 | cut -d ':' -f2) | grep 'infrastructure-playbooks/shrink-mon'
+          on-evaluation-failure: dont-run
+          steps:
+            - multijob:
+                name: 'ceph-ansible shrink_mon playbook testing'
+                condition: SUCCESSFUL
+                execution-type: PARALLEL
+                projects:
+                  - name: 'ceph-ansible-prs-luminous-ansible2.4-shrink_mon'
+                    current-parameters: true
+                  - name: 'ceph-ansible-prs-luminous-ansible2.4-shrink_mon_container'
+                    current-parameters: true
+      - conditional-step:
+          condition-kind: shell
+          condition-command: |
+            #!/bin/bash
+            git diff --name-only $(git show HEAD | grep Merge | head -n 1 | cut -d ':' -f2) | grep 'infrastructure-playbooks/shrink-osd'
+          on-evaluation-failure: dont-run
+          steps:
+            - multijob:
+                name: 'ceph-ansible shrink_osd playbook testing'
+                condition: SUCCESSFUL
+                execution-type: PARALLEL
+                projects:
+                  - name: 'ceph-ansible-prs-luminous-ansible2.4-shrink_osd'
+                    current-parameters: true
+                  - name: 'ceph-ansible-prs-luminous-ansible2.4-shrink_osd_container'
+                    current-parameters: true
+      - conditional-step:
+          condition-kind: shell
+          condition-command: |
+            #!/bin/bash
+            git diff --name-only $(git show HEAD | grep Merge | head -n 1 | cut -d ':' -f2) | grep 'infrastructure-playbooks/switch-from-non-containerized-to-containerized-ceph-daemons'
+          on-evaluation-failure: dont-run
+          steps:
+            - multijob:
+                name: 'ceph-ansible switch_to_containers playbook testing'
+                condition: SUCCESSFUL
+                execution-type: PARALLEL
+                projects:
+                  - name: 'ceph-ansible-prs-luminous-ansible2.4-switch_to_containers'
+                    current-parameters: true
+      - conditional-step:
+          condition-kind: shell
+          condition-command: |
+            #!/bin/bash
+            git diff --name-only $(git show HEAD | grep Merge | head -n 1 | cut -d ':' -f2) | grep -v 'infrastructure-playbooks'
+            if [ $? -eq 1 ]; then
+              echo "Infra playbooks modified.  Not testing remaining scenarios."
+              exit 1
+            fi
+          on-evaluation-failure: dont-run
+          steps:
+            - multijob:
+                name: 'ceph-ansible basic cluster testing phase'
+                condition: SUCCESSFUL
+                execution-type: PARALLEL
+                projects:
+                  - name: 'ceph-ansible-prs-luminous-ansible2.4-centos7_cluster'
+                    current-parameters: true
+                  - name: 'ceph-ansible-prs-luminous-ansible2.4-docker_cluster'
+                    current-parameters: true
+            - multijob:
+                name: 'ceph-ansible advanced cluster testing phase'
+                condition: SUCCESSFUL
+                execution-type: PARALLEL
+                projects:
+                  - name: 'ceph-ansible-prs-luminous-ansible2.4-bluestore_lvm_osds'
+                    current-parameters: true
+                  - name: 'ceph-ansible-prs-luminous-ansible2.4-bluestore_osds_container'
+                    current-parameters: true
+                  - name: 'ceph-ansible-prs-luminous-ansible2.4-bluestore_osds_non_container'
+                    current-parameters: true
+                  - name: 'ceph-ansible-prs-luminous-ansible2.4-docker_cluster_collocation'
+                    current-parameters: true
+                  - name: 'ceph-ansible-prs-luminous-ansible2.4-filestore_osds_container'
+                    current-parameters: true
+                  - name: 'ceph-ansible-prs-luminous-ansible2.4-filestore_osds_non_container'
+                    current-parameters: true
+                  - name: 'ceph-ansible-prs-luminous-ansible2.4-lvm_osds'
+                    current-parameters: true
+                  - name: 'ceph-ansible-prs-luminous-ansible2.4-ooo_collocation'
+                    current-parameters: true
+                  - name: 'ceph-ansible-prs-luminous-ansible2.4-xenial_cluster'
+                    current-parameters: true
+
+    scm:
+      - git:
+          url: https://github.com/ceph/ceph-ansible.git
+          branches:
+            - ${sha1}
+          refspec: +refs/pull/*:refs/remotes/origin/pr/*
+          browser: auto
+          timeout: 60
+          skip-tag: true
+          wipe-workspace: false
 
     wrappers:
       - inject-passwords:
