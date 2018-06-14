@@ -1,9 +1,14 @@
-## tests that will auto start for every PR created and run on smithi or ovh
-##
-## NOTE: When adding a new scenario to this project you must also add it to
-## the ceph-build.git/ceph-ansible-pipeline job config for it to run
+## NOTE: When adding a new scenario to any project (excluding
+## ceph-ansible-prs-oldstable-trigger and ceph-ansible-prs-dev),
+## you must also add it to the ceph-build.git/ceph-ansible-pipeline job config
+## for it to run
+
+# These tests:
+#   - Run automatically on PR creation
+#   - Run on smithi or OVH nodes
+#   - Are NOT in infrastructure-playbooks
 - project:
-    name: ceph-ansible-prs-trigger
+    name: ceph-ansible-prs-trigger-noinfra
     slave_labels: 'vagrant && libvirt && (smithi || centos7)'
     release:
       - luminous
@@ -14,10 +19,216 @@
       - xenial_cluster
       - docker_cluster
       - docker_cluster_collocation
-      - purge_bluestore_osds_non_container
       - ooo_collocation
     jobs:
-        - 'ceph-ansible-prs-trigger'
+        - 'ceph-ansible-prs-trigger-noinfra'
+
+# These tests:
+#   - Run automatically on PR creation
+#   - Run on smithi or OVH nodes
+#   - ARE in infrastructure-playbooks
+#   - Use infrastructure-playbooks/purge-cluster.yml
+- project:
+    name: ceph-ansible-prs-trigger-infra
+    slave_labels: 'vagrant && libvirt && (smithi || centos7)'
+    release:
+      - luminous
+    ansible_version:
+      - ansible2.4
+    scenario:
+      - purge_bluestore_osds_non_container
+    playbook: infrastructure-playbooks/purge-cluster.yml
+    jobs:
+        - 'ceph-ansible-prs-trigger-infra'
+
+# These tests:
+#   - Run automatically on PR creation
+#   - Run on smithi nodes
+#   - ARE in infrastructure-playbooks
+#   - Use infrastructure-playbooks/purge-cluster.yml
+- project:
+    name: ceph-ansible-prs-trigger-smithi-purge
+    slave_labels: 'vagrant && libvirt && smithi'
+    release:
+      - luminous
+    ansible_version:
+      - ansible2.4
+    scenario:
+      - purge_cluster_non_container
+      - purge_filestore_osds_non_container
+    playbook: infrastructure-playbooks/purge-cluster.yml
+    jobs:
+        - 'ceph-ansible-prs-trigger-infra'
+
+# These tests:
+#   - Run automatically on PR creation
+#   - Run on smithi nodes
+#   - ARE in infrastructure-playbooks
+#   - Use infrastructure-playbooks/purge-docker-cluster.yml
+- project:
+    name: ceph-ansible-prs-trigger-smithi-purge-container
+    slave_labels: 'vagrant && libvirt && smithi'
+    release:
+      - luminous
+    ansible_version:
+      - ansible2.4
+    scenario:
+      - purge_cluster_container
+      - purge_filestore_osds_container
+    playbook: infrastructure-playbooks/purge-docker-cluster.yml
+    jobs:
+        - 'ceph-ansible-prs-trigger-infra'
+
+# These tests:
+#   - Run automatically on PR creation
+#   - Run on smithi nodes
+#   - ARE in infrastructure-playbooks
+#   - Use infrastructure-playbooks/rolling_update.yml
+- project:
+    name: ceph-ansible-prs-trigger-smithi-update
+    slave_labels: 'vagrant && libvirt && smithi'
+    release:
+      - luminous
+    ansible_version:
+      - ansible2.4
+    scenario:
+      - update_cluster
+      - update_docker_cluster
+    playbook: infrastructure-playbooks/rolling_update.yml
+    jobs:
+        - 'ceph-ansible-prs-trigger-infra'
+
+# These tests:
+#   - Run automatically on PR creation
+#   - Run on smithi nodes
+#   - ARE in infrastructure-playbooks
+#   - Use infrastructure-playbooks/switch-from-non-containerized-to-containerized-ceph-daemons.yml
+- project:
+    name: ceph-ansible-prs-trigger-smithi-switch
+    slave_labels: 'vagrant && libvirt && smithi'
+    release:
+      - luminous
+    ansible_version:
+      - ansible2.4
+    scenario:
+      - switch_to_containers
+    playbook: infrastructure-playbooks/switch-from-non-containerized-to-containerized-ceph-daemons.yml
+    jobs:
+        - 'ceph-ansible-prs-trigger-infra'
+
+# These tests:
+#   - Run automatically on PR creation
+#   - Run on OVH nodes
+#   - Are NOT in infrastructure-playbooks
+- project:
+    name: ceph-ansible-prs-trigger-ovh-noinfra
+    slave_labels: 'vagrant && libvirt && !smithi && centos7'
+    release:
+      - luminous
+    ansible_version:
+      - ansible2.4
+    scenario:
+      - bluestore_osds_non_container
+      - bluestore_osds_container
+      - filestore_osds_non_container
+      - filestore_osds_container
+      - lvm_osds
+      - bluestore_lvm_osds
+    jobs:
+        - 'ceph-ansible-prs-trigger-noinfra'
+
+# These tests:
+#   - Run automatically on PR creation
+#   - Run on smithi nodes
+#   - ARE in infrastructure-playbooks
+#   - Use infrastructure-playbooks/shrink-mon.yml
+- project:
+    name: ceph-ansible-prs-trigger-ovh-infra-shrink-mon
+    slave_labels: 'vagrant && libvirt && !smithi && centos7'
+    release:
+      - luminous
+    ansible_version:
+      - ansible2.4
+    scenario:
+      - shrink_mon
+      - shrink_mon_container
+    playbook: infrastructure-playbooks/shrink-mon.yml
+    jobs:
+        - 'ceph-ansible-prs-trigger-infra'
+
+# These tests:
+#   - Run automatically on PR creation
+#   - Run on smithi nodes
+#   - ARE in infrastructure-playbooks
+#   - Use infrastructure-playbooks/shrink-osd.yml
+- project:
+    name: ceph-ansible-prs-trigger-ovh-infra-shrink-osd
+    slave_labels: 'vagrant && libvirt && !smithi && centos7'
+    release:
+      - luminous
+    ansible_version:
+      - ansible2.4
+    scenario:
+      - shrink_osd
+      - shrink_osd_container
+    playbook: infrastructure-playbooks/shrink-osd.yml
+    jobs:
+        - 'ceph-ansible-prs-trigger-infra'
+
+# These tests:
+#   - Run automatically on PR creation
+#   - Run on smithi nodes
+#   - ARE in infrastructure-playbooks
+#   - Use infrastructure-playbooks/purge-cluster.yml
+- project:
+    name: ceph-ansible-prs-trigger-ovh-infra-purge
+    slave_labels: 'vagrant && libvirt && !smithi && centos7'
+    release:
+      - luminous
+    ansible_version:
+      - ansible2.4
+    scenario:
+      - purge_lvm_osds
+    playbook: infrastructure-playbooks/purge-cluster.yml
+    jobs:
+        - 'ceph-ansible-prs-trigger-infra'
+
+# These tests:
+#   - Do NOT run automatically on PR creation
+#   - Run on OVH nodes
+#   - Are NOT in infrastructure-playbooks
+#   - Use packages from shaman.ceph.com
+- project:
+    name: ceph-ansible-prs-dev-noinfra
+    slave_labels: 'vagrant && libvirt && !smithi && centos7'
+    release:
+      - dev
+    ansible_version:
+      - ansible2.4
+    scenario:
+      - centos7_cluster
+      - lvm_osds
+      - bluestore_lvm_osds
+    jobs:
+      - 'ceph-ansible-prs-trigger-noinfra'
+
+# These tests:
+#   - Do NOT run automatically on PR creation
+#   - Run on OVH nodes
+#   - ARE in infrastructure-playbooks
+#   - Use packages from shaman.ceph.com
+- project:
+    name: ceph-ansible-prs-dev-infra
+    slave_labels: 'vagrant && libvirt && !smithi && centos7'
+    release:
+      - dev
+    ansible_version:
+      - ansible2.4
+    scenario:
+      - purge_lvm_osds
+    playbook: infrastructure-playbooks/purge-cluster.yml
+    jobs:
+      - 'ceph-ansible-prs-trigger-infra'
 
 - project:
     name: ceph-ansible-prs-oldstable-trigger
@@ -33,68 +244,6 @@
       - ooo_collocation
     jobs:
         - 'ceph-ansible-prs-oldstable-trigger'
-
-# tests that will not auto start when a PR is created, but
-# they can be requested with a trigger phrase. Run on smithi.
-- project:
-    name: ceph-ansible-prs-trigger-smithi
-    slave_labels: 'vagrant && libvirt && smithi'
-    release:
-      - luminous
-    ansible_version:
-      - ansible2.4
-    scenario:
-      - purge_cluster_container
-      - purge_cluster_non_container
-      - purge_filestore_osds_non_container
-      - purge_filestore_osds_container
-      - update_cluster
-      - update_docker_cluster
-      - switch_to_containers
-    jobs:
-        - 'ceph-ansible-prs-trigger'
-
-# tests that will not auto start when a PR is created, but
-# they can be requested with a trigger phrase. Run on OVH.
-- project:
-    name: ceph-ansible-prs-trigger-ovh
-    slave_labels: 'vagrant && libvirt && !smithi && centos7'
-    release:
-      - luminous
-    ansible_version:
-      - ansible2.4
-    scenario:
-      - bluestore_osds_non_container
-      - bluestore_osds_container
-      - filestore_osds_non_container
-      - filestore_osds_container
-      - shrink_mon
-      - shrink_mon_container
-      - shrink_osd
-      - shrink_osd_container
-      - lvm_osds
-      - purge_lvm_osds
-      - bluestore_lvm_osds
-    jobs:
-        - 'ceph-ansible-prs-trigger'
-
-# tests that use packages from shaman.ceph.com and
-# do not auto start when a PR is created, but can be
-# requested with a trigger phrase
-- project:
-    name: ceph-ansible-prs-dev
-    slave_labels: 'vagrant && libvirt && !smithi && centos7'
-    release:
-      - dev
-    ansible_version:
-      - ansible2.4
-    scenario:
-      - centos7_cluster
-      - lvm_osds
-      - purge_lvm_osds
-      - bluestore_lvm_osds
-    jobs:
-      - 'ceph-ansible-prs-trigger'
 
 - job-template:
     name: 'ceph-ansible-prs-{release}-{ansible_version}-{scenario}'
@@ -178,9 +327,10 @@
           allow-empty: true
           latest-only: false
 
+# This template is used to trigger jobs that ARE NOT in infrastructure-playbooks.
 - job-template:
     name: 'ceph-ansible-prs-{release}-{ansible_version}-{scenario}'
-    id: 'ceph-ansible-prs-trigger'
+    id: 'ceph-ansible-prs-trigger-noinfra'
     node: '{slave_labels}'
     concurrent: true
     defaults: global
@@ -230,6 +380,108 @@
           timeout: 20
           skip-tag: true
           wipe-workspace: false
+          force-polling-using-workspace: true
+          excluded-regions:
+            - 'infrastructure-playbooks/.*'
+
+    builders:
+      - inject:
+          properties-content: |
+            SCENARIO={scenario}
+            RELEASE={release}
+            ANSIBLE_VERSION={ansible_version}
+      - conditional-step:
+          condition-kind: shell
+          condition-command: |
+            #!/bin/bash
+            # Returns 1 if only .rst and README files were modified
+            echo "Checking if only rst and READMEs were modified"
+            git diff --name-only $(git show HEAD | grep Merge | head -n 1 | cut -d ':' -f2) | grep -v '\.rst\|README'
+            if [ $? -eq 1 ]; then
+              echo "Only docs were modified.  Skipping the rest of the job."
+              exit 1
+            fi
+          on-evaluation-failure: dont-run
+          steps:
+            - shell:
+                !include-raw-escape:
+                  - ../../../scripts/build_utils.sh
+                  - ../../build/build
+
+    publishers:
+      - postbuildscript:
+          builders:
+            - role: SLAVE
+              build-on:
+                  - FAILURE
+                  - ABORTED
+              build-steps:
+                - shell:
+                    !include-raw-escape:
+                      - ../../../scripts/build_utils.sh
+                      - ../../build/teardown
+
+      - archive:
+          artifacts: 'logs/**'
+          allow-empty: true
+          latest-only: false
+
+# This template is used to trigger jobs that ARE in infrastructure-playbooks.
+- job-template:
+    name: 'ceph-ansible-prs-{release}-{ansible_version}-{scenario}'
+    id: 'ceph-ansible-prs-trigger-infra'
+    node: '{slave_labels}'
+    concurrent: true
+    defaults: global
+    display-name: 'ceph-ansible: Pull Requests [{release}-{ansible_version}-{scenario}]'
+    quiet-period: 5
+    block-downstream: false
+    block-upstream: false
+    retry-count: 3
+    properties:
+      - github:
+          url: https://github.com/ceph/ceph-ansible
+      - build-discarder:
+          days-to-keep: 90
+          num-to-keep: -1
+          artifact-days-to-keep: -1
+          artifact-num-to-keep: -1
+
+    parameters:
+      - string:
+          name: sha1
+          description: "A pull request ID, like 'origin/pr/72/head'"
+
+    triggers:
+      - github-pull-request:
+          cancel-builds-on-update: true
+          allow-whitelist-orgs-as-admins: true
+          org-list:
+            - ceph
+          skip-build-phrase: '^jenkins do not test.*|.*\[skip ci\].*'
+          trigger-phrase: '^jenkins test {release}-{ansible_version}-{scenario}|jenkins test all.*'
+          only-trigger-phrase: true
+          github-hooks: true
+          permit-all: false
+          auto-close-on-fail: false
+          status-context: "Testing: {release}-{ansible_version}-{scenario}"
+          started-status: "Running: {release}-{ansible_version}-{scenario}"
+          success-status: "OK - {release}-{ansible_version}-{scenario}"
+          failure-status: "FAIL - {release}-{ansible_version}-{scenario}"
+
+    scm:
+      - git:
+          url: https://github.com/ceph/ceph-ansible.git
+          branches:
+            - ${{sha1}}
+          refspec: +refs/pull/*:refs/remotes/origin/pr/*
+          browser: auto
+          timeout: 20
+          skip-tag: true
+          wipe-workspace: false
+          force-polling-using-workspace: true
+          included-regions:
+            - '{playbook}'
 
     builders:
       - inject:
