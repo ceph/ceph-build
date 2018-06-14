@@ -3,7 +3,7 @@
 ## NOTE: When adding a new scenario to this project you must also add it to
 ## the ceph-build.git/ceph-ansible-pipeline job config for it to run
 - project:
-    name: ceph-ansible-prs-auto
+    name: ceph-ansible-prs-trigger
     slave_labels: 'vagrant && libvirt && (smithi || centos7)'
     release:
       - luminous
@@ -17,7 +17,7 @@
       - purge_bluestore_osds_non_container
       - ooo_collocation
     jobs:
-        - 'ceph-ansible-prs-auto'
+        - 'ceph-ansible-prs-trigger'
 
 - project:
     name: ceph-ansible-prs-oldstable-trigger
@@ -180,7 +180,7 @@
 
 - job-template:
     name: 'ceph-ansible-prs-{release}-{ansible_version}-{scenario}'
-    id: 'ceph-ansible-prs-auto'
+    id: 'ceph-ansible-prs-trigger'
     node: '{slave_labels}'
     concurrent: true
     defaults: global
@@ -272,86 +272,3 @@
           artifacts: 'logs/**'
           allow-empty: true
           latest-only: false
-
-- job-template:
-    name: 'ceph-ansible-prs-{release}-{ansible_version}-{scenario}'
-    id: 'ceph-ansible-prs-trigger'
-    node: '{slave_labels}'
-    concurrent: true
-    defaults: global
-    display-name: 'ceph-ansible: Pull Requests [{release}-{ansible_version}-{scenario}]'
-    quiet-period: 5
-    block-downstream: false
-    block-upstream: false
-    retry-count: 3
-    properties:
-      - github:
-          url: https://github.com/ceph/ceph-ansible
-      - build-discarder:
-          days-to-keep: 90
-          num-to-keep: -1
-          artifact-days-to-keep: -1
-          artifact-num-to-keep: -1
-
-    parameters:
-      - string:
-          name: sha1
-          description: "A pull request ID, like 'origin/pr/72/head'"
-
-    triggers:
-      - github-pull-request:
-          cancel-builds-on-update: true
-          allow-whitelist-orgs-as-admins: true
-          org-list:
-            - ceph
-          skip-build-phrase: '^jenkins do not test.*|.*\[skip ci\].*'
-          trigger-phrase: '^jenkins test {release}-{ansible_version}-{scenario}|jenkins test all.*'
-          only-trigger-phrase: true
-          github-hooks: true
-          permit-all: true
-          auto-close-on-fail: false
-          status-context: "Testing: {release}-{ansible_version}-{scenario}"
-          started-status: "Running: {release}-{ansible_version}-{scenario}"
-          success-status: "OK - {release}-{ansible_version}-{scenario}"
-          failure-status: "FAIL - {release}-{ansible_version}-{scenario}"
-
-    scm:
-      - git:
-          url: https://github.com/ceph/ceph-ansible.git
-          branches:
-            - ${{sha1}}
-          refspec: +refs/pull/*:refs/remotes/origin/pr/*
-          browser: auto
-          timeout: 20
-          skip-tag: true
-          wipe-workspace: false
-
-    builders:
-      - inject:
-          properties-content: |
-            SCENARIO={scenario}
-            RELEASE={release}
-            ANSIBLE_VERSION={ansible_version}
-      - shell:
-          !include-raw-escape:
-            - ../../../scripts/build_utils.sh
-            - ../../build/build
-
-    publishers:
-      - postbuildscript:
-          builders:
-            - role: SLAVE
-              build-on:
-                  - FAILURE
-                  - ABORTED
-              build-steps:
-                - shell:
-                    !include-raw-escape:
-                      - ../../../scripts/build_utils.sh
-                      - ../../build/teardown
-
-      - archive:
-          artifacts: 'logs/**'
-          allow-empty: true
-          latest-only: false
-
