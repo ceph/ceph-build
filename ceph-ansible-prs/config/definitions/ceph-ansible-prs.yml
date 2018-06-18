@@ -4,7 +4,7 @@
 ## the ceph-build.git/ceph-ansible-pipeline job config for it to run
 - project:
     name: ceph-ansible-prs-auto
-    slave_labels: 'vagrant && libvirt && (smithi || centos7)'
+    slave_labels: 'vagrant && libvirt && smithi'
     release:
       - luminous
     ansible_version:
