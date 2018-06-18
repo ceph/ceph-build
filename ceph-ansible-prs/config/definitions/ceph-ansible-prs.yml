@@ -213,7 +213,7 @@
           trigger-phrase: '^jenkins test {release}-{ansible_version}-{scenario}|jenkins test all.*'
           only-trigger-phrase: true
           github-hooks: true
-          permit-all: false
+          permit-all: true
           auto-close-on-fail: false
           status-context: "Testing: {release}-{ansible_version}-{scenario}"
           started-status: "Running: {release}-{ansible_version}-{scenario}"
