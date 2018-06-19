@@ -13,6 +13,7 @@
       - lvm
     ceph_branch:
       - master
+      - mimic
       - luminous
 
     jobs:
@@ -33,7 +34,7 @@
     subcommand:
       - simple
     ceph_branch:
-      - master
+      - mimic
       - luminous
 
     jobs:
