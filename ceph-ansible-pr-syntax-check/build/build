@@ -30,13 +30,15 @@ function ansible_lint {
 }
 
 function group_vars_check {
-  nb="$(git show HEAD --name-only --pretty="" | grep -c '/defaults/main.yml')"
+  # we use || true so we still count and don't fail if we don't find anything
+  nb="$(git show HEAD --name-only --pretty="" | grep -c '/defaults/main.yml' || true)"
   if [[ "$nb" -eq 0 ]]; then
     echo "group_vars has not been touched."
     return 0
   fi
 
-  nb_group_vars="$(git show HEAD --name-only --pretty="" | grep -c 'group_var/*')"
+  # we use || true so we still count and don't fail if we don't find anything
+  nb_group_vars="$(git show HEAD --name-only --pretty="" | grep -c 'group_var/*' || true)"
   if [[ "$nb" -ne "$nb_group_vars" ]]; then
     echo "One or more files containing default variables has/have been modified."
     echo "You must run 'generate_group_vars_sample.sh' to generate the group_vars template files."
