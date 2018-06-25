@@ -45,7 +45,7 @@
     builders:
       - multijob:
           name: 'ceph-ansible docs and syntax check phase'
-          condition: ALWAYS
+          condition: SUCCESSFUL
           execution-type: PARALLEL
           projects:
             - name: ceph-ansible-docs-pull-requests
