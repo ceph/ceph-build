@@ -7,7 +7,7 @@
         - ../../build/build
     concurrent: true
     disabled: false
-    name: !!python/unicode 'ceph-pull-requests-arm64'
+    name: ceph-pull-requests-arm64
     node: arm64
     parameters:
     - string:
