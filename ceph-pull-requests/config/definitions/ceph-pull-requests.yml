@@ -51,7 +51,7 @@
           wipe-workspace: true
 
     builders:
-      - shell: "export NPROC=$(nproc); timeout 7200 ./run-make-check.sh"
+      - shell: "export SOURCE_DATE_EPOCH=$(date +%D |date -f- +%s); export NPROC=$(nproc); timeout 7200 ./run-make-check.sh -D ENABLE_GIT_VERSION=OFF"
 
     publishers:
       - postbuildscript:
