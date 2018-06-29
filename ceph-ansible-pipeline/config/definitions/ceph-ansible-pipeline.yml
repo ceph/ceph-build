@@ -56,6 +56,7 @@
           condition-kind: shell
           condition-command: |
             #!/bin/bash
+            set -x
             git diff --name-only $(git show HEAD | grep Merge | head -n 1 | cut -d ':' -f2) | grep 'infrastructure-playbooks/purge'
           on-evaluation-failure: dont-run
           steps:
@@ -64,7 +65,8 @@
                 condition-kind: shell
                 condition-command: |
                   #!/bin/bash
-                  git show-branch ${sha1} | grep -q $(git ls-remote https://github.com/ceph/ceph-ansible.git stable-3.0 | awk '{ print $1 }')
+                  set -x
+                  git show-branch ${sha1} | grep $(git ls-remote https://github.com/ceph/ceph-ansible.git stable-3.0 | awk '{ print $1 }')
                 on-evaluation-failure: dont-run
                 steps:
                   - multijob:
@@ -87,8 +89,9 @@
                 condition-kind: shell
                 condition-command: |
                   #!/bin/bash
-                  git show-branch ${sha1} | grep -vq $(git ls-remote https://github.com/ceph/ceph-ansible.git stable-3.0 | awk '{ print $1 }')
-                on-evaluation-failure: dont-run
+                  set -x
+                  git show-branch ${sha1} | grep -v $(git ls-remote https://github.com/ceph/ceph-ansible.git stable-3.0 | awk '{ print $1 }')
+                on-evaluation-failure: run
                 steps:
                   - multijob:
                       name: 'ceph-ansible purge playbook testing'
@@ -111,6 +114,7 @@
           condition-kind: shell
           condition-command: |
             #!/bin/bash
+            set -x
             git diff --name-only $(git show HEAD | grep Merge | head -n 1 | cut -d ':' -f2) | grep 'infrastructure-playbooks/rolling_update'
           on-evaluation-failure: dont-run
           steps:
@@ -127,6 +131,7 @@
           condition-kind: shell
           condition-command: |
             #!/bin/bash
+            set -x
             git diff --name-only $(git show HEAD | grep Merge | head -n 1 | cut -d ':' -f2) | grep 'infrastructure-playbooks/shrink-mon'
           on-evaluation-failure: dont-run
           steps:
@@ -143,6 +148,7 @@
           condition-kind: shell
           condition-command: |
             #!/bin/bash
+            set -x
             git diff --name-only $(git show HEAD | grep Merge | head -n 1 | cut -d ':' -f2) | grep 'infrastructure-playbooks/shrink-osd'
           on-evaluation-failure: dont-run
           steps:
@@ -159,6 +165,7 @@
           condition-kind: shell
           condition-command: |
             #!/bin/bash
+            set -x
             git diff --name-only $(git show HEAD | grep Merge | head -n 1 | cut -d ':' -f2) | grep 'infrastructure-playbooks/switch-from-non-containerized-to-containerized-ceph-daemons'
           on-evaluation-failure: dont-run
           steps:
@@ -173,6 +180,7 @@
           condition-kind: shell
           condition-command: |
             #!/bin/bash
+            set -x
             git diff --name-only $(git show HEAD | grep Merge | head -n 1 | cut -d ':' -f2) | grep -v 'infrastructure-playbooks'
             if [ $? -eq 1 ]; then
               echo "Infra playbooks modified.  Not testing remaining scenarios."
@@ -194,7 +202,8 @@
                 condition-kind: shell
                 condition-command: |
                   #!/bin/bash
-                  git show-branch ${sha1} | grep -q $(git ls-remote https://github.com/ceph/ceph-ansible.git stable-3.0 | awk '{ print $1 }')
+                  set -x
+                  git show-branch ${sha1} | grep $(git ls-remote https://github.com/ceph/ceph-ansible.git stable-3.0 | awk '{ print $1 }')
                 on-evaluation-failure: dont-run
                 steps:
                   - multijob:
@@ -221,8 +230,9 @@
                 condition-kind: shell
                 condition-command: |
                   #!/bin/bash
-                  git show-branch ${sha1} | grep -vq $(git ls-remote https://github.com/ceph/ceph-ansible.git stable-3.0 | awk '{ print $1 }')
-                on-evaluation-failure: dont-run
+                  set -x
+                  git show-branch ${sha1} | grep -v $(git ls-remote https://github.com/ceph/ceph-ansible.git stable-3.0 | awk '{ print $1 }')
+                on-evaluation-failure: run
                 steps:
                   - multijob:
                       name: 'ceph-ansible advanced cluster testing phase'
