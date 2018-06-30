@@ -65,8 +65,8 @@
       - cobertura:
           report-file: "src/pybind/mgr/dashboard/frontend/coverage/cobertura-coverage.xml"
           only-stable: "true"
-          health-auto-update: "true"
-          stability-auto-update: "true"
+          health-auto-update: "false"
+          stability-auto-update: "false"
           zoom-coverage-chart: "true"
           source-encoding: "Big5"
           targets:
