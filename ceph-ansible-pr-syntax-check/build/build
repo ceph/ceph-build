@@ -46,6 +46,11 @@ function group_vars_check {
   fi
 }
 
+function test_sign_off {
+  test "$(git log --oneline origin/HEAD..HEAD | wc -l)" -ne "$(git log origin/HEAD..HEAD | grep -c Signed-off-by)" && echo "One or more commits is/are missing a Signed-off-by. Add it with 'git commit -s'."
+  return 1
+}
+
 
 ########
 # MAIN #
@@ -54,3 +59,4 @@ cd "$WORKSPACE"/ceph-ansible
 syntax_check
 #ansible_lint
 group_vars_check
+test_sign_off
