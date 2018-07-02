@@ -751,7 +751,7 @@ write_collect_logs_playbook() {
       when: ansible_distribution == 'CentOS'
 
     - name: find ceph logs
-      command: find /var/log/ceph -name "{{ cluster|default('ceph') }}*.log"
+      command: find /var/log/ceph -name "*.log"
       register: ceph_logs
       failed_when: false
 
