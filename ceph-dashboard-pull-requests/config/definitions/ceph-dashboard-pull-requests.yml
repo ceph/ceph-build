@@ -1,0 +1,103 @@
+- job:
+    name: ceph-dashboard-pull-requests
+    project-type: freestyle
+    defaults: global
+    concurrent: true
+    node: huge && (centos7 || trusty) && rebootable
+    display-name: 'ceph: dashboard Pull Requests'
+    quiet-period: 5
+    block-downstream: false
+    block-upstream: false
+    retry-count: 3
+    properties:
+      - build-discarder:
+          days-to-keep: 15
+          num-to-keep: 300
+          artifact-days-to-keep: -1
+          artifact-num-to-keep: -1
+      - github:
+          url: https://github.com/ceph/ceph/
+
+    parameters:
+      - string:
+          name: sha1
+          description: "A pull request ID, like 'origin/pr/72/head'"
+
+    triggers:
+      - github-pull-request:
+          allow-whitelist-orgs-as-admins: true
+          org-list:
+            - ceph
+          white-list-labels:
+            - dashboard
+          trigger-phrase: 'jenkins test make check'
+          skip-build-phrase: '^jenkins do not test.*'
+          only-trigger-phrase: false
+          github-hooks: true
+          permit-all: true
+          auto-close-on-fail: false
+          status-context: "make check"
+          started-status: "running make check"
+          success-status: "make check succeeded"
+          failure-status: "make check failed"
+
+    scm:
+      - git:
+          url: https://github.com/ceph/ceph.git
+          branches:
+            - ${sha1}
+          refspec: +refs/pull/*:refs/remotes/origin/pr/*
+          browser: auto
+          timeout: 20
+          skip-tag: true
+          wipe-workspace: true
+
+    tasks:
+      - apt_repository:
+        repo: deb http://dl.google.com/linux/chrome/deb/ stable main
+        state: present
+
+      - name: Add google-chrome-stable key for apt
+            shell: |
+                wget https://dl.google.com/linux/linux_signing_key.pub
+                apt-key add linux_signing_key.pub
+        when: ansible_pkg_mgr  == "apt"
+
+      - name: Install google-chrome-stable for deb based distributions
+        apt: pkg=google-chrome-stable state=installed
+        when: ansible_os_family == "Debian"
+
+      - apt:
+        name: google-chrome-stable
+        state: present
+        update_cache: yes
+
+
+      - name: Add Google Chrome stable key for yum
+        shell: |
+            wget https://dl.google.com/linux/linux_signing_key.pub
+            rpm --import linux_signing_key.pub
+        when: ansible_pkg_mgr  == "yum"
+
+      - name: Add Google Chrome repository
+        yum_repository:
+        description: Google Chrome x86_64 repo
+        baseurl: http://dl.google.com/linux/chrome/rpm/stable/x86_64
+
+      - name: Install google-chrome-stable for RedHat distributions
+        yum: google-chrome-stable
+        state: present
+        update_cache: yes
+
+    builders:
+      - shell: "export SOURCE_DATE_EPOCH=$(date +%D |date -f- +%s); export NPROC=$(nproc); timeout 7200 ./run-make-check.sh -D ENABLE_GIT_VERSION=OFF; timeout 7200  ./src/pybind/mgr/dashboard/run-frontend-e2e-tests.sh"
+
+    publishers:
+      - postbuildscript:
+          builders:
+            - role: SLAVE
+              build-on:
+                - FAILURE
+                - ABORTED
+              build-steps:
+- shell: "sudo reboot"
