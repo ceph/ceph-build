@@ -3,6 +3,7 @@
 set -e
 
 # the following two methods exist in scripts/build_utils.sh
+# shellcheck disable=SC2034
 pkgs=( "ansible==2.3.1" "ansible-lint" )
 install_python_packages "pkgs[@]"
 
@@ -47,7 +48,9 @@ function group_vars_check {
 }
 
 function test_sign_off {
-  test "$(git log --oneline origin/master..HEAD | wc -l)" -ne "$(git log origin/master..HEAD | grep -c Signed-off-by)" && echo "One or more commits is/are missing a Signed-off-by. Add it with 'git commit -s'."
+  git fetch
+  # shellcheck disable=SC2154
+  test "$(git log --oneline origin/"${ghprbTargetBranch}"..HEAD | wc -l)" -ne "$(git log origin/"${ghprbTargetBranch}"..HEAD | grep -c Signed-off-by)" && echo "One or more commits is/are missing a Signed-off-by. Add it with 'git commit -s'."
   return 1
 }
 
