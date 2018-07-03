@@ -47,7 +47,7 @@ function group_vars_check {
 }
 
 function test_sign_off {
-  test "$(git log --oneline origin/master..HEAD | wc -l)" -ne "$(git log origin/master..HEAD | grep -c Signed-off-by)" && echo "One or more commits is/are missing a Signed-off-by. Add it with 'git commit -s'."
+  test "$(git log --oneline origin/HEAD..HEAD | wc -l)" -ne "$(git log origin/HEAD..HEAD | grep -c Signed-off-by)" && echo "One or more commits is/are missing a Signed-off-by. Add it with 'git commit -s'."
   return 1
 }
 
