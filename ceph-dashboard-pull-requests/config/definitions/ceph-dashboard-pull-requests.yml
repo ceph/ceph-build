@@ -54,9 +54,9 @@
 
     builders:
       - shell: "export NPROC=$(nproc); timeout 7200 ./run-make-check.sh"
-      - shell:
-          !include-raw:
-            - ../../setup/setup
+      #- shell:
+      #    !include-raw:
+      #      - ../../setup/setup
       #- shell: "timeout 7200  ./src/pybind/mgr/dashboard/run-frontend-e2e-tests.sh"
 
     publishers:
