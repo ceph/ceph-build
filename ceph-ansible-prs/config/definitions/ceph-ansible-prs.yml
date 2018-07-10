@@ -7,8 +7,6 @@
     slave_labels: 'vagrant && libvirt && smithi'
     release:
       - luminous
-    ansible_version:
-      - ansible2.4
     scenario:
       - centos7_cluster
       - xenial_cluster
@@ -25,8 +23,6 @@
     slave_labels: 'vagrant && libvirt && smithi'
     release:
       - jewel
-    ansible_version:
-      - ansible2.4
     scenario:
       - centos7_cluster
       - xenial_cluster
@@ -42,8 +38,6 @@
     slave_labels: 'vagrant && libvirt && smithi'
     release:
       - luminous
-    ansible_version:
-      - ansible2.4
     scenario:
       - purge_cluster_container
       - purge_cluster_non_container
@@ -62,8 +56,6 @@
     slave_labels: 'vagrant && libvirt && !smithi && centos7'
     release:
       - luminous
-    ansible_version:
-      - ansible2.4
     scenario:
       - bluestore_osds_non_container
       - filestore_osds_non_container
@@ -86,8 +78,6 @@
     slave_labels: 'vagrant && libvirt && !smithi && centos7'
     release:
       - dev
-    ansible_version:
-      - ansible2.4
     scenario:
       - centos7_cluster
       - lvm_osds
@@ -97,12 +87,12 @@
       - 'ceph-ansible-prs-trigger'
 
 - job-template:
-    name: 'ceph-ansible-prs-{release}-{ansible_version}-{scenario}'
+    name: 'ceph-ansible-prs-{release}-{scenario}'
     id: 'ceph-ansible-prs-oldstable-trigger'
     node: '{slave_labels}'
     concurrent: true
     defaults: global
-    display-name: 'ceph-ansible: Pull Requests [{release}-{ansible_version}-{scenario}]'
+    display-name: 'ceph-ansible: Pull Requests [{release}-{scenario}]'
     quiet-period: 5
     block-downstream: false
     block-upstream: false
@@ -128,15 +118,15 @@
           org-list:
             - ceph
           skip-build-phrase: '^jenkins do not test.*|.*\[skip ci\].*'
-          trigger-phrase: '^jenkins test oldstable {release}-{ansible_version}-{scenario}|jenkins test oldstable.*'
+          trigger-phrase: '^jenkins test oldstable {release}-{scenario}|jenkins test oldstable.*'
           only-trigger-phrase: true
           github-hooks: true
           permit-all: true
           auto-close-on-fail: false
-          status-context: "Testing: {release}-{ansible_version}-{scenario}"
-          started-status: "Running: {release}-{ansible_version}-{scenario}"
-          success-status: "OK - {release}-{ansible_version}-{scenario}"
-          failure-status: "FAIL - {release}-{ansible_version}-{scenario}"
+          status-context: "Testing: {release}-{scenario}"
+          started-status: "Running: {release}-{scenario}"
+          success-status: "OK - {release}-{scenario}"
+          failure-status: "FAIL - {release}-{scenario}"
 
     scm:
       - git:
@@ -154,7 +144,6 @@
           properties-content: |
             SCENARIO={scenario}
             RELEASE={release}
-            ANSIBLE_VERSION={ansible_version}
       - shell:
           !include-raw-escape:
             - ../../../scripts/build_utils.sh
@@ -179,12 +168,12 @@
           latest-only: false
 
 - job-template:
-    name: 'ceph-ansible-prs-{release}-{ansible_version}-{scenario}'
+    name: 'ceph-ansible-prs-{release}-{scenario}'
     id: 'ceph-ansible-prs-auto'
     node: '{slave_labels}'
     concurrent: true
     defaults: global
-    display-name: 'ceph-ansible: Pull Requests [{release}-{ansible_version}-{scenario}]'
+    display-name: 'ceph-ansible: Pull Requests [{release}-{scenario}]'
     quiet-period: 5
     block-downstream: false
     block-upstream: false
@@ -210,15 +199,15 @@
           org-list:
             - ceph
           skip-build-phrase: '^jenkins do not test.*|.*\[skip ci\].*'
-          trigger-phrase: '^jenkins test {release}-{ansible_version}-{scenario}|jenkins test all.*'
+          trigger-phrase: '^jenkins test {release}-{scenario}|jenkins test all.*'
           only-trigger-phrase: true
           github-hooks: true
           permit-all: true
           auto-close-on-fail: false
-          status-context: "Testing: {release}-{ansible_version}-{scenario}"
-          started-status: "Running: {release}-{ansible_version}-{scenario}"
-          success-status: "OK - {release}-{ansible_version}-{scenario}"
-          failure-status: "FAIL - {release}-{ansible_version}-{scenario}"
+          status-context: "Testing: {release}-{scenario}"
+          started-status: "Running: {release}-{scenario}"
+          success-status: "OK - {release}-{scenario}"
+          failure-status: "FAIL - {release}-{scenario}"
 
     scm:
       - git:
@@ -236,7 +225,6 @@
           properties-content: |
             SCENARIO={scenario}
             RELEASE={release}
-            ANSIBLE_VERSION={ansible_version}
       - conditional-step:
           condition-kind: shell
           condition-command: |
@@ -274,12 +262,12 @@
           latest-only: false
 
 - job-template:
-    name: 'ceph-ansible-prs-{release}-{ansible_version}-{scenario}'
+    name: 'ceph-ansible-prs-{release}-{scenario}'
     id: 'ceph-ansible-prs-trigger'
     node: '{slave_labels}'
     concurrent: true
     defaults: global
-    display-name: 'ceph-ansible: Pull Requests [{release}-{ansible_version}-{scenario}]'
+    display-name: 'ceph-ansible: Pull Requests [{release}-{scenario}]'
     quiet-period: 5
     block-downstream: false
     block-upstream: false
@@ -305,15 +293,15 @@
           org-list:
             - ceph
           skip-build-phrase: '^jenkins do not test.*|.*\[skip ci\].*'
-          trigger-phrase: '^jenkins test {release}-{ansible_version}-{scenario}|jenkins test all.*'
+          trigger-phrase: '^jenkins test {release}-{scenario}|jenkins test all.*'
           only-trigger-phrase: true
           github-hooks: true
           permit-all: true
           auto-close-on-fail: false
-          status-context: "Testing: {release}-{ansible_version}-{scenario}"
-          started-status: "Running: {release}-{ansible_version}-{scenario}"
-          success-status: "OK - {release}-{ansible_version}-{scenario}"
-          failure-status: "FAIL - {release}-{ansible_version}-{scenario}"
+          status-context: "Testing: {release}-{scenario}"
+          started-status: "Running: {release}-{scenario}"
+          success-status: "OK - {release}-{scenario}"
+          failure-status: "FAIL - {release}-{scenario}"
 
     scm:
       - git:
@@ -331,7 +319,6 @@
           properties-content: |
             SCENARIO={scenario}
             RELEASE={release}
-            ANSIBLE_VERSION={ansible_version}
       - shell:
           !include-raw-escape:
             - ../../../scripts/build_utils.sh
