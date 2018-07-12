@@ -548,7 +548,7 @@ EOF
         exit 1
     fi
 cat >> $hookdir/D05install-gcc-7 <<EOF
-cat << ENDOFKEY | sudo apt-key add -
+cat << ENDOFKEY | apt-key add -
 -----BEGIN PGP PUBLIC KEY BLOCK-----
 Version: SKS 1.1.6
 Comment: Hostname: keyserver.ubuntu.com
