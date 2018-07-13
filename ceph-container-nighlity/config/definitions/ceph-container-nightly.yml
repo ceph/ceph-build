@@ -56,6 +56,7 @@
       - inject:
           properties-content: |
             SCENARIO=ceph_ansible-{ceph-version}-{os}-{test}
+            NIGHTLY=TRUE
       - shell:
           !include-raw-escape:
             - ../../../scripts/build_utils.sh
