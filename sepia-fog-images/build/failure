@@ -32,8 +32,6 @@ allhosts=$(teuthology-lock --brief | grep "Locked to capture FOG image for Jenki
 # Set DHCP server back to FOG
 for machine in $allhosts; do
   ssh ubuntu@store01.front.sepia.ceph.com "sudo /usr/local/sbin/set-next-server.sh $machine fog"
-  teuthology-lock --update --status down $machine
-  teuthology-lock --update --desc "Failed to capture FOG image: ${BUILD_URL}" $machine
 done
 
 # Restart dhcpd (for some reason doing this every time we set the next-server in the for loop above, dhcpd would fail to start)
@@ -52,4 +50,9 @@ set +e
 # Just unlock machines.  FOG will reimage them on the next job they run.
 for host in $allhosts; do
   teuthology-lock --unlock $host
+done
+
+# Unpause the queue
+for type in $MACHINETYPES; do
+  teuthology-queue --pause 0 --machine_type $type
 done
