@@ -26,22 +26,25 @@
           description: "A pull request ID, like 'origin/pr/72/head'"
 
     triggers:
+      - reverse:
+            jobs: 'ceph-pull-requests'
+            result: 'success'
       - github-pull-request:
           allow-whitelist-orgs-as-admins: true
           org-list:
             - ceph
           white-list-labels:
             - dashboard
-          trigger-phrase: 'jenkins test make check'
+          trigger-phrase: 'jenkins test dashboard'
           skip-build-phrase: '^jenkins do not test.*'
           only-trigger-phrase: false
           github-hooks: true
           permit-all: true
           auto-close-on-fail: false
-          status-context: "make check"
-          started-status: "running make check"
-          success-status: "make check succeeded"
-          failure-status: "make check failed"
+          status-context: "ceph dashboard tests"
+          started-status: "running ceph dashboard tests"
+          success-status: "ceph dashboard tests succeeded"
+          failure-status: "ceph dashboard tests failed"
 
     scm:
       - git:
@@ -55,18 +58,7 @@
           wipe-workspace: true
 
     builders:
-      - shell: "export NPROC=$(nproc); timeout 7200 ./run-make-check.sh"
       - shell:
           !include-raw:
             - ../../setup/setup
       - shell: "timeout 7200  ./src/pybind/mgr/dashboard/run-frontend-e2e-tests.sh"
-
-    publishers:
-      - postbuildscript:
-          builders:
-            - role: SLAVE
-              build-on:
-                - FAILURE
-                - ABORTED
-              build-steps:
-                - shell: "sudo reboot"
