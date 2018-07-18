@@ -9,6 +9,7 @@
       - luminous
     ansible_version:
       - ansible2.4
+      - ansible2.5
     scenario:
       - centos7_cluster
       - xenial_cluster
@@ -44,6 +45,7 @@
       - luminous
     ansible_version:
       - ansible2.4
+      - ansible2.5
     scenario:
       - purge_cluster_container
       - purge_cluster_non_container
@@ -64,6 +66,7 @@
       - luminous
     ansible_version:
       - ansible2.4
+      - ansible2.5
     scenario:
       - bluestore_osds_non_container
       - filestore_osds_non_container
