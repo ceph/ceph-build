@@ -60,56 +60,23 @@
             git diff --name-only $(git show HEAD | grep Merge | head -n 1 | cut -d ':' -f2) | grep 'infrastructure-playbooks/purge'
           on-evaluation-failure: dont-run
           steps:
-            # If PR is merging into stable-3.0 branch HEAD, run all but LVM scenarios
-            - conditional-step:
-                condition-kind: shell
-                condition-command: |
-                  #!/bin/bash
-                  set -x
-                  git show-branch ${sha1} | grep $(git ls-remote https://github.com/ceph/ceph-ansible.git stable-3.0 | awk '{ print $1 }')
-                on-evaluation-failure: dont-run
-                steps:
-                  - multijob:
-                      name: 'ceph-ansible purge playbook testing (stable-3.0)'
-                      condition: SUCCESSFUL
-                      execution-type: PARALLEL
-                      projects:
-                        - name: 'ceph-ansible-prs-luminous-purge_bluestore_osds_non_container'
-                          current-parameters: true
-                        - name: 'ceph-ansible-prs-luminous-purge_cluster_container'
-                          current-parameters: true
-                        - name: 'ceph-ansible-prs-luminous-purge_cluster_non_container'
-                          current-parameters: true
-                        - name: 'ceph-ansible-prs-luminous-purge_filestore_osds_container'
-                          current-parameters: true
-                        - name: 'ceph-ansible-prs-luminous-purge_filestore_osds_non_container'
-                          current-parameters: true
-            # If PR is NOT merging into stable-3.0 branch HEAD, run all scenarios
-            - conditional-step:
-                condition-kind: shell
-                condition-command: |
-                  #!/bin/bash
-                  set -x
-                  git show-branch ${sha1} | grep -v $(git ls-remote https://github.com/ceph/ceph-ansible.git stable-3.0 | awk '{ print $1 }')
-                on-evaluation-failure: run
-                steps:
-                  - multijob:
-                      name: 'ceph-ansible purge playbook testing'
-                      condition: SUCCESSFUL
-                      execution-type: PARALLEL
-                      projects:
-                        - name: 'ceph-ansible-prs-luminous-purge_bluestore_osds_non_container'
-                          current-parameters: true
-                        - name: 'ceph-ansible-prs-luminous-purge_cluster_container'
-                          current-parameters: true
-                        - name: 'ceph-ansible-prs-luminous-purge_cluster_non_container'
-                          current-parameters: true
-                        - name: 'ceph-ansible-prs-luminous-purge_filestore_osds_container'
-                          current-parameters: true
-                        - name: 'ceph-ansible-prs-luminous-purge_filestore_osds_non_container'
-                          current-parameters: true
-                        - name: 'ceph-ansible-prs-luminous-purge_lvm_osds'
-                          current-parameters: true
+            - multijob:
+                name: 'ceph-ansible purge playbook testing'
+                condition: SUCCESSFUL
+                execution-type: PARALLEL
+                projects:
+                  - name: 'ceph-ansible-prs-luminous-purge_bluestore_osds_non_container'
+                    current-parameters: true
+                  - name: 'ceph-ansible-prs-luminous-purge_cluster_container'
+                    current-parameters: true
+                  - name: 'ceph-ansible-prs-luminous-purge_cluster_non_container'
+                    current-parameters: true
+                  - name: 'ceph-ansible-prs-luminous-purge_filestore_osds_container'
+                    current-parameters: true
+                  - name: 'ceph-ansible-prs-luminous-purge_filestore_osds_non_container'
+                    current-parameters: true
+                  - name: 'ceph-ansible-prs-luminous-purge_lvm_osds'
+                    current-parameters: true
       - conditional-step:
           condition-kind: shell
           condition-command: |
@@ -197,66 +164,29 @@
                     current-parameters: true
                   - name: 'ceph-ansible-prs-luminous-docker_cluster'
                     current-parameters: true
-            # If PR is merging into stable-3.0 branch HEAD, run all but LVM scenarios
-            - conditional-step:
-                condition-kind: shell
-                condition-command: |
-                  #!/bin/bash
-                  set -x
-                  git show-branch ${sha1} | grep $(git ls-remote https://github.com/ceph/ceph-ansible.git stable-3.0 | awk '{ print $1 }')
-                on-evaluation-failure: dont-run
-                steps:
-                  - multijob:
-                      name: 'ceph-ansible advanced cluster testing phase (stable-3.0)'
-                      condition: SUCCESSFUL
-                      execution-type: PARALLEL
-                      projects:
-                        - name: 'ceph-ansible-prs-luminous-bluestore_osds_container'
-                          current-parameters: true
-                        - name: 'ceph-ansible-prs-luminous-bluestore_osds_non_container'
-                          current-parameters: true
-                        - name: 'ceph-ansible-prs-luminous-docker_cluster_collocation'
-                          current-parameters: true
-                        - name: 'ceph-ansible-prs-luminous-filestore_osds_container'
-                          current-parameters: true
-                        - name: 'ceph-ansible-prs-luminous-filestore_osds_non_container'
-                          current-parameters: true
-                        - name: 'ceph-ansible-prs-luminous-ooo_collocation'
-                          current-parameters: true
-                        - name: 'ceph-ansible-prs-luminous-xenial_cluster'
-                          current-parameters: true
-            # If PR is NOT merging into stable-3.0 branch HEAD, run all scenarios
-            - conditional-step:
-                condition-kind: shell
-                condition-command: |
-                  #!/bin/bash
-                  set -x
-                  git show-branch ${sha1} | grep -v $(git ls-remote https://github.com/ceph/ceph-ansible.git stable-3.0 | awk '{ print $1 }')
-                on-evaluation-failure: run
-                steps:
-                  - multijob:
-                      name: 'ceph-ansible advanced cluster testing phase'
-                      condition: SUCCESSFUL
-                      execution-type: PARALLEL
-                      projects:
-                        - name: 'ceph-ansible-prs-luminous-bluestore_lvm_osds'
-                          current-parameters: true
-                        - name: 'ceph-ansible-prs-luminous-bluestore_osds_container'
-                          current-parameters: true
-                        - name: 'ceph-ansible-prs-luminous-bluestore_osds_non_container'
-                          current-parameters: true
-                        - name: 'ceph-ansible-prs-luminous-docker_cluster_collocation'
-                          current-parameters: true
-                        - name: 'ceph-ansible-prs-luminous-filestore_osds_container'
-                          current-parameters: true
-                        - name: 'ceph-ansible-prs-luminous-filestore_osds_non_container'
-                          current-parameters: true
-                        - name: 'ceph-ansible-prs-luminous-lvm_osds'
-                          current-parameters: true
-                        - name: 'ceph-ansible-prs-luminous-ooo_collocation'
-                          current-parameters: true
-                        - name: 'ceph-ansible-prs-luminous-xenial_cluster'
-                          current-parameters: true
+            - multijob:
+                name: 'ceph-ansible advanced cluster testing phase'
+                condition: SUCCESSFUL
+                execution-type: PARALLEL
+                projects:
+                  - name: 'ceph-ansible-prs-luminous-bluestore_lvm_osds'
+                    current-parameters: true
+                  - name: 'ceph-ansible-prs-luminous-bluestore_osds_container'
+                    current-parameters: true
+                  - name: 'ceph-ansible-prs-luminous-bluestore_osds_non_container'
+                    current-parameters: true
+                  - name: 'ceph-ansible-prs-luminous-docker_cluster_collocation'
+                    current-parameters: true
+                  - name: 'ceph-ansible-prs-luminous-filestore_osds_container'
+                    current-parameters: true
+                  - name: 'ceph-ansible-prs-luminous-filestore_osds_non_container'
+                    current-parameters: true
+                  - name: 'ceph-ansible-prs-luminous-lvm_osds'
+                    current-parameters: true
+                  - name: 'ceph-ansible-prs-luminous-ooo_collocation'
+                    current-parameters: true
+                  - name: 'ceph-ansible-prs-luminous-xenial_cluster'
+                    current-parameters: true
 
     scm:
       - git:
