@@ -2,8 +2,6 @@
     name: ceph-ansible-nightly-jewel-stable3.0
     release:
       - jewel
-    ansible_version:
-      - ansible2.4
     scenario:
       - centos7_cluster
       - xenial_cluster
@@ -26,14 +24,12 @@
     ceph_ansible_branch:
       - stable-3.0
     jobs:
-      - 'ceph-ansible-nightly-{release}-{ansible_version}-{ceph_ansible_branch}-{scenario}'
+      - 'ceph-ansible-nightly-{release}-{ceph_ansible_branch}-{scenario}'
 
 - project:
     name: ceph-ansible-nightly-luminous-master
     release:
       - luminous
-    ansible_version:
-      - ansible2.4
     scenario:
       - centos7_cluster
       - xenial_cluster
@@ -62,15 +58,12 @@
     ceph_ansible_branch:
       - master
     jobs:
-        - 'ceph-ansible-nightly-{release}-{ansible_version}-{ceph_ansible_branch}-{scenario}'
+        - 'ceph-ansible-nightly-{release}-{ceph_ansible_branch}-{scenario}'
 
 - project:
     name: ceph-ansible-nightly-luminous-stable3.1
     release:
       - luminous
-    ansible_version:
-      - ansible2.4
-      - ansible2.5
     scenario:
       - centos7_cluster
       - xenial_cluster
@@ -99,14 +92,12 @@
     ceph_ansible_branch:
       - stable-3.1
     jobs:
-        - 'ceph-ansible-nightly-{release}-{ansible_version}-{ceph_ansible_branch}-{scenario}'
+        - 'ceph-ansible-nightly-{release}-{ceph_ansible_branch}-{scenario}'
 
 - project:
     name: ceph-ansible-nightly-luminous-stable3.0
     release:
       - luminous
-    ansible_version:
-      - ansible2.4
     scenario:
       - centos7_cluster
       - xenial_cluster
@@ -133,14 +124,14 @@
     ceph_ansible_branch:
       - stable-3.0
     jobs:
-        - 'ceph-ansible-nightly-{release}-{ansible_version}-{ceph_ansible_branch}-{scenario}'
+        - 'ceph-ansible-nightly-{release}-{ceph_ansible_branch}-{scenario}'
 
 - job-template:
-    name: 'ceph-ansible-nightly-{release}-{ansible_version}-{ceph_ansible_branch}-{scenario}'
+    name: 'ceph-ansible-nightly-{release}-{ceph_ansible_branch}-{scenario}'
     node: vagrant&&libvirt&&centos7
     concurrent: true
     defaults: global
-    display-name: 'ceph-ansible: Nightly [{release}-{ansible_version}-{ceph_ansible_branch}-{scenario}]'
+    display-name: 'ceph-ansible: Nightly [{release}-{ceph_ansible_branch}-{scenario}]'
     quiet-period: 5
     block-downstream: false
     block-upstream: false
@@ -178,7 +169,6 @@
           properties-content: |
             SCENARIO={scenario}
             RELEASE={release}
-            ANSIBLE_VERSION={ansible_version}
             CEPH_ANSIBLE_BRANCH={ceph_ansible_branch}
       - shell:
           !include-raw-escape:

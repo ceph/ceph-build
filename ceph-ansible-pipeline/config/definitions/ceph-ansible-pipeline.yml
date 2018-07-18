@@ -74,15 +74,15 @@
                       condition: SUCCESSFUL
                       execution-type: PARALLEL
                       projects:
-                        - name: 'ceph-ansible-prs-luminous-ansible2.4-purge_bluestore_osds_non_container'
+                        - name: 'ceph-ansible-prs-luminous-purge_bluestore_osds_non_container'
                           current-parameters: true
-                        - name: 'ceph-ansible-prs-luminous-ansible2.4-purge_cluster_container'
+                        - name: 'ceph-ansible-prs-luminous-purge_cluster_container'
                           current-parameters: true
-                        - name: 'ceph-ansible-prs-luminous-ansible2.4-purge_cluster_non_container'
+                        - name: 'ceph-ansible-prs-luminous-purge_cluster_non_container'
                           current-parameters: true
-                        - name: 'ceph-ansible-prs-luminous-ansible2.4-purge_filestore_osds_container'
+                        - name: 'ceph-ansible-prs-luminous-purge_filestore_osds_container'
                           current-parameters: true
-                        - name: 'ceph-ansible-prs-luminous-ansible2.4-purge_filestore_osds_non_container'
+                        - name: 'ceph-ansible-prs-luminous-purge_filestore_osds_non_container'
                           current-parameters: true
             # If PR is NOT merging into stable-3.0 branch HEAD, run all scenarios
             - conditional-step:
@@ -98,17 +98,17 @@
                       condition: SUCCESSFUL
                       execution-type: PARALLEL
                       projects:
-                        - name: 'ceph-ansible-prs-luminous-ansible2.4-purge_bluestore_osds_non_container'
+                        - name: 'ceph-ansible-prs-luminous-purge_bluestore_osds_non_container'
                           current-parameters: true
-                        - name: 'ceph-ansible-prs-luminous-ansible2.4-purge_cluster_container'
+                        - name: 'ceph-ansible-prs-luminous-purge_cluster_container'
                           current-parameters: true
-                        - name: 'ceph-ansible-prs-luminous-ansible2.4-purge_cluster_non_container'
+                        - name: 'ceph-ansible-prs-luminous-purge_cluster_non_container'
                           current-parameters: true
-                        - name: 'ceph-ansible-prs-luminous-ansible2.4-purge_filestore_osds_container'
+                        - name: 'ceph-ansible-prs-luminous-purge_filestore_osds_container'
                           current-parameters: true
-                        - name: 'ceph-ansible-prs-luminous-ansible2.4-purge_filestore_osds_non_container'
+                        - name: 'ceph-ansible-prs-luminous-purge_filestore_osds_non_container'
                           current-parameters: true
-                        - name: 'ceph-ansible-prs-luminous-ansible2.4-purge_lvm_osds'
+                        - name: 'ceph-ansible-prs-luminous-purge_lvm_osds'
                           current-parameters: true
       - conditional-step:
           condition-kind: shell
@@ -123,9 +123,9 @@
                 condition: SUCCESSFUL
                 execution-type: PARALLEL
                 projects:
-                  - name: 'ceph-ansible-prs-luminous-ansible2.4-update_cluster'
+                  - name: 'ceph-ansible-prs-luminous-update_cluster'
                     current-parameters: true
-                  - name: 'ceph-ansible-prs-luminous-ansible2.4-update_docker_cluster'
+                  - name: 'ceph-ansible-prs-luminous-update_docker_cluster'
                     current-parameters: true
       - conditional-step:
           condition-kind: shell
@@ -140,9 +140,9 @@
                 condition: SUCCESSFUL
                 execution-type: PARALLEL
                 projects:
-                  - name: 'ceph-ansible-prs-luminous-ansible2.4-shrink_mon'
+                  - name: 'ceph-ansible-prs-luminous-shrink_mon'
                     current-parameters: true
-                  - name: 'ceph-ansible-prs-luminous-ansible2.4-shrink_mon_container'
+                  - name: 'ceph-ansible-prs-luminous-shrink_mon_container'
                     current-parameters: true
       - conditional-step:
           condition-kind: shell
@@ -157,9 +157,9 @@
                 condition: SUCCESSFUL
                 execution-type: PARALLEL
                 projects:
-                  - name: 'ceph-ansible-prs-luminous-ansible2.4-shrink_osd'
+                  - name: 'ceph-ansible-prs-luminous-shrink_osd'
                     current-parameters: true
-                  - name: 'ceph-ansible-prs-luminous-ansible2.4-shrink_osd_container'
+                  - name: 'ceph-ansible-prs-luminous-shrink_osd_container'
                     current-parameters: true
       - conditional-step:
           condition-kind: shell
@@ -174,7 +174,7 @@
                 condition: SUCCESSFUL
                 execution-type: PARALLEL
                 projects:
-                  - name: 'ceph-ansible-prs-luminous-ansible2.4-switch_to_containers'
+                  - name: 'ceph-ansible-prs-luminous-switch_to_containers'
                     current-parameters: true
       - conditional-step:
           condition-kind: shell
@@ -193,9 +193,9 @@
                 condition: SUCCESSFUL
                 execution-type: PARALLEL
                 projects:
-                  - name: 'ceph-ansible-prs-luminous-ansible2.4-centos7_cluster'
+                  - name: 'ceph-ansible-prs-luminous-centos7_cluster'
                     current-parameters: true
-                  - name: 'ceph-ansible-prs-luminous-ansible2.4-docker_cluster'
+                  - name: 'ceph-ansible-prs-luminous-docker_cluster'
                     current-parameters: true
             # If PR is merging into stable-3.0 branch HEAD, run all but LVM scenarios
             - conditional-step:
@@ -211,19 +211,19 @@
                       condition: SUCCESSFUL
                       execution-type: PARALLEL
                       projects:
-                        - name: 'ceph-ansible-prs-luminous-ansible2.4-bluestore_osds_container'
+                        - name: 'ceph-ansible-prs-luminous-bluestore_osds_container'
                           current-parameters: true
-                        - name: 'ceph-ansible-prs-luminous-ansible2.4-bluestore_osds_non_container'
+                        - name: 'ceph-ansible-prs-luminous-bluestore_osds_non_container'
                           current-parameters: true
-                        - name: 'ceph-ansible-prs-luminous-ansible2.4-docker_cluster_collocation'
+                        - name: 'ceph-ansible-prs-luminous-docker_cluster_collocation'
                           current-parameters: true
-                        - name: 'ceph-ansible-prs-luminous-ansible2.4-filestore_osds_container'
+                        - name: 'ceph-ansible-prs-luminous-filestore_osds_container'
                           current-parameters: true
-                        - name: 'ceph-ansible-prs-luminous-ansible2.4-filestore_osds_non_container'
+                        - name: 'ceph-ansible-prs-luminous-filestore_osds_non_container'
                           current-parameters: true
-                        - name: 'ceph-ansible-prs-luminous-ansible2.4-ooo_collocation'
+                        - name: 'ceph-ansible-prs-luminous-ooo_collocation'
                           current-parameters: true
-                        - name: 'ceph-ansible-prs-luminous-ansible2.4-xenial_cluster'
+                        - name: 'ceph-ansible-prs-luminous-xenial_cluster'
                           current-parameters: true
             # If PR is NOT merging into stable-3.0 branch HEAD, run all scenarios
             - conditional-step:
@@ -239,23 +239,23 @@
                       condition: SUCCESSFUL
                       execution-type: PARALLEL
                       projects:
-                        - name: 'ceph-ansible-prs-luminous-ansible2.4-bluestore_lvm_osds'
+                        - name: 'ceph-ansible-prs-luminous-bluestore_lvm_osds'
                           current-parameters: true
-                        - name: 'ceph-ansible-prs-luminous-ansible2.4-bluestore_osds_container'
+                        - name: 'ceph-ansible-prs-luminous-bluestore_osds_container'
                           current-parameters: true
-                        - name: 'ceph-ansible-prs-luminous-ansible2.4-bluestore_osds_non_container'
+                        - name: 'ceph-ansible-prs-luminous-bluestore_osds_non_container'
                           current-parameters: true
-                        - name: 'ceph-ansible-prs-luminous-ansible2.4-docker_cluster_collocation'
+                        - name: 'ceph-ansible-prs-luminous-docker_cluster_collocation'
                           current-parameters: true
-                        - name: 'ceph-ansible-prs-luminous-ansible2.4-filestore_osds_container'
+                        - name: 'ceph-ansible-prs-luminous-filestore_osds_container'
                           current-parameters: true
-                        - name: 'ceph-ansible-prs-luminous-ansible2.4-filestore_osds_non_container'
+                        - name: 'ceph-ansible-prs-luminous-filestore_osds_non_container'
                           current-parameters: true
-                        - name: 'ceph-ansible-prs-luminous-ansible2.4-lvm_osds'
+                        - name: 'ceph-ansible-prs-luminous-lvm_osds'
                           current-parameters: true
-                        - name: 'ceph-ansible-prs-luminous-ansible2.4-ooo_collocation'
+                        - name: 'ceph-ansible-prs-luminous-ooo_collocation'
                           current-parameters: true
-                        - name: 'ceph-ansible-prs-luminous-ansible2.4-xenial_cluster'
+                        - name: 'ceph-ansible-prs-luminous-xenial_cluster'
                           current-parameters: true
 
     scm:
