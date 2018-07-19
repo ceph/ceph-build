@@ -9,7 +9,6 @@
       - luminous
     scenario:
       - centos7_cluster
-      - xenial_cluster
       - docker_cluster
       - docker_cluster_collocation
       - bluestore_osds_container
@@ -25,7 +24,6 @@
       - jewel
     scenario:
       - centos7_cluster
-      - xenial_cluster
       - docker_cluster
       - ooo_collocation
     jobs:

@@ -1,5 +1,5 @@
 - project:
-    name: ceph-ansible-nightly-jewel-stable3.0
+    name: ceph-ansible-nightly-jewel
     release:
       - jewel
     scenario:
@@ -23,11 +23,12 @@
       - ooo_collocation
     ceph_ansible_branch:
       - stable-3.0
+      - stable-3.1
     jobs:
       - 'ceph-ansible-nightly-{release}-{ceph_ansible_branch}-{scenario}'
 
 - project:
-    name: ceph-ansible-nightly-luminous-master
+    name: ceph-ansible-nightly-stable3.0
     release:
       - luminous
     scenario:
@@ -35,8 +36,6 @@
       - xenial_cluster
       - docker_cluster
       - update_cluster
-      - lvm_osds
-      - purge_lvm_osds
       - docker_cluster_collocation
       - update_docker_cluster
       - switch_to_containers
@@ -56,14 +55,15 @@
       - purge_bluestore_osds_non_container
       - ooo_collocation
     ceph_ansible_branch:
-      - master
+      - stable-3.0
     jobs:
         - 'ceph-ansible-nightly-{release}-{ceph_ansible_branch}-{scenario}'
 
 - project:
-    name: ceph-ansible-nightly-luminous-stable3.1
+    name: ceph-ansible-nightly-stable3.1
     release:
       - luminous
+      - mimic
     scenario:
       - centos7_cluster
       - xenial_cluster
@@ -95,14 +95,16 @@
         - 'ceph-ansible-nightly-{release}-{ceph_ansible_branch}-{scenario}'
 
 - project:
-    name: ceph-ansible-nightly-luminous-stable3.0
+    name: ceph-ansible-nightly-master
     release:
-      - luminous
+      - dev
     scenario:
       - centos7_cluster
       - xenial_cluster
       - docker_cluster
       - update_cluster
+      - lvm_osds
+      - purge_lvm_osds
       - docker_cluster_collocation
       - update_docker_cluster
       - switch_to_containers
@@ -122,7 +124,7 @@
       - purge_bluestore_osds_non_container
       - ooo_collocation
     ceph_ansible_branch:
-      - stable-3.0
+      - master
     jobs:
         - 'ceph-ansible-nightly-{release}-{ceph_ansible_branch}-{scenario}'
 
