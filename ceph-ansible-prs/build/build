@@ -29,4 +29,4 @@ popd
 # stable-3.0 doesn't have ceph-volume and therefore doesn't support LVM scenarios.
 # Rather than running a bunch of conditional steps in the pipeline to check if
 # a PR is merging into the stable-3.0 branch, we'll just pass LVM jobs.
-[[ "$ghprbTargetBranch" == "stable-3.0" && "$scenario" == *"lvm"* ]] || start_tox
+[[ "$ghprbTargetBranch" == "stable-3.0" && "$SCENARIO" == *"lvm"* ]] || start_tox
