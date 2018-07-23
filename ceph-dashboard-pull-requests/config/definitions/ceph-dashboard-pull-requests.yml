@@ -1,0 +1,60 @@
+- job:
+    name: ceph-dashboard-pull-requests
+    project-type: freestyle
+    defaults: global
+    concurrent: true
+    node: huge && (centos7 || trusty) && rebootable
+    display-name: 'ceph: dashboard Pull Requests'
+    quiet-period: 5
+    block-downstream: false
+    block-upstream: false
+    retry-count: 3
+    properties:
+      - build-discarder:
+          days-to-keep: 15
+          num-to-keep: 300
+          artifact-days-to-keep: -1
+          artifact-num-to-keep: -1
+      - github:
+          url: https://github.com/ceph/ceph/
+      - rebuild:
+          auto-rebuild: true
+
+    parameters:
+      - string:
+          name: sha1
+          description: "A pull request ID, like 'origin/pr/72/head'"
+
+    triggers:
+      - github-pull-request:
+          allow-whitelist-orgs-as-admins: true
+          org-list:
+            - ceph
+          trigger-phrase: 'jenkins test dashboard'
+          skip-build-phrase: '^jenkins do not test.*'
+          only-trigger-phrase: true
+          github-hooks: true
+          permit-all: true
+          auto-close-on-fail: false
+          status-context: "ceph dashboard tests"
+          started-status: "running ceph dashboard tests"
+          success-status: "ceph dashboard tests succeeded"
+          failure-status: "ceph dashboard tests failed"
+
+    scm:
+      - git:
+          url: https://github.com/ceph/ceph.git
+          branches:
+            - ${sha1}
+          refspec: +refs/pull/*:refs/remotes/origin/pr/*
+          browser: auto
+          timeout: 20
+          skip-tag: true
+          wipe-workspace: true
+
+    builders:
+      - shell: "export NPROC=$(nproc); timeout 7200 ./run-make-check.sh"
+      - shell:
+          !include-raw:
+            - ../../setup/setup
+      - shell: "timeout 7200  ./src/pybind/mgr/dashboard/run-frontend-e2e-tests.sh"
