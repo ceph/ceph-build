@@ -49,6 +49,7 @@
           github-hooks: true
           permit-all: true
           auto-close-on-fail: false
+          status-context: "Flake8"
 
     scm:
       - ceph-iscsi-config
