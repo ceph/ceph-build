@@ -9,20 +9,27 @@
           browser: auto
           timeout: 20
           skip-tag: true
-          wipe-workspace: false
+          wipe-workspace: true
           basedir: "ceph-iscsi-config"
 
 - job:
     name: ceph-iscsi-config-flake8
-    node: small && centos7
+    description: Runs Flake8 tests for ceph-iscsi-config on each GitHub PR
+    project-type: freestyle
+    node: python3
+    block-downstream: false
+    block-upstream: false
     defaults: global
-    display-name: 'ceph-iscsi-config-flake8'
+    display-name: 'ceph-iscsi-config: Flake8'
+    quiet-period: 5
+    retry-count: 3
+
     properties:
       - build-discarder:
           days-to-keep: 15
           num-to-keep: 30
-          artifact-days-to-keep: -1
-          artifact-num-to-keep: -1
+          artifact-days-to-keep: 15
+          artifact-num-to-keep: 15
       - github:
           url: https://github.com/ceph/ceph-iscsi-config/
 
@@ -42,10 +49,6 @@
           github-hooks: true
           permit-all: true
           auto-close-on-fail: false
-          status-context: "Testing: flake8"
-          started-status: "Running: flake8"
-          success-status: "OK"
-          failure-status: "FAIL - please clean up for merge"
 
     scm:
       - ceph-iscsi-config
@@ -53,5 +56,5 @@
     builders:
       - shell:
           !include-raw:
+            - ../../../scripts/build_utils.sh
             - ../../build/build
-
