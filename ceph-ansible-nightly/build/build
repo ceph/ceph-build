@@ -24,7 +24,7 @@ function find_latest_tag {
   for page in $(seq 1 $total_pages); do
     tag=$(curl -s "https://registry.hub.docker.com/v2/repositories/ceph/daemon/tags/?page=$page" | jq ".\"results\"[] | select((.name | contains(\"stable\")) and (.name | contains(\"${release}-centos-7-x86_64\"))) | .name")
     if [ -n "$tag" ]; then
-      echo "$tag" | cut -d '"' -f 2
+      echo "$tag" | head -n 1 | cut -d '"' -f 2
       return
     fi
   done
