@@ -164,11 +164,6 @@
                     current-parameters: true
                   - name: 'ceph-ansible-prs-luminous-docker_cluster'
                     current-parameters: true
-            - multijob:
-                name: 'ceph-ansible advanced cluster testing phase'
-                condition: SUCCESSFUL
-                execution-type: PARALLEL
-                projects:
                   - name: 'ceph-ansible-prs-luminous-bluestore_lvm_osds'
                     current-parameters: true
                   - name: 'ceph-ansible-prs-luminous-bluestore_osds_container'
