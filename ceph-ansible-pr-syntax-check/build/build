@@ -57,6 +57,17 @@ function test_sign_off {
   echo "Sign-off ok!" && return 0
 }
 
+function test_capital_letter {
+  for commit in $(git log --no-merges --pretty=format:"%h" origin/"${ghprbTargetBranch}"..HEAD); do
+    if git show "$commit" | grep -E "\\- name:" | grep '[[:upper:]]'; then
+      echo "'- name:' statement must not contain any capital letters!"
+      echo "Remove any capital letters from task's name."
+      return 1
+    fi
+  done
+  echo "No capital letters found in task's name!" && return 0
+}
+
 
 ########
 # MAIN #
@@ -66,3 +77,4 @@ syntax_check
 #ansible_lint
 group_vars_check
 test_sign_off
+test_capital_letter
