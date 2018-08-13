@@ -42,8 +42,8 @@
       - bluestore
       - filestore
     scenario:
-      - single-type
-      - single-type-dmcrypt
+      - single_type
+      - single_type_dmcrypt
     subcommand:
       - batch
 
