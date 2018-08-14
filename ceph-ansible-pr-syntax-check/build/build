@@ -59,7 +59,7 @@ function test_sign_off {
 
 function test_capital_letter {
   for commit in $(git log --no-merges --pretty=format:"%h" origin/"${ghprbTargetBranch}"..HEAD); do
-    if git show "$commit" | grep -E "\\- name:" | grep '[[:upper:]]'; then
+    if git show "$commit" | grep -E '^[<>+].*- name:' | grep '[[:upper:]]'; then
       echo "'- name:' statement must not contain any capital letters!"
       echo "Remove any capital letters from task's name."
       return 1
