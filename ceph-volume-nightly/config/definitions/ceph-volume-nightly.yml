@@ -40,6 +40,25 @@
     jobs:
       - 'ceph-volume-nightly-{ceph_branch}-{subcommand}-{distro}-{objectstore}-{scenario}'
 
+- project:
+    name: ceph-volume-nightly-batch
+    distro:
+      - xenial
+      - centos7
+    objectstore:
+      - bluestore
+      - filestore
+    scenario:
+      - single_type
+      - single_type_dmcrypt
+    subcommand:
+      - batch
+    ceph_branch:
+      - master
+
+    jobs:
+      - 'ceph-volume-nightly-{ceph_branch}-{subcommand}-{distro}-{objectstore}-{scenario}'
+
 
 - job-template:
     name: 'ceph-volume-nightly-{ceph_branch}-{subcommand}-{distro}-{objectstore}-{scenario}'
