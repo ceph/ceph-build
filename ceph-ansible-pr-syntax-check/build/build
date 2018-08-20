@@ -4,7 +4,7 @@ set -e
 
 # the following two methods exist in scripts/build_utils.sh
 # shellcheck disable=SC2034
-pkgs=( "ansible==2.3.1" "ansible-lint" )
+pkgs=( "ansible" "ansible-lint" )
 install_python_packages "pkgs[@]"
 
 
