@@ -148,6 +148,32 @@
           condition-command: |
             #!/bin/bash
             set -x
+            git diff --name-only $(git show HEAD | grep Merge | head -n 1 | cut -d ':' -f2) | grep -E 'roles/ceph-defaults/tasks/facts.yml|roles/ceph-osd|ceph-validate'
+          on-evaluation-failure: dont-run
+          steps:
+            - multijob:
+                name: 'ceph-ansible osd scenarios playbook testing'
+                condition: SUCCESSFUL
+                execution-type: PARALLEL
+                projects:
+                  - name: 'ceph-ansible-prs-luminous-bluestore_lvm_osds'
+                    current-parameters: true
+                  - name: 'ceph-ansible-prs-luminous-bluestore_osds_container'
+                    current-parameters: true
+                  - name: 'ceph-ansible-prs-luminous-bluestore_osds_non_container'
+                    current-parameters: true
+                  - name: 'ceph-ansible-prs-luminous-filestore_osds_container'
+                    current-parameters: true
+                  - name: 'ceph-ansible-prs-luminous-filestore_osds_non_container'
+                    current-parameters: true
+                  - name: 'ceph-ansible-prs-luminous-lvm_osds'
+                    current-parameters: true
+
+      - conditional-step:
+          condition-kind: shell
+          condition-command: |
+            #!/bin/bash
+            set -x
             git diff --name-only $(git show HEAD | grep Merge | head -n 1 | cut -d ':' -f2) | grep -v 'infrastructure-playbooks'
             if [ $? -eq 1 ]; then
               echo "Infra playbooks modified.  Not testing remaining scenarios."
@@ -164,28 +190,10 @@
                     current-parameters: true
                   - name: 'ceph-ansible-prs-luminous-docker_cluster'
                     current-parameters: true
-            - multijob:
-                name: 'ceph-ansible advanced cluster testing phase'
-                condition: SUCCESSFUL
-                execution-type: PARALLEL
-                projects:
-                  - name: 'ceph-ansible-prs-luminous-bluestore_lvm_osds'
-                    current-parameters: true
-                  - name: 'ceph-ansible-prs-luminous-bluestore_osds_container'
-                    current-parameters: true
-                  - name: 'ceph-ansible-prs-luminous-bluestore_osds_non_container'
-                    current-parameters: true
                   - name: 'ceph-ansible-prs-luminous-docker_cluster_collocation'
-                    current-parameters: true
-                  - name: 'ceph-ansible-prs-luminous-filestore_osds_container'
-                    current-parameters: true
-                  - name: 'ceph-ansible-prs-luminous-filestore_osds_non_container'
-                    current-parameters: true
-                  - name: 'ceph-ansible-prs-luminous-lvm_osds'
                     current-parameters: true
                   - name: 'ceph-ansible-prs-luminous-ooo_collocation'
                     current-parameters: true
-
     scm:
       - git:
           url: https://github.com/ceph/ceph-ansible.git
