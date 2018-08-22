@@ -1,5 +1,0 @@
-#!/bin/bash
-
-# propagates the change in the necessary Ansible Galaxy repos.
-# i.e. https://github.com/ceph/ansible-ceph-common
-bash "$WORKSPACE"/ceph-ansible/contrib/push-roles-to-ansible-galaxy.sh
