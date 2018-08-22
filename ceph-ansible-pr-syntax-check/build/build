@@ -32,14 +32,14 @@ function ansible_lint {
 
 function group_vars_check {
   # we use || true so we still count and don't fail if we don't find anything
-  nb="$(git show HEAD --name-only --pretty="" | grep -c '/defaults/main.yml' || true)"
+  nb=$(match_file "/defaults/main.yml" | wc -l)
   if [[ "$nb" -eq 0 ]]; then
     echo "group_vars has not been touched."
     return 0
   fi
 
   # we use || true so we still count and don't fail if we don't find anything
-  nb_group_vars="$(git show HEAD --name-only --pretty="" | grep -c 'group_var/*' || true)"
+  nb_group_vars=$(match_file "group_var/" | wc -l)
   if [[ "$nb" -ne "$nb_group_vars" ]]; then
     echo "One or more files containing default variables has/have been modified."
     echo "You must run 'generate_group_vars_sample.sh' to generate the group_vars template files."
@@ -57,6 +57,7 @@ function match_file {
   git_diff_to_head | sed -n "s|^+++.*\\($1.*\\)|\\1|p"
 }
 
+function test_sign_off {
   test "$(git log --oneline --no-merges origin/"${ghprbTargetBranch}"..HEAD | wc -l)" -ne "$(git log --no-merges origin/"${ghprbTargetBranch}"..HEAD | grep -c Signed-off-by)" && echo "One or more commits is/are missing a Signed-off-by. Add it with 'git commit -s'." && return 1
 
   # if we arrive here the test command successed and we can return 0
@@ -64,13 +65,11 @@ function match_file {
 }
 
 function test_capital_letter {
-  for commit in $(git log --no-merges --pretty=format:"%h" origin/"${ghprbTargetBranch}"..HEAD); do
-    if git show "$commit" | grep -E '^[<>+].*- name:' | grep '[[:upper:]]'; then
+  if git_diff_to_head | grep -E '^[<>+].*- name:' | grep '[[:upper:]]'; then
       echo "'- name:' statement must not contain any capital letters!"
       echo "Remove any capital letters from task's name."
       return 1
     fi
-  done
   echo "No capital letters found in task's name!" && return 0
 }
 
