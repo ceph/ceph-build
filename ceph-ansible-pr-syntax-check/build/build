@@ -32,14 +32,14 @@ function ansible_lint {
 
 function group_vars_check {
   # we use || true so we still count and don't fail if we don't find anything
-  nb="$(git show HEAD --name-only --pretty="" | grep -c '/defaults/main.yml' || true)"
+  nb=$(match_file "/defaults/main.yml" | wc -l)
   if [[ "$nb" -eq 0 ]]; then
     echo "group_vars has not been touched."
     return 0
   fi
 
   # we use || true so we still count and don't fail if we don't find anything
-  nb_group_vars="$(git show HEAD --name-only --pretty="" | grep -c 'group_var/*' || true)"
+  nb_group_vars=$(match_file "group_var/" | wc -l)
   if [[ "$nb" -ne "$nb_group_vars" ]]; then
     echo "One or more files containing default variables has/have been modified."
     echo "You must run 'generate_group_vars_sample.sh' to generate the group_vars template files."
@@ -47,10 +47,17 @@ function group_vars_check {
   fi
 }
 
-function test_sign_off {
-  git fetch
+function git_diff_to_head {
   # shellcheck disable=SC2154
   # ghprbTargetBranch variable comes from jenkins's injectedEnvVars
+  git diff origin/"${ghprbTargetBranch}"..HEAD
+}
+
+function match_file {
+  git_diff_to_head | sed -n "s|^+++.*\\($1.*\\)|\\1|p"
+}
+
+function test_sign_off {
   test "$(git log --oneline --no-merges origin/"${ghprbTargetBranch}"..HEAD | wc -l)" -ne "$(git log --no-merges origin/"${ghprbTargetBranch}"..HEAD | grep -c Signed-off-by)" && echo "One or more commits is/are missing a Signed-off-by. Add it with 'git commit -s'." && return 1
 
   # if we arrive here the test command successed and we can return 0
@@ -58,14 +65,21 @@ function test_sign_off {
 }
 
 function test_capital_letter {
-  for commit in $(git log --no-merges --pretty=format:"%h" origin/"${ghprbTargetBranch}"..HEAD); do
-    if git show "$commit" | grep -E '^[<>+].*- name:' | grep '[[:upper:]]'; then
-      echo "'- name:' statement must not contain any capital letters!"
-      echo "Remove any capital letters from task's name."
-      return 1
-    fi
-  done
+  if git_diff_to_head | grep -E '^[<>+].*- name:' | grep '[[:upper:]]'; then
+    echo "'- name:' statement must not contain any capital letters!"
+    echo "Remove any capital letters from task's name."
+    return 1
+  fi
   echo "No capital letters found in task's name!" && return 0
+}
+
+function test_ceph_release_in_ceph_default {
+  if match_file "roles/ceph-defaults/" | grep -E '^[<>+].*- ceph_release_num\[ceph_release\]'; then
+    echo "Do not use statements like '- ceph_release_num[ceph_release]' in ceph-defaults role!"
+    echo "'ceph_release' is only populated **after** the play of ceph-defaults, typically in ceph-common or ceph-docker-common."
+    return 1
+  fi
+  echo "No '- ceph_release_num[ceph_release]' statements found in ceph-defaults role!" && return 0
 }
 
 
@@ -78,3 +92,4 @@ syntax_check
 group_vars_check
 test_sign_off
 test_capital_letter
+test_ceph_release_in_ceph_default
