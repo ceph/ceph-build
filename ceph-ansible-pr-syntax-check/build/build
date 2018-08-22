@@ -66,11 +66,20 @@ function test_sign_off {
 
 function test_capital_letter {
   if git_diff_to_head | grep -E '^[<>+].*- name:' | grep '[[:upper:]]'; then
-      echo "'- name:' statement must not contain any capital letters!"
-      echo "Remove any capital letters from task's name."
-      return 1
-    fi
+    echo "'- name:' statement must not contain any capital letters!"
+    echo "Remove any capital letters from task's name."
+    return 1
+  fi
   echo "No capital letters found in task's name!" && return 0
+}
+
+function test_ceph_release_in_ceph_default {
+  if match_file "roles/ceph-defaults/" | grep -E '^[<>+].*- ceph_release_num\[ceph_release\]'; then
+    echo "Do not use statements like '- ceph_release_num[ceph_release]' in ceph-defaults role!"
+    echo "'ceph_release' is only populated **after** the play of ceph-defaults, typically in ceph-common or ceph-docker-common."
+    return 1
+  fi
+  echo "No '- ceph_release_num[ceph_release]' statements found in ceph-defaults role!" && return 0
 }
 
 
@@ -83,3 +92,4 @@ syntax_check
 group_vars_check
 test_sign_off
 test_capital_letter
+test_ceph_release_in_ceph_default
