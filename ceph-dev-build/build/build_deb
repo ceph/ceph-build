@@ -74,16 +74,17 @@ echo deb vers $bpvers
 echo building debs for $DIST
 
 CEPH_EXTRA_CMAKE_ARGS="$CEPH_EXTRA_CMAKE_ARGS $(extra_cmake_args)"
+DEB_BUILD_OPTIONS="parallel=$(get_nr_build_jobs)"
 
 # pass only those env vars specifically noted
 sudo \
     CEPH_EXTRA_CMAKE_ARGS="$CEPH_EXTRA_CMAKE_ARGS" \
     CEPH_EXTRA_CONFIGURE_ARGS="$CEPH_EXTRA_CONFIGURE_ARGS" \
+    DEB_BUILD_OPTIONS="$DEB_BUILD_OPTIONS" \
     pbuilder build \
     --distribution $DIST \
     --basetgz $pbuilddir/$DIST.tgz \
     --buildresult $releasedir/$cephver \
-    --debbuildopts "-j`grep -c processor /proc/cpuinfo`" \
     $releasedir/$cephver/ceph_$bpvers.dsc
 
 # do lintian checks
