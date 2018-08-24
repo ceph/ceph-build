@@ -44,17 +44,6 @@
       - update_cluster
       - update_docker_cluster
       - switch_to_containers
-    jobs:
-        - 'ceph-ansible-prs-trigger'
-
-# tests that will not auto start when a PR is created, but
-# they can be requested with a trigger phrase. Run on OVH.
-- project:
-    name: ceph-ansible-prs-trigger-ovh
-    slave_labels: 'vagrant && libvirt && !smithi && centos7'
-    release:
-      - luminous
-    scenario:
       - bluestore_osds_non_container
       - filestore_osds_non_container
       - filestore_osds_container
@@ -73,7 +62,7 @@
 # requested with a trigger phrase
 - project:
     name: ceph-ansible-prs-dev
-    slave_labels: 'vagrant && libvirt && !smithi && centos7'
+    slave_labels: 'vagrant && libvirt && smithi'
     release:
       - dev
     scenario:
