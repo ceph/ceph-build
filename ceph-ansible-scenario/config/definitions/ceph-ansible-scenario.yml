@@ -34,6 +34,19 @@
           name: CEPH_DEV_SHA1
           description: "The ceph sha1 to test against if using a dev-* scenario"
           default: "latest"
+      - string:
+          name: CEPH_DOCKER_REGISTRY
+          description: "The docker registry used for containerized scenarios"
+          default: "docker.io"
+      - string:
+          name: CEPH_DOCKER_IMAGE
+          description: "The docker image used for containerized scenarios"
+          default: "ceph/daemon"
+      - string:
+          name: CEPH_DOCKER_IMAGE_TAG
+          description: "The docker image tag used for containerized scenarios"
+          default: "latest"
+
 
     scm:
       - git:

@@ -1,0 +1,61 @@
+- scm:
+    name: ceph-iscsi-config
+    scm:
+      - git:
+          url: https://github.com/ceph/ceph-iscsi-config.git
+          branches:
+            - ${sha1}
+          refspec: +refs/pull/*:refs/remotes/origin/pr/*
+          browser: auto
+          timeout: 20
+          skip-tag: true
+          wipe-workspace: true
+          basedir: "ceph-iscsi-config"
+
+- job:
+    name: ceph-iscsi-config-flake8
+    description: Runs Flake8 tests for ceph-iscsi-config on each GitHub PR
+    project-type: freestyle
+    node: python3
+    block-downstream: false
+    block-upstream: false
+    defaults: global
+    display-name: 'ceph-iscsi-config: Flake8'
+    quiet-period: 5
+    retry-count: 3
+
+    properties:
+      - build-discarder:
+          days-to-keep: 15
+          num-to-keep: 30
+          artifact-days-to-keep: 15
+          artifact-num-to-keep: 15
+      - github:
+          url: https://github.com/ceph/ceph-iscsi-config/
+
+    parameters:
+      - string:
+          name: sha1
+          description: "A pull request ID, like 'origin/pr/72/head'"
+
+    triggers:
+      - github-pull-request:
+          admin-list:
+            - dillaman
+          org-list:
+            - ceph
+          trigger-phrase: 'jenkins flake8'
+          only-trigger-phrase: false
+          github-hooks: true
+          permit-all: true
+          auto-close-on-fail: false
+          status-context: "Flake8"
+
+    scm:
+      - ceph-iscsi-config
+
+    builders:
+      - shell:
+          !include-raw:
+            - ../../../scripts/build_utils.sh
+            - ../../build/build

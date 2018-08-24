@@ -382,11 +382,18 @@ setup_pbuilder() {
 
     if [ $os = "debian" ]; then
         mirror="http://www.gtlib.gatech.edu/pub/debian"
-        # this assumes that newer Debian releases are being added to
-        # /etc/apt/trusted.gpg that is also the default location for Ubuntu trusted
-        # keys. The slave should ensure that the needed keys are added accordingly
-        # to this location.
-        debootstrapopts='DEBOOTSTRAPOPTS=( "--keyring" "/etc/apt/trusted.gpg" )'
+        if [ "$DIST" = "jessie" ]; then
+          # despite the fact we're building for jessie, pbuilder was failing due to
+          # missing wheezy key 8B48AD6246925553.  Pointing pbuilder at the archive
+          # keyring takes care of it.
+          debootstrapopts='DEBOOTSTRAPOPTS=( "--keyring" "/usr/share/keyrings/debian-archive-keyring.gpg" )'
+        else
+          # this assumes that newer Debian releases are being added to
+          # /etc/apt/trusted.gpg that is also the default location for Ubuntu trusted
+          # keys. The slave should ensure that the needed keys are added accordingly
+          # to this location.
+          debootstrapopts='DEBOOTSTRAPOPTS=( "--keyring" "/etc/apt/trusted.gpg" )'
+        fi
         components='COMPONENTS="main contrib"'
     elif [ "$ARCH" = "arm64" ]; then
         mirror="http://ports.ubuntu.com/ubuntu-ports"
@@ -691,7 +698,7 @@ else
   TOX_RUN_ENV=("CEPH_STABLE_RELEASE=$RELEASE" "${TOX_RUN_ENV[@]}")
 fi
 # shellcheck disable=SC2116
-if ! eval "$(echo "${TOX_RUN_ENV[@]}")" "$VENV"/tox -rv -e="$RELEASE"-"$ANSIBLE_VERSION"-"$SCENARIO" --workdir="$WORKDIR" -- --provider=libvirt; then echo "ERROR: Job didn't complete successfully or got stuck for more than 3h."
+if ! eval "$(echo "${TOX_RUN_ENV[@]}")" "$VENV"/tox -rv -e="$RELEASE"-"$SCENARIO" --workdir="$WORKDIR" -- --provider=libvirt; then echo "ERROR: Job didn't complete successfully or got stuck for more than 3h."
   exit 1
 fi
 }
