@@ -4,7 +4,8 @@
     builders:
     - shell:
         !include-raw:
-        - ../../build/build
+          - ../../../scripts/build_utils.sh
+          - ../../build/build
     concurrent: true
     disabled: false
     name: ceph-pull-requests-arm64

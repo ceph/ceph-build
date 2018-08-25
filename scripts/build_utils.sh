@@ -830,3 +830,21 @@ teardown_vagrant_tests() {
         sudo virsh net-undefine $network || true
     done
 }
+
+get_nr_build_jobs() {
+    # assume each compiling job takes 1800 MiB memory on average
+    local nproc=$(nproc)
+    local max_build_jobs=$(vmstat --stats --unit m | \
+                               grep 'free memory' | \
+                               awk '{print int($1/1800)}')
+    if [[ $max_build_jobs -eq 0 ]]; then
+        # probably the system is under high load, use a safe number
+        max_build_jobs=16
+    fi
+    if [[ $nproc -ge $max_build_jobs ]]; then
+        n_build_jobs=$max_build_jobs
+    else
+        n_build_jobs=$nproc
+    fi
+    echo $n_build_jobs
+}
