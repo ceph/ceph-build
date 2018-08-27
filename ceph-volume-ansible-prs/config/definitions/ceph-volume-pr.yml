@@ -1,11 +1,9 @@
-# disabling centos7 for now as we're having infrastructure issues
-# with OVH and the centos7 vm kernel panics after booting
 
 - project:
     name: ceph-volume-ansible-prs-lvm
     distro:
       - xenial
-#     - centos7
+      - centos7
     objectstore:
       - bluestore
       - filestore
@@ -22,7 +20,7 @@
     name: ceph-volume-ansible-prs-simple
     distro:
       - xenial
-#     - centos7
+      - centos7
     objectstore:
       - bluestore
       - filestore
@@ -40,7 +38,7 @@
     name: ceph-volume-ansible-prs-batch
     distro:
       - xenial
-#     - centos7
+      - centos7
     objectstore:
       - bluestore
       - filestore
