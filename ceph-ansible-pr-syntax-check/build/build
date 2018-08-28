@@ -39,7 +39,7 @@ function group_vars_check {
   fi
 
   # we use || true so we still count and don't fail if we don't find anything
-  nb_group_vars=$(match_file "group_var/" | wc -l)
+  nb_group_vars=$(match_file "group_vars/" | wc -l)
   if [[ "$nb" -ne "$nb_group_vars" ]]; then
     echo "One or more files containing default variables has/have been modified."
     echo "You must run 'generate_group_vars_sample.sh' to generate the group_vars template files."
