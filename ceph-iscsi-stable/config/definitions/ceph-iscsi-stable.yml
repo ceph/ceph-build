@@ -1,0 +1,123 @@
+- scm:
+    name: ceph-iscsi-config
+    scm:
+      - git:
+          url: https://github.com/ceph/ceph-iscsi-config.git
+          branches:
+            - $CEPH_ISCSI_CONFIG_BRANCH
+          skip-tag: true
+          wipe-workspace: true
+          basedir: "ceph-iscsi-config"
+
+- scm:
+    name: ceph-iscsi-cli
+    scm:
+      - git:
+          url: https://github.com/ceph/ceph-iscsi-cli.git
+          branches:
+            - $CEPH_ISCSI_CLI_BRANCH
+          skip-tag: true
+          wipe-workspace: true
+          basedir: "ceph-iscsi-cli"
+
+- scm:
+    name: ceph-iscsi-tools
+    scm:
+      - git:
+          url: https://github.com/ceph/ceph-iscsi-tools.git
+          branches:
+            - $CEPH_ISCSI_TOOLS_BRANCH
+          skip-tag: true
+          wipe-workspace: true
+          basedir: "ceph-iscsi-tools"
+
+- job:
+    name: ceph-iscsi-stable
+    node: 'centos7 && x86_64 && huge'
+    project-type: freestyle
+    defaults: global
+    display-name: 'ceph-iscsi-stable'
+    concurrent: true
+    parameters:
+      - string:
+          name: CEPH_ISCSI_CONFIG_BRANCH
+          description: "The git branch (or tag) to build"
+          default: "2.6"
+
+      - string:
+          name: CEPH_ISCSI_CLI_BRANCH
+          description: "The git branch (or tag) to build"
+          default: "2.7"
+
+      - string:
+          name: CEPH_ISCSI_TOOLS_BRANCH
+          description: "The git branch (or tag) to build"
+          default: "2.1"
+
+      - string:
+          name: DISTRO
+          description: "A list of distros to build for. Available options are: centos7"
+          default: "centos7"
+
+      - string:
+          name: ARCH
+          description: "A list of architectures to build for. Available options are: x86_64"
+          default: "x86_64"
+
+      - bool:
+          name: THROWAWAY
+          description: "
+Default: False. When True it will not POST binaries to chacra. Artifacts will not be around for long. Useful to test builds."
+          default: false
+
+      - bool:
+          name: FORCE
+          description: "
+If this is unchecked, then nothing is built or pushed if they already exist in chacra. This is the default.
+
+If this is checked, then the binaries will be built and pushed to chacra even if they already exist in chacra."
+          default: true
+
+      - string:
+          name: BUILD_VIRTUALENV
+          description: "Base parent path for virtualenv locations, set to avoid issues with extremely long paths that are incompatible with tools like pip. Defaults to '/tmp/' (note the trailing slash, which is required)."
+          default: "/tmp/"
+
+    scm:
+      - ceph-iscsi-config
+      - ceph-iscsi-cli
+      - ceph-iscsi-tools
+
+    builders:
+      - shell: |
+          echo "Cleaning up top-level workarea (shared among workspaces)"
+          rm -rf dist
+          rm -rf venv
+          rm -rf release
+      # rpm build scripts
+      - shell:
+          !include-raw:
+            - ../../build/validate_rpm
+            - ../../../scripts/build_utils.sh
+            - ../../build/setup
+            - ../../build/build_rpm
+
+    publishers:
+      - postbuildscript:
+          builders:
+            - role: SLAVE
+              build-on:
+                  - FAILURE
+                  - ABORTED
+              build-steps:
+                - inject:
+                    properties-file: ${WORKSPACE}/build_info
+                - shell:
+                    !include-raw:
+                      - ../../../scripts/build_utils.sh
+                      - ../../build/failure
+
+    wrappers:
+      - inject-passwords:
+          global: true
+          mask-password-params: true
