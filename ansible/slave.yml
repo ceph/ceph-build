@@ -112,6 +112,19 @@
         group: "{{ jenkins_user }}"
         recurse: yes
 
+    - name: Install epel repo
+      yum:
+        name: epel-release
+        state: latest
+      when: ansible_os_family == "RedHat"
+
+    - name: disable epel for now
+      lineinfile:
+        path: "/etc/yum.repos.d/epel.repo"
+        regexp: '^enabled=.*'
+        line: 'enabled=0'
+      when: ansible_os_family == "RedHat"
+
     - name: Install RPM requirements
       yum:
         name: "{{ item }}"
@@ -121,7 +134,6 @@
         - epel-release
         - java-1.8.0-openjdk
         - git
-        - python-pip
         - python-virtualenv
         - libtool
         #- rpm-sign
@@ -148,10 +160,13 @@
 
     - name: install packages from epel
       yum:
-        name: jq
+        name: "{{ item }}"
         state: present
         enablerepo: epel
         update_cache: yes
+      with_items:
+        - jq
+        - python-pip
       when: ansible_os_family == "RedHat"
 
     # Run the equivalent of "apt-get update" as a separate step
