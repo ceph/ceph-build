@@ -18,8 +18,8 @@
     parameters:
       - string:
           name: DISTROS
-          default: "trusty xenial bionic centos74 rhel75"
-          description: "Distro to capture images for: (e.g., 'trusty', 'xenial', 'centos74' or 'trusty xenial' for multiple distros)"
+          default: "ubuntu_14.04 ubuntu_16.04 centos_7.5 rhel_7.5"
+          description: "Distro to capture images for: (e.g., 'ubuntu_16.04', 'centos_7.5' or 'ubuntu_16.04 rhel_7.5' for multiple distros)"
       - string:
           name: MACHINETYPES
           default: "smithi mira"
