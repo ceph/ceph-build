@@ -835,7 +835,7 @@ get_nr_build_jobs() {
     # assume each compiling job takes 1800 MiB memory on average
     local nproc=$(nproc)
     local max_build_jobs=$(vmstat --stats --unit m | \
-                               grep 'free memory' | \
+                               grep 'total memory' | \
                                awk '{print int($1/1800)}')
     if [[ $max_build_jobs -eq 0 ]]; then
         # probably the system is under high load, use a safe number
