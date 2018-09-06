@@ -51,6 +51,22 @@
     jobs:
       - 'ceph-volume-prs-{subcommand}-{distro}-{objectstore}-{scenario}'
 
+- project:
+    name: ceph-volume-ansible-prs-batch-mixed
+    distro:
+      - centos7
+    objectstore:
+      - bluestore
+      - filestore
+    scenario:
+      - mixed_type
+      - mixed_type_dmcrypt
+    subcommand:
+      - batch
+
+    jobs:
+      - 'ceph-volume-prs-{subcommand}-{distro}-{objectstore}-{scenario}'
+
 - job-template:
     name: 'ceph-volume-prs-{subcommand}-{distro}-{objectstore}-{scenario}'
     display-name: 'ceph-volume {subcommand}: Pull Request [{distro}-{objectstore}-{scenario}]'
