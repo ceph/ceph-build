@@ -1,5 +1,8 @@
 - project:
     name: ceph-medic-tests
+    # disabled because it is broken with current ceph-ansible master and there
+    # is no active development going on
+    disabled: true
     scenario:
       - ansible2.3-nightly_centos7
     jobs:
