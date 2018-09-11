@@ -77,6 +77,37 @@ function test_ceph_release_in_ceph_default {
   echo "No '- ceph_release_num[ceph_release]' statements found in ceph-defaults role!" && return 0
 }
 
+function check_if_a_keyword_is_used() {
+  searchstring=$1
+
+  # Since we are looking for keywords, instances of $searchstring found
+  # in comments and strings are not qualified. Ansible keywords can only
+  # be preceded by bunch of spaces or with a hypen and a space in conjunction.
+  # So, let's only look for those instances.
+  #
+  # Besides, completely ignore the lines marked as deleted in diff.
+  searchstring_regex="^\+ *-? +$searchstring"
+  count=$(git diff master..HEAD | grep -cE "$searchstring_regex")
+  if [[ $count > 0 ]]; then
+    echo "\"$searchstring\" is amongst the forbidden keywords; found $count times"
+    return $count
+  fi
+
+  return 0
+}
+
+function check_for_forbidden_keywords() {
+  check_if_a_keyword_is_used "include:"; forbidden_keyword_count=$?
+  check_if_a_keyword_is_used "static:"; forbidden_keyword_count=$?
+
+  if [[ $forbidden_keyword_count != 0 ]]; then
+    return 1
+  fi
+
+  echo "Forbidden keyword(s) not found."
+  return 0
+}
+
 
 ########
 # MAIN #
@@ -87,3 +118,4 @@ syntax_check
 group_vars_check
 test_sign_off
 test_ceph_release_in_ceph_default
+check_for_forbidden_keywords
