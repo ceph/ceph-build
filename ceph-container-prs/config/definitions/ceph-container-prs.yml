@@ -12,19 +12,6 @@
     jobs:
         - 'ceph-container-prs-auto'
 
-- project:
-    name: ceph-container-prs-trigger
-    os:
-      - xenial
-    ceph-version:
-      - jewel
-    test:
-      - cluster
-      - filestore_osds_container
-      - docker_cluster_collocation
-    jobs:
-        - 'ceph-container-prs-trigger'
-
 - job-template:
     name: 'ceph-container-prs-ceph_ansible-{ceph-version}-{os}-{test}'
     id: 'ceph-container-prs-auto'
