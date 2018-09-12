@@ -11,8 +11,7 @@
     block-upstream: false
     properties:
       - build-discarder:
-          days-to-keep: 1
-          num-to-keep: 10
+          days-to-keep: 15
           artifact-days-to-keep: -1
           artifact-num-to-keep: -1
       - github:

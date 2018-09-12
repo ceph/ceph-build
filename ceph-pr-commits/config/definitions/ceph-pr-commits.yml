@@ -40,9 +40,7 @@
     properties:
       - build-discarder:
           days-to-keep: 15
-          num-to-keep: 30
-          artifact-days-to-keep: -1
-          artifact-num-to-keep: -1
+          artifact-days-to-keep: 15
       - github:
           url: https://github.com/ceph/ceph/
 
