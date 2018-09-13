@@ -832,11 +832,11 @@ teardown_vagrant_tests() {
 }
 
 get_nr_build_jobs() {
-    # assume each compiling job takes 1800 MiB memory on average
+    # assume each compiling job takes 2200 MiB memory on average
     local nproc=$(nproc)
     local max_build_jobs=$(vmstat --stats --unit m | \
                                grep 'total memory' | \
-                               awk '{print int($1/1800)}')
+                               awk '{print int($1/2200)}')
     if [[ $max_build_jobs -eq 0 ]]; then
         # probably the system is under high load, use a safe number
         max_build_jobs=16
