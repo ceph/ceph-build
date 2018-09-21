@@ -55,6 +55,8 @@
       - batch
     ceph_branch:
       - master
+      - mimic
+      - luminous
 
     jobs:
       - 'ceph-volume-nightly-{ceph_branch}-{subcommand}-{distro}-{objectstore}-{scenario}'
