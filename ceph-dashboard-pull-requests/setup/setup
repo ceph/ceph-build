@@ -2,14 +2,14 @@
 set -ex
 
 if grep -q  debian /etc/*-release; then
-    echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" > /etc/apt/sources.list.d/google-chrome.list
+    sudo bash -c 'echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" > /etc/apt/sources.list.d/google-chrome.list'
     wget https://dl.google.com/linux/linux_signing_key.pub
     apt-key add linux_signing_key.pub
     sudo apt-get update
     sudo apt-get install -y google-chrome-stable
 
 elif grep -q rhel /etc/*-release; then
-    cat <<-EOF > /etc/yum.repos.d/google-chrome.repo
+    sudo cat <<-EOF > /etc/yum.repos.d/google-chrome.repo
 		[google-chrome]
 		name=google-chrome
 		baseurl=http://dl.google.com/linux/chrome/rpm/stable/x86_64
@@ -17,5 +17,5 @@ elif grep -q rhel /etc/*-release; then
 		gpgcheck=1
 		gpgkey=https://dl.google.com/linux/linux_signing_key.pub
 	EOF
-    yum install -y google-chrome-stable
+    sudo yum install -y google-chrome-stable
 fi
