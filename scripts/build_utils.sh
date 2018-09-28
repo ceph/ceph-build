@@ -534,20 +534,20 @@ setup_pbuilder_for_new_gcc() {
     # in test repo.
     if [ "$ARCH" = "arm64" ]; then
         cat > $hookdir/D05install-gcc-7 <<EOF
-echo "deb http://ppa.launchpad.net/ubuntu-toolchain-r/test/ubuntu $DIST main" >> \
+echo "deb [lang=none] http://ppa.launchpad.net/ubuntu-toolchain-r/test/ubuntu $DIST main" >> \
   /etc/apt/sources.list.d/ubuntu-toolchain-r.list
-echo "deb http://ports.ubuntu.com/ubuntu-ports $DIST-updates main" >> \
+echo "deb [lang=none] http://ports.ubuntu.com/ubuntu-ports $DIST-updates main" >> \
   /etc/apt/sources.list.d/ubuntu-toolchain-r.list
 EOF
     elif [ "$ARCH" = "x86_64" ]; then
         cat > $hookdir/D05install-gcc-7 <<EOF
-echo "deb http://security.ubuntu.com/ubuntu $DIST-security main" >> \
+echo "deb [lang=none] http://security.ubuntu.com/ubuntu $DIST-security main" >> \
   /etc/apt/sources.list.d/ubuntu-toolchain-r.list
-echo "deb http://ppa.launchpad.net/ubuntu-toolchain-r/test/ubuntu $DIST main" >> \
+echo "deb [lang=none] http://ppa.launchpad.net/ubuntu-toolchain-r/test/ubuntu $DIST main" >> \
   /etc/apt/sources.list.d/ubuntu-toolchain-r.list
-echo "deb [arch=amd64] http://mirror.cs.uchicago.edu/ubuntu-toolchain-r $DIST main" >> \
+echo "deb [arch=amd64 lang=none] http://mirror.cs.uchicago.edu/ubuntu-toolchain-r $DIST main" >> \
   /etc/apt/sources.list.d/ubuntu-toolchain-r.list
-echo "deb [arch=amd64,i386] http://mirror.yandex.ru/mirrors/launchpad/ubuntu-toolchain-r $DIST main" >> \
+echo "deb [arch=amd64,i386 lang=none] http://mirror.yandex.ru/mirrors/launchpad/ubuntu-toolchain-r $DIST main" >> \
   /etc/apt/sources.list.d/ubuntu-toolchain-r.list
 EOF
     else
