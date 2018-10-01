@@ -9,13 +9,13 @@ if grep -q  debian /etc/*-release; then
     sudo apt-get install -y google-chrome-stable
 
 elif grep -q rhel /etc/*-release; then
-    sudo cat <<-EOF > /etc/yum.repos.d/google-chrome.repo
-		[google-chrome]
-		name=google-chrome
-		baseurl=https://dl.google.com/linux/chrome/rpm/stable/x86_64
-		enabled=1
-		gpgcheck=1
-		gpgkey=https://dl.google.com/linux/linux_signing_key.pub
-	EOF
+    sudo dd of=/etc/yum.repos.d/google-chrome.repo status=none <<EOF
+[google-chrome]
+name=google-chrome
+baseurl=https://dl.google.com/linux/chrome/rpm/stable/x86_64
+enabled=1
+gpgcheck=1
+gpgkey=https://dl.google.com/linux/linux_signing_key.pub
+EOF
     sudo yum install -y google-chrome-stable
 fi
