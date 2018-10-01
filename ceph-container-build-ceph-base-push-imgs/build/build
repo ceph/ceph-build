@@ -1,0 +1,6 @@
+#!/bin/bash
+set -e
+
+
+cd "$WORKSPACE"/ceph-container/ || exit
+bash -x contrib/build-ceph-base.sh
