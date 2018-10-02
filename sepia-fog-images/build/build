@@ -10,27 +10,17 @@ set -ex
 
 # Converts distro friendly names into Cobbler/FOG image names
 funSetProfiles () {
-  if [ "$1" == "trusty" ]; then
-    cobblerprofile="Ubuntu-14.04-server-x86_64"
-    fogprofile="ubuntu_14.04"
-  elif [ "$1" == "xenial" ]; then
-    cobblerprofile="Ubuntu-16.04-server-x86_64"
-    fogprofile="ubuntu_16.04"
-  elif [ "$1" == "bionic" ]; then
-    cobblerprofile="Ubuntu-18.04-server-x86_64"
-    fogprofile="ubuntu_18.04"
-  elif [ "$1" == "centos74" ]; then
-    cobblerprofile="CentOS-7.4-x86_64"
-    fogprofile="centos_7.4"
-  elif [ "$1" == "centos75" ]; then
-    cobblerprofile="CentOS-7.5-x86_64"
-    fogprofile="centos_7.5"
-  elif [ "$1" == "rhel74" ]; then
-    cobblerprofile="RHEL-7.4-Server-x86_64"
-    fogprofile="rhel_7.4"
-  elif [ "$1" == "rhel75" ]; then
-    cobblerprofile="RHEL-7.5-Server-x86_64"
-    fogprofile="rhel_7.5"
+  splitdistro=$(echo $1 | cut -d '_' -f1)
+  distroversion=$(echo $1 | cut -d '_' -f2)
+  if [ "$splitdistro" == "ubuntu" ]; then
+    cobblerprofile="Ubuntu-$distroversion-server-x86_64"
+    fogprofile="ubuntu_$distroversion"
+  elif [ "$splitdistro" == "rhel" ]; then
+    cobblerprofile="RHEL-$distroversion-Server-x86_64"
+    fogprofile="rhel_$distroversion"
+  elif [ "$splitdistro" == "centos" ]; then
+    cobblerprofile="CentOS-$distroversion-x86_64"
+    fogprofile="centos_$distroversion"
   else
     echo "Unknown profile $1"
     exit 1
