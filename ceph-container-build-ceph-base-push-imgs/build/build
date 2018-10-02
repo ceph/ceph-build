@@ -3,4 +3,4 @@ set -e
 
 
 cd "$WORKSPACE"/ceph-container/ || exit
-bash -x contrib/build-ceph-base.sh
+ARCH=x86_64 bash -x contrib/build-ceph-base.sh
