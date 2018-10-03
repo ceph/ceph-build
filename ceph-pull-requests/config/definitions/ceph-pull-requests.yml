@@ -66,17 +66,13 @@
                 - shell: "sudo reboot"
       - cobertura:
           report-file: "src/pybind/mgr/dashboard/frontend/coverage/cobertura-coverage.xml"
-          only-stable: "true"
-          health-auto-update: "false"
-          stability-auto-update: "false"
           zoom-coverage-chart: "true"
-          source-encoding: "Big5"
           targets:
             - files:
                 healthy: 10
-                unhealthy: 20
-                failing: 30
+                unhealthy: 10
+                failing: 10
             - method:
                 healthy: 10
-                unhealthy: 20
-                failing: 30
+                unhealthy: 10
+                failing: 10
