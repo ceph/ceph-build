@@ -783,6 +783,13 @@ write_collect_logs_playbook() {
         flat: yes
       failed_when: false
       with_items: "{{ ceph_logs.stdout_lines }}"
+
+    - name: collect ceph configuration file
+      fetch:
+        src: "{{ ceph_conf_key_directory }}/{{ cluster }}.conf"
+        dest: "{{ archive_path }}/{{ inventory_hostname }}/"
+        fail_on_missing: no
+        flat: yes
 EOF
 }
 
