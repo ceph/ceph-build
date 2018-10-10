@@ -215,7 +215,7 @@
                 projects:
                   - name: 'ceph-ansible-prs-luminous-lvm_osds'
                     current-parameters: true
-                  - name: 'ceph-ansible-prs-luminous-lvm_osds_containers'
+                  - name: 'ceph-ansible-prs-luminous-lvm_osds_container'
                     current-parameters: true
                   - name: 'ceph-ansible-prs-luminous-bluestore_lvm_osds'
                     current-parameters: true
