@@ -57,6 +57,10 @@
           condition-command: |
             #!/bin/bash
             set -x
+            # if the current branch is master then we don't run these tests
+            if [[ "$ghprbTargetBranch" == "master" ]]; then
+              exit 1
+            fi
             git diff --name-only $(git show HEAD | grep Merge | head -n 1 | cut -d ':' -f2) | grep 'infrastructure-playbooks/purge'
           on-evaluation-failure: dont-run
           steps:
@@ -75,6 +79,25 @@
                     current-parameters: true
                   - name: 'ceph-ansible-prs-luminous-purge_filestore_osds_non_container'
                     current-parameters: true
+                  - name: 'ceph-ansible-prs-luminous-purge_lvm_osds'
+                    current-parameters: true
+      - conditional-step:
+          condition-kind: shell
+          condition-command: |
+            #!/bin/bash
+            set -x
+            # if the current branch is stable-3.0 or stable-3.1 then we don't run these tests
+            if [[ "$ghprbTargetBranch" == "stable-3.1" ]] || [[ "$ghprbTargetBranch" == "stable-3.0" ]]; then
+              exit 1
+            fi
+            git diff --name-only $(git show HEAD | grep Merge | head -n 1 | cut -d ':' -f2) | grep 'infrastructure-playbooks/purge'
+          on-evaluation-failure: dont-run
+          steps:
+            - multijob:
+                name: 'ceph-ansible purge playbook testing'
+                condition: SUCCESSFUL
+                execution-type: PARALLEL
+                projects:
                   - name: 'ceph-ansible-prs-luminous-purge_lvm_osds'
                     current-parameters: true
       - conditional-step:
@@ -148,6 +171,10 @@
           condition-command: |
             #!/bin/bash
             set -x
+            # if the current branch is master then we don't run these tests
+            if [[ "$ghprbTargetBranch" == "master" ]]; then
+              exit 1
+            fi
             git diff --name-only $(git show HEAD | grep Merge | head -n 1 | cut -d ':' -f2) | grep -E 'roles/ceph-defaults/tasks/facts.yml|roles/ceph-osd|ceph-validate'
           on-evaluation-failure: dont-run
           steps:
@@ -168,6 +195,37 @@
                     current-parameters: true
                   - name: 'ceph-ansible-prs-luminous-lvm_osds'
                     current-parameters: true
+
+      - conditional-step:
+          condition-kind: shell
+          condition-command: |
+            #!/bin/bash
+            set -x
+            # if the current branch is stable-3.0 or stable-3.1 then we don't run these tests
+            if [[ "$ghprbTargetBranch" == "stable-3.1" ]] || [[ "$ghprbTargetBranch" == "stable-3.0" ]]; then
+              exit 1
+            fi
+            git diff --name-only $(git show HEAD | grep Merge | head -n 1 | cut -d ':' -f2) | grep -E 'roles/ceph-defaults/tasks/facts.yml|roles/ceph-osd|ceph-validate'
+          on-evaluation-failure: dont-run
+          steps:
+            - multijob:
+                name: 'ceph-ansible osd scenarios playbook testing'
+                condition: SUCCESSFUL
+                execution-type: PARALLEL
+                projects:
+                  - name: 'ceph-ansible-prs-luminous-lvm_osds'
+                    current-parameters: true
+                  - name: 'ceph-ansible-prs-luminous-lvm_osds_containers'
+                    current-parameters: true
+                  - name: 'ceph-ansible-prs-luminous-bluestore_lvm_osds'
+                    current-parameters: true
+                  - name: 'ceph-ansible-prs-luminous-bluestore_lvm_osds_container'
+                    current-parameters: true
+                  #- name: 'ceph-ansible-prs-luminous-lvm_batch'
+                  #  current-parameters: true
+                  # lvm batch container is not supported at the moment, see https://tracker.ceph.com/issues/36363
+                  #- name: 'ceph-ansible-prs-luminous-lvm_batch_container'
+                  #  current-parameters: true
 
       - conditional-step:
           condition-kind: shell
