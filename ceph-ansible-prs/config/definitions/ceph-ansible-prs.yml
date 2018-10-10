@@ -52,6 +52,7 @@
       - shrink_osd
       - shrink_osd_container
       - lvm_osds
+      - lvm_batch
       - purge_lvm_osds
       - bluestore_lvm_osds
       - lvm_osds_container
