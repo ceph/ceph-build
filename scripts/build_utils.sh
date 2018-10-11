@@ -786,10 +786,14 @@ write_collect_logs_playbook() {
 
     - name: collect ceph configuration file
       fetch:
-        src: "{{ ceph_conf_key_directory }}/{{ cluster }}.conf"
+        src: "{{ item }}"
         dest: "{{ archive_path }}/{{ inventory_hostname }}/"
         fail_on_missing: no
         flat: yes
+      with_items:
+        - "/etc/ceph/ceph.conf"
+        - "/etc/ceph/test.conf"
+        - "/etc/ceph/mycluster.conf"
 EOF
 }
 
