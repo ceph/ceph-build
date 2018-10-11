@@ -7,6 +7,7 @@ if grep -q  debian /etc/*-release; then
     sudo apt-key add linux_signing_key.pub
     sudo apt-get update
     sudo apt-get install -y google-chrome-stable
+    sudo apt-get install -y python3-werkzeug python3-bcrypt python3-routes python3-requests
 
 elif grep -q rhel /etc/*-release; then
     sudo dd of=/etc/yum.repos.d/google-chrome.repo status=none <<EOF
@@ -18,4 +19,5 @@ gpgcheck=1
 gpgkey=https://dl.google.com/linux/linux_signing_key.pub
 EOF
     sudo yum install -y google-chrome-stable
+    sudo yum install -y python3-werkzeug python3-bcrypt python3-routes python3-requests
 fi
