@@ -238,7 +238,12 @@
               exit 1
             fi
             # do not run if roles/ceph-osd has been touched since the task above play osds already
-            git diff --name-only $(git show HEAD | grep Merge | head -n 1 | cut -d ':' -f2) | grep -E 'roles/ceph-osd' && exit 1
+            git diff --name-only $(git show HEAD | grep Merge | head -n 1 | cut -d ':' -f2) | grep -E 'roles/ceph-osd'
+            if [ $? -eq 1 ]; then
+              echo "ceph-osd role modified, nothing to test, the ceph-osd role test is handled by another pipeline job."
+              exit 1
+            fi
+            exit 0
           on-evaluation-failure: dont-run
           steps:
             - multijob:
