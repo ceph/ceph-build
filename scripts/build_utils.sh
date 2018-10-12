@@ -784,6 +784,10 @@ write_collect_logs_playbook() {
       failed_when: false
       with_items: "{{ ceph_logs.stdout_lines }}"
 
+    - name: set ceph_conf_key_directory
+      set_fact:
+        ceph_conf_key_directory: /etc/ceph
+
     - name: collect ceph configuration file
       fetch:
         src: "{{ ceph_conf_key_directory }}/{{ cluster }}.conf"
