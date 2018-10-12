@@ -237,6 +237,8 @@
               echo "Infra playbooks modified.  Not testing remaining scenarios."
               exit 1
             fi
+            # do not run if roles/ceph-osd has been touched since the task above play osds already
+            git diff --name-only $(git show HEAD | grep Merge | head -n 1 | cut -d ':' -f2) | grep -E 'roles/ceph-osd' && exit 1
           on-evaluation-failure: dont-run
           steps:
             - multijob:
