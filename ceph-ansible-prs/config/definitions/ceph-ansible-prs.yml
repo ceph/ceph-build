@@ -58,6 +58,8 @@
       - lvm_osds_container
       - lvm_batch_container
       - bluestore_lvm_osds_container
+      - add_osds
+      - add_osds_container
     jobs:
         - 'ceph-ansible-prs-trigger'
 
