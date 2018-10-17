@@ -57,6 +57,23 @@
           condition-command: |
             #!/bin/bash
             set -x
+            git diff --name-only $(git show HEAD | grep Merge | head -n 1 | cut -d ':' -f2) | grep 'infrastructure-playbooks/add-osd'
+          on-evaluation-failure: dont-run
+          steps:
+            - multijob:
+                name: 'ceph-ansible purge playbook testing'
+                condition: SUCCESSFUL
+                execution-type: PARALLEL
+                projects:
+                  - name: 'ceph-ansible-prs-luminous-add_osds'
+                    current-parameters: true
+                  - name: 'ceph-ansible-prs-luminous-add_osds_container'
+                    current-parameters: true
+      - conditional-step:
+          condition-kind: shell
+          condition-command: |
+            #!/bin/bash
+            set -x
             # if the current branch is master then we don't run these tests
             if [[ "$ghprbTargetBranch" == "master" ]]; then
               exit 1
