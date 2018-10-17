@@ -1,7 +1,7 @@
 
 - job:
     name: 'ceph-volume-scenario'
-    node: vagrant&&libvirt&&smithi
+    node: vagrant&&libvirt&&(smithi||mira)
     concurrent: true
     defaults: global
     display-name: 'ceph-volume: individual scenario testing'
