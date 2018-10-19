@@ -148,9 +148,11 @@
             - ../../build/build
 
     wrappers:
-      - inject-passwords:
-          global: true
-          mask-password-params: true
+      - credentials-binding:
+          - username-password-separated:
+              credential-id: ceph-jenkins
+              username: GITHUB_USERNAME
+              password: GITHUB_OAUTH_TOKEN
 
     publishers:
       - postbuildscript:
