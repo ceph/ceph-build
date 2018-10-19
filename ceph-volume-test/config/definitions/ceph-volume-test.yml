@@ -34,7 +34,7 @@
 
     builders:
       - multijob:
-          name: 'testing ceph-volume'
+          name: 'testing ceph-volume lvm'
           condition: SUCCESSFUL
           projects:
             - name: ceph-volume-scenario
@@ -77,6 +77,10 @@
               predefined-parameters: |
                 SCENARIO=centos7-filestore-dmcrypt
                 SUBCOMMAND=lvm
+      - multijob:
+          name: 'testing ceph-volume simple'
+          condition: SUCCESSFUL
+          projects:
             - name: ceph-volume-scenario
               current-parameters: true
               predefined-parameters: |
@@ -137,3 +141,67 @@
               predefined-parameters: |
                 SCENARIO=centos7-filestore-dmcrypt_plain
                 SUBCOMMAND=simple
+      - multijob:
+          name: 'testing ceph-volume batch'
+          condition: SUCCESSFUL
+          projects:
+            - name: ceph-volume-scenario
+              current-parameters: true
+              predefined-parameters: |
+                SCENARIO=centos7-bluestore-single_type
+                SUBCOMMAND=batch
+            - name: ceph-volume-scenario
+              current-parameters: true
+              predefined-parameters: |
+                SCENARIO=centos7-bluestore-single_type_dmcrypt
+                SUBCOMMAND=batch
+            - name: ceph-volume-scenario
+              current-parameters: true
+              predefined-parameters: |
+                SCENARIO=centos7-filestore-single_type
+                SUBCOMMAND=batch
+            - name: ceph-volume-scenario
+              current-parameters: true
+              predefined-parameters: |
+                SCENARIO=centos7-filestore-single_type_dmcrypt
+                SUBCOMMAND=batch
+            - name: ceph-volume-scenario
+              current-parameters: true
+              predefined-parameters: |
+                SCENARIO=xenial-bluestore-single_type
+                SUBCOMMAND=batch
+            - name: ceph-volume-scenario
+              current-parameters: true
+              predefined-parameters: |
+                SCENARIO=xenial-bluestore-single_type_dmcrypt
+                SUBCOMMAND=batch
+            - name: ceph-volume-scenario
+              current-parameters: true
+              predefined-parameters: |
+                SCENARIO=xenial-filestore-single_type
+                SUBCOMMAND=batch
+            - name: ceph-volume-scenario
+              current-parameters: true
+              predefined-parameters: |
+                SCENARIO=xenial-filestore-single_type_dmcrypt
+                SUBCOMMAND=batch
+            - name: ceph-volume-scenario
+              current-parameters: true
+              predefined-parameters: |
+                SCENARIO=centos7-bluestore-mixed_type
+                SUBCOMMAND=batch
+            - name: ceph-volume-scenario
+              current-parameters: true
+              predefined-parameters: |
+                SCENARIO=xenial-bluestore-single_type
+                SUBCOMMAND=batch
+            - name: ceph-volume-scenario
+              current-parameters: true
+              predefined-parameters: |
+                SCENARIO=centos7-filestore-mixed_type
+                SUBCOMMAND=batch
+            - name: ceph-volume-scenario
+              current-parameters: true
+              predefined-parameters: |
+                SCENARIO=centos7-bluestore-mixed_type_dmcrypt
+                SUBCOMMAND=batch
