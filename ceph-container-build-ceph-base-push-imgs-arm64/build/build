@@ -4,3 +4,6 @@ set -e
 
 cd "$WORKSPACE"/ceph-container/ || exit
 ARCH=aarch64 bash -x contrib/build-ceph-base.sh
+
+echo "Now running manifest script"
+BUILD_SERVER_GOARCH=arm64 bash -x contrib/make-ceph-base-manifests.sh
