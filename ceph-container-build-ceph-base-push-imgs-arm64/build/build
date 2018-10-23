@@ -2,6 +2,8 @@
 set -e
 
 
+sudo apt-get install jq -y
+
 cd "$WORKSPACE"/ceph-container/ || exit
 ARCH=aarch64 bash -x contrib/build-ceph-base.sh
 
