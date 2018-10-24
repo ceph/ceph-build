@@ -54,7 +54,7 @@ function group_vars_check {
 function git_diff_to_head {
   # shellcheck disable=SC2154
   # ghprbTargetBranch variable comes from jenkins's injectedEnvVars
-  git diff origin/"${ghprbTargetBranch}"..HEAD -- . ':(exclude)roles/*/meta/*'
+  git diff origin/"${ghprbTargetBranch}"..HEAD
 }
 
 function match_file {
@@ -66,15 +66,6 @@ function test_sign_off {
 
   # if we arrive here the test command successed and we can return 0
   echo "Sign-off ok!" && return 0
-}
-
-function test_capital_letter {
-  if git_diff_to_head | grep -E '^[<>+].*- name:' | grep '[[:upper:]]'; then
-    echo "'- name:' statement must not contain any capital letters!"
-    echo "Remove any capital letters from task's name."
-    return 1
-  fi
-  echo "No capital letters found in task's name!" && return 0
 }
 
 function test_ceph_release_in_ceph_default {
@@ -95,5 +86,4 @@ syntax_check
 #ansible_lint
 group_vars_check
 test_sign_off
-test_capital_letter
 test_ceph_release_in_ceph_default
