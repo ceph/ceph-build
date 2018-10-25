@@ -46,12 +46,12 @@
       - string:
           name: NFS_GANESHA_BRANCH
           description: "The git branch (or tag) to build"
-          default: "V2.6-stable"
+          default: "V2.7-stable"
 
       - string:
           name: NTIRPC_BRANCH
           description: "The git branch (or tag) to build"
-          default: "v1.5"
+          default: "v1.7"
 
       - string:
           name: NTIRPC_DEBIAN_BRANCH
@@ -66,17 +66,17 @@
       - string:
           name: CEPH_SHA1
           description: "The SHA1 of the ceph branch"
-          default: "52085d5249a80c5f5121a76d6288429f35e4e77b"
+          default: "02899bfda814146b021136e9d8e80eba494e1126"
 
       - string:
           name: CEPH_BRANCH
           description: "The branch of Ceph to get the repo file of for libcephfs"
-          default: "luminous"
+          default: "mimic"
 
       - string:
           name: CEPH_VERSION
           description: "The version of Ceph to specify for installing ceph libraries"
-          default: "12.2.4"
+          default: "13.2.2"
 
       - string:
           name: DISTROS
