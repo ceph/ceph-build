@@ -75,9 +75,34 @@
       - dev
     scenario:
       - centos7_cluster
+      - docker_cluster
+      - docker_cluster_collocation
+      - bluestore_osds_container
+      - purge_bluestore_osds_non_container
+      - ooo_collocation
+      - purge_cluster_container
+      - purge_cluster_non_container
+      - purge_filestore_osds_non_container
+      - purge_filestore_osds_container
+      - update_cluster
+      - update_docker_cluster
+      - switch_to_containers
+      - bluestore_osds_non_container
+      - filestore_osds_non_container
+      - filestore_osds_container
+      - shrink_mon
+      - shrink_mon_container
+      - shrink_osd
+      - shrink_osd_container
       - lvm_osds
+      - lvm_batch
       - purge_lvm_osds
       - bluestore_lvm_osds
+      - lvm_osds_container
+      - lvm_batch_container
+      - bluestore_lvm_osds_container
+      - add_osds
+      - add_osds_container
     jobs:
       - 'ceph-ansible-prs-trigger'
 
