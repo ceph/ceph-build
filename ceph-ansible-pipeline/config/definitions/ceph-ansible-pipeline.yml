@@ -96,7 +96,7 @@
                     current-parameters: true
                   - name: 'ceph-ansible-prs-luminous-purge_filestore_osds_non_container'
                     current-parameters: true
-                  - name: 'ceph-ansible-prs-luminous-purge_lvm_osds'
+                  - name: 'ceph-ansible-prs-dev-purge_lvm_osds'
                     current-parameters: true
       - conditional-step:
           condition-kind: shell
@@ -115,7 +115,7 @@
                 condition: SUCCESSFUL
                 execution-type: PARALLEL
                 projects:
-                  - name: 'ceph-ansible-prs-luminous-purge_lvm_osds'
+                  - name: 'ceph-ansible-prs-dev-purge_lvm_osds'
                     current-parameters: true
       - conditional-step:
           condition-kind: shell
@@ -210,7 +210,7 @@
                     current-parameters: true
                   - name: 'ceph-ansible-prs-luminous-filestore_osds_non_container'
                     current-parameters: true
-                  - name: 'ceph-ansible-prs-luminous-lvm_osds'
+                  - name: 'ceph-ansible-prs-dev-lvm_osds'
                     current-parameters: true
 
       - conditional-step:
@@ -230,16 +230,16 @@
                 condition: SUCCESSFUL
                 execution-type: PARALLEL
                 projects:
-                  - name: 'ceph-ansible-prs-luminous-lvm_osds'
+                  - name: 'ceph-ansible-prs-dev-lvm_osds'
                     current-parameters: true
-                  - name: 'ceph-ansible-prs-luminous-lvm_osds_container'
+                  - name: 'ceph-ansible-prs-dev-lvm_osds_container'
                     current-parameters: true
-                  - name: 'ceph-ansible-prs-luminous-bluestore_lvm_osds'
+                  - name: 'ceph-ansible-prs-dev-bluestore_lvm_osds'
                     current-parameters: true
-                  - name: 'ceph-ansible-prs-luminous-bluestore_lvm_osds_container'
+                  - name: 'ceph-ansible-prs-dev-bluestore_lvm_osds_container'
                     current-parameters: true
-                  #- name: 'ceph-ansible-prs-luminous-lvm_batch'
-                  #  current-parameters: true
+                  - name: 'ceph-ansible-prs-dev-lvm_batch'
+                    current-parameters: true
                   # lvm batch container is not supported at the moment, see https://tracker.ceph.com/issues/36363
                   #- name: 'ceph-ansible-prs-luminous-lvm_batch_container'
                   #  current-parameters: true
