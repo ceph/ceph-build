@@ -222,7 +222,7 @@
             if [[ "$ghprbTargetBranch" == "stable-3.1" ]] || [[ "$ghprbTargetBranch" == "stable-3.0" ]]; then
               exit 1
             fi
-            git diff --name-only $(git show HEAD | grep Merge | head -n 1 | cut -d ':' -f2) | grep -E 'roles/ceph-defaults/tasks/facts.yml|roles/ceph-osd|ceph-validate'
+            git diff --name-only $(git show HEAD | grep Merge | head -n 1 | cut -d ':' -f2) | grep -E 'roles/ceph-defaults/tasks/facts.yml|roles/ceph-osd|ceph-validate|library/ceph_volume.py'
           on-evaluation-failure: dont-run
           steps:
             - multijob:
