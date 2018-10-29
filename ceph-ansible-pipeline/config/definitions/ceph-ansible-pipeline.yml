@@ -65,9 +65,9 @@
                 condition: SUCCESSFUL
                 execution-type: PARALLEL
                 projects:
-                  - name: 'ceph-ansible-prs-luminous-add_osds'
+                  - name: 'ceph-ansible-prs-dev-add_osds'
                     current-parameters: true
-                  - name: 'ceph-ansible-prs-luminous-add_osds_container'
+                  - name: 'ceph-ansible-prs-dev-add_osds_container'
                     current-parameters: true
       - conditional-step:
           condition-kind: shell
@@ -130,9 +130,9 @@
                 condition: SUCCESSFUL
                 execution-type: PARALLEL
                 projects:
-                  - name: 'ceph-ansible-prs-luminous-update_cluster'
+                  - name: 'ceph-ansible-prs-dev-update_cluster'
                     current-parameters: true
-                  - name: 'ceph-ansible-prs-luminous-update_docker_cluster'
+                  - name: 'ceph-ansible-prs-dev-update_docker_cluster'
                     current-parameters: true
       - conditional-step:
           condition-kind: shell
@@ -147,9 +147,9 @@
                 condition: SUCCESSFUL
                 execution-type: PARALLEL
                 projects:
-                  - name: 'ceph-ansible-prs-luminous-shrink_mon'
+                  - name: 'ceph-ansible-prs-dev-shrink_mon'
                     current-parameters: true
-                  - name: 'ceph-ansible-prs-luminous-shrink_mon_container'
+                  - name: 'ceph-ansible-prs-dev-shrink_mon_container'
                     current-parameters: true
       - conditional-step:
           condition-kind: shell
@@ -164,9 +164,9 @@
                 condition: SUCCESSFUL
                 execution-type: PARALLEL
                 projects:
-                  - name: 'ceph-ansible-prs-luminous-shrink_osd'
+                  - name: 'ceph-ansible-prs-dev-shrink_osd'
                     current-parameters: true
-                  - name: 'ceph-ansible-prs-luminous-shrink_osd_container'
+                  - name: 'ceph-ansible-prs-dev-shrink_osd_container'
                     current-parameters: true
       - conditional-step:
           condition-kind: shell
@@ -181,7 +181,7 @@
                 condition: SUCCESSFUL
                 execution-type: PARALLEL
                 projects:
-                  - name: 'ceph-ansible-prs-luminous-switch_to_containers'
+                  - name: 'ceph-ansible-prs-dev-switch_to_containers'
                     current-parameters: true
       - conditional-step:
           condition-kind: shell
@@ -266,13 +266,13 @@
                 condition: SUCCESSFUL
                 execution-type: PARALLEL
                 projects:
-                  - name: 'ceph-ansible-prs-luminous-centos7_cluster'
+                  - name: 'ceph-ansible-prs-dev-centos7_cluster'
                     current-parameters: true
-                  - name: 'ceph-ansible-prs-luminous-docker_cluster'
+                  - name: 'ceph-ansible-prs-dev-docker_cluster'
                     current-parameters: true
-                  - name: 'ceph-ansible-prs-luminous-docker_cluster_collocation'
+                  - name: 'ceph-ansible-prs-dev-docker_cluster_collocation'
                     current-parameters: true
-                  - name: 'ceph-ansible-prs-luminous-ooo_collocation'
+                  - name: 'ceph-ansible-prs-dev-ooo_collocation'
                     current-parameters: true
     scm:
       - git:
