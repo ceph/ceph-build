@@ -240,9 +240,8 @@
                     current-parameters: true
                   - name: 'ceph-ansible-prs-dev-lvm_batch'
                     current-parameters: true
-                  # lvm batch container is not supported at the moment, see https://tracker.ceph.com/issues/36363
-                  #- name: 'ceph-ansible-prs-luminous-lvm_batch_container'
-                  #  current-parameters: true
+                  - name: 'ceph-ansible-prs-dev-lvm_batch_container'
+                    current-parameters: true
 
       - conditional-step:
           condition-kind: shell
