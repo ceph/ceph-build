@@ -248,6 +248,28 @@
           condition-command: |
             #!/bin/bash
             set -x
+            # if the current branch is stable-3.0 or stable-3.1 then we don't run these tests
+            if [[ "$ghprbTargetBranch" == "stable-3.1" ]] || [[ "$ghprbTargetBranch" == "stable-3.0" ]]; then
+              exit 1
+            fi
+            git diff --name-only $(git show HEAD | grep Merge | head -n 1 | cut -d ':' -f2) | grep -E 'roles/ceph-rgw/tasks/multisite'
+          on-evaluation-failure: dont-run
+          steps:
+            - multijob:
+                name: 'ceph-ansible rgw multisite scenarios playbook testing'
+                condition: SUCCESSFUL
+                execution-type: PARALLEL
+                projects:
+                  - name: 'ceph-ansible-prs-dev-rgw_multisite'
+                    current-parameters: true
+                  - name: 'ceph-ansible-prs-dev-rgw_multisite_container'
+                    current-parameters: true
+
+      - conditional-step:
+          condition-kind: shell
+          condition-command: |
+            #!/bin/bash
+            set -x
             git diff --name-only $(git show HEAD | grep Merge | head -n 1 | cut -d ':' -f2) | grep -v 'infrastructure-playbooks'
             if [ $? -eq 1 ]; then
               echo "Infra playbooks modified.  Not testing remaining scenarios."
