@@ -45,14 +45,14 @@ libcap-devel
 libnfsidmap-devel
 libwbclient-devel
 krb5-devel
+librados-devel
 librgw-devel
 libcephfs-devel
 lttng-ust-devel
 lttng-tools-devel
 "
 
-# 1-17-17  will remove on next push of EPEL 7 stable, can remove in a couple days
-sudo yum install -y mock --enablerepo=epel-testing
+sudo yum install -y mock
 
 # Normalize variables across rpm/deb builds
 NORMAL_DISTRO=$DISTRO
