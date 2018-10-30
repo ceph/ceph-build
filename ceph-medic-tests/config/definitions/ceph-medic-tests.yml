@@ -13,6 +13,7 @@
     node: vagrant && libvirt
     project-type: freestyle
     defaults: global
+    disabled: true
     display-name: 'ceph-medic: Tests [{scenario}]'
     quiet-period: 5
     block-downstream: false
