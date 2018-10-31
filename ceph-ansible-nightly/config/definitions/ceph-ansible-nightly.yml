@@ -95,9 +95,10 @@
         - 'ceph-ansible-nightly-{release}-{ceph_ansible_branch}-{scenario}'
 
 - project:
-    name: ceph-ansible-nightly-master
+    name: ceph-ansible-nightly-stable3.2
     release:
-      - dev
+      - luminous
+      - mimic
     scenario:
       - centos7_cluster
       - xenial_cluster
@@ -112,19 +113,11 @@
       - shrink_mon_container
       - shrink_osd
       - shrink_osd_container
-      - bluestore_osds_non_container
-      - bluestore_osds_container
-      - filestore_osds_non_container
-      - filestore_osds_container
       - purge_cluster_container
       - purge_cluster_non_container
-      - purge_filestore_osds_container
-      - purge_filestore_osds_non_container
-      - purge_bluestore_osds_container
-      - purge_bluestore_osds_non_container
       - ooo_collocation
     ceph_ansible_branch:
-      - master
+      - stable-3.2
     jobs:
         - 'ceph-ansible-nightly-{release}-{ceph_ansible_branch}-{scenario}'
 
