@@ -2,6 +2,14 @@
 set -ex
 WORKDIR=$(mktemp -td tox.XXXXXXXXXX)
 
+# ceph-ansible now requires a dependency on the control node (this machine) in
+# order to work properly
+if test -f /etc/redhat-release ; then
+    sudo yum install python-netaddr
+else
+    sudo apt-get install python-netaddr
+fi
+
 # the following two methods exist in scripts/build_utils.sh
 pkgs=( "tox" )
 install_python_packages "pkgs[@]"
