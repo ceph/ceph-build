@@ -8,11 +8,8 @@ WORKDIR=$(mktemp -td tox.XXXXXXXXXX)
 # if this project was started manually
 github_status_setup
 
-# TODO: at this point a `curl` to shaman is needed to verify that the repo is
-# ready to be consumed
-
 # the following two methods exist in scripts/build_utils.sh
-pkgs=( "tox" "github-status>0.0.3" )
+pkgs=( "tox" "github-status>0.0.3" "netaddr")
 install_python_packages "pkgs[@]"
 
 GITHUB_STATUS_STATE="pending" $VENV/github-status create

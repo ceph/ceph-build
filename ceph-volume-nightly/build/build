@@ -3,9 +3,8 @@ set -ex
 WORKDIR=$(mktemp -td tox.XXXXXXXXXX)
 
 # the following two methods exist in scripts/build_utils.sh
-pkgs=( "tox" )
+pkgs=( "tox" "netaddr")
 install_python_packages "pkgs[@]"
-
 
 delete_libvirt_vms
 clear_libvirt_networks
