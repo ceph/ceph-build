@@ -54,6 +54,8 @@ krb5-devel
 librados-devel-${CEPH_VERSION}
 librgw-devel-${CEPH_VERSION}
 libcephfs-devel-${CEPH_VERSION}
+lttng-ust-devel
+lttng-tools-devel
 "
 
 sudo yum install -y mock
