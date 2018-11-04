@@ -1,0 +1,9 @@
+#!/bin/bash
+
+# the following two methods exist in scripts/build_utils.sh
+pkgs=( "tox" )
+install_python_packages "pkgs[@]"
+
+cd "$WORKSPACE/ceph-iscsi"
+
+$VENV/tox -rv
