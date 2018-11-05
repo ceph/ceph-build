@@ -54,7 +54,7 @@ function group_vars_check {
 function git_diff_to_head {
   # shellcheck disable=SC2154
   # ghprbTargetBranch variable comes from jenkins's injectedEnvVars
-  git diff --no-color origin/"${ghprbTargetBranch}"..HEAD
+  git diff --diff-filter=MT --no-color origin/"${ghprbTargetBranch}"..HEAD
 }
 
 function match_file {
