@@ -30,11 +30,9 @@
           allow-whitelist-orgs-as-admins: true
           org-list:
             - ceph
-          white-list-labels: 
-            - dashboard
           trigger-phrase: 'jenkins test dashboard'
           skip-build-phrase: '^jenkins do not test.*'
-          only-trigger-phrase: false
+          only-trigger-phrase: true
           github-hooks: true
           permit-all: true
           auto-close-on-fail: false
