@@ -51,12 +51,12 @@
       - string:
           name: NTIRPC_BRANCH
           description: "The git branch (or tag) to build"
-          default: "v1.7"
+          default: "v1.7.1"
 
       - string:
           name: NTIRPC_DEBIAN_BRANCH
           description: "The git branch (or tag) for debian build scripts for ntirpc"
-          default: "xenial-libntirpc-1.5"
+          default: "xenial-libntirpc-1.7"
 
       - string:
           name: NFS_GANESHA_DEBIAN_BRANCH
@@ -148,9 +148,9 @@ If this is checked, then the binaries will be built and pushed to chacra even if
     builders:
       - shell: |
           echo "Cleaning up top-level workarea (shared among workspaces)"
-          rm -rf dist
-          rm -rf venv
-          rm -rf release
+          sudo rm -rf dist
+          sudo rm -rf venv
+          sudo rm -rf release
       # debian build scripts
       - shell:
           !include-raw:

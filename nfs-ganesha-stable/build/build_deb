@@ -61,6 +61,9 @@ sudo chown -R jenkins-build:jenkins-build $WORKSPACE/dist/ntirpc/deb
 cd $WORKSPACE/dist/ntirpc/deb
 apt-ftparchive packages . > Packages
 
+# for debugging
+cat Packages
+
 cd $WORKSPACE
 
 REPO_URL="https://shaman.ceph.com/api/repos/ceph/$CEPH_BRANCH/$CEPH_SHA1/$DISTRO/$DIST/repo"
@@ -135,7 +138,7 @@ DEB_ARCH=$(dpkg-architecture -qDEB_BUILD_ARCH)
 
 ## Prepare the debian files
 # Bump the changelog
-dch -v "$VERSION-1${DIST}" "$VERSION for Shaman"
+dch -v "$VERSION-1${DIST}" "$VERSION for download.ceph.com"
 
 # Create .dsc and source tarball, we don't care about signing changes or source package
 sudo dpkg-buildpackage -S -us -uc -d
@@ -147,18 +150,36 @@ sudo pbuilder --clean \
     --distribution $DIST \
     --basetgz $PBUILDDIR/$DIST.tgz
 
-
 mkdir -p $WORKSPACE/dist/deb
 
 # add missing packages and components to pbuilder
 sudo pbuilder update \
     --distribution $DIST \
     --basetgz $PBUILDDIR/$DIST.tgz \
-    --extrapackages "apt-transport-https apt-utils ca-certificates librados-dev libcephfs-dev librgw-dev libntirpc-dev debhelper python-all" \
+    --extrapackages "apt-transport-https apt-utils ca-certificates debhelper python-all liblttng-ust0 liblttng-ust-dev liblttng-ctl-dev pkgconf quilt" \
     --components "main restricted universe multiverse" \
-    --othermirror "${SHAMAN_MIRROR}" \
+    --override-config
+
+sudo pbuilder update \
+    --distribution $DIST \
+    --basetgz $PBUILDDIR/$DIST.tgz \
+    --removepackages "librados2 libcephfs2 librgw2 librados-dev libcephfs-dev librgw-dev libntirpc-dev" \
+    --override-config
+
+sudo pbuilder update \
+    --distribution $DIST \
+    --basetgz $PBUILDDIR/$DIST.tgz \
+    --extrapackages "libntirpc-dev" \
     --othermirror "deb [trusted=yes] file://$WORKSPACE/dist/ntirpc/deb ./" \
     --bindmounts "$WORKSPACE/dist/ntirpc/deb" \
+    --override-config
+
+# use libcephfs and librgw from shaman
+sudo pbuilder update \
+    --distribution $DIST \
+    --basetgz $PBUILDDIR/$DIST.tgz \
+    --extrapackages "librados2 libcephfs2 librgw2 librados-dev libcephfs-dev librgw-dev" \
+    --othermirror "${SHAMAN_MIRROR}" \
     --override-config
 
 echo "Building debs for $DIST"
