@@ -472,6 +472,8 @@
                     current-parameters: true
                   - name: 'ceph-ansible-prs-luminous-docker_cluster_collocation'
                     current-parameters: true
+                  - name: 'ceph-ansible-prs-luminous-ooo_collocation'
+                    current-parameters: true
     scm:
       - git:
           url: https://github.com/ceph/ceph-ansible.git
