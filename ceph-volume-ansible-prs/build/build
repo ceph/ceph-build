@@ -8,8 +8,13 @@ WORKDIR=$(mktemp -td tox.XXXXXXXXXX)
 # if this project was started manually
 github_status_setup
 
-# TODO: at this point a `curl` to shaman is needed to verify that the repo is
-# ready to be consumed
+# ceph-ansible now requires a dependency on the control node (this machine) in
+# order to work properly
+if test -f /etc/redhat-release ; then
+    sudo yum install python-netaddr
+else
+    sudo apt-get install python-netaddr
+fi
 
 # the following two methods exist in scripts/build_utils.sh
 pkgs=( "tox" "github-status>0.0.3" )

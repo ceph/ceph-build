@@ -3,7 +3,7 @@
     project-type: freestyle
     defaults: global
     concurrent: true
-    node: huge && (centos7 || trusty) && rebootable
+    node: huge && (centos7 || xenial) && rebootable
     display-name: 'ceph: dashboard Pull Requests'
     quiet-period: 5
     block-downstream: false
@@ -30,9 +30,11 @@
           allow-whitelist-orgs-as-admins: true
           org-list:
             - ceph
+          white-list-labels: 
+            - dashboard
           trigger-phrase: 'jenkins test dashboard'
           skip-build-phrase: '^jenkins do not test.*'
-          only-trigger-phrase: true
+          only-trigger-phrase: false
           github-hooks: true
           permit-all: true
           auto-close-on-fail: false

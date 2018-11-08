@@ -105,6 +105,7 @@
       - add_osds_container
       - rgw_multisite
       - rgw_multisite_container
+      - container_podman
     jobs:
       - 'ceph-ansible-prs-trigger'
 
