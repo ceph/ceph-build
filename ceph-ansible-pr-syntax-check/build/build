@@ -84,6 +84,7 @@ function test_ceph_release_in_ceph_default {
 cd "$WORKSPACE"/ceph-ansible
 syntax_check
 #ansible_lint
+git fetch origin
 group_vars_check
 test_sign_off
 test_ceph_release_in_ceph_default
