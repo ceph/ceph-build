@@ -21,4 +21,13 @@ update_vagrant_boxes
 
 cd src/ceph-volume/ceph_volume/tests/functional/$SUBCOMMAND
 
-VAGRANT_RELOAD_FLAGS="--debug --no-provision" CEPH_DEV_BRANCH=$CEPH_BRANCH $VENV/tox --workdir=$WORKDIR -vre $DISTRO-$OBJECTSTORE-$SCENARIO -- --provider=libvirt
+if [[ "$CEPH_DEV_BRANCH" == "mimic" ]]; then
+    CEPH_ANSIBLE_BRANCH="stable-3.2"
+elif [[ "$CEPH_DEV_BRANCH" == "luminous" ]]; then
+    CEPH_ANSIBLE_BRANCH="stable-3.2"
+else
+    CEPH_ANSIBLE_BRANCH="master"
+fi
+
+
+VAGRANT_RELOAD_FLAGS="--debug --no-provision" CEPH_ANSIBLE_BRANCH=$CEPH_ANSIBLE_BRANCH CEPH_DEV_BRANCH=$CEPH_BRANCH $VENV/tox --workdir=$WORKDIR -vre $DISTRO-$OBJECTSTORE-$SCENARIO -- --provider=libvirt
