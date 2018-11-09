@@ -29,6 +29,14 @@ update_vagrant_boxes
 
 cd src/ceph-volume/ceph_volume/tests/functional/$SUBCOMMAND
 
-CEPH_DEV_BRANCH=$ghprbTargetBranch $VENV/tox --workdir=$WORKDIR -vre $DISTRO-$OBJECTSTORE-$SCENARIO -- --provider=libvirt
+if [[ "$ghprbTargetBranch" == "mimic" ]]; then
+    CEPH_ANSIBLE_BRANCH="stable-3.2"
+elif [[ "$ghprbTargetBranch" == "luminous" ]]; then
+    CEPH_ANSIBLE_BRANCH="stable-3.2"
+else
+    CEPH_ANSIBLE_BRANCH="master"
+fi
+
+CEPH_ANSIBLE_BRANCH=$CEPH_ANSIBLE_BRANCH CEPH_DEV_BRANCH=$ghprbTargetBranch $VENV/tox --workdir=$WORKDIR -vre $DISTRO-$OBJECTSTORE-$SCENARIO -- --provider=libvirt
 
 GITHUB_STATUS_STATE="success" $VENV/github-status create
