@@ -21,9 +21,9 @@ update_vagrant_boxes
 
 cd src/ceph-volume/ceph_volume/tests/functional/$SUBCOMMAND
 
-if [[ "$CEPH_DEV_BRANCH" == "mimic" ]]; then
+if [ "$CEPH_BRANCH" = "mimic" ]; then
     CEPH_ANSIBLE_BRANCH="stable-3.2"
-elif [[ "$CEPH_DEV_BRANCH" == "luminous" ]]; then
+elif [ "$CEPH_BRANCH" = "luminous" ]; then
     CEPH_ANSIBLE_BRANCH="stable-3.2"
 else
     CEPH_ANSIBLE_BRANCH="master"
