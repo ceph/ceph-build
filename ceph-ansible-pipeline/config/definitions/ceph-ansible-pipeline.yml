@@ -57,12 +57,12 @@
           condition-command: |
             #!/bin/bash
             set -x
-            # if the target branch is stable-3.2 we RUN these tests.
-            if [[ "$ghprbTargetBranch" == "master" ]]; then
+            # if the target branch is master we RUN these tests.
+            if [[ "$ghprbTargetBranch" =~ "stable-" ]]; then
               exit 1
             fi
             git diff --name-only $(git show HEAD | grep Merge | head -n 1 | cut -d ':' -f2) | grep -E 'infrastructure-playbooks/add-osd|tests/functional/centos/7/add-osds'
-          on-evaluation-failure: run
+          on-evaluation-failure: dont-run
           steps:
             - multijob:
                 name: 'ceph-ansible add_osds playbook testing'
@@ -79,11 +79,11 @@
             #!/bin/bash
             set -x
             # if the target branch is stable-3.2 we RUN these tests.
-            if [[ "$ghprbTargetBranch" == "stable-3.2" ]]; then
+            if [[ "$ghprbTargetBranch" =~ stable-3.[0-1]|master ]]; then
               exit 1
             fi
             git diff --name-only $(git show HEAD | grep Merge | head -n 1 | cut -d ':' -f2) | grep -E 'infrastructure-playbooks/add-osd|tests/functional/centos/7/add-osds'
-          on-evaluation-failure: run
+          on-evaluation-failure: dont-run
           steps:
             - multijob:
                 name: 'ceph-ansible add_osds playbook testing'
@@ -368,11 +368,11 @@
             #!/bin/bash
             set -x
             # if the target branch is stable-3.2 then we RUN these tests.
-            if [[ "$ghprbTargetBranch" == "stable-3.2" ]]; then
+            if [[ "$ghprbTargetBranch" =~ stable-3.[0-1]|master ]]; then
               exit 1
             fi
             git diff --name-only $(git show HEAD | grep Merge | head -n 1 | cut -d ':' -f2) | grep -E 'roles/ceph-rgw/tasks/multisite|tests/functional/centos/7/rgw-multisite'
-          on-evaluation-failure: run
+          on-evaluation-failure: dont-run
           steps:
             - multijob:
                 name: 'ceph-ansible rgw multisite scenarios playbook testing'
@@ -389,11 +389,11 @@
             #!/bin/bash
             set -x
             # if the target branch is master then we RUN these tests.
-            if [[ "$ghprbTargetBranch" == "master" ]]; then
+            if [[ "$ghprbTargetBranch" =~ "stable-" ]]; then
               exit 1
             fi
             git diff --name-only $(git show HEAD | grep Merge | head -n 1 | cut -d ':' -f2) | grep -E 'roles/ceph-rgw/tasks/multisite|tests/functional/centos/7/rgw-multisite'
-          on-evaluation-failure: run
+          on-evaluation-failure: dont-run
           steps:
             - multijob:
                 name: 'ceph-ansible rgw multisite scenarios playbook testing'
