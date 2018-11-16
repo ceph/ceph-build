@@ -336,8 +336,8 @@
           condition-command: |
             #!/bin/bash
             set -x
-            # if the target branch is not master or stable-3.2 then we DON'T RUN these tests
-            if [[ "$ghprbTargetBranch" =~ stable-3.[0-1] ]]; then
+            # if the target branch is not stable-3.2 then we DON'T RUN these tests
+            if [[ "$ghprbTargetBranch" =~ stable-3.[0-1]|master ]]; then
               exit 1
             fi
             git diff --name-only $(git show HEAD | grep Merge | head -n 1 | cut -d ':' -f2) | grep -E 'roles/ceph-defaults/tasks/facts.yml|roles/ceph-osd|ceph-validate'
@@ -349,6 +349,8 @@
                 execution-type: PARALLEL
                 projects:
                   - name: 'ceph-ansible-prs-luminous-bluestore_lvm_osds'
+                    current-parameters: true
+                  - name: 'ceph-ansible-prs-luminous-bluestore_lvm_osds_container'
                     current-parameters: true
       - conditional-step:
           condition-kind: shell
