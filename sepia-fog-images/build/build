@@ -51,9 +51,12 @@ funRetry () {
 if [ ! -d teuthology ]; then
   git clone https://github.com/ceph/teuthology
   cd teuthology
+  git checkout $TEUTHOLOGYBRANCH
 else
   cd teuthology
+  git checkout master
   git pull
+  git checkout $TEUTHOLOGYBRANCH
 fi
 
 # Bootstrap teuthology
@@ -66,9 +69,13 @@ source $WORKSPACE/teuthology/virtualenv/bin/activate
 # Clone or update ceph-cm-ansible
 if [ ! -d ceph-cm-ansible ]; then
   git clone https://github.com/ceph/ceph-cm-ansible
+  cd ceph-cm-ansible
+  git checkout $CMANSIBLEBRANCH
 else
   cd ceph-cm-ansible
+  git checkout master
   git pull
+  git checkout $CMANSIBLEBRANCH
 fi
 
 cd $WORKSPACE
