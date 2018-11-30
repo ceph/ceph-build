@@ -97,6 +97,7 @@
       - lvm_osds
       - lvm_batch
       - purge_lvm_osds
+      - purge_lvm_osds_container
       - bluestore_lvm_osds
       - lvm_osds_container
       - lvm_batch_container
