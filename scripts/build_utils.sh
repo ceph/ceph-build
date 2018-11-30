@@ -840,6 +840,12 @@ teardown_vagrant_tests() {
         sudo virsh net-destroy $network || true
         sudo virsh net-undefine $network || true
     done
+
+    # For when machines get stuck in state: preparing
+    # https://github.com/SUSE/pennyworth/wiki/Troubleshooting#missing-domain
+    for dir in $(sudo find $WORKSPACE | grep '.vagrant/machines'); do
+      rm -rf "$dir/*"
+    done
 }
 
 get_nr_build_jobs() {
