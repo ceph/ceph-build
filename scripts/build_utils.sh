@@ -619,6 +619,49 @@ extra_cmake_args() {
     fi
 }
 
+prune_stale_vagrant_vms() {
+    # Vagrant VMs might be stale from a previous run. Seen only with libvirt as
+    # a provider, the VMs appear in "prepare" state as reported by ``vagrant
+    # global-status``. The fix is to ensure the ``.vagrant/machines`` dir is
+    # removed, and then call the ``vagrant global-status --prune`` to clean up
+    # reporting.
+    # See: https://github.com/SUSE/pennyworth/wiki/Troubleshooting#missing-domain
+
+    # Usage examples:
+
+    # Global workspace search with extended globbing (will only look into tests directories):
+    #
+    #   prune_stale_vagrant_vms $WORKSPACE/../**/tests
+    #
+    # Current worspace only:
+    #
+    #   prune_stale_vagrant_vms
+
+    # Allow an optional search path, for faster searching on the global
+    # workspace
+    case "$1" in
+        *\*\**)
+            SEARCH_PATH=$1
+            ;;
+        *)
+            SEARCH_PATH="$WORKSPACE"
+            ;;
+    esac
+
+    # set extended pattern globbing
+    shopt -s globstar
+
+    # From the global workspace path, find any machine stale from other jobs
+    sudo find $SEARCH_PATH -type d -wholename '*/.vagrant/machines' -exec rm -rv {} +
+
+    # unset extended pattern globbing, to prevent messing up other functions
+    shopt -u globstar
+
+    # Make sure anything stale has been removed from reporting, without halting
+    # everything if it fails
+    vagrant global-status --prune || true
+}
+
 delete_libvirt_vms() {
     # Delete any VMs leftover from previous builds.
     # Primarily used for Vagrant VMs leftover from docker builds.
