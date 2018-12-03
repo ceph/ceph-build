@@ -873,7 +873,6 @@ teardown_vagrant_tests() {
         collect_ceph_logs all
         vagrant destroy -f
         stat ./fetch > /dev/null 2>&1 && rm -rf ./fetch
-        vagrant global-status --prune
         cd -
     done
 
@@ -889,6 +888,8 @@ teardown_vagrant_tests() {
     for dir in $(sudo find $WORKSPACE | grep '.vagrant/machines'); do
       rm -rf "$dir/*"
     done
+
+    vagrant global-status --prune
 }
 
 get_nr_build_jobs() {
