@@ -14,6 +14,7 @@ fi
 pkgs=( "tox" )
 install_python_packages "pkgs[@]"
 
+prune_stale_vagrant_vms $WORKSPACE/../**/tests
 delete_libvirt_vms
 clear_libvirt_networks
 restart_libvirt_services
