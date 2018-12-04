@@ -99,8 +99,8 @@
           condition-command: |
             #!/bin/bash
             set -x
-            # if the target branch is master then we DON'T RUN these tests.
-            if [[ "$ghprbTargetBranch" == "master" ]]; then
+            # if the target branch is stable-3.2 or master we DON'T RUN these tests.
+            if [[ "$ghprbTargetBranch" =~ stable-3.2|master ]]; then
               exit 1
             fi
             git diff --name-only $(git show HEAD | grep Merge | head -n 1 | cut -d ':' -f2) | grep 'infrastructure-playbooks/purge'
@@ -121,8 +121,6 @@
                     current-parameters: true
                   - name: 'ceph-ansible-prs-luminous-purge_filestore_osds_non_container'
                     current-parameters: true
-                  - name: 'ceph-ansible-prs-dev-purge_lvm_osds'
-                    current-parameters: true
       - conditional-step:
           condition-kind: shell
           condition-command: |
@@ -140,7 +138,7 @@
                 condition: SUCCESSFUL
                 execution-type: PARALLEL
                 projects:
-                  - name: 'ceph-ansible-prs-dev-purge_lvm_osds_container'
+                  - name: 'ceph-ansible-prs-dev-purge_cluster_container'
                     current-parameters: true
       - conditional-step:
           condition-kind: shell
@@ -159,7 +157,45 @@
                 condition: SUCCESSFUL
                 execution-type: PARALLEL
                 projects:
-                  - name: 'ceph-ansible-prs-dev-purge_lvm_osds'
+                  - name: 'ceph-ansible-prs-dev-purge_cluster_non_container'
+                    current-parameters: true
+      - conditional-step:
+          condition-kind: shell
+          condition-command: |
+            #!/bin/bash
+            set -x
+            # if the target branch is master then we DON'T RUN these tests.
+            if [[ "$ghprbTargetBranch" == "master" ]]; then
+              exit 1
+            fi
+            git diff --name-only $(git show HEAD | grep Merge | head -n 1 | cut -d ':' -f2) | grep 'infrastructure-playbooks/purge-docker-cluster.yml'
+          on-evaluation-failure: dont-run
+          steps:
+            - multijob:
+                name: 'ceph-ansible purge playbook testing'
+                condition: SUCCESSFUL
+                execution-type: PARALLEL
+                projects:
+                  - name: 'ceph-ansible-prs-luminous-purge_cluster_container'
+                    current-parameters: true
+      - conditional-step:
+          condition-kind: shell
+          condition-command: |
+            #!/bin/bash
+            set -x
+            # if the target branch is master then we DON'T RUN these tests.
+            if [[ "$ghprbTargetBranch" == "master" ]]; then
+              exit 1
+            fi
+            git diff --name-only $(git show HEAD | grep Merge | head -n 1 | cut -d ':' -f2) | grep 'infrastructure-playbooks/purge-cluster.yml'
+          on-evaluation-failure: dont-run
+          steps:
+            - multijob:
+                name: 'ceph-ansible purge playbook testing'
+                condition: SUCCESSFUL
+                execution-type: PARALLEL
+                projects:
+                  - name: 'ceph-ansible-prs-luminous-purge_cluster_non_container'
                     current-parameters: true
       - conditional-step:
           condition-kind: shell
