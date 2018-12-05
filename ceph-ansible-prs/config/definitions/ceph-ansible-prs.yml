@@ -9,8 +9,8 @@
       - luminous
     scenario:
       - centos7_cluster
-      - docker_cluster
-      - docker_cluster_collocation
+      - cluster_container
+      - cluster_container_collocation
       - bluestore_osds_container
       - purge_bluestore_osds_non_container
       - ooo_collocation
@@ -24,7 +24,7 @@
       - jewel
     scenario:
       - centos7_cluster
-      - docker_cluster
+      - cluster_container
       - ooo_collocation
     jobs:
         - 'ceph-ansible-prs-oldstable-trigger'
@@ -41,26 +41,26 @@
       - purge_cluster_non_container
       - purge_filestore_osds_non_container
       - purge_filestore_osds_container
-      - update_cluster
-      - update_docker_cluster
+      - update_cluster_non_container
+      - update_cluster_container
       - switch_to_containers
       - bluestore_osds_non_container
       - filestore_osds_non_container
       - filestore_osds_container
-      - shrink_mon
+      - shrink_mon_non_container
       - shrink_mon_container
-      - shrink_osd
+      - shrink_osd_non_container
       - shrink_osd_container
-      - lvm_osds
-      - lvm_batch
-      - purge_lvm_osds
-      - bluestore_lvm_osds
+      - lvm_osds_non_container
+      - lvm_batch_non_container
+      - purge_lvm_osds_non_container
+      - bluestore_lvm_osds_non_container
       - lvm_osds_container
       - lvm_batch_container
       - bluestore_lvm_osds_container
-      - add_osds
+      - add_osds_non_container
       - add_osds_container
-      - rgw_multisite
+      - rgw_multisite_non_container
       - rgw_multisite_container
     jobs:
         - 'ceph-ansible-prs-trigger'
@@ -75,8 +75,8 @@
       - dev
     scenario:
       - centos7_cluster
-      - docker_cluster
-      - docker_cluster_collocation
+      - cluster_container
+      - cluster_container_collocation
       - bluestore_osds_container
       - purge_bluestore_osds_non_container
       - ooo_collocation
@@ -84,27 +84,27 @@
       - purge_cluster_non_container
       - purge_filestore_osds_non_container
       - purge_filestore_osds_container
-      - update_cluster
-      - update_docker_cluster
+      - update_cluster_non_container
+      - update_cluster_container
       - switch_to_containers
       - bluestore_osds_non_container
       - filestore_osds_non_container
       - filestore_osds_container
-      - shrink_mon
+      - shrink_mon_non_container
       - shrink_mon_container
-      - shrink_osd
+      - shrink_osd_non_container
       - shrink_osd_container
-      - lvm_osds
-      - lvm_batch
-      - purge_lvm_osds
+      - lvm_osds_non_container
+      - lvm_batch_non_container
+      - purge_lvm_osds_non_container
       - purge_lvm_osds_container
-      - bluestore_lvm_osds
+      - bluestore_lvm_osds_non_container
       - lvm_osds_container
       - lvm_batch_container
       - bluestore_lvm_osds_container
-      - add_osds
+      - add_osds_non_container
       - add_osds_container
-      - rgw_multisite
+      - rgw_multisite_non_container
       - rgw_multisite_container
       - container_podman
     jobs:

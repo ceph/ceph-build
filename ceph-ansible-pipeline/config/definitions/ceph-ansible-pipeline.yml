@@ -69,7 +69,7 @@
                 condition: SUCCESSFUL
                 execution-type: PARALLEL
                 projects:
-                  - name: 'ceph-ansible-prs-dev-add_osds'
+                  - name: 'ceph-ansible-prs-dev-add_osds_non_container'
                     current-parameters: true
                   - name: 'ceph-ansible-prs-dev-add_osds_container'
                     current-parameters: true
@@ -90,7 +90,7 @@
                 condition: SUCCESSFUL
                 execution-type: PARALLEL
                 projects:
-                  - name: 'ceph-ansible-prs-luminous-add_osds'
+                  - name: 'ceph-ansible-prs-luminous-add_osds_non_container'
                     current-parameters: true
                   - name: 'ceph-ansible-prs-luminous-add_osds_container'
                     current-parameters: true
@@ -214,9 +214,9 @@
                 condition: SUCCESSFUL
                 execution-type: PARALLEL
                 projects:
-                  - name: 'ceph-ansible-prs-dev-update_cluster'
+                  - name: 'ceph-ansible-prs-dev-update_cluster_non_container'
                     current-parameters: true
-                  - name: 'ceph-ansible-prs-dev-update_docker_cluster'
+                  - name: 'ceph-ansible-prs-dev-update_cluster_container'
                     current-parameters: true
       - conditional-step:
           condition-kind: shell
@@ -235,9 +235,9 @@
                 condition: SUCCESSFUL
                 execution-type: PARALLEL
                 projects:
-                  - name: 'ceph-ansible-prs-luminous-update_cluster'
+                  - name: 'ceph-ansible-prs-luminous-update_cluster_non_container'
                     current-parameters: true
-                  - name: 'ceph-ansible-prs-luminous-update_docker_cluster'
+                  - name: 'ceph-ansible-prs-luminous-update_cluster_container'
                     current-parameters: true
       - conditional-step:
           condition-kind: shell
@@ -256,7 +256,7 @@
                 condition: SUCCESSFUL
                 execution-type: PARALLEL
                 projects:
-                  - name: 'ceph-ansible-prs-dev-shrink_mon'
+                  - name: 'ceph-ansible-prs-dev-shrink_mon_non_container'
                     current-parameters: true
                   - name: 'ceph-ansible-prs-dev-shrink_mon_container'
                     current-parameters: true
@@ -277,7 +277,7 @@
                 condition: SUCCESSFUL
                 execution-type: PARALLEL
                 projects:
-                  - name: 'ceph-ansible-prs-luminous-shrink_mon'
+                  - name: 'ceph-ansible-prs-luminous-shrink_mon_non_container'
                     current-parameters: true
                   - name: 'ceph-ansible-prs-luminous-shrink_mon_container'
                     current-parameters: true
@@ -298,7 +298,7 @@
                 condition: SUCCESSFUL
                 execution-type: PARALLEL
                 projects:
-                  - name: 'ceph-ansible-prs-dev-shrink_osd'
+                  - name: 'ceph-ansible-prs-dev-shrink_osd_non_container'
                     current-parameters: true
                   - name: 'ceph-ansible-prs-dev-shrink_osd_container'
                     current-parameters: true
@@ -319,7 +319,7 @@
                 condition: SUCCESSFUL
                 execution-type: PARALLEL
                 projects:
-                  - name: 'ceph-ansible-prs-luminous-shrink_osd'
+                  - name: 'ceph-ansible-prs-luminous-shrink_osd_non_container'
                     current-parameters: true
                   - name: 'ceph-ansible-prs-luminous-shrink_osd_container'
                     current-parameters: true
@@ -403,7 +403,7 @@
                 condition: SUCCESSFUL
                 execution-type: PARALLEL
                 projects:
-                  - name: 'ceph-ansible-prs-luminous-bluestore_lvm_osds'
+                  - name: 'ceph-ansible-prs-luminous-bluestore_lvm_osds_non_container'
                     current-parameters: true
                   - name: 'ceph-ansible-prs-luminous-bluestore_lvm_osds_container'
                     current-parameters: true
@@ -424,15 +424,15 @@
                 condition: SUCCESSFUL
                 execution-type: PARALLEL
                 projects:
-                  - name: 'ceph-ansible-prs-dev-lvm_osds'
+                  - name: 'ceph-ansible-prs-dev-lvm_osds_non_container'
                     current-parameters: true
                   - name: 'ceph-ansible-prs-dev-lvm_osds_container'
                     current-parameters: true
-                  - name: 'ceph-ansible-prs-dev-bluestore_lvm_osds'
+                  - name: 'ceph-ansible-prs-dev-bluestore_lvm_osds_non_container'
                     current-parameters: true
                   - name: 'ceph-ansible-prs-dev-bluestore_lvm_osds_container'
                     current-parameters: true
-                  - name: 'ceph-ansible-prs-dev-lvm_batch'
+                  - name: 'ceph-ansible-prs-dev-lvm_batch_non_container'
                     current-parameters: true
                   - name: 'ceph-ansible-prs-dev-lvm_batch_container'
                     current-parameters: true
@@ -453,7 +453,7 @@
                 condition: SUCCESSFUL
                 execution-type: PARALLEL
                 projects:
-                  - name: 'ceph-ansible-prs-luminous-rgw_multisite'
+                  - name: 'ceph-ansible-prs-luminous-rgw_multisite_non_container'
                     current-parameters: true
                   - name: 'ceph-ansible-prs-luminous-rgw_multisite_container'
                     current-parameters: true
@@ -474,7 +474,7 @@
                 condition: SUCCESSFUL
                 execution-type: PARALLEL
                 projects:
-                  - name: 'ceph-ansible-prs-dev-rgw_multisite'
+                  - name: 'ceph-ansible-prs-dev-rgw_multisite_non_container'
                     current-parameters: true
                   - name: 'ceph-ansible-prs-dev-rgw_multisite_container'
                     current-parameters: true
@@ -507,9 +507,9 @@
                 projects:
                   - name: 'ceph-ansible-prs-dev-centos7_cluster'
                     current-parameters: true
-                  - name: 'ceph-ansible-prs-dev-docker_cluster'
+                  - name: 'ceph-ansible-prs-dev-cluster_container'
                     current-parameters: true
-                  - name: 'ceph-ansible-prs-dev-docker_cluster_collocation'
+                  - name: 'ceph-ansible-prs-dev-cluster_collocation_container'
                     current-parameters: true
                   - name: 'ceph-ansible-prs-dev-container_podman'
                     current-parameters: true
@@ -542,9 +542,9 @@
                 projects:
                   - name: 'ceph-ansible-prs-luminous-centos7_cluster'
                     current-parameters: true
-                  - name: 'ceph-ansible-prs-luminous-docker_cluster'
+                  - name: 'ceph-ansible-prs-luminous-cluster_container'
                     current-parameters: true
-                  - name: 'ceph-ansible-prs-luminous-docker_cluster_collocation'
+                  - name: 'ceph-ansible-prs-luminous-cluster_collocation_container'
                     current-parameters: true
                   - name: 'ceph-ansible-prs-luminous-ooo_collocation'
                     current-parameters: true
