@@ -28,6 +28,8 @@
             - stable-2.1
             - stable-2.2
             - stable-3.0
+            - stable-3.1
+            - stable-3.2
           browser: auto
           skip-tag: true
           timeout: 20
