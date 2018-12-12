@@ -11,7 +11,21 @@ sha1=${3}
 
 echo "sync for: $project $release"
 echo "********************************************"
-deb_cmd="ubuntu@chacra.ceph.com:/opt/repos/$project/$release/$sha1/debian/jessie/flavors/default/* /opt/repos/$project/$release/debian/jessie/"
+
+# This ugly loop check all possible DEB combinations to see which repo has the most packages since that's likely the repo you want to sync.
+current_highest_count=0
+for combo in debian/jessie debian/stretch ubuntu/trusty ubuntu/xenial ubuntu/bionic; do
+  combo_count=$(curl -s https://chacra.ceph.com/r/$project/$release/$sha1/${combo}/flavors/default/pool/main/c/ceph/ | wc -l)
+  if [ $combo_count -gt $current_highest_count ]; then
+    current_highest_count=$combo_count
+    highest_combo=$combo
+  fi
+done
+
+echo "Found the most packages ($current_highest_count) in $highest_combo."
+
+# Replace $highest_combo with your own DISTRO/VERSION if you don't want to sync from the repo with the most packages.
+deb_cmd="ubuntu@chacra.ceph.com:/opt/repos/$project/$release/$sha1/$highest_combo/flavors/default/* /opt/repos/$project/$release/debian/jessie/"
 echo $deb_cmd
 echo "--------------------------------------------"
 rsync -Lavh -e 'ssh -p 2222' --progress $deb_cmd
