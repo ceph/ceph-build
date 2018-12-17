@@ -740,8 +740,18 @@ if [ -n "$release" ]; then
 else
   TOX_RUN_ENV=("CEPH_STABLE_RELEASE=$RELEASE" "${TOX_RUN_ENV[@]}")
 fi
+
+function build_job_name() {
+  local job_name=$1
+  shift
+  for item in "$@"; do
+    job_name="${job_name}-${item}"
+  done
+  echo "${job_name}"
+}
+
 # shellcheck disable=SC2116
-if ! eval "$(echo "${TOX_RUN_ENV[@]}")" "$VENV"/tox -rv -e="$RELEASE"-"$SCENARIO" --workdir="$WORKDIR" -- --provider=libvirt; then echo "ERROR: Job didn't complete successfully or got stuck for more than 3h."
+if ! eval "$(echo "${TOX_RUN_ENV[@]}")" "$VENV"/tox -rv -e="$(build_job_name $RELEASE $DISTRIBUTION $DEPLOYMENT $SCENARIO)" -- --provider=libvirt; then echo "ERROR: Job didn't complete successfully or got stuck for more than 3h."
   exit 1
 fi
 }
