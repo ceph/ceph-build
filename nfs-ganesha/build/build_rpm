@@ -9,6 +9,11 @@ fi
 ## Get some basic information about the system and the repository
 RELEASE="$(lsb_release --short -r | cut -d '.' -f 1)" # sytem release
 
+# Clean up Jenkins slave before each build
+sudo yum -y clean all
+sudo yum -y remove librgw-devel librgw2 librados-devel librados3 libcephfs-devel libcephfs2
+sudo yum -y autoremove
+
 # Get .repo file from appropriate shaman build
 REPO_URL="https://shaman.ceph.com/api/repos/ceph/$CEPH_BRANCH/$CEPH_SHA1/$DISTRO/$RELEASE/flavors/default/repo"
 TIME_LIMIT=1200
