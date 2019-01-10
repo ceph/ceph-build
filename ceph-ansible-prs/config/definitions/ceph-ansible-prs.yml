@@ -62,6 +62,7 @@
       - add_osds_container
       - rgw_multisite
       - rgw_multisite_container
+      - lvm_auto_discovery
     jobs:
         - 'ceph-ansible-prs-trigger'
 
@@ -107,6 +108,7 @@
       - rgw_multisite
       - rgw_multisite_container
       - container_podman
+      - lvm_auto_discovery
     jobs:
       - 'ceph-ansible-prs-trigger'
 
