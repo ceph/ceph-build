@@ -30,7 +30,7 @@ if [[ "$REPO_FOUND" -eq 0 ]]; then
 fi
 
 # We need this for system and to run the cmake
-sudo apt-get update
+sudo apt-get -y update -o Acquire::Languages=none || true
 
 # Normalize variables across rpm/deb builds
 NORMAL_DISTRO=$DISTRO
