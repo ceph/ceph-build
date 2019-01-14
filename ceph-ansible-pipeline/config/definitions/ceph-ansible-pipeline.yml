@@ -436,6 +436,10 @@
                     current-parameters: true
                   - name: 'ceph-ansible-prs-dev-lvm_batch_container'
                     current-parameters: true
+                  - name: 'ceph-ansible-prs-dev-lvm_auto_discovery'
+                    current-parameters: true
+                  - name: 'ceph-ansible-prs-dev-lvm_auto_discovery_container'
+                    current-parameters: true
       - conditional-step:
           condition-kind: shell
           condition-command: |
