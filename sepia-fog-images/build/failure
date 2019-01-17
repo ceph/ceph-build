@@ -38,11 +38,11 @@ done
 ssh ubuntu@store01.front.sepia.ceph.com "sudo service dhcpd restart"
 
 # Get FOG 'Capture' TaskID
-fogcaptureid=$(curl -s -k -H "fog-api-token: ${FOG_API_TOKEN}" -H "fog-user-token: ${FOG_USER_TOKEN}" http://fog.front.sepia.ceph.com/fog/tasktype -d '{"name": "Capture"}' -X GET | jq -r '.tasktypes[0].id')
+fogcaptureid=$(curl -f -s -k -H "fog-api-token: ${FOG_API_TOKEN}" -H "fog-user-token: ${FOG_USER_TOKEN}" http://fog.front.sepia.ceph.com/fog/tasktype -d '{"name": "Capture"}' -X GET | jq -r '.tasktypes[0].id')
 
 # Delete all active Capture tasks
-for task in $(curl -s -k -H "fog-api-token: ${FOG_API_TOKEN}" -H "fog-user-token: ${FOG_USER_TOKEN}" http://fog.front.sepia.ceph.com/fog/task/active -d '{"typeID": "'${fogcaptureid}'"}' -X GET | jq -r '.tasks[].id'); do
-  curl -s -k -H "fog-api-token: ${FOG_API_TOKEN}" -H "fog-user-token: ${FOG_USER_TOKEN}" http://fog.front.sepia.ceph.com/fog/task/${task} -X DELETE
+for task in $(curl -f -s -k -H "fog-api-token: ${FOG_API_TOKEN}" -H "fog-user-token: ${FOG_USER_TOKEN}" http://fog.front.sepia.ceph.com/fog/task/active -d '{"typeID": "'${fogcaptureid}'"}' -X GET | jq -r '.tasks[].id'); do
+  curl -f -s -k -H "fog-api-token: ${FOG_API_TOKEN}" -H "fog-user-token: ${FOG_USER_TOKEN}" http://fog.front.sepia.ceph.com/fog/task/${task} -X DELETE
 done
 
 set +e
