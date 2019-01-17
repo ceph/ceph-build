@@ -32,6 +32,10 @@
           name: CMANSIBLEBRANCH
           default: "master"
           description: "Optionally define a different ceph-cm-ansible branch (useful for testing)"
+      - string:
+          name: PAUSEQUEUE
+          default: "true"
+          description: "Should the teuthology queue be paused?  Recapturing an existing OS image will cause running reimages to fail without pausing the queue.  The queue can remain unpaused when a new distro/version is being captured.  Queue is paused by default."
 
     builders:
       - shell:

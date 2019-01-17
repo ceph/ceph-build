@@ -177,29 +177,34 @@ set -ex
 # Restart dhcpd so servers PXE boot to FOG server
 ssh ubuntu@store01.front.sepia.ceph.com "sudo service dhcpd restart"
 
-# Get FOG 'Deploy' TaskID
-fogdeployid=$(curl -s -k -H "fog-api-token: ${FOG_API_TOKEN}" -H "fog-user-token: ${FOG_USER_TOKEN}" http://fog.front.sepia.ceph.com/fog/tasktype -d '{"name": "Deploy"}' -X GET | jq -r '.tasktypes[0].id')
+# Only pause the queue if needed
+if [ "$PAUSEQUEUE" == "true" ]; then
+  # Get FOG 'Deploy' TaskID
+  fogdeployid=$(curl -s -k -H "fog-api-token: ${FOG_API_TOKEN}" -H "fog-user-token: ${FOG_USER_TOKEN}" http://fog.front.sepia.ceph.com/fog/tasktype -d '{"name": "Deploy"}' -X GET | jq -r '.tasktypes[0].id')
 
-# Check for scheduled deploy tasks
-deploytasks=$(curl -s -k -H "fog-api-token: ${FOG_API_TOKEN}" -H "fog-user-token: ${FOG_USER_TOKEN}" http://fog.front.sepia.ceph.com/fog/task/active -d '{"typeID": "'${fogdeployid}'"}' -X GET | jq -r '.count')
+  # Check for scheduled deploy tasks
+  deploytasks=$(curl -s -k -H "fog-api-token: ${FOG_API_TOKEN}" -H "fog-user-token: ${FOG_USER_TOKEN}" http://fog.front.sepia.ceph.com/fog/task/active -d '{"typeID": "'${fogdeployid}'"}' -X GET | jq -r '.count')
 
-# If there are scheduled or active deploy tasks, pause the queue and let them finish.
-# Capturing a new OS image can interrupt active OS deployments.
-if [ $deploytasks -gt 0 ]; then
-  for type in $MACHINETYPES; do
-    # Only pause the queue for 20 minutes just in case anything goes wrong with the Jenkins job.
-    teuthology-queue --pause 1200 --machine_type $type
-  done
-  pausedqueue=true
-  currentretries=0
-  while [ $deploytasks -gt 0 ]; do
-    echo "$(date) -- $deploytasks FOG deploy tasks still queued.  Sleeping 10sec"
-    sleep 10
-    deploytasks=$(curl -s -k -H "fog-api-token: ${FOG_API_TOKEN}" -H "fog-user-token: ${FOG_USER_TOKEN}" http://fog.front.sepia.ceph.com/fog/task/active -d '{"typeID": "'${fogdeployid}'"}' -X GET | jq -r '.count')
-    ((++currentretries))
-    # Retry for 30min
-    funRetry $currentretries 180
-  done
+  # If there are scheduled or active deploy tasks, pause the queue and let them finish.
+  # Capturing a new OS image can interrupt active OS deployments.
+  if [ $deploytasks -gt 0 ]; then
+    for type in $MACHINETYPES; do
+      # Only pause the queue for 20 minutes just in case anything goes wrong with the Jenkins job.
+      teuthology-queue --pause 1200 --machine_type $type
+    done
+    pausedqueue=true
+    currentretries=0
+    while [ $deploytasks -gt 0 ]; do
+      echo "$(date) -- $deploytasks FOG deploy tasks still queued.  Sleeping 10sec"
+      sleep 10
+      deploytasks=$(curl -s -k -H "fog-api-token: ${FOG_API_TOKEN}" -H "fog-user-token: ${FOG_USER_TOKEN}" http://fog.front.sepia.ceph.com/fog/task/active -d '{"typeID": "'${fogdeployid}'"}' -X GET | jq -r '.count')
+      ((++currentretries))
+      # Retry for 30min
+      funRetry $currentretries 180
+    done
+  fi
+else
+  pausedqueue=false
 fi
 
 # Reboot all hosts so FOG can capture their OSes
