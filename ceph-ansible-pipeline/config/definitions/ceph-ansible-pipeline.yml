@@ -69,9 +69,9 @@
                 condition: SUCCESSFUL
                 execution-type: PARALLEL
                 projects:
-                  - name: 'ceph-ansible-prs-dev-add_osds'
+                  - name: 'ceph-ansible-prs-dev-centos-non_container-add_osds'
                     current-parameters: true
-                  - name: 'ceph-ansible-prs-dev-add_osds_container'
+                  - name: 'ceph-ansible-prs-dev-centos-container-add_osds'
                     current-parameters: true
       - conditional-step:
           condition-kind: shell
@@ -138,7 +138,7 @@
                 condition: SUCCESSFUL
                 execution-type: PARALLEL
                 projects:
-                  - name: 'ceph-ansible-prs-dev-purge_cluster_container'
+                  - name: 'ceph-ansible-prs-dev-centos-container-purge'
                     current-parameters: true
       - conditional-step:
           condition-kind: shell
@@ -157,7 +157,7 @@
                 condition: SUCCESSFUL
                 execution-type: PARALLEL
                 projects:
-                  - name: 'ceph-ansible-prs-dev-purge_cluster_non_container'
+                  - name: 'ceph-ansible-prs-dev-centos-non_container-purge'
                     current-parameters: true
       - conditional-step:
           condition-kind: shell
@@ -214,9 +214,9 @@
                 condition: SUCCESSFUL
                 execution-type: PARALLEL
                 projects:
-                  - name: 'ceph-ansible-prs-dev-update_cluster'
+                  - name: 'ceph-ansible-prs-dev-centos-non_container-update'
                     current-parameters: true
-                  - name: 'ceph-ansible-prs-dev-update_docker_cluster'
+                  - name: 'ceph-ansible-prs-dev-centos-container-update'
                     current-parameters: true
       - conditional-step:
           condition-kind: shell
@@ -256,9 +256,9 @@
                 condition: SUCCESSFUL
                 execution-type: PARALLEL
                 projects:
-                  - name: 'ceph-ansible-prs-dev-shrink_mon'
+                  - name: 'ceph-ansible-prs-dev-centos-non_container-shrink_mon'
                     current-parameters: true
-                  - name: 'ceph-ansible-prs-dev-shrink_mon_container'
+                  - name: 'ceph-ansible-prs-dev-centos-container-shrink_mon'
                     current-parameters: true
       - conditional-step:
           condition-kind: shell
@@ -298,9 +298,9 @@
                 condition: SUCCESSFUL
                 execution-type: PARALLEL
                 projects:
-                  - name: 'ceph-ansible-prs-dev-shrink_osd'
+                  - name: 'ceph-ansible-prs-dev-centos-non_container-shrink_osd'
                     current-parameters: true
-                  - name: 'ceph-ansible-prs-dev-shrink_osd_container'
+                  - name: 'ceph-ansible-prs-dev-centos-container-shrink_osd'
                     current-parameters: true
       - conditional-step:
           condition-kind: shell
@@ -424,17 +424,17 @@
                 condition: SUCCESSFUL
                 execution-type: PARALLEL
                 projects:
-                  - name: 'ceph-ansible-prs-dev-lvm_osds'
+                  - name: 'ceph-ansible-prs-dev-centos-non_container-lvm_osds'
                     current-parameters: true
-                  - name: 'ceph-ansible-prs-dev-lvm_osds_container'
+                  - name: 'ceph-ansible-prs-dev-centos-container-lvm_osds'
                     current-parameters: true
-                  - name: 'ceph-ansible-prs-dev-bluestore_lvm_osds'
+                  - name: 'ceph-ansible-prs-dev-centos-non_container-bluestore_lvm_osds'
                     current-parameters: true
-                  - name: 'ceph-ansible-prs-dev-bluestore_lvm_osds_container'
+                  - name: 'ceph-ansible-prs-dev-centos-container-bluestore_lvm_osds'
                     current-parameters: true
-                  - name: 'ceph-ansible-prs-dev-lvm_batch'
+                  - name: 'ceph-ansible-prs-dev-centos-non_container-lvm_batch'
                     current-parameters: true
-                  - name: 'ceph-ansible-prs-dev-lvm_batch_container'
+                  - name: 'ceph-ansible-prs-dev-centos-container-lvm_batch'
                     current-parameters: true
                   - name: 'ceph-ansible-prs-dev-lvm_auto_discovery'
                     current-parameters: true
@@ -478,9 +478,9 @@
                 condition: SUCCESSFUL
                 execution-type: PARALLEL
                 projects:
-                  - name: 'ceph-ansible-prs-dev-rgw_multisite'
+                  - name: 'ceph-ansible-prs-dev-centos-non_container-rgw_multisite'
                     current-parameters: true
-                  - name: 'ceph-ansible-prs-dev-rgw_multisite_container'
+                  - name: 'ceph-ansible-prs-dev-centos-container-rgw_multisite'
                     current-parameters: true
       - conditional-step:
           condition-kind: shell
@@ -509,11 +509,11 @@
                 condition: SUCCESSFUL
                 execution-type: PARALLEL
                 projects:
-                  - name: 'ceph-ansible-prs-dev-centos7_cluster'
+                  - name: 'ceph-ansible-prs-dev-centos-non_container-all_daemons'
                     current-parameters: true
-                  - name: 'ceph-ansible-prs-dev-docker_cluster'
+                  - name: 'ceph-ansible-prs-dev-centos-container-all_daemons'
                     current-parameters: true
-                  - name: 'ceph-ansible-prs-dev-docker_cluster_collocation'
+                  - name: 'ceph-ansible-prs-dev-centos-container-collocation'
                     current-parameters: true
 #                  - name: 'ceph-ansible-prs-dev-container_podman'
 #                    current-parameters: true
