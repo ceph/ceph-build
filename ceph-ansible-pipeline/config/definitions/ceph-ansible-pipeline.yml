@@ -515,8 +515,8 @@
                     current-parameters: true
                   - name: 'ceph-ansible-prs-dev-docker_cluster_collocation'
                     current-parameters: true
-                  - name: 'ceph-ansible-prs-dev-container_podman'
-                    current-parameters: true
+#                  - name: 'ceph-ansible-prs-dev-container_podman'
+#                    current-parameters: true
       - conditional-step:
           condition-kind: shell
           condition-command: |
