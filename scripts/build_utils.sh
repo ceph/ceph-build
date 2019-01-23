@@ -850,19 +850,6 @@ write_collect_logs_playbook() {
 EOF
 }
 
-write_exec_cmd_script() {
-    sudo sh -c 'cat > /home/jenkins-build/bin/exec_cmd.sh << EOF
-#!/bin/bash
-
-script="$VENV"/"$1"
-
-shebang=$(head -1 "$script")
-interp=( ${shebang#\#!} )
-exec "${interp[@]}" "${@}"
-EOF'
-    sudo chmod +x /usr/local/bin/exec_cmd.sh
-}
-
 collect_ceph_logs() {
     # this is meant to be run in a testing scenario directory
     # with running vagrant vms. the ansible playbook will connect
