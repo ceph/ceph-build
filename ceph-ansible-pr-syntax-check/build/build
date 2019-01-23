@@ -62,7 +62,7 @@ function match_file {
 }
 
 function test_sign_off {
-  test "$(git log --oneline --no-merges origin/"${ghprbTargetBranch}"..HEAD | wc -l)" -ne "$(git log --no-merges origin/"${ghprbTargetBranch}"..HEAD | grep -c Signed-off-by)" && echo "One or more commits is/are missing a Signed-off-by. Add it with 'git commit -s'." && return 1
+  test "$(git log --oneline --no-merges origin/"${ghprbTargetBranch}"..HEAD | wc -l)" -ge "$(git log --no-merges origin/"${ghprbTargetBranch}"..HEAD | grep -c Signed-off-by)" && echo "One or more commits is/are missing a Signed-off-by. Add it with 'git commit -s'." && return 1
 
   # if we arrive here the test command successed and we can return 0
   echo "Sign-off ok!" && return 0
