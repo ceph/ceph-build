@@ -854,11 +854,11 @@ write_exec_cmd_script() {
     sudo sh -c 'cat > /usr/local/bin/exec_cmd.sh << EOF
 #!/bin/bash
 
-script="$VENV"/"$1"
+script="\$VENV"/"\$1"
 
-shebang=$(head -1 "$script")
-interp=( ${shebang#\#!} )
-exec "${interp[@]}" "${@}"
+shebang=\$(head -1 "\$script")
+interp=( \${shebang#\#!} )
+exec "\${interp[@]}" "\${@}"
 EOF'
     sudo chmod +x /usr/local/bin/exec_cmd.sh
 }
