@@ -751,7 +751,7 @@ function build_job_name() {
 }
 
 # shellcheck disable=SC2116
-if ! eval "$(echo "${TOX_RUN_ENV[@]}")" "$VENV"/tox -rv -e="$(build_job_name $RELEASE $DISTRIBUTION $DEPLOYMENT $SCENARIO)" -- --provider=libvirt; then echo "ERROR: Job didn't complete successfully or got stuck for more than 3h."
+if ! eval "$(echo "${TOX_RUN_ENV[@]}")" "$VENV"/tox --workdir="$TEMPVENV" -v -e="$(build_job_name $RELEASE $DISTRIBUTION $DEPLOYMENT $SCENARIO)" -- --provider=libvirt; then echo "ERROR: Job didn't complete successfully or got stuck for more than 3h."
   exit 1
 fi
 }
