@@ -851,7 +851,7 @@ EOF
 }
 
 write_exec_cmd_script() {
-    sudo sh -c 'cat > /usr/local/bin/exec_cmd.sh << EOF
+    sudo sh -c 'cat > /home/jenkins-build/bin/exec_cmd.sh << EOF
 #!/bin/bash
 
 script="$VENV"/"$1"
