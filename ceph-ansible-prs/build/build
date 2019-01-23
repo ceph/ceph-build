@@ -26,8 +26,6 @@ for scenario in $scenarios; do
 done
 popd
 
-write_exec_cmd_script
-
 # stable-3.0 doesn't have ceph-volume and therefore doesn't support LVM scenarios.
 # Rather than running a bunch of conditional steps in the pipeline to check if
 # a PR is merging into the stable-3.0 branch, we'll just pass LVM jobs.
