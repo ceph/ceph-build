@@ -61,6 +61,8 @@
     scenario:
       - mixed_type
       - mixed_type_dmcrypt
+      - mixed_type_explicit
+      - mixed_type_dmcrypt_explicit
     subcommand:
       - batch
 
