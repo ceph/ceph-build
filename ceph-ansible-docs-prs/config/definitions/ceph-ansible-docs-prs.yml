@@ -1,6 +1,6 @@
 - job:
     name: ceph-ansible-docs-pull-requests
-    node: small && (centos7 || trusty)
+    node: (small && (centos7 || trusty)) || (vagrant && libvirt && smithi)
     project-type: freestyle
     defaults: global
     display-name: 'ceph-ansible: docs pull requests'
