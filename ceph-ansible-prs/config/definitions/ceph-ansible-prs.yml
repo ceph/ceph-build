@@ -1,9 +1,10 @@
 # new jobs definitions for ceph-ansible scenario refact (see: https://github.com/ceph/ceph-ansible/pull/3364)
 - project:
-    name: ceph-ansible-prs-pipeline-dev
+    name: ceph-ansible-prs-pipeline
     slave_labels: 'vagrant && libvirt && smithi'
     release:
       - dev
+      - luminous
     distribution:
       - centos
       - ubuntu
@@ -24,11 +25,11 @@
       - rgw_multisite
       - purge
     jobs:
-        - 'ceph-ansible-prs-pipeline-dev'
+        - 'ceph-ansible-prs-pipeline'
 
 - job-template:
     name: 'ceph-ansible-prs-{release}-{distribution}-{deployment}-{scenario}'
-    id: 'ceph-ansible-prs-pipeline-dev'
+    id: 'ceph-ansible-prs-pipeline'
     node: '{slave_labels}'
     concurrent: true
     defaults: global
