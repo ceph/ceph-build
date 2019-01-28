@@ -28,6 +28,22 @@
         - 'ceph-ansible-prs-pipeline'
 
 - project:
+    name: ceph-ansible-prs-pipeline-switch
+    slave_labels: 'vagrant && libvirt && smithi'
+    release:
+      - dev
+      - luminous
+    distribution:
+      - centos
+      - ubuntu
+    deployment:
+      - non_container
+    scenario:
+      - switch_to_containers
+    jobs:
+        - 'ceph-ansible-prs-pipeline'
+
+- project:
     name: ceph-ansible-prs-pipeline-containers
     slave_labels: 'vagrant && libvirt && smithi'
     release:
@@ -40,7 +56,6 @@
       - container
     scenario:
       - podman
-      - switch_to_containers
       - ooo_collocation
     jobs:
         - 'ceph-ansible-prs-pipeline'
