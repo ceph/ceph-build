@@ -27,6 +27,24 @@
     jobs:
         - 'ceph-ansible-prs-pipeline'
 
+- project:
+    name: ceph-ansible-prs-pipeline-containers
+    slave_labels: 'vagrant && libvirt && smithi'
+    release:
+      - dev
+      - luminous
+    distribution:
+      - centos
+      - ubuntu
+    deployment:
+      - container
+    scenario:
+      - podman
+      - switch_to_containers
+      - ooo_collocation
+    jobs:
+        - 'ceph-ansible-prs-pipeline'
+
 - job-template:
     name: 'ceph-ansible-prs-{release}-{distribution}-{deployment}-{scenario}'
     id: 'ceph-ansible-prs-pipeline'
@@ -123,41 +141,11 @@
           allow-empty: true
           latest-only: false
 
-## tests that will auto start for every PR created and run on smithi or ovh
-##
-## NOTE: When adding a new scenario to this project you must also add it to
-## the ceph-build.git/ceph-ansible-pipeline job config for it to run
-- project:
-    name: ceph-ansible-prs-auto
-    slave_labels: 'vagrant && libvirt && smithi'
-    release:
-      - luminous
-    scenario:
-      - centos7_cluster
-      - docker_cluster
-      - docker_cluster_collocation
-      - bluestore_osds_container
-      - purge_bluestore_osds_non_container
-      - ooo_collocation
-    jobs:
-        - 'ceph-ansible-prs-auto'
-
-- project:
-    name: ceph-ansible-prs-oldstable-trigger
-    slave_labels: 'vagrant && libvirt && smithi'
-    release:
-      - jewel
-    scenario:
-      - centos7_cluster
-      - docker_cluster
-      - ooo_collocation
-    jobs:
-        - 'ceph-ansible-prs-oldstable-trigger'
 
 # tests that will not auto start when a PR is created, but
 # they can be requested with a trigger phrase. Run on smithi.
 - project:
-    name: ceph-ansible-prs-trigger-smithi
+    name: ceph-ansible-prs-oldstable
     slave_labels: 'vagrant && libvirt && smithi'
     release:
       - luminous
@@ -190,233 +178,11 @@
       - lvm_auto_discovery
       - lvm_auto_discovery_container
     jobs:
-        - 'ceph-ansible-prs-trigger'
-
-# tests that use packages from shaman.ceph.com and
-# do not auto start when a PR is created, but can be
-# requested with a trigger phrase
-- project:
-    name: ceph-ansible-prs-dev
-    slave_labels: 'vagrant && libvirt && smithi'
-    release:
-      - dev
-    scenario:
-      - centos7_cluster
-      - docker_cluster
-      - docker_cluster_collocation
-      - bluestore_osds_container
-      - purge_bluestore_osds_non_container
-      - ooo_collocation
-      - purge_cluster_container
-      - purge_cluster_non_container
-      - purge_filestore_osds_non_container
-      - purge_filestore_osds_container
-      - update_cluster
-      - update_docker_cluster
-      - switch_to_containers
-      - bluestore_osds_non_container
-      - filestore_osds_non_container
-      - filestore_osds_container
-      - shrink_mon
-      - shrink_mon_container
-      - shrink_osd
-      - shrink_osd_container
-      - lvm_osds
-      - lvm_batch
-      - purge_lvm_osds
-      - purge_lvm_osds_container
-      - bluestore_lvm_osds
-      - lvm_osds_container
-      - lvm_batch_container
-      - bluestore_lvm_osds_container
-      - add_osds
-      - add_osds_container
-      - rgw_multisite
-      - rgw_multisite_container
-      - container_podman
-      - lvm_auto_discovery
-      - lvm_auto_discovery_container
-    jobs:
-      - 'ceph-ansible-prs-trigger'
+        - 'ceph-ansible-prs-oldstable'
 
 - job-template:
     name: 'ceph-ansible-prs-{release}-{scenario}'
-    id: 'ceph-ansible-prs-oldstable-trigger'
-    node: '{slave_labels}'
-    concurrent: true
-    defaults: global
-    display-name: 'ceph-ansible: Pull Requests [{release}-{scenario}]'
-    quiet-period: 5
-    block-downstream: false
-    block-upstream: false
-    retry-count: 3
-    properties:
-      - github:
-          url: https://github.com/ceph/ceph-ansible
-      - build-discarder:
-          days-to-keep: 90
-          num-to-keep: -1
-          artifact-days-to-keep: -1
-          artifact-num-to-keep: -1
-
-    parameters:
-      - string:
-          name: sha1
-          description: "A pull request ID, like 'origin/pr/72/head'"
-
-    triggers:
-      - github-pull-request:
-          cancel-builds-on-update: true
-          allow-whitelist-orgs-as-admins: true
-          org-list:
-            - ceph
-          skip-build-phrase: '^jenkins do not test.*|.*\[skip ci\].*'
-          trigger-phrase: '^jenkins test oldstable {release}-{scenario}|jenkins test oldstable.*'
-          only-trigger-phrase: true
-          github-hooks: true
-          permit-all: true
-          auto-close-on-fail: false
-          status-context: "Testing: {release}-{scenario}"
-          started-status: "Running: {release}-{scenario}"
-          success-status: "OK - {release}-{scenario}"
-          failure-status: "FAIL - {release}-{scenario}"
-
-    scm:
-      - git:
-          url: https://github.com/ceph/ceph-ansible.git
-          branches:
-            - ${{sha1}}
-          refspec: +refs/pull/*:refs/remotes/origin/pr/*
-          browser: auto
-          timeout: 20
-          skip-tag: true
-          wipe-workspace: false
-
-    builders:
-      - inject:
-          properties-content: |
-            SCENARIO={scenario}
-            RELEASE={release}
-      - shell:
-          !include-raw-escape:
-            - ../../../scripts/build_utils.sh
-            - ../../build/build
-
-    publishers:
-      - postbuildscript:
-          builders:
-            - role: SLAVE
-              build-on:
-                  - FAILURE
-                  - ABORTED
-              build-steps:
-                - shell:
-                    !include-raw-escape:
-                      - ../../../scripts/build_utils.sh
-                      - ../../build/teardown
-
-      - archive:
-          artifacts: 'logs/**'
-          allow-empty: true
-          latest-only: false
-
-- job-template:
-    name: 'ceph-ansible-prs-{release}-{scenario}'
-    id: 'ceph-ansible-prs-auto'
-    node: '{slave_labels}'
-    concurrent: true
-    defaults: global
-    display-name: 'ceph-ansible: Pull Requests [{release}-{scenario}]'
-    quiet-period: 5
-    block-downstream: false
-    block-upstream: false
-    retry-count: 3
-    properties:
-      - github:
-          url: https://github.com/ceph/ceph-ansible
-      - build-discarder:
-          days-to-keep: 90
-          num-to-keep: -1
-          artifact-days-to-keep: -1
-          artifact-num-to-keep: -1
-
-    parameters:
-      - string:
-          name: sha1
-          description: "A pull request ID, like 'origin/pr/72/head'"
-
-    triggers:
-      - github-pull-request:
-          cancel-builds-on-update: true
-          allow-whitelist-orgs-as-admins: true
-          org-list:
-            - ceph
-          skip-build-phrase: '^jenkins do not test.*|.*\[skip ci\].*'
-          trigger-phrase: '^jenkins test {release}-{scenario}|jenkins test all.*'
-          only-trigger-phrase: true
-          github-hooks: true
-          permit-all: true
-          auto-close-on-fail: false
-          status-context: "Testing: {release}-{scenario}"
-          started-status: "Running: {release}-{scenario}"
-          success-status: "OK - {release}-{scenario}"
-          failure-status: "FAIL - {release}-{scenario}"
-
-    scm:
-      - git:
-          url: https://github.com/ceph/ceph-ansible.git
-          branches:
-            - ${{sha1}}
-          refspec: +refs/pull/*:refs/remotes/origin/pr/*
-          browser: auto
-          timeout: 20
-          skip-tag: true
-          wipe-workspace: false
-
-    builders:
-      - inject:
-          properties-content: |
-            SCENARIO={scenario}
-            RELEASE={release}
-      - conditional-step:
-          condition-kind: shell
-          condition-command: |
-            #!/bin/bash
-            # Returns 1 if only .rst and README files were modified
-            echo "Checking if only rst and READMEs were modified"
-            git diff --name-only $(git show HEAD | grep Merge | head -n 1 | cut -d ':' -f2) | grep -v '\.rst\|README'
-            if [ $? -eq 1 ]; then
-              echo "Only docs were modified.  Skipping the rest of the job."
-              exit 1
-            fi
-          on-evaluation-failure: dont-run
-          steps:
-            - shell:
-                !include-raw-escape:
-                  - ../../../scripts/build_utils.sh
-                  - ../../build/build
-
-    publishers:
-      - postbuildscript:
-          builders:
-            - role: SLAVE
-              build-on:
-                  - FAILURE
-                  - ABORTED
-              build-steps:
-                - shell:
-                    !include-raw-escape:
-                      - ../../../scripts/build_utils.sh
-                      - ../../build/teardown
-
-      - archive:
-          artifacts: 'logs/**'
-          allow-empty: true
-          latest-only: false
-
-- job-template:
-    name: 'ceph-ansible-prs-{release}-{scenario}'
-    id: 'ceph-ansible-prs-trigger'
+    id: 'ceph-ansible-prs-oldstable'
     node: '{slave_labels}'
     concurrent: true
     defaults: global
@@ -494,4 +260,3 @@
           artifacts: 'logs/**'
           allow-empty: true
           latest-only: false
-
