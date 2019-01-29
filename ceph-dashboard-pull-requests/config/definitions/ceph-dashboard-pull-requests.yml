@@ -32,6 +32,8 @@
             - ceph
           white-list-labels: 
             - dashboard
+          black-list-target-branches:
+            - luminous
           trigger-phrase: 'jenkins test dashboard'
           skip-build-phrase: '^jenkins do not test.*'
           only-trigger-phrase: false
