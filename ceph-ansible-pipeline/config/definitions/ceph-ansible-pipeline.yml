@@ -544,9 +544,9 @@
                 condition: SUCCESSFUL
                 execution-type: PARALLEL
                 projects:
-                  - name: 'ceph-ansible-prs-luminous-centos-non_container-cluster'
+                  - name: 'ceph-ansible-prs-luminous-centos-non_container-all_daemons'
                     current-parameters: true
-                  - name: 'ceph-ansible-prs-luminous-centos-container-cluster'
+                  - name: 'ceph-ansible-prs-luminous-centos-container-all_daemons'
                     current-parameters: true
                   - name: 'ceph-ansible-prs-luminous-centos-container-collocation'
                     current-parameters: true
