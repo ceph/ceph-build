@@ -24,6 +24,7 @@
       - add_osds
       - rgw_multisite
       - purge
+      - lvm_auto_discovery
     jobs:
         - 'ceph-ansible-prs-pipeline'
 

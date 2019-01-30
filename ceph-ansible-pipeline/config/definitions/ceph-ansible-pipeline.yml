@@ -436,9 +436,9 @@
                     current-parameters: true
                   - name: 'ceph-ansible-prs-dev-centos-container-lvm_batch'
                     current-parameters: true
-                  - name: 'ceph-ansible-prs-dev-lvm_auto_discovery'
+                  - name: 'ceph-ansible-prs-dev-centos-non_container-lvm_auto_discovery'
                     current-parameters: true
-                  - name: 'ceph-ansible-prs-dev-lvm_auto_discovery_container'
+                  - name: 'ceph-ansible-prs-dev-centos-container-lvm_auto_discovery'
                     current-parameters: true
       - conditional-step:
           condition-kind: shell
