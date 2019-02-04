@@ -511,6 +511,8 @@
                 projects:
                   - name: 'ceph-ansible-prs-dev-centos-non_container-all_daemons'
                     current-parameters: true
+                  - name: 'ceph-ansible-prs-dev-rhel-container-podman'
+                    current-parameters: true
                   - name: 'ceph-ansible-prs-dev-centos-container-all_daemons'
                     current-parameters: true
                   - name: 'ceph-ansible-prs-dev-centos-container-collocation'
