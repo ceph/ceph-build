@@ -2,6 +2,12 @@
     name: ceph-ansible-nightly-jewel
     release:
       - jewel
+    distribution:
+      - centos
+      - ubuntu
+    deployment:
+      - container
+      - non_container
     scenario:
       - centos7_cluster
       - xenial_cluster
@@ -25,12 +31,18 @@
       - stable-3.0
       - stable-3.1
     jobs:
-      - 'ceph-ansible-nightly-{release}-{ceph_ansible_branch}-{scenario}'
+      - 'ceph-ansible-nightly-{release}-{distribution}-{deployment}-{ceph_ansible_branch}-{scenario}'
 
 - project:
     name: ceph-ansible-nightly-stable3.0
     release:
       - luminous
+    distribution:
+      - centos
+      - ubuntu
+    deployment:
+      - container
+      - non_container
     scenario:
       - centos7_cluster
       - xenial_cluster
@@ -57,13 +69,19 @@
     ceph_ansible_branch:
       - stable-3.0
     jobs:
-        - 'ceph-ansible-nightly-{release}-{ceph_ansible_branch}-{scenario}'
+        - 'ceph-ansible-nightly-{release}-{distribution}-{deployment}-{ceph_ansible_branch}-{scenario}'
 
 - project:
     name: ceph-ansible-nightly-stable3.1
     release:
       - luminous
       - mimic
+    distribution:
+      - centos
+      - ubuntu
+    deployment:
+      - container
+      - non_container
     scenario:
       - centos7_cluster
       - xenial_cluster
@@ -92,41 +110,59 @@
     ceph_ansible_branch:
       - stable-3.1
     jobs:
-        - 'ceph-ansible-nightly-{release}-{ceph_ansible_branch}-{scenario}'
+        - 'ceph-ansible-nightly-{release}-{distribution}-{deployment}-{ceph_ansible_branch}-{scenario}'
 
 - project:
     name: ceph-ansible-nightly-stable3.2
     release:
       - luminous
-      - mimic
+    distribution:
+      - centos
+      - ubuntu
+    deployment:
+      - container
+      - non_container
     scenario:
-      - centos7_cluster
-      - xenial_cluster
-      - docker_cluster
-      - update_cluster
+      - all_daemons
+      - collocation
+      - update
+      - bluestore_lvm_osds
       - lvm_osds
-      - purge_lvm_osds
-      - docker_cluster_collocation
-      - update_docker_cluster
-      - switch_to_containers
       - shrink_mon
-      - shrink_mon_container
       - shrink_osd
-      - shrink_osd_container
-      - purge_cluster_container
-      - purge_cluster_non_container
+      - lvm_batch
+      - add_osds
+      - rgw_multisite
+      - purge
+      - lvm_auto_discovery
+    ceph_ansible_branch:
+      - stable-3.2
+    jobs:
+        - 'ceph-ansible-nightly-{release}-{distribution}-{deployment}-{ceph_ansible_branch}-{scenario}'
+
+- project:
+    name: ceph-ansible-nightly-stable3.2_container_only
+    release:
+      - luminous
+    distribution:
+      - centos
+      - ubuntu
+    deployment:
+      - container
+    scenario:
+      - switch_to_containers
       - ooo_collocation
     ceph_ansible_branch:
       - stable-3.2
     jobs:
-        - 'ceph-ansible-nightly-{release}-{ceph_ansible_branch}-{scenario}'
+        - 'ceph-ansible-nightly-{release}-{distribution}-{deployment}-{ceph_ansible_branch}-{scenario}'
 
 - job-template:
-    name: 'ceph-ansible-nightly-{release}-{ceph_ansible_branch}-{scenario}'
+    name: 'ceph-ansible-nightly-{release}-{distribution}-{deployment}-{ceph_ansible_branch}-{scenario}'
     node: vagrant&&libvirt&&centos7
     concurrent: true
     defaults: global
-    display-name: 'ceph-ansible: Nightly [{release}-{ceph_ansible_branch}-{scenario}]'
+    display-name: 'ceph-ansible: Nightly [{release}-{distribution}-{deployment}-{ceph_ansible_branch}-{scenario}]'
     quiet-period: 5
     block-downstream: false
     block-upstream: false
@@ -162,9 +198,11 @@
     builders:
       - inject:
           properties-content: |
-            SCENARIO={scenario}
             RELEASE={release}
+            DISTRIBUTION={distribution}
+            DEPLOYMENT={deployment}
             CEPH_ANSIBLE_BRANCH={ceph_ansible_branch}
+            SCENARIO={scenario}
       - shell:
           !include-raw-escape:
             - ../../../scripts/build_utils.sh
