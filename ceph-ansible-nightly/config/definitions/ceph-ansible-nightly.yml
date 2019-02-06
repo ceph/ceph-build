@@ -124,7 +124,6 @@
       - non_container
     scenario:
       - all_daemons
-      - cluster
       - collocation
       - update
       - bluestore_lvm_osds
@@ -136,7 +135,21 @@
       - rgw_multisite
       - purge
       - lvm_auto_discovery
-      - podman
+    ceph_ansible_branch:
+      - stable-3.2
+    jobs:
+        - 'ceph-ansible-nightly-{release}-{distribution}-{deployment}-{ceph_ansible_branch}-{scenario}'
+
+- project:
+    name: ceph-ansible-nightly-stable3.2_container_only
+    release:
+      - luminous
+    distribution:
+      - centos
+      - ubuntu
+    deployment:
+      - container
+    scenario:
       - switch_to_containers
       - ooo_collocation
     ceph_ansible_branch:
