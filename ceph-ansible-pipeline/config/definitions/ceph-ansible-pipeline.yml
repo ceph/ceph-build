@@ -340,7 +340,7 @@
                 condition: SUCCESSFUL
                 execution-type: PARALLEL
                 projects:
-                  - name: 'ceph-ansible-prs-dev-centos-container-switch_to_containers'
+                  - name: 'ceph-ansible-prs-dev-centos-non_container-switch_to_containers'
                     current-parameters: true
       - conditional-step:
           condition-kind: shell
@@ -359,7 +359,7 @@
                 condition: SUCCESSFUL
                 execution-type: PARALLEL
                 projects:
-                  - name: 'ceph-ansible-prs-luminous-switch_to_containers'
+                  - name: 'ceph-ansible-prs-luminous-centos-non_container-switch_to_containers'
                     current-parameters: true
       - conditional-step:
           condition-kind: shell
@@ -517,8 +517,6 @@
                     current-parameters: true
                   - name: 'ceph-ansible-prs-dev-centos-container-collocation'
                     current-parameters: true
-#                  - name: 'ceph-ansible-prs-dev-centos-container-podman'
-#                    current-parameters: true
       - conditional-step:
           condition-kind: shell
           condition-command: |
