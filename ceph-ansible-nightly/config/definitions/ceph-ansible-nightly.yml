@@ -149,7 +149,7 @@
     node: vagrant&&libvirt&&centos7
     concurrent: true
     defaults: global
-    display-name: 'ceph-ansible: Nightly [{release}-{ceph_ansible_branch}-{scenario}]'
+    display-name: 'ceph-ansible: Nightly [{release}-{distribution}-{deployment}-{ceph_ansible_branch}-{scenario}]'
     quiet-period: 5
     block-downstream: false
     block-upstream: false
