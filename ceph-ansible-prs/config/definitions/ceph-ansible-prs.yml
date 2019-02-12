@@ -23,6 +23,7 @@
       - lvm_batch
       - add_osds
       - add_mons
+      - add_mdss
       - rgw_multisite
       - purge
       - lvm_auto_discovery
