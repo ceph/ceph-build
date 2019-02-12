@@ -68,7 +68,7 @@
                   predefined-parameters: |
                     BRANCH=${GIT_BRANCH}
                     FORCE=True
-                    DISTROS=bionic xenial centos7
+                    DISTROS=centos7
                     FLAVOR=notcmalloc
 
     wrappers:
