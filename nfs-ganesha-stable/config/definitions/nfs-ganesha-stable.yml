@@ -51,7 +51,7 @@
       - string:
           name: NTIRPC_BRANCH
           description: "The git branch (or tag) to build"
-          default: "v1.7.1"
+          default: "v1.7.2"
 
       - string:
           name: NTIRPC_DEBIAN_BRANCH
@@ -66,17 +66,17 @@
       - string:
           name: CEPH_SHA1
           description: "The SHA1 of the ceph branch"
-          default: "02899bfda814146b021136e9d8e80eba494e1126"
+          default: "adfd524c32325562f61c055a81dba4cb1b117e84"
 
       - string:
           name: CEPH_BRANCH
           description: "The branch of Ceph to get the repo file of for libcephfs"
-          default: "mimic"
+          default: "nautilus"
 
       - string:
           name: CEPH_VERSION
           description: "The version of Ceph to specify for installing ceph libraries"
-          default: "13.2.2"
+          default: "14.1.0"
 
       - string:
           name: DISTROS
