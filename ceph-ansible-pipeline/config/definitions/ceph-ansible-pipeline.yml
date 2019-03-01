@@ -161,6 +161,8 @@
                 projects:
                   - name: 'ceph-ansible-prs-dev-centos-container-purge'
                     current-parameters: true
+                  - name: 'ceph-ansible-prs-dev-ubuntu-container-purge'
+                    current-parameters: true
       - conditional-step:
           condition-kind: shell
           condition-command: |
@@ -179,6 +181,8 @@
                 execution-type: PARALLEL
                 projects:
                   - name: 'ceph-ansible-prs-dev-centos-non_container-purge'
+                    current-parameters: true
+                  - name: 'ceph-ansible-prs-dev-ubuntu-non_container-purge'
                     current-parameters: true
       - conditional-step:
           condition-kind: shell
