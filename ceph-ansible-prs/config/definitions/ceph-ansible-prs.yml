@@ -1,10 +1,9 @@
-# new jobs definitions for ceph-ansible scenario refact (see: https://github.com/ceph/ceph-ansible/pull/3364)
+# master
 - project:
-    name: ceph-ansible-prs-pipeline
+    name: ceph-ansible-prs-master-pipeline
     slave_labels: 'vagrant && libvirt && smithi'
     release:
       - dev
-      - luminous
     distribution:
       - centos
       - rhel
@@ -27,9 +26,138 @@
       - rgw_multisite
       - purge
       - lvm_auto_discovery
-      - podman
+    jobs:
+        - 'ceph-ansible-prs-pipeline'
+
+- project:
+    name: ceph-ansible-prs-master-non_container-pipeline
+    slave_labels: 'vagrant && libvirt && smithi'
+    release:
+      - dev
+    distribution:
+      - centos
+      - ubuntu
+    deployment:
+      - non_container
+    scenario:
       - switch_to_containers
+    jobs:
+        - 'ceph-ansible-prs-pipeline'
+
+- project:
+    name: ceph-ansible-prs-master-ooo-pipeline
+    slave_labels: 'vagrant && libvirt && smithi'
+    release:
+      - dev
+    distribution:
+      - centos
+    deployment:
+      - container
+    scenario:
       - ooo_collocation
+    jobs:
+        - 'ceph-ansible-prs-pipeline'
+
+- project:
+    name: ceph-ansible-prs-master-podman-pipeline
+    slave_labels: 'vagrant && libvirt && smithi'
+    release:
+      - dev
+    distribution:
+      - rhel
+    deployment:
+      - container
+    scenario:
+      - podman
+    jobs:
+        - 'ceph-ansible-prs-pipeline'
+
+# luminous, stable-3.2, stable 3.1
+- project:
+    name: ceph-ansible-prs-luminous-pipeline
+    slave_labels: 'vagrant && libvirt && smithi'
+    release:
+      - luminous
+    distribution:
+      - centos
+      - ubuntu
+    deployment:
+      - container
+      - non_container
+    scenario:
+# stable-3.2 / stable-3.1
+      - all_daemons
+      - collocation
+      - update
+      - bluestore_lvm_osds
+      - lvm_osds
+      - shrink_mon
+      - shrink_osd
+      - lvm_batch
+      - add_osds
+      - rgw_multisite
+      - purge
+# stable-3.1
+      - filestore_osds
+      - purge_filestore
+      - bluestore_osds
+      - purge_bluestore
+    jobs:
+        - 'ceph-ansible-prs-pipeline'
+
+- project:
+    name: ceph-ansible-prs-stable-ooo-pipeline
+    slave_labels: 'vagrant && libvirt && smithi'
+    release:
+      - jewel
+      - luminous
+    distribution:
+      - centos
+    deployment:
+      - container
+    scenario:
+      - ooo_collocation
+    jobs:
+        - 'ceph-ansible-prs-pipeline'
+
+- project:
+    name: ceph-ansible-prs-stable-non_container-pipeline
+    slave_labels: 'vagrant && libvirt && smithi'
+    release:
+      - jewel
+      - luminous
+    distribution:
+      - centos
+      - ubuntu
+    deployment:
+      - non_container
+    scenario:
+      - switch_to_containers
+    jobs:
+        - 'ceph-ansible-prs-pipeline'
+
+# jewel
+- project:
+    name: ceph-ansible-prs-jewel-pipeline
+    slave_labels: 'vagrant && libvirt && smithi'
+    release:
+      - jewel
+    distribution:
+      - centos
+      - ubuntu
+    deployment:
+      - container
+      - non_container
+    scenario:
+      - all_daemons
+      - cluster
+      - filestore_osds
+      - collocation
+      - update
+      - shrink_mon
+      - shrink_osd
+      - purge
+      - purge_filestore
     jobs:
         - 'ceph-ansible-prs-pipeline'
 
