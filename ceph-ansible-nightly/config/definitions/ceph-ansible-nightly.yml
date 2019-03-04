@@ -98,7 +98,6 @@
       - shrink_osd
       - lvm_batch
       - add_osds
-      - add_mons
       - rgw_multisite
       - purge
       - lvm_auto_discovery
