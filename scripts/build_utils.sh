@@ -753,11 +753,20 @@ function build_job_name() {
 # shellcheck disable=SC2153
 ENV_NAME="$(build_job_name "$RELEASE" "$DISTRIBUTION" "$DEPLOYMENT" "$SCENARIO")"
 
+case $SCENARIO in
+  update)
+    TOX_INI_FILE=tox-update.ini
+    ;;
+  *)
+    TOX_INI_FILE=tox.ini
+    ;;
+esac
+
 for tox_env in $("$VENV"/tox -l)
 do
   if [[ "$ENV_NAME" == "$tox_env" ]]; then
 # shellcheck disable=SC2116
-    if ! eval "$(echo "${TOX_RUN_ENV[@]}")" "$VENV"/tox --workdir="$TEMPVENV" -v -e="$ENV_NAME" -- --provider=libvirt; then echo "ERROR: Job didn't complete successfully or got stuck for more than 3h."
+    if ! eval "$(echo "${TOX_RUN_ENV[@]}")" "$VENV"/tox -c "$TOX_INI_FILE" --workdir="$TEMPVENV" -v -e="$ENV_NAME" -- --provider=libvirt; then echo "ERROR: Job didn't complete successfully or got stuck for more than 3h."
       exit 1
     fi
     return 0
