@@ -15,11 +15,13 @@
     DEBEMAIL: "{{ debemail }}"
     DEBFULLNAME: "{{ debfullname }}"
 
-- name: set the version in the spec file
-  lineinfile: dest=remoto/remoto.spec
-              regexp="Version{{':'}}\s+"
-              line="Version{{':'}}       {{ version }}"
-              state=present
+# we don't have a spec file in remoto, this is being built
+# separately
+#- name: set the version in the spec file
+#  lineinfile: dest=remoto/remoto.spec
+#              regexp="Version{{':'}}\s+"
+#              line="Version{{':'}}       {{ version }}"
+#              state=present
 
 - name: commit the version changes
   command: git commit -a -m "{{ version }}" chdir=remoto
