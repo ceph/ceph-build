@@ -1,0 +1,45 @@
+---
+
+- name: fetch the latest from remote
+  command: git fetch jenkins chdir=remoto
+
+- name: ensure local repo is in sync with remote
+  command: git reset --hard jenkins/{{ branch }} chdir=remoto
+
+- name: git checkout {{ branch }} branch
+  command: git checkout {{ branch }} chdir=remoto
+
+- name: set the debian version
+  command: dch -v {{ version }} -D stable "New upstream release" chdir=remoto
+  environment:
+    DEBEMAIL: "{{ debemail }}"
+    DEBFULLNAME: "{{ debfullname }}"
+
+- name: set the version in the spec file
+  lineinfile: dest=remoto/remoto.spec
+              regexp="Version{{':'}}\s+"
+              line="Version{{':'}}       {{ version }}"
+              state=present
+
+- name: commit the version changes
+  command: git commit -a -m "{{ version }}" chdir=remoto
+
+  # from script: /srv/ceph-build/tag_release.sh
+  # Contents of tag_release.sh
+  # FIXME: this used to be a signed tag:
+  # command: git tag -s "v{{ version }}"  -u 17ED316D -m "v{{ version }}" chdir=remoto
+- name: tag and commit the version
+  command: git tag "v{{ version }}" -m "v{{ version }}" chdir=remoto
+  environment:
+    GNUPGHOME: ~/build/gnupg.ceph-release
+    DEBEMAIL: "{{ debemail }}"
+    DEBFULLNAME: "{{ debfullname }}"
+
+- name: push changes to jenkins git repo
+  command: git push jenkins {{ branch }} chdir=remoto
+
+  # FIXME: this used to be set when signing the tag:
+  #   environment:
+  #       GNUPGHOME: ~/build/gnupg.ceph-release
+- name: push the newly created tag
+  command: git push jenkins v{{ version }} chdir=remoto

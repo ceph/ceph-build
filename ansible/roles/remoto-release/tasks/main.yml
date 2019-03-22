@@ -1,0 +1,35 @@
+---
+
+- name: check if remoto repo exists
+  stat: path='./remoto'
+  register: 'cdep_repo'
+
+- name: clone the remoto repository
+  git: repo=git@github.com:ceph/remoto dest=remoto
+  when: cdep_repo.stat.exists is defined and cdep_repo.stat.exists == false
+
+- name: rename origin to jenkins
+  command: git remote rename origin jenkins chdir=remoto
+  ignore_errors: yes
+
+- name: fetch the latest from remote
+  command: git fetch jenkins chdir=remoto
+
+- name: ensure local repo is in sync with remote
+  command: git reset --hard jenkins/{{ branch }} chdir=remoto
+
+- name: check if we are re-pushing the release commit
+  command: git log -1 --pretty=%B chdir=remoto
+  register: 'last_commit'
+
+  # we probably messed up the previous commit+tag, so we chose to use 'clean'
+  # that will rollback that commit, delete the local and remote tag, and force
+  # push the new changes
+- include: clear_version.yml
+  when: (clean and last_commit.stdout == tag_name)
+
+  # if the last commit wasn't one that we already did, then go ahead and make
+  # the changes + tag for the release. Otherwise, just skip because it was
+  # already done for this release
+- include: release.yml
+  when: (tag_name != last_commit.stdout)
