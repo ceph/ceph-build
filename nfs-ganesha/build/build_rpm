@@ -10,6 +10,7 @@ fi
 RELEASE="$(lsb_release --short -r | cut -d '.' -f 1)" # sytem release
 
 # Clean up Jenkins slave before each build
+sudo rm -rf /var/cache/yum/*
 sudo yum -y clean all
 sudo yum -y remove librgw-devel librgw2 librados-devel librados3 libcephfs-devel libcephfs2
 sudo yum -y autoremove
