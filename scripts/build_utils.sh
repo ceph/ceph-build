@@ -762,7 +762,7 @@ case $SCENARIO in
     ;;
 esac
 
-for tox_env in $("$VENV"/tox -l)
+for tox_env in $("$VENV"/tox -c "$TOX_INI_FILE" -l)
 do
   if [[ "$ENV_NAME" == "$tox_env" ]]; then
 # shellcheck disable=SC2116
