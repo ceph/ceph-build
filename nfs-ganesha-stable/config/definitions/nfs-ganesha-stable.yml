@@ -2,7 +2,7 @@
     name: nfs-ganesha
     scm:
       - git:
-          url: https://github.com/nfs-ganesha/nfs-ganesha.git
+          url: https://github.com/ceph/nfs-ganesha.git
           branches:
             - $NFS_GANESHA_BRANCH
           skip-tag: true
@@ -46,7 +46,7 @@
       - string:
           name: NFS_GANESHA_BRANCH
           description: "The git branch (or tag) to build"
-          default: "V2.7-stable"
+          default: "V2.7-ceph"
 
       - string:
           name: NTIRPC_BRANCH
