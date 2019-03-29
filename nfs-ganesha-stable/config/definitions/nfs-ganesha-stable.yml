@@ -40,7 +40,7 @@
     block-upstream: false
     properties:
       - github:
-          url: https://github.com/nfs-ganesha/nfs-ganesha
+          url: https://github.com/ceph/nfs-ganesha
     concurrent: true
     parameters:
       - string:
