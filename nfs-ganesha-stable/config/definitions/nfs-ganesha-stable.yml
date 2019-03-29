@@ -66,7 +66,7 @@
       - string:
           name: CEPH_SHA1
           description: "The SHA1 of the ceph branch"
-          default: "adfd524c32325562f61c055a81dba4cb1b117e84"
+          default: "3a54b2b6d167d4a2a19e003a705696d4fe619afc"
 
       - string:
           name: CEPH_BRANCH
@@ -76,7 +76,7 @@
       - string:
           name: CEPH_VERSION
           description: "The version of Ceph to specify for installing ceph libraries"
-          default: "14.1.0"
+          default: "14.2.0"
 
       - string:
           name: DISTROS
