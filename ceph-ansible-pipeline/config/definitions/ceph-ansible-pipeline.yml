@@ -125,6 +125,76 @@
       - conditional-step:
           condition-kind: shell
           condition-command: |
+            # if the target branch is not master then we DON'T RUN these tests.
+            if [[ "$ghprbTargetBranch" != "stable-4.0" ]]; then
+              exit 1
+            fi
+          on-evaluation-failure: dont-run
+          steps:
+            - multijob:
+                name: 'ceph-ansible cluster first testing phase'
+                condition: SUCCESSFUL
+                execution-type: PARALLEL
+                projects:
+                  - name: 'ceph-ansible-prs-nautilus-centos-non_container-all_daemons'
+                    current-parameters: true
+                  - name: 'ceph-ansible-prs-nautilus-centos-container-all_daemons'
+                    current-parameters: true
+                  - name: 'ceph-ansible-prs-nautilus-centos-non_container-lvm_osds'
+                    current-parameters: true
+                  - name: 'ceph-ansible-prs-nautilus-centos-container-lvm_osds'
+                    current-parameters: true
+                  - name: 'ceph-ansible-prs-nautilus-ubuntu-non_container-all_daemons'
+                    current-parameters: true
+                  - name: 'ceph-ansible-prs-nautilus-ubuntu-container-all_daemons'
+                    current-parameters: true
+                  - name: 'ceph-ansible-prs-nautilus-rhel-container-podman'
+                    current-parameters: true
+            - multijob:
+                name: 'ceph-ansible cluster second testing phase'
+                condition: SUCCESSFUL
+                execution-type: PARALLEL
+                projects:
+                  - name: 'ceph-ansible-prs-nautilus-centos-non_container-purge'
+                    current-parameters: true
+                  - name: 'ceph-ansible-prs-nautilus-ubuntu-non_container-purge'
+                    current-parameters: true
+                  - name: 'ceph-ansible-prs-nautilus-centos-container-purge'
+                    current-parameters: true
+                  - name: 'ceph-ansible-prs-nautilus-ubuntu-container-purge'
+                    current-parameters: true
+                  - name: 'ceph-ansible-prs-nautilus-centos-non_container-switch_to_containers'
+                    current-parameters: true
+                  - name: 'ceph-ansible-prs-nautilus-centos-non_container-update'
+                    current-parameters: true
+                  - name: 'ceph-ansible-prs-nautilus-centos-container-update'
+                    current-parameters: true
+                  - name: 'ceph-ansible-prs-nautilus-centos-non_container-storage_inventory'
+                    current-parameters: true
+                  - name: 'ceph-ansible-prs-nautilus-centos-container-storage_inventory'
+                    current-parameters: true
+            - multijob:
+                name: 'ceph-ansible cluster third testing phase'
+                condition: SUCCESSFUL
+                execution-type: PARALLEL
+                projects:
+                  - name: 'ceph-ansible-prs-nautilus-centos-container-collocation'
+                    current-parameters: true
+                  - name: 'ceph-ansible-prs-nautilus-centos-non_container-bluestore_lvm_osds'
+                    current-parameters: true
+                  - name: 'ceph-ansible-prs-nautilus-centos-container-bluestore_lvm_osds'
+                    current-parameters: true
+                  - name: 'ceph-ansible-prs-nautilus-centos-non_container-lvm_batch'
+                    current-parameters: true
+                  - name: 'ceph-ansible-prs-nautilus-centos-container-lvm_batch'
+                    current-parameters: true
+                  - name: 'ceph-ansible-prs-nautilus-centos-non_container-lvm_auto_discovery'
+                    current-parameters: true
+                  - name: 'ceph-ansible-prs-nautilus-centos-container-lvm_auto_discovery'
+                    current-parameters: true
+      - conditional-step:
+          condition-kind: shell
+          condition-command: |
             #!/bin/bash
             set -x
             # if the target branch is master we RUN these tests.
