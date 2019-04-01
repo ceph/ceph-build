@@ -55,6 +55,146 @@
       - conditional-step:
           condition-kind: shell
           condition-command: |
+            # if the target branch is not master then we DON'T RUN these tests.
+            if [[ "$ghprbTargetBranch" != "master" ]]; then
+              exit 1
+            fi
+          on-evaluation-failure: dont-run
+          steps:
+            - multijob:
+                name: 'ceph-ansible cluster first testing phase'
+                condition: SUCCESSFUL
+                execution-type: PARALLEL
+                projects:
+                  - name: 'ceph-ansible-prs-dev-centos-non_container-all_daemons'
+                    current-parameters: true
+                  - name: 'ceph-ansible-prs-dev-centos-container-all_daemons'
+                    current-parameters: true
+                  - name: 'ceph-ansible-prs-dev-centos-non_container-lvm_osds'
+                    current-parameters: true
+                  - name: 'ceph-ansible-prs-dev-centos-container-lvm_osds'
+                    current-parameters: true
+                  - name: 'ceph-ansible-prs-dev-ubuntu-non_container-all_daemons'
+                    current-parameters: true
+                  - name: 'ceph-ansible-prs-dev-ubuntu-container-all_daemons'
+                    current-parameters: true
+                  - name: 'ceph-ansible-prs-dev-rhel-container-podman'
+                    current-parameters: true
+            - multijob:
+                name: 'ceph-ansible cluster second testing phase'
+                condition: SUCCESSFUL
+                execution-type: PARALLEL
+                projects:
+                  - name: 'ceph-ansible-prs-dev-centos-non_container-purge'
+                    current-parameters: true
+                  - name: 'ceph-ansible-prs-dev-ubuntu-non_container-purge'
+                    current-parameters: true
+                  - name: 'ceph-ansible-prs-dev-centos-container-purge'
+                    current-parameters: true
+                  - name: 'ceph-ansible-prs-dev-ubuntu-container-purge'
+                    current-parameters: true
+                  - name: 'ceph-ansible-prs-dev-centos-non_container-switch_to_containers'
+                    current-parameters: true
+                  - name: 'ceph-ansible-prs-dev-centos-non_container-update'
+                    current-parameters: true
+                  - name: 'ceph-ansible-prs-dev-centos-container-update'
+                    current-parameters: true
+                  - name: 'ceph-ansible-prs-dev-centos-non_container-storage_inventory'
+                    current-parameters: true
+                  - name: 'ceph-ansible-prs-dev-centos-container-storage_inventory'
+                    current-parameters: true
+            - multijob:
+                name: 'ceph-ansible cluster third testing phase'
+                condition: SUCCESSFUL
+                execution-type: PARALLEL
+                projects:
+                  - name: 'ceph-ansible-prs-dev-centos-container-collocation'
+                    current-parameters: true
+                  - name: 'ceph-ansible-prs-dev-centos-non_container-bluestore_lvm_osds'
+                    current-parameters: true
+                  - name: 'ceph-ansible-prs-dev-centos-container-bluestore_lvm_osds'
+                    current-parameters: true
+                  - name: 'ceph-ansible-prs-dev-centos-non_container-lvm_batch'
+                    current-parameters: true
+                  - name: 'ceph-ansible-prs-dev-centos-container-lvm_batch'
+                    current-parameters: true
+                  - name: 'ceph-ansible-prs-dev-centos-non_container-lvm_auto_discovery'
+                    current-parameters: true
+                  - name: 'ceph-ansible-prs-dev-centos-container-lvm_auto_discovery'
+                    current-parameters: true
+      - conditional-step:
+          condition-kind: shell
+          condition-command: |
+            # if the target branch is not master then we DON'T RUN these tests.
+            if [[ "$ghprbTargetBranch" != "stable-4.0" ]]; then
+              exit 1
+            fi
+          on-evaluation-failure: dont-run
+          steps:
+            - multijob:
+                name: 'ceph-ansible cluster first testing phase'
+                condition: SUCCESSFUL
+                execution-type: PARALLEL
+                projects:
+                  - name: 'ceph-ansible-prs-nautilus-centos-non_container-all_daemons'
+                    current-parameters: true
+                  - name: 'ceph-ansible-prs-nautilus-centos-container-all_daemons'
+                    current-parameters: true
+                  - name: 'ceph-ansible-prs-nautilus-centos-non_container-lvm_osds'
+                    current-parameters: true
+                  - name: 'ceph-ansible-prs-nautilus-centos-container-lvm_osds'
+                    current-parameters: true
+                  - name: 'ceph-ansible-prs-nautilus-ubuntu-non_container-all_daemons'
+                    current-parameters: true
+                  - name: 'ceph-ansible-prs-nautilus-ubuntu-container-all_daemons'
+                    current-parameters: true
+                  - name: 'ceph-ansible-prs-nautilus-rhel-container-podman'
+                    current-parameters: true
+            - multijob:
+                name: 'ceph-ansible cluster second testing phase'
+                condition: SUCCESSFUL
+                execution-type: PARALLEL
+                projects:
+                  - name: 'ceph-ansible-prs-nautilus-centos-non_container-purge'
+                    current-parameters: true
+                  - name: 'ceph-ansible-prs-nautilus-ubuntu-non_container-purge'
+                    current-parameters: true
+                  - name: 'ceph-ansible-prs-nautilus-centos-container-purge'
+                    current-parameters: true
+                  - name: 'ceph-ansible-prs-nautilus-ubuntu-container-purge'
+                    current-parameters: true
+                  - name: 'ceph-ansible-prs-nautilus-centos-non_container-switch_to_containers'
+                    current-parameters: true
+                  - name: 'ceph-ansible-prs-nautilus-centos-non_container-update'
+                    current-parameters: true
+                  - name: 'ceph-ansible-prs-nautilus-centos-container-update'
+                    current-parameters: true
+                  - name: 'ceph-ansible-prs-nautilus-centos-non_container-storage_inventory'
+                    current-parameters: true
+                  - name: 'ceph-ansible-prs-nautilus-centos-container-storage_inventory'
+                    current-parameters: true
+            - multijob:
+                name: 'ceph-ansible cluster third testing phase'
+                condition: SUCCESSFUL
+                execution-type: PARALLEL
+                projects:
+                  - name: 'ceph-ansible-prs-nautilus-centos-container-collocation'
+                    current-parameters: true
+                  - name: 'ceph-ansible-prs-nautilus-centos-non_container-bluestore_lvm_osds'
+                    current-parameters: true
+                  - name: 'ceph-ansible-prs-nautilus-centos-container-bluestore_lvm_osds'
+                    current-parameters: true
+                  - name: 'ceph-ansible-prs-nautilus-centos-non_container-lvm_batch'
+                    current-parameters: true
+                  - name: 'ceph-ansible-prs-nautilus-centos-container-lvm_batch'
+                    current-parameters: true
+                  - name: 'ceph-ansible-prs-nautilus-centos-non_container-lvm_auto_discovery'
+                    current-parameters: true
+                  - name: 'ceph-ansible-prs-nautilus-centos-container-lvm_auto_discovery'
+                    current-parameters: true
+      - conditional-step:
+          condition-kind: shell
+          condition-command: |
             #!/bin/bash
             set -x
             # if the target branch is master we RUN these tests.
@@ -168,48 +308,6 @@
           condition-command: |
             #!/bin/bash
             set -x
-            # if the target branch is not master then we DON'T RUN these tests.
-            if [[ "$ghprbTargetBranch" != "master" ]]; then
-              exit 1
-            fi
-            git diff --name-only $(git show HEAD | grep Merge | head -n 1 | cut -d ':' -f2) | grep 'infrastructure-playbooks/purge-docker-cluster.yml'
-          on-evaluation-failure: dont-run
-          steps:
-            - multijob:
-                name: 'ceph-ansible purge playbook testing'
-                condition: SUCCESSFUL
-                execution-type: PARALLEL
-                projects:
-                  - name: 'ceph-ansible-prs-dev-centos-container-purge'
-                    current-parameters: true
-                  - name: 'ceph-ansible-prs-dev-ubuntu-container-purge'
-                    current-parameters: true
-      - conditional-step:
-          condition-kind: shell
-          condition-command: |
-            #!/bin/bash
-            set -x
-            # if the target branch is not master then we DON'T RUN these tests.
-            if [[ "$ghprbTargetBranch" != "master" ]]; then
-              exit 1
-            fi
-            git diff --name-only $(git show HEAD | grep Merge | head -n 1 | cut -d ':' -f2) | grep 'infrastructure-playbooks/purge-cluster.yml'
-          on-evaluation-failure: dont-run
-          steps:
-            - multijob:
-                name: 'ceph-ansible purge playbook testing'
-                condition: SUCCESSFUL
-                execution-type: PARALLEL
-                projects:
-                  - name: 'ceph-ansible-prs-dev-centos-non_container-purge'
-                    current-parameters: true
-                  - name: 'ceph-ansible-prs-dev-ubuntu-non_container-purge'
-                    current-parameters: true
-      - conditional-step:
-          condition-kind: shell
-          condition-command: |
-            #!/bin/bash
-            set -x
             # if the target branch is master then we DON'T RUN these tests.
             if [[ "$ghprbTargetBranch" == "master" ]]; then
               exit 1
@@ -242,27 +340,6 @@
                 execution-type: PARALLEL
                 projects:
                   - name: 'ceph-ansible-prs-luminous-centos-non_container-purge'
-                    current-parameters: true
-      - conditional-step:
-          condition-kind: shell
-          condition-command: |
-            #!/bin/bash
-            set -x
-            # if the target branch is not master then we DON'T RUN these tests.
-            if [[ "$ghprbTargetBranch" != "master" ]]; then
-              exit 1
-            fi
-            git diff --name-only $(git show HEAD | grep Merge | head -n 1 | cut -d ':' -f2) | grep 'infrastructure-playbooks/rolling_update'
-          on-evaluation-failure: dont-run
-          steps:
-            - multijob:
-                name: 'ceph-ansible rolling_update playbook testing'
-                condition: SUCCESSFUL
-                execution-type: PARALLEL
-                projects:
-                  - name: 'ceph-ansible-prs-dev-centos-non_container-update'
-                    current-parameters: true
-                  - name: 'ceph-ansible-prs-dev-centos-container-update'
                     current-parameters: true
       - conditional-step:
           condition-kind: shell
@@ -374,25 +451,6 @@
           condition-command: |
             #!/bin/bash
             set -x
-            # if the target branch is not master then we DON'T RUN these tests.
-            if [[ "$ghprbTargetBranch" != "master" ]]; then
-              exit 1
-            fi
-            git diff --name-only $(git show HEAD | grep Merge | head -n 1 | cut -d ':' -f2) | grep 'infrastructure-playbooks/switch-from-non-containerized-to-containerized-ceph-daemons'
-          on-evaluation-failure: dont-run
-          steps:
-            - multijob:
-                name: 'ceph-ansible switch_to_containers playbook testing'
-                condition: SUCCESSFUL
-                execution-type: PARALLEL
-                projects:
-                  - name: 'ceph-ansible-prs-dev-centos-non_container-switch_to_containers'
-                    current-parameters: true
-      - conditional-step:
-          condition-kind: shell
-          condition-command: |
-            #!/bin/bash
-            set -x
             # if the target branch is master then we DON'T RUN these tests.
             if [[ "$ghprbTargetBranch" == "master" ]]; then
               exit 1
@@ -458,39 +516,6 @@
           condition-command: |
             #!/bin/bash
             set -x
-            # if the target branch is not master then we DON'T RUN these tests.
-            if [[ "$ghprbTargetBranch" != "master" ]]; then
-              exit 1
-            fi
-            git diff --name-only $(git show HEAD | grep Merge | head -n 1 | cut -d ':' -f2) | grep -E 'roles/ceph-defaults/tasks/facts.yml|roles/ceph-osd|ceph-validate|library/ceph_volume.py'
-          on-evaluation-failure: dont-run
-          steps:
-            - multijob:
-                name: 'ceph-ansible osd scenarios playbook testing'
-                condition: SUCCESSFUL
-                execution-type: PARALLEL
-                projects:
-                  - name: 'ceph-ansible-prs-dev-centos-non_container-lvm_osds'
-                    current-parameters: true
-                  - name: 'ceph-ansible-prs-dev-centos-container-lvm_osds'
-                    current-parameters: true
-                  - name: 'ceph-ansible-prs-dev-centos-non_container-bluestore_lvm_osds'
-                    current-parameters: true
-                  - name: 'ceph-ansible-prs-dev-centos-container-bluestore_lvm_osds'
-                    current-parameters: true
-                  - name: 'ceph-ansible-prs-dev-centos-non_container-lvm_batch'
-                    current-parameters: true
-                  - name: 'ceph-ansible-prs-dev-centos-container-lvm_batch'
-                    current-parameters: true
-                  - name: 'ceph-ansible-prs-dev-centos-non_container-lvm_auto_discovery'
-                    current-parameters: true
-                  - name: 'ceph-ansible-prs-dev-centos-container-lvm_auto_discovery'
-                    current-parameters: true
-      - conditional-step:
-          condition-kind: shell
-          condition-command: |
-            #!/bin/bash
-            set -x
             # if the target branch is stable-3.2 then we RUN these tests.
             if [[ "$ghprbTargetBranch" =~ stable-3.[0-1]|master ]]; then
               exit 1
@@ -527,45 +552,6 @@
                   - name: 'ceph-ansible-prs-dev-centos-non_container-rgw_multisite'
                     current-parameters: true
                   - name: 'ceph-ansible-prs-dev-centos-container-rgw_multisite'
-                    current-parameters: true
-      - conditional-step:
-          condition-kind: shell
-          condition-command: |
-            #!/bin/bash
-            set -x
-            git diff --name-only $(git show HEAD | grep Merge | head -n 1 | cut -d ':' -f2) | grep -v 'infrastructure-playbooks'
-            if [ $? -eq 1 ]; then
-              echo "Infra playbooks modified.  Not testing remaining scenarios."
-              exit 1
-            fi
-            # do not run if roles/ceph-osd has been touched since the task above play osds already
-            git diff --name-only $(git show HEAD | grep Merge | head -n 1 | cut -d ':' -f2) | grep -E 'roles/ceph-osd'
-            if [ $? -eq 0 ]; then
-              echo "ceph-osd role modified, nothing to test, the ceph-osd role test is handled by another pipeline job."
-              exit 1
-            fi
-            # if the target branch is not master then we DON'T RUN these tests.
-            if [[ "$ghprbTargetBranch" != "master" ]]; then
-              exit 1
-            fi
-          on-evaluation-failure: dont-run
-          steps:
-            - multijob:
-                name: 'ceph-ansible basic cluster testing phase'
-                condition: SUCCESSFUL
-                execution-type: PARALLEL
-                projects:
-                  - name: 'ceph-ansible-prs-dev-centos-non_container-all_daemons'
-                    current-parameters: true
-                  - name: 'ceph-ansible-prs-dev-centos-container-all_daemons'
-                    current-parameters: true
-                  - name: 'ceph-ansible-prs-dev-centos-container-collocation'
-                    current-parameters: true
-                  - name: 'ceph-ansible-prs-dev-ubuntu-non_container-all_daemons'
-                    current-parameters: true
-                  - name: 'ceph-ansible-prs-dev-ubuntu-container-all_daemons'
-                    current-parameters: true
-                  - name: 'ceph-ansible-prs-dev-rhel-container-podman'
                     current-parameters: true
       - conditional-step:
           condition-kind: shell
