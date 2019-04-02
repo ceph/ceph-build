@@ -125,8 +125,8 @@
       - conditional-step:
           condition-kind: shell
           condition-command: |
-            # if the target branch is not master then we DON'T RUN these tests.
-            if [[ "$ghprbTargetBranch" != "stable-4.0" ]]; then
+            # if the target branch is not stable-4.0 then we DON'T RUN these tests.
+            if [[ "$ghprbTargetBranch" =~ stable-3.[0-2]|master ]]; then
               exit 1
             fi
           on-evaluation-failure: dont-run
