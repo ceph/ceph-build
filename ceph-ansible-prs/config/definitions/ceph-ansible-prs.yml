@@ -287,6 +287,10 @@
                   - ../../build/build
 
     publishers:
+      - naginator:
+          max-failed-builds: 3
+          regular-expression: "Failure talking to yum|Call to virDomainLookupByUUID failed"
+
       - postbuildscript:
           builders:
             - role: SLAVE
