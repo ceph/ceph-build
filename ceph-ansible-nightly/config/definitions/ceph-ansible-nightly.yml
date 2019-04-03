@@ -51,7 +51,6 @@
       - non_container
     scenario:
       - purge_lvm_osds
-      - bluestore_lvm_osds
       - switch_to_containers
       - lvm_osds
     ceph_ansible_branch:
@@ -89,7 +88,6 @@
       - all_daemons
       - collocation
       - update
-      - bluestore_lvm_osds
       - lvm_osds
       - shrink_mon
       - shrink_osd
@@ -146,7 +144,6 @@
       - all_daemons
       - collocation
       - update
-      - bluestore_lvm_osds
       - lvm_osds
       - shrink_mon
       - shrink_osd
