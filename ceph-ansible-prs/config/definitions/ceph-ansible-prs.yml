@@ -1,7 +1,7 @@
 # master
 - project:
     name: ceph-ansible-prs-master-pipeline
-    slave_labels: 'vagrant && libvirt && smithi'
+    slave_labels: 'vagrant && libvirt && centos7'
     release:
       - dev
     distribution:
@@ -31,7 +31,7 @@
 
 - project:
     name: ceph-ansible-prs-master-non_container-pipeline
-    slave_labels: 'vagrant && libvirt && smithi'
+    slave_labels: 'vagrant && libvirt && centos7'
     release:
       - dev
     distribution:
@@ -46,7 +46,7 @@
 
 - project:
     name: ceph-ansible-prs-master-ooo-pipeline
-    slave_labels: 'vagrant && libvirt && smithi'
+    slave_labels: 'vagrant && libvirt && centos7'
     release:
       - dev
     distribution:
@@ -60,7 +60,7 @@
 
 - project:
     name: ceph-ansible-prs-master-podman-pipeline
-    slave_labels: 'vagrant && libvirt && smithi'
+    slave_labels: 'vagrant && libvirt && centos7'
     release:
       - dev
     distribution:
@@ -75,7 +75,7 @@
 # nautilus
 - project:
     name: ceph-ansible-prs-nautilus-pipeline
-    slave_labels: 'vagrant && libvirt && smithi'
+    slave_labels: 'vagrant && libvirt && centos7'
     release:
       - nautilus
     distribution:
@@ -105,7 +105,7 @@
 
 - project:
     name: ceph-ansible-prs-nautilus-non_container-pipeline
-    slave_labels: 'vagrant && libvirt && smithi'
+    slave_labels: 'vagrant && libvirt && centos7'
     release:
       - nautilus
     distribution:
@@ -120,7 +120,7 @@
 
 - project:
     name: ceph-ansible-prs-nautilus-ooo-pipeline
-    slave_labels: 'vagrant && libvirt && smithi'
+    slave_labels: 'vagrant && libvirt && centos7'
     release:
       - nautilus
     distribution:
@@ -134,7 +134,7 @@
 
 - project:
     name: ceph-ansible-prs-nautilus-podman-pipeline
-    slave_labels: 'vagrant && libvirt && smithi'
+    slave_labels: 'vagrant && libvirt && centos7'
     release:
       - nautilus
     distribution:

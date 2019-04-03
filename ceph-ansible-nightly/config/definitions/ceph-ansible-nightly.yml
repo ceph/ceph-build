@@ -97,7 +97,6 @@
       - add_osds
       - rgw_multisite
       - purge
-      - lvm_auto_discovery
     ceph_ansible_branch:
       - stable-3.2
     jobs:
