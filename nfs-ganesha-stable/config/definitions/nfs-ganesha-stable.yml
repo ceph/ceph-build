@@ -51,7 +51,7 @@
       - string:
           name: NTIRPC_BRANCH
           description: "The git branch (or tag) to build"
-          default: "v1.7.2"
+          default: "v1.7.3"
 
       - string:
           name: NTIRPC_DEBIAN_BRANCH
