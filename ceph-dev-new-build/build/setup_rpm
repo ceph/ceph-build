@@ -29,6 +29,7 @@ tar xzf *.orig.tar.gz
 cd ceph-*
 pwd
 
+$SUDO yum install -y epel-release
 $SUDO yum install -y yum-utils
 if [ "$ARCH" = x86_64 ]; then
     $SUDO yum install -y centos-release-scl
