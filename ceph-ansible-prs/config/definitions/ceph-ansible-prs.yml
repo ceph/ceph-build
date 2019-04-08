@@ -23,6 +23,7 @@
       - add_mons
       - add_mdss
       - add_rgws
+      - add_rbdmirrors
       - rgw_multisite
       - purge
       - lvm_auto_discovery
@@ -97,6 +98,7 @@
       - add_mons
       - add_mdss
       - add_rgws
+      - add_rbdmirrors
       - rgw_multisite
       - purge
       - lvm_auto_discovery
