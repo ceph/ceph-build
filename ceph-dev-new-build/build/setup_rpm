@@ -38,6 +38,10 @@ elif [ "$ARCH" = arm64 ]; then
     $SUDO yum-config-manager --enable centos-sclo-rh-testing
 fi
 sed -e 's/@//g' < ceph.spec.in > $DIR/ceph.spec
+
+# Make sure we have all the rpm macros installed and at the latest version before installing the dependencies
+$SUDO yum install -y \*rpm-macros
+
 $SUDO yum-builddep -y $DIR/ceph.spec
 
 BRANCH=`branch_slash_filter $BRANCH`
