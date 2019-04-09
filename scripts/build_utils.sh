@@ -757,6 +757,15 @@ case $SCENARIO in
   update)
     TOX_INI_FILE=tox-update.ini
     ;;
+  rgw_multisite)
+    TOX_INI_FILE=tox-rgw_multisite.ini
+    ;;
+  purge)
+    TOX_INI_FILE=tox-purge.ini
+    ;;
+  switch_to_containers)
+    TOX_INI_FILE=tox-switch_to_containers.ini
+    ;;
   *)
     TOX_INI_FILE=tox.ini
     ;;
