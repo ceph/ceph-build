@@ -57,7 +57,7 @@
           wipe-workspace: true
 
     builders:
-      - shell: "export NPROC=$(nproc); timeout 7200 ./run-make-check.sh"
+      - shell: "export NPROC=$(nproc) CHECK_MAKEOPTS='-j$(nproc) -N -Q'; timeout 7200 ./run-make-check.sh"
       - shell:
           !include-raw:
             - ../../setup/setup
