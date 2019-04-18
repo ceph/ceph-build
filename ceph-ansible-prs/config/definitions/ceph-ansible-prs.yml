@@ -15,7 +15,6 @@
       - cluster
       - collocation
       - update
-      - bluestore_lvm_osds
       - lvm_osds
       - shrink_mon
       - shrink_osd
@@ -89,7 +88,6 @@
       - cluster
       - collocation
       - update
-      - bluestore_lvm_osds
       - lvm_osds
       - shrink_mon
       - shrink_osd
@@ -163,7 +161,6 @@
       - all_daemons
       - collocation
       - update
-      - bluestore_lvm_osds
       - lvm_osds
       - shrink_mon
       - shrink_osd
@@ -334,10 +331,8 @@
       - lvm_osds
       - lvm_batch
       - purge_lvm_osds
-      - bluestore_lvm_osds
       - lvm_osds_container
       - lvm_batch_container
-      - bluestore_lvm_osds_container
       - add_osds
       - add_osds_container
       - rgw_multisite
