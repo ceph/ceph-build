@@ -874,6 +874,24 @@ write_collect_logs_playbook() {
         - "/etc/ceph/ceph.conf"
         - "/etc/ceph/test.conf"
         - "/etc/ceph/mycluster.conf"
+
+- hosts: mon0
+  become: True
+  tasks:
+    - name: get cluster status
+      command: "ceph --cluster {{ item }} -s -f json"
+      register: ceph_status
+      changed_when: False
+      with_items:
+        - ceph
+        - test
+        - mycluster
+
+    - name: show ceph status
+      debug:
+        msg: "{{ item.stdout }}"
+      with_items: "{{ ceph_status.results }}"
+      when: item.rc == 0
 EOF
 }
 
