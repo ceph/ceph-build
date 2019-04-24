@@ -4,13 +4,12 @@ set -e
 
 # the following two methods exist in scripts/build_utils.sh
 # shellcheck disable=SC2034
-pkgs=( "ansible-lint" )
 # force virtualenv to be created earlier for this occurence, so we are not stuck because of ansible-lint dependencie,
 # which would enforce latest ansible version to be installed.
 virtualenv $TEMPVENV
 "$VENV"/pip install --upgrade pip
 "$VENV"/pip install -r <(grep ansible "$WORKSPACE"/ceph-ansible/tests/requirements.txt)
-install_python_packages "pkgs[@]"
+"$VENV"/pip install ansible-lint
 
 
 #############
