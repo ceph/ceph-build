@@ -32,11 +32,11 @@
             - zmc
             - andrewschoen
             - dmick
+            - gregsfortytwo
           org-list:
             - ceph
           white-list:
             - jcsp
-            - gregsfortytwo
             - GregMeno
             - dzafman
             - dillaman
