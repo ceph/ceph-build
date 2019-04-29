@@ -28,7 +28,6 @@
           admin-list:
             - alfredodeza
             - ktdreyer
-            - trhoden
           org-list:
             - ceph
           white-list:
