@@ -126,7 +126,7 @@
             #!/bin/bash
             set -x
             # if the target branch is not stable-4.0 then we DON'T RUN these tests.
-            if [[ "$ghprbTargetBranch" =~ stable-3.[0-2]|master ]]; then
+            if [[ "$ghprbTargetBranch" != "stable-4.0" ]]; then
               exit 1
             fi
           on-evaluation-failure: dont-run
@@ -194,7 +194,7 @@
             #!/bin/bash
             set -x
             # if the target branch is master we RUN these tests.
-            if [[ "$ghprbTargetBranch" =~ "stable-" ]]; then
+            if [[ "$ghprbTargetBranch" != "master" ]]; then
               exit 1
             fi
             git diff --name-only $(git show HEAD | grep Merge | head -n 1 | cut -d ':' -f2) | grep -E 'infrastructure-playbooks/add-osd|tests/functional/centos/7/add-osds'
@@ -215,7 +215,7 @@
             #!/bin/bash
             set -x
             # if the target branch is stable-3.2 we RUN these tests.
-            if [[ "$ghprbTargetBranch" =~ stable-3.[0-1]|stable-4.0|master ]]; then
+            if [[ "$ghprbTargetBranch" != "stable-3.2" ]]; then
               exit 1
             fi
             git diff --name-only $(git show HEAD | grep Merge | head -n 1 | cut -d ':' -f2) | grep -E 'infrastructure-playbooks/add-osd|tests/functional/centos/7/add-osds'
@@ -236,7 +236,7 @@
             #!/bin/bash
             set -x
             # if the target branch is stable-4.0 we RUN these tests.
-            if [[ "$ghprbTargetBranch" =~ stable-3.[0-2]|master ]]; then
+            if [[ "$ghprbTargetBranch" != "stable-4.0" ]]; then
               exit 1
             fi
             git diff --name-only $(git show HEAD | grep Merge | head -n 1 | cut -d ':' -f2) | grep -E 'infrastructure-playbooks/add-osd|tests/functional/centos/7/add-osds'
@@ -257,7 +257,7 @@
             #!/bin/bash
             set -x
             # if the target branch is master we RUN these tests.
-            if [[ "$ghprbTargetBranch" =~ "stable-" ]]; then
+            if [[ "$ghprbTargetBranch" != "master" ]]; then
               exit 1
             fi
             git diff --name-only $(git show HEAD | grep Merge | head -n 1 | cut -d ':' -f2) | grep -E 'infrastructure-playbooks/add-mon|tests/functional/add-mons'
@@ -278,7 +278,7 @@
             #!/bin/bash
             set -x
             # if the target branch is stable-4.0 we RUN these tests.
-            if [[ "$ghprbTargetBranch" =~ stable-3.[0-2]|master ]]; then
+            if [[ "$ghprbTargetBranch" != "stable-4.0" ]]; then
               exit 1
             fi
             git diff --name-only $(git show HEAD | grep Merge | head -n 1 | cut -d ':' -f2) | grep -E 'infrastructure-playbooks/add-mon|tests/functional/add-mons'
@@ -299,7 +299,7 @@
             #!/bin/bash
             set -x
             # if the target branch is master we RUN these tests.
-            if [[ "$ghprbTargetBranch" =~ "stable-" ]]; then
+            if [[ "$ghprbTargetBranch" != "master" ]]; then
               exit 1
             fi
             git diff --name-only $(git show HEAD | grep Merge | head -n 1 | cut -d ':' -f2) | grep -E 'tests/functional/add-mgrs'
@@ -320,7 +320,7 @@
             #!/bin/bash
             set -x
             # if the target branch is stable-4.0 we RUN these tests.
-            if [[ "$ghprbTargetBranch" =~ stable-3.[0-2]|master ]]; then
+            if [[ "$ghprbTargetBranch" != "stable-4.0" ]]; then
               exit 1
             fi
             git diff --name-only $(git show HEAD | grep Merge | head -n 1 | cut -d ':' -f2) | grep -E 'tests/functional/add-mgrs'
@@ -341,7 +341,7 @@
             #!/bin/bash
             set -x
             # if the target branch is master we RUN these tests.
-            if [[ "$ghprbTargetBranch" =~ "stable-" ]]; then
+            if [[ "$ghprbTargetBranch" != "master" ]]; then
               exit 1
             fi
             git diff --name-only $(git show HEAD | grep Merge | head -n 1 | cut -d ':' -f2) | grep -E 'infrastructure-playbooks/add-mon|tests/functional/add-mdss'
@@ -362,7 +362,7 @@
             #!/bin/bash
             set -x
             # if the target branch is master we RUN these tests.
-            if [[ "$ghprbTargetBranch" =~ "stable-" ]]; then
+            if [[ "$ghprbTargetBranch" != "master" ]]; then
               exit 1
             fi
             git diff --name-only $(git show HEAD | grep Merge | head -n 1 | cut -d ':' -f2) | grep -E 'tests/functional/add-rgws'
@@ -383,7 +383,7 @@
             #!/bin/bash
             set -x
             # if the target branch is stable-4.0 we RUN these tests.
-            if [[ "$ghprbTargetBranch" =~ stable-3.[0-2]|master ]]; then
+            if [[ "$ghprbTargetBranch" != "stable-4.0" ]]; then
               exit 1
             fi
             git diff --name-only $(git show HEAD | grep Merge | head -n 1 | cut -d ':' -f2) | grep -E 'tests/functional/add-rgws'
@@ -404,7 +404,7 @@
             #!/bin/bash
             set -x
             # if the target branch is master we RUN these tests.
-            if [[ "$ghprbTargetBranch" =~ "stable-" ]]; then
+            if [[ "$ghprbTargetBranch" != "master" ]]; then
               exit 1
             fi
             git diff --name-only $(git show HEAD | grep Merge | head -n 1 | cut -d ':' -f2) | grep -E 'tests/functional/add-rbdmirrors'
@@ -425,7 +425,7 @@
             #!/bin/bash
             set -x
             # if the target branch is stable-4.0 we RUN these tests.
-            if [[ "$ghprbTargetBranch" =~ stable-3.[0-2]|master ]]; then
+            if [[ "$ghprbTargetBranch" != "stable-4.0" ]]; then
               exit 1
             fi
             git diff --name-only $(git show HEAD | grep Merge | head -n 1 | cut -d ':' -f2) | grep -E 'tests/functional/add-rbdmirrors'
@@ -472,7 +472,7 @@
             #!/bin/bash
             set -x
             # if the target branch is master or stable-4.0 then we DON'T RUN these tests.
-            if [[ "$ghprbTargetBranch" =~ stable-4.0|master ]]; then
+            if [[ "$ghprbTargetBranch" != "stable-3.2" ]]; then
               exit 1
             fi
             git diff --name-only $(git show HEAD | grep Merge | head -n 1 | cut -d ':' -f2) | grep 'infrastructure-playbooks/purge-docker-cluster.yml'
@@ -491,7 +491,7 @@
             #!/bin/bash
             set -x
             # if the target branch is master or stable-4.0 then we DON'T RUN these tests.
-            if [[ "$ghprbTargetBranch" =~ stable-4.0|master ]]; then
+            if [[ "$ghprbTargetBranch" != "stable-3.2" ]]; then
               exit 1
             fi
             git diff --name-only $(git show HEAD | grep Merge | head -n 1 | cut -d ':' -f2) | grep 'infrastructure-playbooks/purge-cluster.yml'
@@ -510,7 +510,7 @@
             #!/bin/bash
             set -x
             # if the target branch is master or stable-4.0 then we DON'T RUN these tests.
-            if [[ "$ghprbTargetBranch" =~ stable-4.0|master ]]; then
+            if [[ "$ghprbTargetBranch" != "stable-3.2" ]]; then
               exit 1
             fi
             git diff --name-only $(git show HEAD | grep Merge | head -n 1 | cut -d ':' -f2) | grep 'infrastructure-playbooks/rolling_update'
@@ -552,7 +552,7 @@
             #!/bin/bash
             set -x
             # if the target branch is master or stable-4.0 then we DON'T RUN these tests.
-            if [[ "$ghprbTargetBranch" =~ stable-4.0|master ]]; then
+            if [[ "$ghprbTargetBranch" != "stable-3.2" ]]; then
               exit 1
             fi
             git diff --name-only $(git show HEAD | grep Merge | head -n 1 | cut -d ':' -f2) | grep 'infrastructure-playbooks/shrink-mon'
@@ -594,7 +594,7 @@
             #!/bin/bash
             set -x
             # if the target branch is master or stable-4.0 then we DON'T RUN these tests.
-            if [[ "$ghprbTargetBranch" =~ stable-4.0|master ]]; then
+            if [[ "$ghprbTargetBranch" != "stable-3.2" ]]; then
               exit 1
             fi
             git diff --name-only $(git show HEAD | grep Merge | head -n 1 | cut -d ':' -f2) | grep -E 'infrastructure-playbooks/shrink-osd|tests/functional/centos/7/shrink_osd'
@@ -615,7 +615,7 @@
             #!/bin/bash
             set -x
             # if the target branch is master or stable-4.0 then we DON'T RUN these tests.
-            if [[ "$ghprbTargetBranch" =~ stable-4.0|master ]]; then
+            if [[ "$ghprbTargetBranch" != "stable-3.2" ]]; then
               exit 1
             fi
             git diff --name-only $(git show HEAD | grep Merge | head -n 1 | cut -d ':' -f2) | grep 'infrastructure-playbooks/switch-from-non-containerized-to-containerized-ceph-daemons'
@@ -659,7 +659,7 @@
             #!/bin/bash
             set -x
             # if the target branch is stable-3.2 then we RUN these tests.
-            if [[ "$ghprbTargetBranch" =~ stable-3.[0-1]|stable-4.0|master ]]; then
+            if [[ "$ghprbTargetBranch" != "stable-3.2" ]]; then
               exit 1
             fi
             git diff --name-only $(git show HEAD | grep Merge | head -n 1 | cut -d ':' -f2) | grep -E 'roles/ceph-rgw/tasks/multisite|tests/functional/centos/7/rgw-multisite'
@@ -680,7 +680,7 @@
             #!/bin/bash
             set -x
             # if the target branch is stable-4.0 then we RUN these tests.
-            if [[ "$ghprbTargetBranch" =~ stable-3.[0-2]|master ]]; then
+            if [[ "$ghprbTargetBranch" != "stable-4.0" ]]; then
               exit 1
             fi
             git diff --name-only $(git show HEAD | grep Merge | head -n 1 | cut -d ':' -f2) | grep -E 'roles/ceph-rgw/tasks/multisite|tests/functional/centos/7/rgw-multisite'
@@ -701,7 +701,7 @@
             #!/bin/bash
             set -x
             # if the target branch is master then we RUN these tests.
-            if [[ "$ghprbTargetBranch" =~ "stable-" ]]; then
+            if [[ "$ghprbTargetBranch" != "master" ]]; then
               exit 1
             fi
             git diff --name-only $(git show HEAD | grep Merge | head -n 1 | cut -d ':' -f2) | grep -E 'roles/ceph-rgw/tasks/multisite|tests/functional/centos/7/rgw-multisite'
@@ -733,7 +733,7 @@
               exit 1
             fi
             # if the target branch is master or stable-4.0 then we DON'T RUN these tests.
-            if [[ "$ghprbTargetBranch" =~ stable-4.0|master ]]; then
+            if [[ "$ghprbTargetBranch" != "stable-3.2" ]]; then
               exit 1
             fi
           on-evaluation-failure: dont-run
