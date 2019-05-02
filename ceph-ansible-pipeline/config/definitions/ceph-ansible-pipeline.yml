@@ -302,6 +302,48 @@
             if [[ "$ghprbTargetBranch" =~ "stable-" ]]; then
               exit 1
             fi
+            git diff --name-only $(git show HEAD | grep Merge | head -n 1 | cut -d ':' -f2) | grep -E 'tests/functional/add-mgrs'
+          on-evaluation-failure: dont-run
+          steps:
+            - multijob:
+                name: 'ceph-ansible add_mgrs playbook testing'
+                condition: SUCCESSFUL
+                execution-type: PARALLEL
+                projects:
+                  - name: 'ceph-ansible-prs-dev-centos-non_container-add_mgrs'
+                    current-parameters: true
+                  - name: 'ceph-ansible-prs-dev-centos-container-add_mgrs'
+                    current-parameters: true
+      - conditional-step:
+          condition-kind: shell
+          condition-command: |
+            #!/bin/bash
+            set -x
+            # if the target branch is stable-4.0 we RUN these tests.
+            if [[ "$ghprbTargetBranch" =~ stable-3.[0-2]|master ]]; then
+              exit 1
+            fi
+            git diff --name-only $(git show HEAD | grep Merge | head -n 1 | cut -d ':' -f2) | grep -E 'tests/functional/add-mgrs'
+          on-evaluation-failure: dont-run
+          steps:
+            - multijob:
+                name: 'ceph-ansible add_mgrs playbook testing'
+                condition: SUCCESSFUL
+                execution-type: PARALLEL
+                projects:
+                  - name: 'ceph-ansible-prs-nautilus-centos-non_container-add_mgrs'
+                    current-parameters: true
+                  - name: 'ceph-ansible-prs-nautilus-centos-container-add_mgrs'
+                    current-parameters: true
+      - conditional-step:
+          condition-kind: shell
+          condition-command: |
+            #!/bin/bash
+            set -x
+            # if the target branch is master we RUN these tests.
+            if [[ "$ghprbTargetBranch" =~ "stable-" ]]; then
+              exit 1
+            fi
             git diff --name-only $(git show HEAD | grep Merge | head -n 1 | cut -d ':' -f2) | grep -E 'infrastructure-playbooks/add-mon|tests/functional/add-mdss'
           on-evaluation-failure: dont-run
           steps:

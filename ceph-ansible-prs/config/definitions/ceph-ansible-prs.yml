@@ -21,6 +21,7 @@
       - lvm_batch
       - add_osds
       - add_mons
+      - add_mgrs
       - add_mdss
       - add_rgws
       - add_rbdmirrors
@@ -96,6 +97,7 @@
       - lvm_batch
       - add_osds
       - add_mons
+      - add_mgrs
       - add_mdss
       - add_rgws
       - add_rbdmirrors
