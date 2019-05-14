@@ -29,6 +29,11 @@ If this is checked, JJB will wipe out its cache and force each job to align with
       - inject-passwords:
           global: true
           mask-password-params: true
+      - credentials-binding:
+          - username-password-separated:
+              credential-id: jenkins-api-token
+              username: JOB_BUILDER_USER
+              password: JOB_BUILDER_PASS
 
     scm:
       - git:
