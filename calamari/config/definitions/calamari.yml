@@ -99,3 +99,7 @@ If this is checked, then the binaries will be built and pushed to chacra even if
       - inject-passwords:
           global: true
           mask-password-params: true
+      - credentials-binding:
+          - text:
+              credential-id: shaman-api-key
+              variable: SHAMAN_API_KEY
