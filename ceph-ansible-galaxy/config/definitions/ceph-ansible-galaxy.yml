@@ -39,4 +39,4 @@
       - ssh-agent-credentials:
           # "jenkins-build" SSH key, needed for access to ceph-ansible.git
           users:
-            - '39fa150b-b2a1-416e-b334-29a9a2c0b32d'
+            - 'jenkins-build'

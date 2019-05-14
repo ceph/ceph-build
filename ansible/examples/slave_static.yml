@@ -275,7 +275,7 @@
         name: "{{ ansible_default_ipv4.address }}+{{ nodename }}"
         labels: "{{ labels }}"
         host: "{{ ansible_default_ipv4.address }}"
-        credentialsId: '39fa150b-b2a1-416e-b334-29a9a2c0b32d'
+        credentialsId: 'jenkins-build'
         remoteFS: '/home/{{ jenkins_user }}/build'
         executors: '{{ executors|default(1) }}'
         exclusive: true
@@ -292,7 +292,7 @@
         name: "{{ ansible_default_ipv4.address }}+{{ nodename }}"
         labels: "{{ labels }}"
         host: "{{ ansible_default_ipv4.address }}"
-        credentialsId: '39fa150b-b2a1-416e-b334-29a9a2c0b32d'
+        credentialsId: 'jenkins-build'
         launcher: 'hudson.slaves.JNLPLauncher'
         remoteFS: '/home/{{ jenkins_user }}/build'
         # XXX this should be configurable, not all nodes should have one executor

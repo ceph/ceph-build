@@ -71,7 +71,7 @@ If this is checked, then the binaries will be built and pushed to chacra even if
       - git:
           url: git@github.com:ceph/ceph-iscsi-tools.git
           # Use the SSH key attached to the ceph-jenkins GitHub account.
-          credentials-id: '39fa150b-b2a1-416e-b334-29a9a2c0b32d'
+          credentials-id: 'jenkins-build'
           branches:
             - $BRANCH
           skip-tag: true
@@ -102,3 +102,11 @@ If this is checked, then the binaries will be built and pushed to chacra even if
       - inject-passwords:
           global: true
           mask-password-params: true
+      - credentials-binding:
+          - text:
+              credential-id: chacractl-key
+              variable: CHACRACTL_KEY
+      - credentials-binding:
+          - text:
+              credential-id: shaman-api-key
+              variable: SHAMAN_API_KEY

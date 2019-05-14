@@ -113,3 +113,7 @@
       - inject-passwords:
           global: true
           mask-password-params: true
+      - credentials-binding:
+          - text:
+              credential-id: chacractl-key
+              variable: CHACRACTL_KEY

@@ -6,6 +6,6 @@
 
 - name: Add the jenkins repo
   apt_repository:
-    repo: 'deb http://pkg.jenkins-ci.org/debian binary/'
+    repo: 'deb https://pkg.jenkins.io/debian-stable binary/'
     state: present
     update_cache: true
