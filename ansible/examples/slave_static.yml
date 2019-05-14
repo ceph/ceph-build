@@ -314,6 +314,10 @@
       sudo: true
       when: use_jnlp
 
+    - name: reload systemd unit files (to pick up potential changes)
+      systemd:
+        daemon_reload: yes
+
     - name: start jenkins service
       service:
         name: jenkins
