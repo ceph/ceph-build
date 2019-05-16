@@ -61,4 +61,5 @@
       - shell:
           !include-raw:
             - ../../setup/setup
+      - shell: "cd src/pybind/mgr/dashboard; timeout 7200 ./run-backend-api-tests.sh"
       - shell: "cd src/pybind/mgr/dashboard; timeout 7200 ./run-frontend-e2e-tests.sh"
