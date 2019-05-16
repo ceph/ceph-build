@@ -82,6 +82,10 @@
                     current-parameters: true
                   - name: 'ceph-ansible-prs-dev-rhel-container-podman'
                     current-parameters: true
+                  - name: 'ceph-ansible-prs-dev-centos-non_container-dashboard'
+                    current-parameters: true
+                  - name: 'ceph-ansible-prs-dev-centos-container-dashboard'
+                    current-parameters: true
             - multijob:
                 name: 'ceph-ansible cluster second testing phase'
                 condition: SUCCESSFUL
