@@ -25,7 +25,7 @@ function check(){
     while read -r filename; do
         pushd "$(dirname "$filename")"
         file=$(basename "$filename")
-        sudo docker run -v "$(pwd)"/"$file":/"$file" koalaman/shellcheck --external-sources --exclude "$IGNORE_THESE_CODES" /"$file"
+        sudo docker run -v "$(pwd)"/"$file":/"$file":z koalaman/shellcheck --external-sources --exclude "$IGNORE_THESE_CODES" /"$file"
         popd
     done
     return $?
