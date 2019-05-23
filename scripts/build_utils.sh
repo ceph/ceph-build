@@ -782,6 +782,9 @@ case $SCENARIO in
   dashboard)
     TOX_INI_FILE=tox-dashboard.ini
     ;;
+  podman)
+    TOX_INI_FILE=tox-podman.ini
+    ;;
   *)
     TOX_INI_FILE=tox.ini
     ;;
