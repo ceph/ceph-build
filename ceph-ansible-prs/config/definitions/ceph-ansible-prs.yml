@@ -6,7 +6,6 @@
       - dev
     distribution:
       - centos
-      - ubuntu
     deployment:
       - container
       - non_container
@@ -29,6 +28,21 @@
       - purge
       - lvm_auto_discovery
       - dashboard
+    jobs:
+        - 'ceph-ansible-prs-pipeline'
+
+- project:
+    name: ceph-ansible-prs-master-pipeline-ubuntu
+    slave_labels: 'vagrant && libvirt && smithi'
+    release:
+      - dev
+    distribution:
+      - ubuntu
+    deployment:
+      - container
+      - non_container
+    scenario:
+      - all_daemons
     jobs:
         - 'ceph-ansible-prs-pipeline'
 
@@ -70,7 +84,6 @@
       - nautilus
     distribution:
       - centos
-      - ubuntu
     deployment:
       - container
       - non_container
@@ -92,6 +105,21 @@
       - rgw_multisite
       - purge
       - lvm_auto_discovery
+    jobs:
+        - 'ceph-ansible-prs-pipeline'
+
+- project:
+    name: ceph-ansible-prs-nautilus-pipeline-ubuntu
+    slave_labels: 'vagrant && libvirt && smithi'
+    release:
+      - nautilus
+    distribution:
+      - ubuntu
+    deployment:
+      - container
+      - non_container
+    scenario:
+      - all_daemons
     jobs:
         - 'ceph-ansible-prs-pipeline'
 
