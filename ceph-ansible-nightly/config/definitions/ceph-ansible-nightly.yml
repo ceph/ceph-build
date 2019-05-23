@@ -66,7 +66,7 @@
       - centos
       - ubuntu
     deployment:
-      - non_container
+      - container
     scenario:
       - ooo_collocation
     ceph_ansible_branch:
