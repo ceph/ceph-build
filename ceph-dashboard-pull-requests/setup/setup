@@ -10,14 +10,16 @@ if grep -q  debian /etc/*-release; then
     sudo apt-get install -y python-requests python-openssl python-jinja2 python-jwt
 
 elif grep -q rhel /etc/*-release; then
-    sudo dd of=/etc/yum.repos.d/google-chrome.repo status=none <<EOF
-[google-chrome]
-name=google-chrome
-baseurl=https://dl.google.com/linux/chrome/rpm/stable/x86_64
-enabled=1
-gpgcheck=1
-gpgkey=https://dl.google.com/linux/linux_signing_key.pub
-EOF
-    sudo yum install -y google-chrome-stable
+    wget https://dl.google.com/linux/direct/google-chrome-stable_current_x86_64.rpm
+    #sudo dd of=/etc/yum.repos.d/google-chrome.repo status=none <<EOF
+#[google-chrome]
+#name=google-chrome
+#baseurl=https://dl.google.com/linux/chrome/rpm/stable/x86_64
+#enabled=1
+#gpgcheck=1
+#gpgkey=https://dl.google.com/linux/linux_signing_key.pub
+#EOF
+    #sudo yum install -y google-chrome-stable
+    sudo rpm -i -y google-chrome-stable_current_x86_64.rpm
     sudo yum install -y python-requests pyOpenSSL python-jinja2 python-jwt
 fi
