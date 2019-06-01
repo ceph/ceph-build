@@ -9,6 +9,9 @@ fi
 ## Get some basic information about the system and the repository
 RELEASE="$(lsb_release --short -r | cut -d '.' -f 1)" # sytem release
 
+# Disable the google-chrome repo, which is not needed
+sudo yum-config-manager --disable google-chrome
+
 # Clean up Jenkins slave before each build
 sudo rm -rf /var/cache/yum/*
 sudo yum -y clean all
