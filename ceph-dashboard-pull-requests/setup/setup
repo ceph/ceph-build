@@ -23,6 +23,6 @@ gpgcheck=1
 gpgkey=https://dl-ssl.google.com/linux/linux_signing_key.pub
 EOF
     sudo yum install -y google-chrome-stable
-    sudo rm /etc/apt/sources.list.d/google-chrome.list
+    sudo rm /etc/yum.repos.d/google-chrome.repo
     sudo yum install -y python-requests pyOpenSSL python-jinja2 python-jwt
 fi
