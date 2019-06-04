@@ -55,7 +55,15 @@
                       - ../../build/failure
 
     wrappers:
-      - mask-passwords:
       - inject-passwords:
           global: true
           mask-password-params: true
+      - credentials-binding:
+          - username-password-separated:
+              credential-id: sepia-ipmi
+              username: SEPIA_IPMI_USER
+              password: SEPIA_IPMI_PASS
+          - username-password-separated:
+              credential-id: fog
+              username: FOG_USER_TOKEN
+              password: FOG_API_TOKEN
