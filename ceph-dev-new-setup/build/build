@@ -1,4 +1,6 @@
 #!/bin/bash -ex
+# -*- mode:sh; tab-width:4; sh-basic-offset:4; indent-tabs-mode:nil -*-
+# vim: softtabstop=4 shiftwidth=4 expandtab
 
 # Since this job is now pulling from ceph-ci.git, there aren't any tags as they
 # exist in ceph.git and the Ceph's versioning scheme wants to have them to
