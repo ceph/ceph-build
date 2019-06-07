@@ -442,7 +442,6 @@ setup_pbuilder() {
         # https://github.com/shazow/urllib3/issues/567
         echo "USENETWORK=yes" >> ~/.pbuilderrc
         setup_pbuilder_for_ppa >> ~/.pbuilderrc
-        install_extra_packages >> ~/.pbuilderrc
     fi
     sudo pbuilder --clean
 
@@ -479,6 +478,8 @@ use_ppa() {
                 trusty)
                     use_ppa=true;;
                 xenial)
+                    use_ppa=true;;
+                bionic)
                     use_ppa=true;;
                 *)
                     use_ppa=false;;
@@ -608,7 +609,11 @@ setup_pbuilder_for_ppa() {
         hookdir=$HOME/.pbuilder/hook.d
         rm -rf $hookdir
         mkdir -p $hookdir
-        setup_pbuilder_for_new_gcc $hookdir 7
+        local gcc_ver=7
+        if [ "$DIST" = "bionic" ]; then
+            gcc_ver=9
+        fi
+        setup_pbuilder_for_new_gcc $hookdir $gcc_ver
     else
         hookdir=$HOME/.pbuilder/hook-old-gcc.d
         rm -rf $hookdir
@@ -616,25 +621,6 @@ setup_pbuilder_for_ppa() {
         setup_pbuilder_for_old_gcc $hookdir
     fi
     echo "HOOKDIR=$hookdir"
-}
-
-install_extra_packages() {
-    case $vers in
-        1[0-2].*)
-            # jewel, kraken, luminous
-            ;;
-        *)
-            # mimic, nautilus, *
-            case $DIST in
-                trusty|xenial)
-                    ;;
-                bionic)
-                    echo 'EXTRAPACKAGES="g++-8"';;
-                *)
-                    ;;
-            esac
-            ;;
-    esac
 }
 
 extra_cmake_args() {
