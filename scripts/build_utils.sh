@@ -528,6 +528,9 @@ EOF
 setup_pbuilder_for_new_gcc() {
     # point gcc,g++ to the newly installed ones
     local hookdir=$1
+    shift
+    local version=$1
+    shift
 
     # need to add the test repo and install gcc-7 after
     # `pbuilder create|update` finishes apt-get instead of using "extrapackages".
@@ -575,12 +578,12 @@ msyaQpNl/m/lNtOLhR64v5ZybofB2EWkMxUzX8D/FQ==
 ENDOFKEY
 # import PPA's signing key into APT's keyring
 env DEBIAN_FRONTEND=noninteractive apt-get update -y -o Acquire::Languages=none -o Acquire::Translation=none || true
-env DEBIAN_FRONTEND=noninteractive apt-get install -y g++-7
+env DEBIAN_FRONTEND=noninteractive apt-get install -y g++-$version
 EOF
 
     chmod +x $hookdir/D05install-gcc-7
 
-    setup_gcc_hook 7 > $hookdir/D10update-gcc-alternatives
+    setup_gcc_hook $version > $hookdir/D10update-gcc-alternatives
     chmod +x $hookdir/D10update-gcc-alternatives
 }
 
@@ -605,7 +608,7 @@ setup_pbuilder_for_ppa() {
         hookdir=$HOME/.pbuilder/hook.d
         rm -rf $hookdir
         mkdir -p $hookdir
-        setup_pbuilder_for_new_gcc $hookdir
+        setup_pbuilder_for_new_gcc $hookdir 7
     else
         hookdir=$HOME/.pbuilder/hook-old-gcc.d
         rm -rf $hookdir
