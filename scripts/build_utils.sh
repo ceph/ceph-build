@@ -562,6 +562,7 @@ EOF
         exit 1
     fi
 cat >> $hookdir/D05install-gcc-7 <<EOF
+env DEBIAN_FRONTEND=noninteractive apt-get install -y gnupg
 cat << ENDOFKEY | apt-key add -
 -----BEGIN PGP PUBLIC KEY BLOCK-----
 Version: SKS 1.1.6
