@@ -856,48 +856,29 @@ write_collect_logs_playbook() {
 - hosts: all
   become: yes
   tasks:
-    - name: find ceph logs
-      command: find /var/log/ceph -name "*.log"
-      register: ceph_logs
-      failed_when: false
+    - name: find ceph config file and logs
+      find:
+        paths:
+          - /etc/ceph
+          - /var/log/ceph
+        patterns:
+          - "*.conf"
+          - "*.log"
+      register: results
 
-    - name: collect ceph logs
+    - name: collect ceph config file and logs
       fetch:
-        src: "{{ item }}"
+        src: "{{ item.path }}"
         dest: "{{ archive_path }}/{{ inventory_hostname }}/"
-        fail_on_missing: no
         flat: yes
-      failed_when: false
-      with_items: "{{ ceph_logs.stdout_lines }}"
-
-    - name: collect ceph configuration file
-      fetch:
-        src: "{{ item }}"
-        dest: "{{ archive_path }}/{{ inventory_hostname }}/"
-        fail_on_missing: no
-        flat: yes
-      with_items:
-        - "/etc/ceph/ceph.conf"
-        - "/etc/ceph/test.conf"
-        - "/etc/ceph/mycluster.conf"
-
-- hosts: mon0
-  become: True
-  tasks:
-    - name: get cluster status
-      command: "ceph --cluster {{ item }} -s -f json"
-      register: ceph_status
-      changed_when: False
-      with_items:
-        - ceph
-        - test
-        - mycluster
+      with_items: "{{ results.files }}"
 
     - name: show ceph status
-      debug:
-        msg: "{{ item.stdout }}"
-      with_items: "{{ ceph_status.results }}"
-      when: item.rc == 0
+      command: "ceph --cluster {{ (item.path | basename | splitext)[0] }} -s -f json"
+      with_items: "{{ results.files }}"
+      when: "'.conf' in item.path"
+      run_once: True
+      delegate_to: mon0
 EOF
 }
 
