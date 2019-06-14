@@ -626,7 +626,14 @@ setup_pbuilder_for_ppa() {
 
 extra_cmake_args() {
     # statically link against libstdc++ for building new releases on old distros
-    if use_ppa; then
+    if [ "${FLAVOR}" = "crimson" ]; then
+        # seastar's exception hack assums dynamic linkage against libgcc. as
+        # otherwise _Unwind_RaiseException will conflict with its counterpart
+        # defined in libgcc_eh.a, when the linker comes into play. and more
+        # importantly, _Unwind_RaiseException() in seastar will not be able
+        # to call the one implemented by GCC.
+        echo "-DWITH_STATIC_LIBSTDCXX=OFF"
+    elif use_ppa; then
         echo "-DWITH_STATIC_LIBSTDCXX=ON"
     fi
 }
