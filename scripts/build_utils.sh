@@ -552,7 +552,7 @@ echo "deb [lang=none] http://security.ubuntu.com/ubuntu $DIST-security main" >> 
   /etc/apt/sources.list.d/ubuntu-toolchain-r.list
 echo "deb [lang=none] http://ppa.launchpad.net/ubuntu-toolchain-r/test/ubuntu $DIST main" >> \
   /etc/apt/sources.list.d/ubuntu-toolchain-r.list
-echo "deb [arch=amd64 lang=none] http://mirror.nullivex.com/ppa/ubuntu-toolchain-r-test $DIST main >> \
+echo "deb [arch=amd64 lang=none] http://mirror.nullivex.com/ppa/ubuntu-toolchain-r-test $DIST main" >> \
   /etc/apt/sources.list.d/ubuntu-toolchain-r.list
 echo "deb [arch=amd64 lang=none] http://deb.rug.nl/ppa/mirror/ppa.launchpad.net/ubuntu-toolchain-r/test/ubuntu $DIST main" >> \
   /etc/apt/sources.list.d/ubuntu-toolchain-r.list
