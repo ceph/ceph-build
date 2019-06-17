@@ -552,7 +552,7 @@ echo "deb [lang=none] http://security.ubuntu.com/ubuntu $DIST-security main" >> 
   /etc/apt/sources.list.d/ubuntu-toolchain-r.list
 echo "deb [lang=none] http://ppa.launchpad.net/ubuntu-toolchain-r/test/ubuntu $DIST main" >> \
   /etc/apt/sources.list.d/ubuntu-toolchain-r.list
-echo "deb [arch=amd64 lang=none] http://mirror.nullivex.com/ppa/ubuntu-toolchain-r-test $DIST main >> \
+echo "deb [arch=amd64 lang=none] http://mirror.nullivex.com/ppa/ubuntu-toolchain-r-test $DIST main" >> \
   /etc/apt/sources.list.d/ubuntu-toolchain-r.list
 echo "deb [arch=amd64 lang=none] http://deb.rug.nl/ppa/mirror/ppa.launchpad.net/ubuntu-toolchain-r/test/ubuntu $DIST main" >> \
   /etc/apt/sources.list.d/ubuntu-toolchain-r.list
@@ -562,6 +562,7 @@ EOF
         exit 1
     fi
 cat >> $hookdir/D05install-gcc-7 <<EOF
+env DEBIAN_FRONTEND=noninteractive apt-get install -y gnupg
 cat << ENDOFKEY | apt-key add -
 -----BEGIN PGP PUBLIC KEY BLOCK-----
 Version: SKS 1.1.6
@@ -625,7 +626,14 @@ setup_pbuilder_for_ppa() {
 
 extra_cmake_args() {
     # statically link against libstdc++ for building new releases on old distros
-    if use_ppa; then
+    if [ "${FLAVOR}" = "crimson" ]; then
+        # seastar's exception hack assums dynamic linkage against libgcc. as
+        # otherwise _Unwind_RaiseException will conflict with its counterpart
+        # defined in libgcc_eh.a, when the linker comes into play. and more
+        # importantly, _Unwind_RaiseException() in seastar will not be able
+        # to call the one implemented by GCC.
+        echo "-DWITH_STATIC_LIBSTDCXX=OFF"
+    elif use_ppa; then
         echo "-DWITH_STATIC_LIBSTDCXX=ON"
     fi
 }
