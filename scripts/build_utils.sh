@@ -442,7 +442,6 @@ setup_pbuilder() {
         # https://github.com/shazow/urllib3/issues/567
         echo "USENETWORK=yes" >> ~/.pbuilderrc
         setup_pbuilder_for_ppa >> ~/.pbuilderrc
-        install_extra_packages >> ~/.pbuilderrc
     fi
     sudo pbuilder --clean
 
@@ -479,6 +478,8 @@ use_ppa() {
                 trusty)
                     use_ppa=true;;
                 xenial)
+                    use_ppa=true;;
+                bionic)
                     use_ppa=true;;
                 *)
                     use_ppa=false;;
@@ -528,6 +529,9 @@ EOF
 setup_pbuilder_for_new_gcc() {
     # point gcc,g++ to the newly installed ones
     local hookdir=$1
+    shift
+    local version=$1
+    shift
 
     # need to add the test repo and install gcc-7 after
     # `pbuilder create|update` finishes apt-get instead of using "extrapackages".
@@ -548,9 +552,9 @@ echo "deb [lang=none] http://security.ubuntu.com/ubuntu $DIST-security main" >> 
   /etc/apt/sources.list.d/ubuntu-toolchain-r.list
 echo "deb [lang=none] http://ppa.launchpad.net/ubuntu-toolchain-r/test/ubuntu $DIST main" >> \
   /etc/apt/sources.list.d/ubuntu-toolchain-r.list
-echo "deb [arch=amd64 lang=none] http://mirror.cs.uchicago.edu/ubuntu-toolchain-r $DIST main" >> \
+echo "deb [arch=amd64 lang=none] http://mirror.nullivex.com/ppa/ubuntu-toolchain-r-test $DIST main >> \
   /etc/apt/sources.list.d/ubuntu-toolchain-r.list
-echo "deb [arch=amd64,i386 lang=none] http://mirror.yandex.ru/mirrors/launchpad/ubuntu-toolchain-r $DIST main" >> \
+echo "deb [arch=amd64 lang=none] http://deb.rug.nl/ppa/mirror/ppa.launchpad.net/ubuntu-toolchain-r/test/ubuntu $DIST main" >> \
   /etc/apt/sources.list.d/ubuntu-toolchain-r.list
 EOF
     else
@@ -575,12 +579,12 @@ msyaQpNl/m/lNtOLhR64v5ZybofB2EWkMxUzX8D/FQ==
 ENDOFKEY
 # import PPA's signing key into APT's keyring
 env DEBIAN_FRONTEND=noninteractive apt-get update -y -o Acquire::Languages=none -o Acquire::Translation=none || true
-env DEBIAN_FRONTEND=noninteractive apt-get install -y g++-7
+env DEBIAN_FRONTEND=noninteractive apt-get install -y g++-$version
 EOF
 
     chmod +x $hookdir/D05install-gcc-7
 
-    setup_gcc_hook 7 > $hookdir/D10update-gcc-alternatives
+    setup_gcc_hook $version > $hookdir/D10update-gcc-alternatives
     chmod +x $hookdir/D10update-gcc-alternatives
 }
 
@@ -605,7 +609,11 @@ setup_pbuilder_for_ppa() {
         hookdir=$HOME/.pbuilder/hook.d
         rm -rf $hookdir
         mkdir -p $hookdir
-        setup_pbuilder_for_new_gcc $hookdir
+        local gcc_ver=7
+        if [ "$DIST" = "bionic" ]; then
+            gcc_ver=9
+        fi
+        setup_pbuilder_for_new_gcc $hookdir $gcc_ver
     else
         hookdir=$HOME/.pbuilder/hook-old-gcc.d
         rm -rf $hookdir
@@ -613,25 +621,6 @@ setup_pbuilder_for_ppa() {
         setup_pbuilder_for_old_gcc $hookdir
     fi
     echo "HOOKDIR=$hookdir"
-}
-
-install_extra_packages() {
-    case $vers in
-        1[0-2].*)
-            # jewel, kraken, luminous
-            ;;
-        *)
-            # mimic, nautilus, *
-            case $DIST in
-                trusty|xenial)
-                    ;;
-                bionic)
-                    echo 'EXTRAPACKAGES="g++-8"';;
-                *)
-                    ;;
-            esac
-            ;;
-    esac
 }
 
 extra_cmake_args() {
