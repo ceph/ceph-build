@@ -17,6 +17,7 @@
       - lvm_osds
       - shrink_mon
       - shrink_osd
+      - shrink_mds
       - lvm_batch
       - add_osds
       - add_mons
@@ -95,6 +96,7 @@
       - lvm_osds
       - shrink_mon
       - shrink_osd
+      - shrink_mds
       - lvm_batch
       - add_osds
       - add_mons
@@ -174,6 +176,7 @@
       - lvm_osds
       - shrink_mon
       - shrink_osd
+      - shrink_mds
       - lvm_batch
       - add_osds
       - rgw_multisite
@@ -336,6 +339,8 @@
       - filestore_osds_container
       - shrink_mon
       - shrink_mon_container
+      - shrink_mds
+      - shrink_mds_container
       - shrink_osd
       - shrink_osd_container
       - lvm_osds
