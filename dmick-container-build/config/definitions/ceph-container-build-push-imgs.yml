@@ -1,0 +1,33 @@
+- job:
+    name: dmick-container-build
+    node: huge && trusty && x86_64
+    project-type: freestyle
+    defaults: global
+    display-name: "dmick-container-build: build images and save tarballs"
+    quiet-period: 5
+    block-downstream: false
+    block-upstream: false
+    retry-count: 3
+    properties:
+      - build-discarder:
+          days-to-keep: -1
+          num-to-keep: -1
+          artifact-days-to-keep: -1
+          artifact-num-to-keep: -1
+      - github:
+          url: https://github.com/ceph/ceph-container
+
+    scm:
+      - git:
+          url: https://github.com/dmick/ceph-container.git
+          branches:
+            - wip-tarball
+          browser: auto
+          basedir: "ceph-container"
+          timeout: 20
+
+    builders:
+      - shell:
+          !include-raw:
+            - ../../../scripts/build_utils.sh
+            - ../../build/build
