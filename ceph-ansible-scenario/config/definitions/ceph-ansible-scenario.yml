@@ -46,7 +46,18 @@
           name: CEPH_DOCKER_IMAGE_TAG
           description: "The docker image tag used for containerized scenarios"
           default: "latest"
-
+      - string:
+          name: RELEASE
+          description: "The ceph release version used"
+          default: "dev"
+      - string:
+          name: DEPLOYMENT
+          description: "Type of deployment: container or non_container"
+          default: "non_container"
+      - string:
+          name: DISTRIBUTION
+          description: "The distribution used (ubuntu or centos)"
+          default: "centos"
 
     scm:
       - git:
