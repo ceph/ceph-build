@@ -17,6 +17,7 @@
       - lvm_osds
       - shrink_mon
       - shrink_osd
+      - shrink_mgr
       - shrink_mds
       - lvm_batch
       - add_osds
@@ -96,6 +97,7 @@
       - lvm_osds
       - shrink_mon
       - shrink_osd
+      - shrink_mgr
       - shrink_mds
       - lvm_batch
       - add_osds
@@ -176,6 +178,7 @@
       - lvm_osds
       - shrink_mon
       - shrink_osd
+      - shrink_mgr
       - shrink_mds
       - lvm_batch
       - add_osds
