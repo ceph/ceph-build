@@ -19,6 +19,7 @@
       - shrink_osd
       - shrink_mgr
       - shrink_mds
+      - shrink_rbdmirror
       - lvm_batch
       - add_osds
       - add_mons
@@ -99,6 +100,7 @@
       - shrink_osd
       - shrink_mgr
       - shrink_mds
+      - shrink_rbdmirror
       - lvm_batch
       - add_osds
       - add_mons
@@ -180,6 +182,7 @@
       - shrink_osd
       - shrink_mgr
       - shrink_mds
+      - shrink_rbdmirror
       - lvm_batch
       - add_osds
       - rgw_multisite
