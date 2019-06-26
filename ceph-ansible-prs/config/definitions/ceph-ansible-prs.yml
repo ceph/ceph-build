@@ -345,8 +345,6 @@
       - filestore_osds_container
       - shrink_mon
       - shrink_mon_container
-      - shrink_mds
-      - shrink_mds_container
       - shrink_osd
       - shrink_osd_container
       - lvm_osds
