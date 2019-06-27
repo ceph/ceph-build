@@ -80,7 +80,9 @@
                     current-parameters: true
                   - name: 'ceph-ansible-prs-dev-ubuntu-container-all_daemons'
                     current-parameters: true
-                  - name: 'ceph-ansible-prs-dev-rhel-container-podman'
+                  - name: 'ceph-ansible-prs-dev-centos-container-podman'
+                    current-parameters: true
+                  - name: 'ceph-ansible-prs-dev-centos-non_container-dashboard'
                     current-parameters: true
             - multijob:
                 name: 'ceph-ansible cluster second testing phase'
@@ -148,7 +150,9 @@
                     current-parameters: true
                   - name: 'ceph-ansible-prs-nautilus-ubuntu-container-all_daemons'
                     current-parameters: true
-                  - name: 'ceph-ansible-prs-nautilus-rhel-container-podman'
+                  - name: 'ceph-ansible-prs-nautilus-centos-container-podman'
+                    current-parameters: true
+                  - name: 'ceph-ansible-prs-nautilus-centos-non_container-dashboard'
                     current-parameters: true
             - multijob:
                 name: 'ceph-ansible cluster second testing phase'
@@ -608,6 +612,132 @@
                   - name: 'ceph-ansible-prs-luminous-centos-non_container-shrink_osd'
                     current-parameters: true
                   - name: 'ceph-ansible-prs-luminous-centos-container-shrink_osd'
+                    current-parameters: true
+      - conditional-step:
+          condition-kind: shell
+          condition-command: |
+            #!/bin/bash
+            set -x
+            # if the target branch is not master then we DON'T RUN these tests.
+            if [[ "$ghprbTargetBranch" != "master" ]]; then
+              exit 1
+            fi
+            git diff --name-only $(git show HEAD | grep Merge | head -n 1 | cut -d ':' -f2) | grep 'infrastructure-playbooks/shrink-mgr'
+          on-evaluation-failure: dont-run
+          steps:
+            - multijob:
+                name: 'ceph-ansible shrink_mgr playbook testing'
+                condition: SUCCESSFUL
+                execution-type: PARALLEL
+                projects:
+                  - name: 'ceph-ansible-prs-dev-centos-non_container-shrink_mgr'
+                    current-parameters: true
+                  - name: 'ceph-ansible-prs-dev-centos-container-shrink_mgr'
+                    current-parameters: true
+      - conditional-step:
+          condition-kind: shell
+          condition-command: |
+            #!/bin/bash
+            set -x
+            # if the target branch is not stable-4.0 then we DON'T RUN these tests.
+            if [[ "$ghprbTargetBranch" != "stable-4.0" ]]; then
+              exit 1
+            fi
+            git diff --name-only $(git show HEAD | grep Merge | head -n 1 | cut -d ':' -f2) | grep 'infrastructure-playbooks/shrink-mgr'
+          on-evaluation-failure: dont-run
+          steps:
+            - multijob:
+                name: 'ceph-ansible shrink_mgr playbook testing'
+                condition: SUCCESSFUL
+                execution-type: PARALLEL
+                projects:
+                  - name: 'ceph-ansible-prs-nautilus-centos-non_container-shrink_mgr'
+                    current-parameters: true
+                  - name: 'ceph-ansible-prs-nautilus-centos-container-shrink_mgr'
+                    current-parameters: true
+      - conditional-step:
+          condition-kind: shell
+          condition-command: |
+            #!/bin/bash
+            set -x
+            # if the target branch is not master then we DON'T RUN these tests.
+            if [[ "$ghprbTargetBranch" != "master" ]]; then
+              exit 1
+            fi
+            git diff --name-only $(git show HEAD | grep Merge | head -n 1 | cut -d ':' -f2) | grep 'infrastructure-playbooks/shrink-mds'
+          on-evaluation-failure: dont-run
+          steps:
+            - multijob:
+                name: 'ceph-ansible shrink_mds playbook testing'
+                condition: SUCCESSFUL
+                execution-type: PARALLEL
+                projects:
+                  - name: 'ceph-ansible-prs-dev-centos-non_container-shrink_mds'
+                    current-parameters: true
+                  - name: 'ceph-ansible-prs-dev-centos-container-shrink_mds'
+                    current-parameters: true
+      - conditional-step:
+          condition-kind: shell
+          condition-command: |
+            #!/bin/bash
+            set -x
+            # if the target branch is not stable-4.0 then we DON'T RUN these tests.
+            if [[ "$ghprbTargetBranch" != "stable-4.0" ]]; then
+              exit 1
+            fi
+            git diff --name-only $(git show HEAD | grep Merge | head -n 1 | cut -d ':' -f2) | grep 'infrastructure-playbooks/shrink-mds'
+          on-evaluation-failure: dont-run
+          steps:
+            - multijob:
+                name: 'ceph-ansible shrink_mds playbook testing'
+                condition: SUCCESSFUL
+                execution-type: PARALLEL
+                projects:
+                  - name: 'ceph-ansible-prs-nautilus-centos-non_container-shrink_mds'
+                    current-parameters: true
+                  - name: 'ceph-ansible-prs-nautilus-centos-container-shrink_mds'
+                    current-parameters: true
+      - conditional-step:
+          condition-kind: shell
+          condition-command: |
+            #!/bin/bash
+            set -x
+            # if the target branch is not master then we DON'T RUN these tests.
+            if [[ "$ghprbTargetBranch" != "master" ]]; then
+              exit 1
+            fi
+            git diff --name-only $(git show HEAD | grep Merge | head -n 1 | cut -d ':' -f2) | grep 'infrastructure-playbooks/shrink-rbdmirror'
+          on-evaluation-failure: dont-run
+          steps:
+            - multijob:
+                name: 'ceph-ansible shrink_rbdmirror playbook testing'
+                condition: SUCCESSFUL
+                execution-type: PARALLEL
+                projects:
+                  - name: 'ceph-ansible-prs-dev-centos-non_container-shrink_rbdmirror'
+                    current-parameters: true
+                  - name: 'ceph-ansible-prs-dev-centos-container-shrink_rbdmirror'
+                    current-parameters: true
+      - conditional-step:
+          condition-kind: shell
+          condition-command: |
+            #!/bin/bash
+            set -x
+            # if the target branch is not stable-4.0 then we DON'T RUN these tests.
+            if [[ "$ghprbTargetBranch" != "stable-4.0" ]]; then
+              exit 1
+            fi
+            git diff --name-only $(git show HEAD | grep Merge | head -n 1 | cut -d ':' -f2) | grep 'infrastructure-playbooks/shrink-rbdmirror'
+          on-evaluation-failure: dont-run
+          steps:
+            - multijob:
+                name: 'ceph-ansible shrink_rbdmirror playbook testing'
+                condition: SUCCESSFUL
+                execution-type: PARALLEL
+                projects:
+                  - name: 'ceph-ansible-prs-nautilus-centos-non_container-shrink_rbdmirror'
+                    current-parameters: true
+                  - name: 'ceph-ansible-prs-nautilus-centos-container-shrink_rbdmirror'
                     current-parameters: true
       - conditional-step:
           condition-kind: shell

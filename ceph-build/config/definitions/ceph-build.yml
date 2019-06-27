@@ -117,3 +117,6 @@
           - text:
               credential-id: chacractl-key
               variable: CHACRACTL_KEY
+          - text:
+              credential-id: shaman-api-key
+              variable: SHAMAN_API_KEY

@@ -17,6 +17,4 @@ update_vagrant_boxes
 # In the same logic, clean fact cache
 rm -rf $HOME/ansible/facts/*
 
-# the $SCENARIO var is injected by the job configuration. It maps
-# to an actual, defined, tox environment
-$VENV/tox -rv -e=$SCENARIO --workdir=$WORKDIR -- --provider=libvirt
+start_tox

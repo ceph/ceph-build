@@ -1,12 +1,11 @@
 # master
 - project:
     name: ceph-ansible-prs-master-pipeline
-    slave_labels: 'vagrant && libvirt && smithi'
+    slave_labels: 'vagrant && libvirt && centos7'
     release:
       - dev
     distribution:
       - centos
-      - ubuntu
     deployment:
       - container
       - non_container
@@ -18,6 +17,9 @@
       - lvm_osds
       - shrink_mon
       - shrink_osd
+      - shrink_mgr
+      - shrink_mds
+      - shrink_rbdmirror
       - lvm_batch
       - add_osds
       - add_mons
@@ -28,12 +30,28 @@
       - rgw_multisite
       - purge
       - lvm_auto_discovery
+      - dashboard
+    jobs:
+        - 'ceph-ansible-prs-pipeline'
+
+- project:
+    name: ceph-ansible-prs-master-pipeline-ubuntu
+    slave_labels: 'vagrant && libvirt && centos7'
+    release:
+      - dev
+    distribution:
+      - ubuntu
+    deployment:
+      - container
+      - non_container
+    scenario:
+      - all_daemons
     jobs:
         - 'ceph-ansible-prs-pipeline'
 
 - project:
     name: ceph-ansible-prs-master-non_container-pipeline
-    slave_labels: 'vagrant && libvirt && smithi'
+    slave_labels: 'vagrant && libvirt && centos7'
     release:
       - dev
     distribution:
@@ -48,7 +66,7 @@
 
 - project:
     name: ceph-ansible-prs-master-ooo-pipeline
-    slave_labels: 'vagrant && libvirt && smithi'
+    slave_labels: 'vagrant && libvirt && centos7'
     release:
       - dev
     distribution:
@@ -57,19 +75,6 @@
       - container
     scenario:
       - ooo_collocation
-    jobs:
-        - 'ceph-ansible-prs-pipeline'
-
-- project:
-    name: ceph-ansible-prs-master-podman-pipeline
-    slave_labels: 'vagrant && libvirt && smithi'
-    release:
-      - dev
-    distribution:
-      - rhel
-    deployment:
-      - container
-    scenario:
       - podman
     jobs:
         - 'ceph-ansible-prs-pipeline'
@@ -77,12 +82,11 @@
 # nautilus
 - project:
     name: ceph-ansible-prs-nautilus-pipeline
-    slave_labels: 'vagrant && libvirt && smithi'
+    slave_labels: 'vagrant && libvirt && centos7'
     release:
       - nautilus
     distribution:
       - centos
-      - ubuntu
     deployment:
       - container
       - non_container
@@ -94,6 +98,9 @@
       - lvm_osds
       - shrink_mon
       - shrink_osd
+      - shrink_mgr
+      - shrink_mds
+      - shrink_rbdmirror
       - lvm_batch
       - add_osds
       - add_mons
@@ -104,12 +111,28 @@
       - rgw_multisite
       - purge
       - lvm_auto_discovery
+      - dashboard
+    jobs:
+        - 'ceph-ansible-prs-pipeline'
+
+- project:
+    name: ceph-ansible-prs-nautilus-pipeline-ubuntu
+    slave_labels: 'vagrant && libvirt && centos7'
+    release:
+      - nautilus
+    distribution:
+      - ubuntu
+    deployment:
+      - container
+      - non_container
+    scenario:
+      - all_daemons
     jobs:
         - 'ceph-ansible-prs-pipeline'
 
 - project:
     name: ceph-ansible-prs-nautilus-non_container-pipeline
-    slave_labels: 'vagrant && libvirt && smithi'
+    slave_labels: 'vagrant && libvirt && centos7'
     release:
       - nautilus
     distribution:
@@ -124,7 +147,7 @@
 
 - project:
     name: ceph-ansible-prs-nautilus-ooo-pipeline
-    slave_labels: 'vagrant && libvirt && smithi'
+    slave_labels: 'vagrant && libvirt && centos7'
     release:
       - nautilus
     distribution:
@@ -133,19 +156,6 @@
       - container
     scenario:
       - ooo_collocation
-    jobs:
-        - 'ceph-ansible-prs-pipeline'
-
-- project:
-    name: ceph-ansible-prs-nautilus-podman-pipeline
-    slave_labels: 'vagrant && libvirt && smithi'
-    release:
-      - nautilus
-    distribution:
-      - rhel
-    deployment:
-      - container
-    scenario:
       - podman
     jobs:
         - 'ceph-ansible-prs-pipeline'
@@ -170,6 +180,9 @@
       - lvm_osds
       - shrink_mon
       - shrink_osd
+      - shrink_mgr
+      - shrink_mds
+      - shrink_rbdmirror
       - lvm_batch
       - add_osds
       - rgw_multisite

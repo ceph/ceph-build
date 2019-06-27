@@ -60,3 +60,7 @@
       - inject-passwords:
           global: true
           mask-password-params: true
+      - credentials-binding:
+          - text:
+              credential-id: shaman-api-key
+              variable: SHAMAN_API_KEY

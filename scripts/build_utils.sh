@@ -442,7 +442,6 @@ setup_pbuilder() {
         # https://github.com/shazow/urllib3/issues/567
         echo "USENETWORK=yes" >> ~/.pbuilderrc
         setup_pbuilder_for_ppa >> ~/.pbuilderrc
-        install_extra_packages >> ~/.pbuilderrc
     fi
     sudo pbuilder --clean
 
@@ -479,6 +478,8 @@ use_ppa() {
                 trusty)
                     use_ppa=true;;
                 xenial)
+                    use_ppa=true;;
+                bionic)
                     use_ppa=true;;
                 *)
                     use_ppa=false;;
@@ -528,6 +529,9 @@ EOF
 setup_pbuilder_for_new_gcc() {
     # point gcc,g++ to the newly installed ones
     local hookdir=$1
+    shift
+    local version=$1
+    shift
 
     # need to add the test repo and install gcc-7 after
     # `pbuilder create|update` finishes apt-get instead of using "extrapackages".
@@ -548,9 +552,9 @@ echo "deb [lang=none] http://security.ubuntu.com/ubuntu $DIST-security main" >> 
   /etc/apt/sources.list.d/ubuntu-toolchain-r.list
 echo "deb [lang=none] http://ppa.launchpad.net/ubuntu-toolchain-r/test/ubuntu $DIST main" >> \
   /etc/apt/sources.list.d/ubuntu-toolchain-r.list
-echo "deb [arch=amd64 lang=none] http://mirror.cs.uchicago.edu/ubuntu-toolchain-r $DIST main" >> \
+echo "deb [arch=amd64 lang=none] http://mirror.nullivex.com/ppa/ubuntu-toolchain-r-test $DIST main" >> \
   /etc/apt/sources.list.d/ubuntu-toolchain-r.list
-echo "deb [arch=amd64,i386 lang=none] http://mirror.yandex.ru/mirrors/launchpad/ubuntu-toolchain-r $DIST main" >> \
+echo "deb [arch=amd64 lang=none] http://deb.rug.nl/ppa/mirror/ppa.launchpad.net/ubuntu-toolchain-r/test/ubuntu $DIST main" >> \
   /etc/apt/sources.list.d/ubuntu-toolchain-r.list
 EOF
     else
@@ -558,6 +562,7 @@ EOF
         exit 1
     fi
 cat >> $hookdir/D05install-gcc-7 <<EOF
+env DEBIAN_FRONTEND=noninteractive apt-get install -y gnupg
 cat << ENDOFKEY | apt-key add -
 -----BEGIN PGP PUBLIC KEY BLOCK-----
 Version: SKS 1.1.6
@@ -575,12 +580,12 @@ msyaQpNl/m/lNtOLhR64v5ZybofB2EWkMxUzX8D/FQ==
 ENDOFKEY
 # import PPA's signing key into APT's keyring
 env DEBIAN_FRONTEND=noninteractive apt-get update -y -o Acquire::Languages=none -o Acquire::Translation=none || true
-env DEBIAN_FRONTEND=noninteractive apt-get install -y g++-7
+env DEBIAN_FRONTEND=noninteractive apt-get install -y g++-$version
 EOF
 
     chmod +x $hookdir/D05install-gcc-7
 
-    setup_gcc_hook 7 > $hookdir/D10update-gcc-alternatives
+    setup_gcc_hook $version > $hookdir/D10update-gcc-alternatives
     chmod +x $hookdir/D10update-gcc-alternatives
 }
 
@@ -605,7 +610,11 @@ setup_pbuilder_for_ppa() {
         hookdir=$HOME/.pbuilder/hook.d
         rm -rf $hookdir
         mkdir -p $hookdir
-        setup_pbuilder_for_new_gcc $hookdir
+        local gcc_ver=7
+        if [ "$DIST" = "bionic" ]; then
+            gcc_ver=9
+        fi
+        setup_pbuilder_for_new_gcc $hookdir $gcc_ver
     else
         hookdir=$HOME/.pbuilder/hook-old-gcc.d
         rm -rf $hookdir
@@ -615,28 +624,16 @@ setup_pbuilder_for_ppa() {
     echo "HOOKDIR=$hookdir"
 }
 
-install_extra_packages() {
-    case $vers in
-        1[0-2].*)
-            # jewel, kraken, luminous
-            ;;
-        *)
-            # mimic, nautilus, *
-            case $DIST in
-                trusty|xenial)
-                    ;;
-                bionic)
-                    echo 'EXTRAPACKAGES="g++-8"';;
-                *)
-                    ;;
-            esac
-            ;;
-    esac
-}
-
 extra_cmake_args() {
     # statically link against libstdc++ for building new releases on old distros
-    if use_ppa; then
+    if [ "${FLAVOR}" = "crimson" ]; then
+        # seastar's exception hack assums dynamic linkage against libgcc. as
+        # otherwise _Unwind_RaiseException will conflict with its counterpart
+        # defined in libgcc_eh.a, when the linker comes into play. and more
+        # importantly, _Unwind_RaiseException() in seastar will not be able
+        # to call the one implemented by GCC.
+        echo "-DWITH_STATIC_LIBSTDCXX=OFF"
+    elif use_ppa; then
         echo "-DWITH_STATIC_LIBSTDCXX=ON"
     fi
 }
@@ -779,6 +776,12 @@ case $SCENARIO in
   update)
     TOX_INI_FILE=tox-update.ini
     ;;
+  dashboard)
+    TOX_INI_FILE=tox-dashboard.ini
+    ;;
+  podman)
+    TOX_INI_FILE=tox-podman.ini
+    ;;
   *)
     TOX_INI_FILE=tox.ini
     ;;
@@ -850,48 +853,29 @@ write_collect_logs_playbook() {
 - hosts: all
   become: yes
   tasks:
-    - name: find ceph logs
-      command: find /var/log/ceph -name "*.log"
-      register: ceph_logs
-      failed_when: false
+    - name: find ceph config file and logs
+      find:
+        paths:
+          - /etc/ceph
+          - /var/log/ceph
+        patterns:
+          - "*.conf"
+          - "*.log"
+      register: results
 
-    - name: collect ceph logs
+    - name: collect ceph config file and logs
       fetch:
-        src: "{{ item }}"
+        src: "{{ item.path }}"
         dest: "{{ archive_path }}/{{ inventory_hostname }}/"
-        fail_on_missing: no
         flat: yes
-      failed_when: false
-      with_items: "{{ ceph_logs.stdout_lines }}"
-
-    - name: collect ceph configuration file
-      fetch:
-        src: "{{ item }}"
-        dest: "{{ archive_path }}/{{ inventory_hostname }}/"
-        fail_on_missing: no
-        flat: yes
-      with_items:
-        - "/etc/ceph/ceph.conf"
-        - "/etc/ceph/test.conf"
-        - "/etc/ceph/mycluster.conf"
-
-- hosts: mon0
-  become: True
-  tasks:
-    - name: get cluster status
-      command: "ceph --cluster {{ item }} -s -f json"
-      register: ceph_status
-      changed_when: False
-      with_items:
-        - ceph
-        - test
-        - mycluster
+      with_items: "{{ results.files }}"
 
     - name: show ceph status
-      debug:
-        msg: "{{ item.stdout }}"
-      with_items: "{{ ceph_status.results }}"
-      when: item.rc == 0
+      command: "ceph --cluster {{ (item.path | basename | splitext)[0] }} -s -f json"
+      with_items: "{{ results.files }}"
+      when: "'.conf' in item.path"
+      run_once: True
+      delegate_to: mon0
 EOF
 }
 
