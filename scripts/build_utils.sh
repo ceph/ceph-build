@@ -480,7 +480,12 @@ use_ppa() {
                 xenial)
                     use_ppa=true;;
                 bionic)
-                    use_ppa=true;;
+                    if [ "$FLAVOR" = "crimson" ]; then
+                        use_ppa=true
+                    else
+                        use_ppa=false
+                    fi
+                    ;;
                 *)
                     use_ppa=false;;
             esac
