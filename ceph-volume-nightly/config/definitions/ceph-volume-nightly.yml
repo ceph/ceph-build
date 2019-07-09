@@ -15,6 +15,7 @@
       - master
       - mimic
       - luminous
+      - nautilus
 
     jobs:
       - 'ceph-volume-nightly-{ceph_branch}-{subcommand}-{distro}-{objectstore}-{scenario}'
@@ -57,6 +58,7 @@
       - master
       - mimic
       - luminous
+      - nautilus
 
     jobs:
       - 'ceph-volume-nightly-{ceph_branch}-{subcommand}-{distro}-{objectstore}-{scenario}'
@@ -75,6 +77,7 @@
       - batch
     ceph_branch:
       - master
+      - nautilus
 
     jobs:
       - 'ceph-volume-nightly-{ceph_branch}-{subcommand}-{distro}-{objectstore}-{scenario}'
