@@ -44,6 +44,8 @@ $SUDO yum install -y \*rpm-macros
 
 $SUDO yum-builddep -y $DIR/ceph.spec
 
+maybe_downgrade_gcc
+
 BRANCH=`branch_slash_filter $BRANCH`
 
 if [[ ! -f /etc/redhat-release && ! -f /usr/bin/zypper ]] ; then
