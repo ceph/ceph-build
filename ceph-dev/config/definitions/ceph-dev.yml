@@ -1,6 +1,6 @@
 - job:
     name: ceph-dev
-    description: 'This is the main ceph build task which builds for testing purposes.'
+    description: 'This job builds branches from https://github.com/ceph/ceph for testing purposes.'
     node: master
     project-type: multijob
     defaults: global
