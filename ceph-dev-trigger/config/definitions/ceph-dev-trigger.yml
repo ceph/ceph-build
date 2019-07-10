@@ -66,9 +66,9 @@
       # default: bionic xenial centos7
       # notcmalloc: centos7
       - conditional-step:
-          condition-kind: regex-match
-          regex: .*mimic.*
-          label: '${GIT_BRANCH}'
+          condition-kind: shell
+          condition-command: |
+            echo "${GIT_BRANCH}" | grep -v '\(jewel\|kraken\|luminous\)' | grep '\(mimic|nautilus\)'
           on-evaluation-failure: dont-run
           steps:
             - shell:
@@ -87,13 +87,10 @@
                     FORCE=True
                     DISTROS=centos7
                     FLAVOR=notcmalloc
-      # build nautilus on:
-      # default: bionic xenial centos7 leap15
-      # notcmalloc: centos7
       - conditional-step:
-          condition-kind: regex-match
-          regex: .*nautilus.*
-          label: '${GIT_BRANCH}'
+          condition-kind: shell
+          condition-command: |
+            echo "${GIT_BRANCH}" | grep -v '\(jewel\|kraken\|luminous\|mimic\|nautilus\)'
           on-evaluation-failure: dont-run
           steps:
             - shell:
@@ -162,6 +159,8 @@
                     FORCE=True
                     DISTROS=centos8
                     FLAVOR=notcmalloc
+#                    DISTROS=bionic
+#                    FLAVOR=crimson
 
     wrappers:
       - inject-passwords:
