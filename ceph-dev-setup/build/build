@@ -32,21 +32,45 @@ rm -rf release
 #sed -i 's/^Source0:.*/Source0:        http:\/\/ceph.com\/download\/%{name}-%{version}-rc1.tar.bz2/' ceph.spec.in
 #sed -i 's/^%setup.*/%setup -q -n %{name}-%{version}-rc1/' ceph.spec.in
 
+# because autogen+configure will check for dependencies, we are forced to install them
+# and ensure they are present in the current host
+if [ -x install-deps.sh ]; then
+    echo "Ensuring dependencies are installed"
+    [ "${FLAVOR}" == "crimson" ] && WITH_SEASTAR=1
+    WITH_SEASTAR=$WITH_SEASTAR ./install-deps.sh
+fi
+
 # run submodule updates regardless
 echo "Running submodule update ..."
 git submodule update --init
 
 # Flavor Builds support
 
-if [ "${FLAVOR}" == "notcmalloc" ]
-then
-    echo "Detected notcmalloc flavor: will use flag: -DALLOCATOR=libc"
-    CEPH_EXTRA_RPMBUILD_ARGS="--without tcmalloc"
-    CEPH_EXTRA_CMAKE_ARGS="$CEPH_EXTRA_CMAKE_ARGS -DALLOCATOR=libc -DWITH_CEPH_DEBUG_MUTEX=ON"
-else
-    CEPH_EXTRA_RPMBUILD_ARGS="--with tcmalloc"
-    CEPH_EXTRA_CMAKE_ARGS="$CEPH_EXTRA_CMAKE_ARGS -DALLOCATOR=tcmalloc"
-fi
+#cryptopp is not default for CMake
+AUTOCONF_FLAVOR_FLAGS="--without-cryptopp"
+
+case "${FLAVOR}" in
+    notcmalloc)
+        echo "Detected notcmalloc flavor: will use flag: --without-tcmalloc or -DALLOCATOR=libc"
+        AUTOCONF_FLAVOR_FLAGS="$AUTOCONF_FLAVOR_FLAGS --without-tcmalloc"
+        CEPH_EXTRA_CONFIGURE_ARGS="--without-tcmalloc"
+        CEPH_EXTRA_RPMBUILD_ARGS="--without tcmalloc"
+        CEPH_EXTRA_CMAKE_ARGS="$CEPH_EXTRA_CMAKE_ARGS -DALLOCATOR=libc -DWITH_CEPH_DEBUG_MUTEX=ON"
+        ;;
+    default)
+        AUTOCONF_FLAVOR_FLAGS="$AUTOCONF_FLAVOR_FLAGS --with-tcmalloc"
+        CEPH_EXTRA_CONFIGURE_ARGS="--with-tcmalloc"
+        CEPH_EXTRA_RPMBUILD_ARGS="--with tcmalloc"
+        CEPH_EXTRA_CMAKE_ARGS="$CEPH_EXTRA_CMAKE_ARGS -DALLOCATOR=tcmalloc"
+        ;;
+    crimson)
+        CEPH_EXTRA_RPMBUILD_ARGS="--with seastar"
+        CEPH_EXTRA_CMAKE_ARGS="$CEPH_EXTRA_CMAKE_ARGS -DWITH_SEASTAR=ON"
+        ;;
+    *)
+        echo "unknown FLAVOR: ${FLAVOR}" >&2
+        exit 1
+esac
 
 # When using autotools/autoconf it is possible to see output from `git diff`
 # since some macros can be copied over to the ceph source, triggering this
