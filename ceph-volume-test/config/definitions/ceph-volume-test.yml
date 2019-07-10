@@ -83,8 +83,8 @@
             #!/bin/bash
             set -x
             # if the target branch is luminous or mimic we run these tests.
-            if [[ "$CEPH_BRANCH" =~ luminous|mimic ]]; then
-              exit 0
+            if [[ ! "$CEPH_BRANCH" =~ luminous|mimic ]]; then
+              exit 1
             fi
           steps:
           - multijob:
