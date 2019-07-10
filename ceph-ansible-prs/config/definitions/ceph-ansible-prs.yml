@@ -164,13 +164,30 @@
 
 # luminous, stable-3.2, stable 3.1
 - project:
-    name: ceph-ansible-prs-luminous-pipeline
+    name: ceph-ansible-prs-luminous-ubuntu-pipeline
+    slave_labels: 'vagrant && libvirt && smithi'
+    release:
+      - luminous
+    distribution:
+      - ubuntu
+    deployment:
+      - container
+      - non_container
+    scenario:
+# stable-3.2 / stable-3.1
+      - all_daemons
+    jobs:
+        - 'ceph-ansible-prs-pipeline'
+
+
+# luminous, stable-3.2, stable 3.1
+- project:
+    name: ceph-ansible-prs-luminous-centos-pipeline
     slave_labels: 'vagrant && libvirt && smithi'
     release:
       - luminous
     distribution:
       - centos
-      - ubuntu
     deployment:
       - container
       - non_container
