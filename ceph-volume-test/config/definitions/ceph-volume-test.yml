@@ -86,6 +86,7 @@
             if [[ ! "$CEPH_BRANCH" =~ luminous|mimic ]]; then
               exit 1
             fi
+          on-evaluation-failure: dont-run
           steps:
           - multijob:
               name: 'testing ceph-volume simple'
