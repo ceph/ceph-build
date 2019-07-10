@@ -36,10 +36,7 @@ function run_tox {
       CEPH_DOCKER_IMAGE_TAG=$(find_latest_tag "$RELEASE")
       ;;
     master)
-      CEPH_DOCKER_IMAGE_TAG="latest"
-      ;;
-    *)
-      CEPH_DOCKER_IMAGE_TAG=""
+      CEPH_DOCKER_IMAGE_TAG="latest-master"
       ;;
   esac
 
