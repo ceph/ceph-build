@@ -30,6 +30,9 @@
       - string:
           name: GITHUB_SHA
           description: "The tip (last commit) in the PR, a sha1 like 7d787849556788961155534039886aedfcdb2a88 (if set, will report status to Github)"
+      - password:
+          name: GITHUB_OAUTH_TOKEN
+          description: "Secret API Token to set status. Only needed when manually triggering a PR test"
 
     triggers:
       - github-pull-request:
