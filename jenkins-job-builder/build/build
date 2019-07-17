@@ -6,7 +6,7 @@
 # definitions.
 #
 
-set -ex
+set -euxo pipefail
 
 # the following two methods exist in scripts/build_utils.sh
 pkgs=( "jenkins-job-builder==2.0.3" )

@@ -211,6 +211,10 @@
           name: CEPH_ANSIBLE_BRANCH
           description: "The ceph-ansible branch (or tag) to test"
           default: "{ceph_ansible_branch}"
+      - string:
+          name: CEPH_DOCKER_IMAGE_TAG
+          description: "The ceph-container image tag to use"
+          default: ""
 
     triggers:
       - timed: '@daily'

@@ -8,7 +8,7 @@ install_python_packages "pkgs[@]"
 source $VENV/activate
 
 WORKDIR=$(mktemp -td tox.XXXXXXXXXX)
-
+page_size=100
 
 #############
 # FUNCTIONS #
@@ -16,13 +16,17 @@ WORKDIR=$(mktemp -td tox.XXXXXXXXXX)
 function count_tag_pages {
   sudo yum -y install jq
   tag_count=$(curl -s "https://registry.hub.docker.com/v2/repositories/ceph/daemon/tags/" | jq '.count')
-  total_pages=$((tag_count / 10))
+  total_pages=$((tag_count / ${page_size}))
+  remainder=$((tag_count % ${page_size}))
+  if [ ${remainder} -gt 0 ]; then
+    let total_pages++
+  fi
 }
 
 function find_latest_tag {
   release="$1"
   for page in $(seq 1 $total_pages); do
-    tag=$(curl -s "https://registry.hub.docker.com/v2/repositories/ceph/daemon/tags/?page=$page" | jq ".\"results\"[] | select((.name | contains(\"stable\")) and (.name | contains(\"${release}-centos-7-x86_64\"))) | .name")
+    tag=$(curl -s "https://registry.hub.docker.com/v2/repositories/ceph/daemon/tags/?page=$page&page_size=${page_size}" | jq ".\"results\"[] | select((.name | contains(\"stable\")) and (.name | contains(\"${release}-centos-7-x86_64\"))) | .name")
     if [ -n "$tag" ]; then
       echo "$tag" | head -n 1 | cut -d '"' -f 2
       return
@@ -36,10 +40,7 @@ function run_tox {
       CEPH_DOCKER_IMAGE_TAG=$(find_latest_tag "$RELEASE")
       ;;
     master)
-      CEPH_DOCKER_IMAGE_TAG="latest"
-      ;;
-    *)
-      CEPH_DOCKER_IMAGE_TAG=""
+      CEPH_DOCKER_IMAGE_TAG="latest-master"
       ;;
   esac
 
