@@ -40,6 +40,28 @@
     builders:
       - conditional-step:
           condition-kind: regex-match
+          regex: .*(master|octopus).*
+          label: '${GIT_BRANCH}'
+          on-evaluation-failure: dont-run
+          steps:
+            - shell:
+                !include-raw:
+                - ../../../scripts/build_utils.sh
+                - ../../build/notify
+            - trigger-builds:
+                - project: 'ceph-dev'
+                  predefined-parameters: |
+                    BRANCH=${GIT_BRANCH}
+                    FORCE=True
+                    DISTROS=bionic centos7
+                - project: 'ceph-dev'
+                  predefined-parameters: |
+                    BRANCH=${GIT_BRANCH}
+                    FORCE=True
+                    DISTROS=centos7
+                    FLAVOR=notcmalloc
+      - conditional-step:
+          condition-kind: regex-match
           regex: .*(jewel|kraken|luminous).*
           label: '${GIT_BRANCH}'
           on-evaluation-failure: dont-run
@@ -61,7 +83,7 @@
       - conditional-step:
           condition-kind: shell
           condition-command: |
-            echo "${GIT_BRANCH}" | grep -v '\(jewel\|kraken\|luminous\)'
+            echo "${GIT_BRANCH}" | grep -v '\(jewel\|kraken\|luminous\|master|octopus\)'
           on-evaluation-failure: dont-run
           steps:
             - shell:
