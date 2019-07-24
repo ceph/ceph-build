@@ -150,4 +150,4 @@
           latest-only: false
 
       - email:
-          recipients: aschoen@redhat.com adeza@redhat.com
+          recipients: aschoen@redhat.com adeza@redhat.com jfajerski@suse.com
