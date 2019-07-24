@@ -83,7 +83,7 @@
       - conditional-step:
           condition-kind: shell
           condition-command: |
-            echo "${GIT_BRANCH}" | grep -v '\(jewel\|kraken\|luminous\|master|octopus\)'
+            echo "${GIT_BRANCH}" | grep -v '\(jewel\|kraken\|luminous\|master\|octopus\)'
           on-evaluation-failure: dont-run
           steps:
             - shell:
