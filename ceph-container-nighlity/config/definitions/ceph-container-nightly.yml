@@ -69,4 +69,4 @@
                   - FAILURE
                   - ABORTED
               build-steps:
-                - shell: !include-raw ../../build/teardown
+                - shell: !include-raw: ../../build/teardown

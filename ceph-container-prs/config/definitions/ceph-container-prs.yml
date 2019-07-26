@@ -82,7 +82,7 @@
                   - FAILURE
                   - ABORTED
               build-steps:
-                - shell: !include-raw ../../build/teardown
+                - shell: !include-raw: ../../build/teardown
 
 - job-template:
     name: 'ceph-container-prs-ceph_ansible-{ceph-version}-{os}-{test}'
@@ -154,4 +154,4 @@
                   - FAILURE
                   - ABORTED
               build-steps:
-                - shell: !include-raw ../../build/teardown
+                - shell: !include-raw: ../../build/teardown
