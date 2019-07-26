@@ -51,7 +51,7 @@
       - conditional-step:
           condition-kind: shell
           condition-command: |
-            echo "${GIT_BRANCH}" | grep -v '\(jewel\|kraken\|luminous\)' | grep '\(mimic\|nautilus\)'
+            echo "${GIT_BRANCH}" | grep '\(mimic\|nautilus\)'
           on-evaluation-failure: dont-run
           steps:
             - shell:
