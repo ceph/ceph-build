@@ -33,4 +33,4 @@
 
     builders:
       - shell:
-          !include-raw ../../build/build
+          !include-raw: ../../build/build
