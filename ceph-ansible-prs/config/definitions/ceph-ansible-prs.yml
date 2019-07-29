@@ -31,7 +31,6 @@
       - rgw_multisite
       - purge
       - lvm_auto_discovery
-      - dashboard
     jobs:
         - 'ceph-ansible-prs-pipeline'
 
@@ -113,7 +112,6 @@
       - rgw_multisite
       - purge
       - lvm_auto_discovery
-      - dashboard
     jobs:
         - 'ceph-ansible-prs-pipeline'
 
