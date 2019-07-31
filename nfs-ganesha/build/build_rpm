@@ -94,7 +94,7 @@ mkdir build
 cd build
 
 # generate .spec file, edit .spec file for correct versions of libs and make source tarball
-cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo -DSTRICT_PACKAGE=ON -DUSE_FSAL_ZFS=OFF -DUSE_FSAL_GLUSTER=OFF -DUSE_FSAL_CEPH=ON -DUSE_FSAL_RGW=ON -DRADOS_URLS=ON -DUSE_RADOS_RECOV=ON -DUSE_LTTNG=ON $WORKSPACE/nfs-ganesha/src && make dist || exit 1
+cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo -DSTRICT_PACKAGE=ON -DUSE_FSAL_ZFS=OFF -DUSE_FSAL_GLUSTER=OFF -DUSE_FSAL_CEPH=ON -DUSE_FSAL_RGW=ON -DUSE_FSAL_LIZARDFS=OFF -DRADOS_URLS=ON -DUSE_RADOS_RECOV=ON -DUSE_LTTNG=ON $WORKSPACE/nfs-ganesha/src && make dist || exit 1
 
 sed -i 's/libcephfs1-devel/libcephfs-devel/' $WORKSPACE/nfs-ganesha/src/nfs-ganesha.spec
 sed -i 's/librgw2-devel/librgw-devel/' $WORKSPACE/nfs-ganesha/src/nfs-ganesha.spec
