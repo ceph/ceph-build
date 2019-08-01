@@ -2,6 +2,12 @@
 set -ex
 
 # Only do actual work when we are a DEB distro
-if test -f /etc/redhat-release ; then
-    exit 0
-fi
+( source /etc/os-release
+  case $ID in
+    debian|ubuntu)
+      exit 0
+      ;;
+    *)
+      exit 1
+      ;;
+  esac) || exit 0

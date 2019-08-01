@@ -2,6 +2,12 @@
 set -ex
 
 # only do work if we are a RPM distro
-if [[ ! -f /etc/redhat-release && ! -f /usr/bin/zypper ]] ; then
-    exit 0
-fi
+( source /etc/os-release
+  case $ID in
+    centos|rhel|fedora)
+      exit 0
+      ;;
+    *)
+      exit 1
+      ;;
+  esac) || exit 0
