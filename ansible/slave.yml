@@ -13,6 +13,8 @@
    - nodename: '{{ nodename }}'
    - labels: '{{ labels }}'
    - use_jnlp: false
+   - osc_user: 'username'
+   - osc_pass: 'password'
 
   tasks:
     - name: uninstall resolvconf on Ubuntu to manually manage resolv.conf
@@ -104,6 +106,29 @@
         state: directory
         owner: "{{ jenkins_user }}"
 
+    - name: Create .config/osc directory
+      file:
+        path: "/home/{{ jenkins_user }}/.config/osc"
+        state: directory
+        owner: "{{ jenkins_user }}"
+      when: ansible_pkg_mgr  == "zypper"
+
+    - name: Add oscrc file
+      blockinfile:
+        create: yes
+        block: |
+          [general]
+          apiurl = https://api.opensuse.org
+          #build-root = /var/tmp/build-root/%(repo)s-%{arch)s
+
+          [https://api.opensuse.org]
+          user = {{ osc_user }}
+          pass = {{ osc_pass }}
+
+        path: "/home/{{ jenkins_user }}/.config/osc/oscrc"
+      become_user: "{{ jenkins_user }}"
+      when: ansible_pkg_mgr  == "zypper"
+
     - name: ensure the home dir has the right owner permissions
       file:
         path: "/home/{{ jenkins_user }}"
@@ -157,6 +182,46 @@
         - openssl-devel
         - libffi-devel
       when: ansible_pkg_mgr  == "yum"
+
+    - name: Install requirements using zypper
+      zypper:
+        state: latest
+        update_cache: yes
+        name:
+        - autoconf
+        - automake
+        - binutils
+        - bison
+        - cmake
+        - cache
+        - createrepo
+        - flex
+        - gcc
+        - gcc-c++
+        - gettext-runtime
+        - git
+        - java-1.8.0-openjdk
+        - jq
+        - libffi-devel
+        - libopenssl-devel
+        - libtool
+        - libtool
+        - lsb-release
+        - make
+        - patch
+        - pkg-config
+        - python2-pip
+        - python2-virtualenv
+        - python3-pip
+        - python3-virtualenv
+        - rpm-build
+        - rpmdevtools
+        - tig
+        - wget 
+        # obs requirements
+        - osc
+        - build
+      when: ansible_pkg_mgr  == "zypper"
 
     - name: install packages from epel
       yum:
