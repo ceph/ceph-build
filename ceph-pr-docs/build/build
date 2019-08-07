@@ -9,6 +9,6 @@ sudo rm -f /etc/apt/sources.list.d/ubuntu-toolchain-r*
 
 # Ceph doc build deps, Ubuntu only because ditaa is not packaged for CentOS
 sudo apt-get update -o Acquire::Languages=none -o Acquire::Translation=none
-sudo apt-get install -y gcc python-dev python-pip python-virtualenv libxml2-dev libxslt-dev doxygen graphviz ant ditaa cython
+sudo apt-get install -y gcc python3-dev python3-pip python3-virtualenv libxml2-dev libxslt-dev doxygen graphviz ant ditaa cython3
 
 ./admin/build-doc
