@@ -5,6 +5,56 @@ set -ex
 TEMPVENV=$(mktemp -td venv.XXXXXXXXXX)
 VENV="$TEMPVENV/bin"
 
+function release_from_version() {
+    local ver=$1
+    case $ver in
+    15.*)
+        rel="octopus"
+        ;;
+    14.*)
+        rel="nautilus"
+        ;;
+    13.*)
+        rel="mimic"
+        ;;
+    12.*)
+        rel="luminous"
+        ;;
+    11.*)
+        rel="kraken"
+        ;;
+    10.*)
+        rel="jewel"
+        ;;
+    9.*)
+        rel="infernalis"
+        ;;
+    0.94.*)
+        rel="hammer"
+        ;;
+    0.87.*)
+        rel="giant"
+        ;;
+    0.87.*)
+        rel="firefly"
+        ;;
+    0.72.*)
+        rel="emperor"
+        ;;
+    0.67.*)
+        rel="dumpling"
+        ;;
+    *)
+        rel="unknown"
+        echo "ERROR: Unknown release for version '$ver'" > /dev/stderr
+        echo $rel
+        exit 1
+        ;;
+    esac
+    echo $rel
+}
+
+
 branch_slash_filter() {
     # The build system relies on an HTTP binary store that uses branches/refs
     # as URL parts.  A literal extra slash in the branch name is considered
