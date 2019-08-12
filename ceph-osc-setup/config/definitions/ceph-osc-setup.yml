@@ -1,0 +1,66 @@
+- job:
+    name: ceph-osc-setup
+    description: "This job step checks out the branch and builds the tarballs, diffs, and dsc that are passed to the ceph-dev-build step.\r\n\r\nNotes:\r\nJob needs to run on a releatively recent debian system.  The Restrict where run feature is used to specifiy an appropriate label.\r\nThe clear workspace before checkout box for the git plugin is used."
+    # we do not need to pin this to trusty anymore for the new jenkins instance
+    # FIXME: unpin when this gets ported over
+    node: huge && trusty && x86_64
+    display-name: 'ceph-osc-setup'
+    block-downstream: false
+    block-upstream: false
+    concurrent: true
+    properties:
+      - build-discarder:
+          days-to-keep: -1
+          num-to-keep: 25
+          artifact-days-to-keep: -1
+          artifact-num-to-keep: -1
+      - github:
+          url: https://github.com/ceph/ceph-ci
+
+    parameters:
+      - string:
+          name: BRANCH
+          description: "The git branch (or tag) to build"
+
+    scm:
+      - git:
+          url: git@github.com:ceph/ceph-ci.git
+          # Use the SSH key attached to the ceph-jenkins GitHub account.
+          credentials-id: 'jenkins-build'
+          branches:
+            - $BRANCH
+          skip-tag: true
+          wipe-workspace: true
+
+    builders:
+      - shell:
+          !include-raw:
+            - ../../../scripts/build_utils.sh
+            - ../../build/build
+
+    publishers:
+      - archive:
+          artifacts: 'dist/**'
+          allow-empty: false
+          latest-only: false
+
+      - postbuildscript:
+          builders:
+            - role: SLAVE
+              build-on:
+                  - FAILURE
+                  - ABORTED
+              build-steps:
+                - shell:
+                    !include-raw:
+                      - ../../../scripts/build_utils.sh
+                      - ../../build/failure
+
+    wrappers:
+      - inject-passwords:
+          global: true
+          mask-password-params: true
+      - credentials-binding:
+          - text:
+              credential-id: shaman-api-key
+              variable: SHAMAN_API_KEY
