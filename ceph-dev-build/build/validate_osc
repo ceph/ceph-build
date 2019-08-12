@@ -1,0 +1,13 @@
+#!/bin/bash
+set -ex
+
+# only do work if we are a SUSE distro
+( source /etc/os-release
+  case $ID in
+    opensuse*|suse|sles)
+      exit 0
+      ;;
+    *)
+      exit 1
+      ;;
+  esac) || exit 0
