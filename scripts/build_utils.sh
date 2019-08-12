@@ -85,6 +85,15 @@ pip_download() {
     fi
 }
 
+create_virtualenv () {
+    local path=$1
+    if [ "$(ls -A $path)" ]; then
+        echo "Will reuse existing virtual env: $path"
+    else
+        virtualenv -p python2.7 $path
+    fi
+}
+
 install_python_packages_no_binary () {
     # Use this function to create a virtualenv and install python packages
     # without compiling (or using wheels). Pass a list of package names.  If
@@ -96,13 +105,7 @@ install_python_packages_no_binary () {
     #   to_install=( "ansible" "chacractl>=0.0.4" )
     #   install_python_packages_no_binary "to_install[@]"
 
-    # Create the virtualenv
-    if [ "$(ls -A $TEMPVENV)" ]; then
-        echo "Will reuse existing virtual env: $TEMPVENV"
-    else
-        virtualenv $TEMPVENV
-    fi
-
+    create_virtualenv $TEMPVENV
 
     # Define and ensure the PIP cache
     PIP_SDIST_INDEX="$HOME/.cache/pip"
@@ -141,8 +144,7 @@ install_python_packages () {
     #   to_install=( "ansible" "chacractl>=0.0.4" )
     #   install_python_packages "to_install[@]"
 
-    # Create the virtualenv
-    virtualenv $TEMPVENV
+    create_virtualenv $TEMPVENV
 
     # Define and ensure the PIP cache
     PIP_SDIST_INDEX="$HOME/.cache/pip"
