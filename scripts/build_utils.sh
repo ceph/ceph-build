@@ -209,7 +209,7 @@ get_rpm_dist() {
         DISTRO_VERSION=`$LSB_RELEASE --short --release`
         DISTRO=fedora
         ;;
-    SUSE\ LINUX)
+    SUSE\ LINUX|openSUSE)
         DESC=`$LSB_RELEASE --short --description`
         DISTRO_VERSION=`$LSB_RELEASE --short --release`
         case $DESC in
