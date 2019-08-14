@@ -86,6 +86,13 @@
             - ../../../scripts/build_utils.sh
             - ../../build/setup_rpm
             - ../../build/build_rpm
+      # osc build scripts
+      - shell:
+          !include-raw:
+            - ../../build/validate_osc
+            - ../../../scripts/build_utils.sh
+            - ../../build/setup_osc
+            - ../../build/build_osc
 
     publishers:
       - postbuildscript:
