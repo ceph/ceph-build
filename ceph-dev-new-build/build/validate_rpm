@@ -1,7 +1,1 @@
-#!/bin/bash
-set -ex
-
-# only do work if we are a RPM distro
-if [[ ! -f /etc/redhat-release && ! -f /usr/bin/zypper ]] ; then
-    exit 0
-fi
+../../ceph-dev-build/build/validate_rpm

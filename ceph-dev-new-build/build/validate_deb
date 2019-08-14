@@ -1,7 +1,1 @@
-#!/bin/bash
-set -ex
-
-# Only do actual work when we are a DEB distro
-if test -f /etc/redhat-release ; then
-    exit 0
-fi
+../../ceph-dev-build/build/validate_deb
