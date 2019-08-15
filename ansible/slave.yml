@@ -60,6 +60,7 @@
     - name: "create a {{ jenkins_user }} user"
       user:
         name: "{{ jenkins_user }}"
+        group: "{{ jenkins_user }}"
         state: present
         comment: "Jenkins Build Slave User"
 
