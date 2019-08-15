@@ -24,13 +24,13 @@
           default: master
 
       - string:
-          name: DISTROS
-          description: "A list of distros to build for. Available options are: centos7, centos6, bionic, xenial, trusty, precise, wheezy, and jessie"
+          name: DIST
+          description: "A distro to build for. Available options are: centos7, centos6, bionic, xenial, trusty, precise, wheezy, and jessie"
           default: "leap15" # "bionic xenial trusty centos7"
 
       - string:
-          name: ARCHS
-          description: "A list of architectures to build for. Available options are: x86_64, and arm64"
+          name: ARCH
+          description: "An architecture to build for. Available options are: x86_64, and arm64"
           default: "x86_64"
 
       - bool:

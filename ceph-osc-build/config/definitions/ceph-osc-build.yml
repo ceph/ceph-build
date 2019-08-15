@@ -1,60 +1,37 @@
 - job:
     name: ceph-osc-build
     node: master
-    project-type: matrix
     defaults: global
     display-name: 'ceph-osc-build'
     block-downstream: false
     block-upstream: false
     concurrent: true
+    parameters:
+        - string:
+            name: DIST
+            default: leap15
+        - string:
+            name: ARCH
+            default: x86_64
+        - string:
+            name: SIZE
+            default: huge
+
     properties:
       - github:
           url: https://github.com/ceph/ceph-ci
       - build-discarder:
           days-to-keep: 30
           artifact-days-to-keep: 30
-
-    execution-strategy:
-       combination-filter: |
-         DIST == AVAILABLE_DIST && ARCH == AVAILABLE_ARCH &&
-         (ARCH == "x86_64" || (ARCH == "arm64" && ["xenial", "centos7"].contains(DIST)))
-    axes:
-      - axis:
-          type: label-expression
-          name: MACHINE_SIZE
-          values:
-            - huge
-      - axis:
-          type: label-expression
-          name: AVAILABLE_ARCH
-          values:
-            - x86_64
-            - arm64
-      - axis:
-          type: label-expression
-          name: AVAILABLE_DIST
-          values:
-            - leap15
-            #- trusty
-            #- xenial
-            #- bionic
-            #- centos7
-            #- jessie
-            #- precise
-            #- centos6
-            #- wheezy
-      - axis:
-          type: dynamic
-          name: DIST
-          values:
-            - DISTROS
-      - axis:
-          type: dynamic
-          name: ARCH
-          values:
-            - ARCHS
-
-
+      - groovy-label:
+          script: |
+            dist=binding.getVariables().get("DIST").split(/\s+/)
+            arch=binding.getVariables().get("ARCH").split(/\s+/)
+            size=binding.getVariables().get("SIZE").split(/\s+/)
+            [dist, arch, size].collect {
+               x=it.join("||")
+               it.size() > 1 ? "($x)" : x
+            }.join("&&")
 
     builders:
       - shell: |
