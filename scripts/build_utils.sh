@@ -5,6 +5,56 @@ set -ex
 TEMPVENV=$(mktemp -td venv.XXXXXXXXXX)
 VENV="$TEMPVENV/bin"
 
+function release_from_version() {
+    local ver=$1
+    case $ver in
+    15.*)
+        rel="octopus"
+        ;;
+    14.*)
+        rel="nautilus"
+        ;;
+    13.*)
+        rel="mimic"
+        ;;
+    12.*)
+        rel="luminous"
+        ;;
+    11.*)
+        rel="kraken"
+        ;;
+    10.*)
+        rel="jewel"
+        ;;
+    9.*)
+        rel="infernalis"
+        ;;
+    0.94.*)
+        rel="hammer"
+        ;;
+    0.87.*)
+        rel="giant"
+        ;;
+    0.87.*)
+        rel="firefly"
+        ;;
+    0.72.*)
+        rel="emperor"
+        ;;
+    0.67.*)
+        rel="dumpling"
+        ;;
+    *)
+        rel="unknown"
+        echo "ERROR: Unknown release for version '$ver'" > /dev/stderr
+        echo $rel
+        exit 1
+        ;;
+    esac
+    echo $rel
+}
+
+
 branch_slash_filter() {
     # The build system relies on an HTTP binary store that uses branches/refs
     # as URL parts.  A literal extra slash in the branch name is considered
@@ -35,6 +85,15 @@ pip_download() {
     fi
 }
 
+create_virtualenv () {
+    local path=$1
+    if [ "$(ls -A $path)" ]; then
+        echo "Will reuse existing virtual env: $path"
+    else
+        virtualenv -p python2.7 $path
+    fi
+}
+
 install_python_packages_no_binary () {
     # Use this function to create a virtualenv and install python packages
     # without compiling (or using wheels). Pass a list of package names.  If
@@ -46,13 +105,7 @@ install_python_packages_no_binary () {
     #   to_install=( "ansible" "chacractl>=0.0.4" )
     #   install_python_packages_no_binary "to_install[@]"
 
-    # Create the virtualenv
-    if [ "$(ls -A $TEMPVENV)" ]; then
-        echo "Will reuse existing virtual env: $TEMPVENV"
-    else
-        virtualenv $TEMPVENV
-    fi
-
+    create_virtualenv $TEMPVENV
 
     # Define and ensure the PIP cache
     PIP_SDIST_INDEX="$HOME/.cache/pip"
@@ -91,8 +144,7 @@ install_python_packages () {
     #   to_install=( "ansible" "chacractl>=0.0.4" )
     #   install_python_packages "to_install[@]"
 
-    # Create the virtualenv
-    virtualenv $TEMPVENV
+    create_virtualenv $TEMPVENV
 
     # Define and ensure the PIP cache
     PIP_SDIST_INDEX="$HOME/.cache/pip"
@@ -159,7 +211,7 @@ get_rpm_dist() {
         DISTRO_VERSION=`$LSB_RELEASE --short --release`
         DISTRO=fedora
         ;;
-    SUSE\ LINUX)
+    SUSE\ LINUX|openSUSE)
         DESC=`$LSB_RELEASE --short --description`
         DISTRO_VERSION=`$LSB_RELEASE --short --release`
         case $DESC in
