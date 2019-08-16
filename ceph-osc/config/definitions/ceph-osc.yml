@@ -19,6 +19,11 @@
 
     parameters:
       - string:
+          name: GITURL
+          default: git@github.com:ceph/ceph-ci.git
+          description: "The git repo url to build"
+
+      - string:
           name: BRANCH
           description: "The git branch (or tag) to build"
           default: master

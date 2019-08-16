@@ -14,21 +14,23 @@
           num-to-keep: 25
           artifact-days-to-keep: -1
           artifact-num-to-keep: -1
-      - github:
-          url: https://github.com/ceph/ceph-ci
 
     parameters:
       - string:
           name: BRANCH
           description: "The git branch (or tag) to build"
+      - string:
+          name: GITURL
+          default: git@github.com:ceph/ceph-ci.git
+          description: "The git repo url to build"
 
     scm:
       - git:
-          url: git@github.com:ceph/ceph-ci.git
+          url: '$GITURL'
           # Use the SSH key attached to the ceph-jenkins GitHub account.
           credentials-id: 'jenkins-build'
           branches:
-            - $BRANCH
+            - '$BRANCH'
           skip-tag: true
           wipe-workspace: true
 
