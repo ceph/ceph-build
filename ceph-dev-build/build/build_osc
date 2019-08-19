@@ -1,0 +1,82 @@
+#!/bin/bash
+set -ex
+
+# create a release directory for ceph-build tools
+raw_version=`echo $vers | cut -d '-' -f 1`
+
+RELEASE_BRANCH=$(release_from_version $raw_version)
+case $RELEASE_BRANCH in
+nautilus|octopus)
+    OBSREPO="openSUSE_Leap_15.1"
+    ;;
+mimic)
+    OBSREPO="openSUSE_Leap_15.0"
+    ;;
+luminous)
+    OBSREPO="openSUSE_Leap_42.3"
+    ;;
+*)
+    echo Not supported release '$RELEASE_BRANCH' by openSUSE
+    exit 1
+    ;;
+esac
+
+OBSPROJ="filesystems:ceph:$RELEASE_BRANCH:upstream"
+OBSARCH="x86_64"
+BUILDHOME=/var/tmp/build-root/$OBSREPO-$OBSARCH/home/abuild
+
+rm -rf $OBSPROJ
+osc co $OBSPROJ
+
+rm $OBSPROJ/ceph/ceph-*.tar.bz2
+rm $OBSPROJ/ceph/ceph.spec
+
+cp -a dist/ceph-*.tar.bz2 $OBSPROJ/ceph/.
+cp -a dist/ceph.spec $OBSPROJ/ceph/.
+cp -a dist/rpm/*.patch $OBSPROJ/ceph/. || true
+
+echo "Building RPMs"
+
+(
+  cd $OBSPROJ/ceph
+  osc build --trust-all-projects --clean $OBSREPO $OBSARCH
+)
+
+
+RPM_RELEASE=$(grep Release $OBSPROJ/ceph/ceph.spec | sed 's/Release:[ \t]*//g' | cut -d '%' -f 1)
+RPM_VERSION=$(grep Version $OBSPROJ/ceph/ceph.spec | sed 's/Version:[ \t]*//g')
+PACKAGE_MANAGER_VERSION="$RPM_VERSION-$RPM_RELEASE"
+
+
+chacra_binary="$VENV/chacractl binary"
+[ "$FORCE" = true ] && chacra_binary="$chacra_binary --force"
+
+chacra_create="$chacra_binary create"
+if [ "$THROWAWAY" = false ] ; then
+    # push binaries to chacra
+    find $BUILDHOME/rpmbuild/SRPMS | grep "\.rpm$" |
+      $chacra_create ${chacra_endpoint}/source/flavors/${FLAVOR}
+    find $BUILDHOME/rpmbuild/RPMS | grep "\.rpm$" | 
+      $chacra_create ${chacra_endpoint}/${ARCH}/flavors/${FLAVOR}
+    # write json file with build info
+    cat > $WORKSPACE/repo-extra.json << EOF
+{
+    "version":"$vers",
+    "package_manager_version":"$PACKAGE_MANAGER_VERSION",
+    "build_url":"$BUILD_URL",
+    "root_build_cause":"$ROOT_BUILD_CAUSE",
+    "node_name":"$NODE_NAME",
+    "job_name":"$JOB_NAME"
+}
+EOF
+    chacra_repo_endpoint="${chacra_endpoint}/flavors/${FLAVOR}"
+    # post the json to repo-extra json to chacra
+    curl -X POST -H "Content-Type:application/json" --data "@$WORKSPACE/repo-extra.json" -u $CHACRACTL_USER:$CHACRACTL_KEY ${chacra_url}repos/${chacra_repo_endpoint}/extra/
+    # start repo creation
+    $VENV/chacractl repo update ${chacra_repo_endpoint}
+
+    echo Check the status of the repo at: https://shaman.ceph.com/api/repos/${chacra_endpoint}/flavors/${FLAVOR}/
+fi
+
+# update shaman with the completed build status
+update_build_status "completed" "ceph" $NORMAL_DISTRO $NORMAL_DISTRO_VERSION $NORMAL_ARCH
