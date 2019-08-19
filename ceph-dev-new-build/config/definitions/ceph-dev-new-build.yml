@@ -42,6 +42,7 @@
             - precise
             - centos6
             - wheezy
+            - leap15
       - axis:
           type: dynamic
           name: DIST
