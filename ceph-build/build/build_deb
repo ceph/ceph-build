@@ -95,7 +95,7 @@ echo lintian --allow-root $releasedir/$cephver/*$bpvers*.deb
 
 if [ "$THROWAWAY" = false ] ; then
     # push binaries to chacra
-    find release/$vers/ | egrep "*\.(changes|deb|dsc|gz)$" | egrep -v "(Packages|Sources|Contents)" | $VENV/chacractl binary ${chacra_flags} create ${chacra_endpoint}
+    find release/$vers/ | egrep "*\.(changes|deb|ddeb|dsc|gz)$" | egrep -v "(Packages|Sources|Contents)" | $VENV/chacractl binary ${chacra_flags} create ${chacra_endpoint}
     # write json file with build info
     cat > $WORKSPACE/repo-extra.json << EOF
 {
