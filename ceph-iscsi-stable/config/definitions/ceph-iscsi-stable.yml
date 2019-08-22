@@ -1,24 +1,13 @@
 - scm:
-    name: ceph-iscsi-config
+    name: ceph-iscsi
     scm:
       - git:
-          url: https://github.com/ceph/ceph-iscsi-config.git
+          url: https://github.com/ceph/ceph-iscsi.git
           branches:
-            - $CEPH_ISCSI_CONFIG_BRANCH
+            - $CEPH_ISCSI_BRANCH
           skip-tag: true
           wipe-workspace: true
-          basedir: "ceph-iscsi-config"
-
-- scm:
-    name: ceph-iscsi-cli
-    scm:
-      - git:
-          url: https://github.com/ceph/ceph-iscsi-cli.git
-          branches:
-            - $CEPH_ISCSI_CLI_BRANCH
-          skip-tag: true
-          wipe-workspace: true
-          basedir: "ceph-iscsi-cli"
+          basedir: "ceph-iscsi"
 
 - scm:
     name: ceph-iscsi-tools
@@ -40,14 +29,9 @@
     concurrent: true
     parameters:
       - string:
-          name: CEPH_ISCSI_CONFIG_BRANCH
+          name: CEPH_ISCSI_BRANCH
           description: "The git branch (or tag) to build"
-          default: "2.6"
-
-      - string:
-          name: CEPH_ISCSI_CLI_BRANCH
-          description: "The git branch (or tag) to build"
-          default: "2.7"
+          default: "3.2"
 
       - string:
           name: CEPH_ISCSI_TOOLS_BRANCH
@@ -84,8 +68,7 @@ If this is checked, then the binaries will be built and pushed to chacra even if
           default: "/tmp/"
 
     scm:
-      - ceph-iscsi-config
-      - ceph-iscsi-cli
+      - ceph-iscsi
       - ceph-iscsi-tools
 
     builders:
