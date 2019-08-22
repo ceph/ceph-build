@@ -20,6 +20,9 @@ for project in $(ls -h | grep -v dist); do
     REPO_MAJOR_VERSION=$MAJOR_VERSION
   fi
   REVISION="$(git describe --tags HEAD | cut -d - -f 2- | sed 's/-/./')"
+  if [ "$VERSION" = "$REVISION" ]; then
+    REVISION="1"
+  fi
 
   # Create dummy dist tar
   tar cf ../dist/${PROJECT}-${VERSION}.tar.gz \
