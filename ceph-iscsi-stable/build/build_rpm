@@ -77,7 +77,7 @@ fi
 
 if [ "$THROWAWAY" = false ] ; then
     # push binaries to chacra
-    find $WORKSPACE/dist/SRPMS | grep rpm | $VENV/chacractl binary ${chacra_flags} create ${chacra_endpoint}/source/
+    find $WORKSPACE/dist/SRPMS | grep rpm | $VENV/chacractl binary ${chacra_flags} create ${chacra_endpoint}/source
     find $WORKSPACE/dist/RPMS/ | grep rpm | $VENV/chacractl binary ${chacra_flags} create ${chacra_endpoint}/noarch/
     # start repo creation
     $VENV/chacractl repo update ${chacra_repo_endpoint}
