@@ -65,13 +65,13 @@ chacra_endpoint="ceph-iscsi/${REPO_MAJOR_VERSION}/${GIT_COMMIT}/${DISTRO}/${RELE
 chacra_repo_endpoint="${chacra_endpoint}/flavors/default"
 
 # check to make sure ceph-iscsi-config package built
-if [ ! -f $WORKSPACE/dist/RPMS/ceph-iscsi-*.rpm ]; then
+if [ ! -f $WORKSPACE/dist/RPMS/ceph-iscsi-${CEPH_ISCSI_BRANCH}-1.el${RELEASE}.noarch.rpm ]; then
     echo "ceph-iscsi rpm not built!"
     exit 1
 fi
 
 # check to make sure ceph-iscsi-tools package built
-if [ ! -f $WORKSPACE/dist/RPMS/ceph-iscsi-tools-*.rpm ]; then
+if [ ! -f $WORKSPACE/dist/RPMS/ceph-iscsi-tools-${CEPH_ISCSI_TOOLS_BRANCH}-1.el${RELEASE}.noarch.rpm ]; then
     echo "ceph-iscsi-tools rpm not built!"
     exit 1
 fi
