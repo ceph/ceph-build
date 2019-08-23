@@ -81,6 +81,22 @@
                     FORCE=True
                     FLAVOR=notcmalloc
       - conditional-step:
+          condition-kind: regex-match
+          regex: .*(luminous|mimic|nautilus|octopus|master).*
+          label: '${GIT_BRANCH}'
+          on-evaluation-failure: dont-run
+          steps:
+            - shell:
+                !include-raw:
+                - ../../../scripts/build_utils.sh
+                - ../../build/notify
+            - trigger-builds:
+                - project: 'ceph-dev'
+                  predefined-parameters: |
+                    BRANCH=${GIT_BRANCH}
+                    FORCE=True
+                    DISTROS=leap15
+      - conditional-step:
           condition-kind: shell
           condition-command: |
             echo "${GIT_BRANCH}" | grep -v '\(jewel\|kraken\|luminous\|master\|octopus\)'

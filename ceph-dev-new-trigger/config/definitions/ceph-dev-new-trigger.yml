@@ -85,7 +85,7 @@
                   predefined-parameters: |
                     BRANCH=${GIT_BRANCH}
                     FORCE=True
-                    DISTROS=bionic centos7
+                    DISTROS=bionic centos7 leap15
                 - project: 'ceph-dev-new'
                   predefined-parameters: |
                     BRANCH=${GIT_BRANCH}
@@ -98,6 +98,22 @@
                     FORCE=True
                     DISTROS=bionic
                     FLAVOR=crimson
+      - conditional-step:
+          condition-kind: regex-match
+          regex: .*(luminous|mimic|nautilus).*
+          label: '${GIT_BRANCH}'
+          on-evaluation-failure: dont-run
+          steps:
+            - shell:
+                !include-raw:
+                - ../../../scripts/build_utils.sh
+                - ../../build/notify
+            - trigger-builds:
+                - project: 'ceph-dev-new'
+                  predefined-parameters: |
+                    BRANCH=${GIT_BRANCH}
+                    FORCE=True
+                    DISTROS=leap15
 
     wrappers:
       - inject-passwords:
