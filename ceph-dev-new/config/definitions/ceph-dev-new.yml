@@ -60,6 +60,11 @@ If this is checked, then the binaries will be built and pushed to chacra even if
           default: "default"
           description: "Type of Ceph build, choices are: crimson, notcmalloc, default (i.e. with tcmalloc). Defaults to: 'default'"
 
+      - string:
+          name: CONTAINER_BRANCH
+          description: "For CI_CONTAINER: Branch of ceph-container to use"
+          default: master
+
     builders:
       - multijob:
           name: 'ceph dev setup phase'
