@@ -131,3 +131,7 @@
           - text:
               credential-id: shaman-api-key
               variable: SHAMAN_API_KEY
+          - username-password-separated:
+              credential-id: dmick-quay
+              username: CONTAINER_REPO_USERNAME
+              password: CONTAINER_REPO_PASSWORD
