@@ -132,7 +132,7 @@
           browser: auto
           timeout: 20
           skip-tag: true
-          wipe-workspace: false
+          wipe-workspace: true
 
     builders:
       - inject:
