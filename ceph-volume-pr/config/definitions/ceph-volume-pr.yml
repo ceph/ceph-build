@@ -86,6 +86,6 @@
                   - ABORTED
               build-steps:
                 - shell:
-                    !include-raw-escape:
+                    !include-raw:
                       - ../../../scripts/build_utils.sh
                       - ../../build/teardown
