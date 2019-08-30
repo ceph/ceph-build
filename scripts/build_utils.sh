@@ -728,7 +728,7 @@ prune_stale_vagrant_vms() {
     shopt -s globstar
 
     # From the global workspace path, find any machine stale from other jobs
-    sudo find "$SEARCH_PATH" -path "*/.vagrant/machines/*" -delete
+    sudo find $SEARCH_PATH -path "*/.vagrant/machines/*" -delete
 
     # unset extended pattern globbing, to prevent messing up other functions
     shopt -u globstar
