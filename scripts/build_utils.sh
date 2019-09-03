@@ -1005,12 +1005,3 @@ get_nr_build_jobs() {
     fi
     echo $n_build_jobs
 }
-
-maybe_downgrade_gcc() {
-    # see also https://bugzilla.redhat.com/show_bug.cgi?id=1726630
-    if [ $(rpm -q --queryformat "%{VERSION}" devtoolset-8-gcc-c++) = 8.3.1 ]; then
-        # rollback to avoid using a buggy version
-        $SUDO yum remove -y devtoolset-8-gcc-c++ devtoolset-8-gcc devtoolset-8-libstdc++-devel
-        $SUDO yum install -y devtoolset-8-gcc-c++-8.2.1-3.el7
-    fi
-}
