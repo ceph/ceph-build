@@ -39,8 +39,11 @@ elif [ "$ARCH" = arm64 ]; then
 fi
 sed -e 's/@//g' < ceph.spec.in > $DIR/ceph.spec
 
-# Make sure we have all the rpm macros installed and at the latest version before installing the dependencies
-$SUDO yum install -y \*rpm-macros
+# Make sure we have all the rpm macros installed and at the latest version
+# before installing the dependencies, python3.6 is the main python offered
+# by CentOS/RHEL7 at this moment, and it requires the python-rpm-macro and
+# python2-rpm-macro we use for identify the python related dependencies
+$SUDO yum install -y python36-devel
 
 $SUDO yum-builddep -y $DIR/ceph.spec
 
