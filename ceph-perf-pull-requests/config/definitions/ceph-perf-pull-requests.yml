@@ -1,0 +1,162 @@
+# macros
+
+- scm:
+    name: ceph-master
+    scm:
+      - git:
+          url: https://github.com/ceph/ceph.git
+          branches:
+            - origin/master
+          skip-tag: true
+          timeout: 20
+          basedir: "ceph-master"
+          shallow-clone: true
+          wipe-workspace: true
+
+- scm:
+    name: ceph-pr
+    scm:
+      - git:
+          url: https://github.com/ceph/ceph.git
+          branches:
+            - ${sha1}
+          refspec: +refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*
+          timeout: 20
+          basedir: "ceph-pr"
+          shallow-clone: true
+          wipe-workspace: true
+
+- scm:
+    name: cbt
+    scm:
+      - git:
+          url: https://github.com/ceph/cbt.git
+          refspec: +refs/heads/master:refs/remotes/origin/master
+          do-not-fetch-tags: true
+          honor-refspec: true
+          name: origin
+          branches:
+            - refs/heads/master
+          timeout: 20
+          wipe-workspace: false
+          basedir: "cbt"
+          skip-tag: true
+          shallow-clone: true
+          clean:
+            after: true
+
+- builder:
+    name: run-cbt
+    builders:
+      - shell: |
+          cd {src_dir}
+          archive_dir={archive_basedir}/$(git rev-parse --short HEAD)
+          if ! test -d $archive_dir ; then
+              export NPROC=$(nproc)
+              export FOR_MAKE_CHECK=1
+              timeout 7200 src/script/run-make.sh --cmake-args "-DWITH_SEASTAR=ON -DWITH_TESTS=OFF" vstart-base crimson-osd
+              src/script/run-cbt.sh --build-dir $PWD/build --source-dir $PWD --cbt ${{WORKSPACE}}/cbt -a $archive_dir src/test/crimson/cbt/radosbench_4K_read.yaml
+          fi
+- builder:
+    name: compare-cbt-results
+    builders:
+      - shell: |
+          cd ${{WORKSPACE}}/{src_dir_master}
+          archive_dir_master={archive_master}/$(git rev-parse --short HEAD)
+          cd ${{WORKSPACE}}/{src_dir_pr}
+          archive_dir_pr={archive_pr}/$(git rev-parse --short HEAD)
+          ${{WORKSPACE}}/cbt/compare.py -v \
+            -a $archive_dir_pr             \
+            -b $archive_dir_master
+
+- job:
+    name: ceph-perf-pull-requests
+    project-type: freestyle
+    defaults: global
+    concurrent: true
+    node: performance
+    display-name: 'ceph: crimson perf test'
+    quiet-period: 5
+    block-downstream: false
+    block-upstream: false
+    retry-count: 3
+    properties:
+      - build-discarder:
+          days-to-keep: 15
+          num-to-keep: 300
+          artifact-days-to-keep: -1
+          artifact-num-to-keep: -1
+      - github:
+          url: https://github.com/ceph/ceph/
+      - rebuild:
+          auto-rebuild: true
+
+    parameters:
+      - string:
+          name: sha1
+          description: "commit id or a refname, like 'origin/pr/72/head'"
+      - string:
+          name: ghprbPullId
+          description: "A pull request ID, like '72' in https://github.com/ceph/ceph/pull/72"
+
+    triggers:
+      - github-pull-request:
+          allow-whitelist-orgs-as-admins: true
+          org-list:
+            - ceph
+          trigger-phrase: 'jenkins test crimson perf'
+          skip-build-phrase: '^jenkins do not test.*'
+          only-trigger-phrase: false
+          white-list-labels:
+            - crimson
+          github-hooks: true
+          permit-all: true
+          auto-close-on-fail: false
+          status-context: "perf test"
+          started-status: "running perf test"
+          success-status: "perf test succeeded"
+          failure-status: "perf test failed"
+          cancel-builds-on-update: true
+
+    scm:
+      - ceph-master
+      - ceph-pr
+      - cbt
+
+    builders:
+      - shell: |
+          cd ${WORKSPACE}/cbt
+          source /etc/os-release || ID=ubuntu
+          case $ID in
+          debian|ubuntu)
+              sudo env DEBIAN_FRONTEND=noninteractive apt-get install -y python3-yaml python3-lxml python3-prettytable;;
+          centos|fedora|rhel)
+              sudo yum install -y python36-PyYAML python36-lxml python36-prettytable;;
+          *)
+              echo "unknown distro: $ID"
+              exit 1
+              ;;
+          esac
+      - run-cbt:
+          src_dir: "ceph-master"
+          # ideally cbt-results should be persited across jobs, so the test result can be reused
+          archive_basedir: "${WORKSPACE}/cbt-results"
+      - run-cbt:
+          src_dir: "ceph-pr"
+          # use the basedir of git checkout, so it can be wiped
+          archive_basedir: "${WORKSPACE}/ceph-pr"
+      - compare-cbt-results:
+          src_dir_master: "ceph-master"
+          archive_master: "${WORKSPACE}/cbt-results"
+          src_dir_pr: "ceph-pr"
+          archive_pr: "${WORKSPACE}/ceph-pr"
+
+    publishers:
+      - postbuildscript:
+          builders:
+            - role: SLAVE
+              build-on:
+                  - FAILURE
+                  - ABORTED
+              build-steps:
+                - shell: "sudo reboot"
