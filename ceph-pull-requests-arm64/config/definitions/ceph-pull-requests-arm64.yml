@@ -12,9 +12,9 @@
     node: arm64
     parameters:
     - string:
-        default: origin/master
-        description: A pull request ID, like 'origin/pr/72/head'
         name: sha1
+        description: "commit id or a refname, like 'origin/pr/72/head'"
+        default: origin/master
     project-type: freestyle
     properties:
     - build-discarder:
@@ -46,7 +46,7 @@
           <userRemoteConfigs>
           <hudson.plugins.git.UserRemoteConfig>
           <name>origin</name>
-          <refspec>+refs/pull/*:refs/remotes/origin/pr/*</refspec>
+          <refspec>+refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*</refspec>
           <url>https://github.com/ceph/ceph.git</url>
           </hudson.plugins.git.UserRemoteConfig>
           </userRemoteConfigs>
