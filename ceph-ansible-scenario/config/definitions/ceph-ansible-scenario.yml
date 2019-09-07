@@ -64,7 +64,7 @@
           url: https://github.com/ceph/ceph-ansible.git
           branches:
             - $BRANCH
-          refspec: +refs/pull/*:refs/remotes/origin/pr/*
+          refspec: +refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*
           browser: auto
           timeout: 20
           skip-tag: true
