@@ -17,7 +17,7 @@ for dir in `find . -maxdepth 1 -path ./.git -prune -o -type d -print`; do
         echo "found definitions directory: $definitions_dir"
 
         # Test the definitions
-        $VENV/jenkins-jobs test $definitions_dir -o /tmp/output
+        $VENV/jenkins-jobs test $definitions_dir --config-xml > /dev/null
     fi
 done
 
