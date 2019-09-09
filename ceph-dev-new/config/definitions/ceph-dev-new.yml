@@ -60,6 +60,26 @@ If this is checked, then the binaries will be built and pushed to chacra even if
           default: "default"
           description: "Type of Ceph build, choices are: crimson, notcmalloc, default (i.e. with tcmalloc). Defaults to: 'default'"
 
+      - string:
+          name: CI_CONTAINER
+          description: 'Build container with development release of Ceph.  Note: this must be "false" or "true" so that it can execute a command or satisfy a string comparison'
+          default: "true"
+
+      - string:
+          name: CONTAINER_BRANCH
+          description: "For CI_CONTAINER: Branch of ceph-container to use"
+          default: master
+
+      - string:
+          name: CONTAINER_REPO_HOSTNAME
+          description: "For CI_CONTAINER: Name of container repo server (i.e. 'quay.io')"
+          default: "quay.io"
+
+      - string:
+          name: CONTAINER_REPO_ORGANIZATION
+          description: "For CI_CONTAINER: Name of container repo organization (i.e. 'cephci')"
+          default: "cephci"
+
     builders:
       - multijob:
           name: 'ceph dev setup phase'
