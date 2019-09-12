@@ -20,10 +20,7 @@
     parameters:
       - string:
           name: sha1
-          description: "commit id or a refname, like 'origin/pr/72/head'"
-      - string:
-          name: ghprbPullId
-          description: "A pull request ID, like '72' in https://github.com/ceph/ceph/pull/72"
+          description: "A pull request ID, like 'origin/pr/72/head'"
 
     triggers:
       - github-pull-request:
