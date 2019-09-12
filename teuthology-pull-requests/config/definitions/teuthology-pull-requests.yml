@@ -21,7 +21,10 @@
     parameters:
       - string:
           name: sha1
-          description: "A pull request ID, like 'origin/pr/72/head'"
+          description: "commit id or a refname, like 'origin/pr/72/head'"
+      - string:
+          name: ghprbPullId
+          description: "A pull request ID, like '72' in https://github.com/ceph/ceph/pull/72"
 
     triggers:
       - github-pull-request:
@@ -55,7 +58,7 @@
           url: https://github.com/ceph/teuthology.git
           branches:
             - ${sha1}
-          refspec: +refs/pull/*:refs/remotes/origin/pr/*
+          refspec: +refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*
           browser: auto
           timeout: 20
           skip-tag: true
