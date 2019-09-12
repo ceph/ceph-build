@@ -89,10 +89,7 @@
     parameters:
       - string:
           name: sha1
-          description: "commit id or a refname, like 'origin/pr/72/head'"
-      - string:
-          name: ghprbPullId
-          description: "A pull request ID, like '72' in https://github.com/ceph/ceph/pull/72"
+          description: "A pull request ID, like 'origin/pr/72/head'"
 
       # this is injected by the ghprb plugin, and is fully optional but may help in manually triggering
       # a job that can end up updating a PR
@@ -131,7 +128,7 @@
           url: https://github.com/ceph/ceph.git
           branches:
             - ${{sha1}}
-          refspec: +refs/pull/${{ghprbPullId}}/*:refs/remotes/origin/pr/${{ghprbPullId}}/*
+          refspec: +refs/pull/*:refs/remotes/origin/pr/*
           browser: auto
           timeout: 20
           skip-tag: true
