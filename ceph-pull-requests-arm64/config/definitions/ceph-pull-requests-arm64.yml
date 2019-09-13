@@ -39,39 +39,16 @@
     quiet-period: '5'
     retry-count: '3'
     scm:
-    - raw:
-        xml: |
-          <scm class="hudson.plugins.git.GitSCM" plugin="git@3.1.0">
-          <configVersion>2</configVersion>
-          <userRemoteConfigs>
-          <hudson.plugins.git.UserRemoteConfig>
-          <name>origin</name>
-          <refspec>+refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*</refspec>
-          <url>https://github.com/ceph/ceph.git</url>
-          </hudson.plugins.git.UserRemoteConfig>
-          </userRemoteConfigs>
-          <branches>
-          <hudson.plugins.git.BranchSpec>
-          <name>${sha1}</name>
-          </hudson.plugins.git.BranchSpec>
-          </branches>
-          <doGenerateSubmoduleConfigurations>false</doGenerateSubmoduleConfigurations>
-          <submoduleCfg class="list" />
-          <extensions>
-          <hudson.plugins.git.extensions.impl.CheckoutOption>
-          <timeout>20</timeout>
-          </hudson.plugins.git.extensions.impl.CheckoutOption>
-          <hudson.plugins.git.extensions.impl.CloneOption>
-          <shallow>false</shallow>
-          <noTags>false</noTags>
-          <reference />
-          <timeout>20</timeout>
-          <depth>0</depth>
-          <honorRefspec>false</honorRefspec>
-          </hudson.plugins.git.extensions.impl.CloneOption>
-          <hudson.plugins.git.extensions.impl.WipeWorkspace />
-          </extensions>
-          </scm>
+    - git:
+        url: https://github.com/ceph/ceph.git
+        name: origin
+        branches:
+          - ${sha1}
+        refspec: +refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*
+        skip-tag: true
+        shallow-clone: true
+        timeout: 20
+        wipe-workspace: true
     triggers:
     - github-pull-request:
         allow-whitelist-orgs-as-admins: true
