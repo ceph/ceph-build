@@ -50,6 +50,7 @@
           browser: auto
           timeout: 20
           skip-tag: true
+          honor-refspec: true
           wipe-workspace: true
 
     builders:

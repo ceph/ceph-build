@@ -47,6 +47,7 @@
         refspec: +refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*
         skip-tag: true
         shallow-clone: true
+        honor-refspec: true
         timeout: 20
         wipe-workspace: true
     triggers:
