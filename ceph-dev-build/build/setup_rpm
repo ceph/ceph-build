@@ -45,7 +45,7 @@ sed -e 's/@//g' < ceph.spec.in > $DIR/ceph.spec
 # python2-rpm-macro we use for identify the python related dependencies
 $SUDO yum install -y python36-devel
 
-$SUDO yum-builddep -y $DIR/ceph.spec
+$SUDO yum-builddep -y --setopt=*.skip_if_unavailable=true $DIR/ceph.spec
 
 BRANCH=`branch_slash_filter $BRANCH`
 
