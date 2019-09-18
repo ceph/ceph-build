@@ -229,3 +229,7 @@ update_build_status "completed" "nfs-ganesha-stable" $NORMAL_DISTRO $NORMAL_DIST
 
 sudo rm -rf $WORKSPACE/dist
 
+# this job adds custom shaman repositories which can cause issues at build time
+# for other jobs so they need to be properly removed
+sudo rm -f /etc/yum.repos.d/shaman*
+sudo rm -f /etc/apt/sources.list.d/shaman*
