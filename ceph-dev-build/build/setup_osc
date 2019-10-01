@@ -29,61 +29,35 @@ tar xzf $ORIGTAR
 cd $ORIGDIR
 pwd
 
-# do not need this on opensuse
-#maybe_downgrade_gcc
-
 BRANCH=`branch_slash_filter $BRANCH`
 
 cd $WORKSPACE
 
-get_rpm_dist() {
-    LSB_RELEASE=/usr/bin/lsb_release
-    [ ! -x $LSB_RELEASE ] && echo unknown && exit
+vers=$(cat ./dist/version)
+raw_version=`echo $vers | cut -d '-' -f 1`
 
-    ID=`$LSB_RELEASE --short --id`
+RELEASE_BRANCH=$(release_from_version $raw_version)
+case $RELEASE_BRANCH in
+nautilus|octopus)
+    DISTRO=opensuse
+    RELEASE="15.1"
+    ;;
+mimic)
+    DISTRO=opensuse
+    RELEASE="15.0"
+    ;;
+luminous)
+    DISTRO=opensuse
+    RELEASE="42.3"
+    ;;
+*)
+    echo Not supported release '$RELEASE_BRANCH' by openSUSE
+    exit 1
+    ;;
+esac
 
-    case $ID in
-    RedHatEnterpriseServer)
-        RELEASE=`$LSB_RELEASE --short --release | cut -d. -f1`
-        DIST=rhel$RELEASE
-        DISTRO=rhel
-        ;;
-    CentOS)
-        RELEASE=`$LSB_RELEASE --short --release | cut -d. -f1`
-        DIST=el$RELEASE
-        DISTRO=centos
-        ;;
-    Fedora)
-        RELEASE=`$LSB_RELEASE --short --release`
-        DIST=fc$RELEASE
-        DISTRO=fedora
-        ;;
-    SUSE\ LINUX|openSUSE)
-        DESC=`$LSB_RELEASE --short --description`
-        RELEASE=`$LSB_RELEASE --short --release`
-        case $DESC in
-        *openSUSE*)
-                DIST=leap${RELEASE%%.*}
-                DISTRO=opensuse
-            ;;
-        *Enterprise*)
-                DIST=sles$RELEASE
-                DISTRO=sles
-                ;;
-            esac
-        ;;
-    *)
-        DIST=unknown
-        DISTRO=unknown
-        ;;
-    esac
+DIST=leap${RELEASE%%.*}
 
-    echo $DIST
-}
-
-get_rpm_dist
-
-# Normalize variables across rpm/deb builds
 NORMAL_DISTRO=$DISTRO
 NORMAL_DISTRO_VERSION=$RELEASE
 NORMAL_ARCH=$ARCH
@@ -103,9 +77,7 @@ dist=$DIST
 [ -z "$dist" ] && echo no dist && exit 1
 echo dist $dist
 
-vers=`cat ./dist/version`
 chacra_ref="$BRANCH"
-
 chacra_endpoint="ceph/${chacra_ref}/${SHA1}/${DISTRO}/${RELEASE}"
 chacra_check_url="${chacra_endpoint}/${ARCH}/flavors/${FLAVOR}/librados2-${vers}-0.${DIST}.${ARCH}.rpm"
 
