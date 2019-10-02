@@ -50,6 +50,7 @@
           browser: auto
           timeout: 20
           skip-tag: true
+          shallow-clone: true
           honor-refspec: true
           wipe-workspace: true
 

@@ -46,6 +46,7 @@
           browser: auto
           timeout: 20
           skip-tag: true
+          shallow-clone: true
           wipe-workspace: true
 
     builders:
