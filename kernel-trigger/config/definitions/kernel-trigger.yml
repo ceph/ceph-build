@@ -42,7 +42,7 @@
                 <name>origin/for-linus</name>
               </hudson.plugins.git.BranchSpec>
               <hudson.plugins.git.BranchSpec>
-                <name>origin/wip*</name>
+                <name>*/wip*</name>
               </hudson.plugins.git.BranchSpec>
               <hudson.plugins.git.BranchSpec>
                 <name>origin/ceph-iscsi*</name>
