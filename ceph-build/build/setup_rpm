@@ -40,10 +40,9 @@ fi
 sed -e 's/@//g' < ceph.spec.in > $DIR/ceph.spec
 
 # Make sure we have all the rpm macros installed and at the latest version
-# before installing the dependencies, python3.6 is the main python offered
-# by CentOS/RHEL7 at this moment, and it requires the python-rpm-macro and
-# python2-rpm-macro we use for identify the python related dependencies
-$SUDO yum install -y python36-devel
+# before installing the dependencies, python3-devel requires the
+# python-rpm-macro we use for identifying the python related dependencies
+$SUDO yum install -y python3-devel
 
 $SUDO yum-builddep -y --setopt=*.skip_if_unavailable=true $DIR/ceph.spec
 
