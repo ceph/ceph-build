@@ -146,6 +146,19 @@ If this is checked, then the binaries will be built and pushed to chacra even if
             - ../../build/prepare_config
             - ../../build/build_rpm
 
+    publishers:
+      - postbuildscript:
+          builders:
+            - role: SLAVE
+              build-on:
+                  - FAILURE
+                  - ABORTED
+              build-steps:
+                - shell:
+                    !include-raw:
+                      - ../../../scripts/build_utils.sh
+                      - ../../build/failure
+
     wrappers:
       - inject-passwords:
           global: true
