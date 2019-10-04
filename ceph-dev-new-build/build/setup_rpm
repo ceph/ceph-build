@@ -26,7 +26,7 @@ $SUDO yum install -y redhat-lsb-core
 # unpack the tar.gz that contains the debian dir
 cd dist
 tar xzf *.orig.tar.gz
-cd ceph-*
+cd $(basename *.orig.tar.gz .orig.tar.gz | sed s/_/-/)
 pwd
 
 $SUDO yum install -y yum-utils
