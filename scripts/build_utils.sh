@@ -831,7 +831,7 @@ function build_job_name() {
 }
 
 # shellcheck disable=SC2153
-ENV_NAME="$(build_job_name "$RELEASE" "$DISTRIBUTION" "$DEPLOYMENT" "$SCENARIO")"
+ENV_NAME="$(build_job_name "$DISTRIBUTION" "$DEPLOYMENT" "$SCENARIO")"
 
 case $SCENARIO in
   update)
