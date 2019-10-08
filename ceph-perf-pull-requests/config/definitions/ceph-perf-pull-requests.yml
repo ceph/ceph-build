@@ -54,7 +54,7 @@
           if ! test -d $archive_dir ; then
               export NPROC=$(nproc)
               export FOR_MAKE_CHECK=1
-              timeout 7200 src/script/run-make.sh --cmake-args "-DWITH_SEASTAR=ON -DWITH_TESTS=OFF" vstart-base crimson-osd
+              timeout 7200 src/script/run-make.sh --cmake-args "-DCMAKE_BUILD_TYPE=Release -DWITH_SEASTAR=ON -DWITH_TESTS=OFF" vstart-base crimson-osd
               src/script/run-cbt.sh --build-dir $PWD/build --source-dir $PWD --cbt ${{WORKSPACE}}/cbt -a $archive_dir src/test/crimson/cbt/radosbench_4K_read.yaml
           fi
 - builder:
