@@ -858,7 +858,7 @@ do
     return 0
   fi
 done
-echo "ERROR: Environment $ENV_NAME is not defined in tox.ini!"
+echo "ERROR: Environment $ENV_NAME is not defined in $TOX_INI_FILE !"
 exit 1
 }
 
