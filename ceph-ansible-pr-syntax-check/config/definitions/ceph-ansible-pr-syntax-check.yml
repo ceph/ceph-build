@@ -44,7 +44,7 @@
             - ceph
           trigger-phrase: 'jenkins test playbook syntax'
           # This is set so the job can be manually triggered or by the ceph-ansible-pipeline multijob
-          only-trigger-phrase: true
+          only-trigger-phrase: false
           github-hooks: true
           permit-all: true
           auto-close-on-fail: false
