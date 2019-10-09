@@ -134,14 +134,6 @@
               echo "Only docs were modified.  Skipping the rest of the job."
               exit 1
             fi
-            if [[ "$ghprbTargetBranch" =~ stable-3. && "$SCENARIO" == "podman" ]]; then
-              echo "This scenario isn't available on this branch."
-              exit 1
-            fi
-            if [[ "$ghprbTargetBranch" == stable-3.1 && "$SCENARIO" =~ lvm_batch|lvm_osds ]]; then
-              echo "This scenario isn't available on this branch."
-              exit 1
-            fi
           on-evaluation-failure: dont-run
           steps:
             - shell:
