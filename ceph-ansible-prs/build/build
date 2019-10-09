@@ -27,6 +27,3 @@ done
 popd
 # In the same logic, clean fact cache
 rm -rf $HOME/ansible/facts/*
-
-# stable-3.2 doesn't support podman.
-[[ "$ghprbTargetBranch" == "stable-3.2" && "$SCENARIO" == "podman" ]] || start_tox
