@@ -38,6 +38,7 @@
           url: https://github.com/ceph/ceph
           browser: auto
           skip-tag: true
+          shallow-clone: true
           timeout: 20
           wipe-workspace: true
 

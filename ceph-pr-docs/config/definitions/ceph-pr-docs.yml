@@ -38,8 +38,10 @@
           browser: auto
           branches:
             - ${sha1}
-          refspec: +refs/pull/*:refs/remotes/origin/pr/*
+          refspec: +refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*
           skip-tag: true
+          shallow-clone: true
+          honor-refspec: true
           timeout: 20
           wipe-workspace: true
 
