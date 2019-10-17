@@ -93,9 +93,9 @@
         mode: 0644
       when: ansible_pkg_mgr  == "yum"
 
-    - name: Install RPM requirements
+    - name: Install RPM requirements (All distro versions)
       sudo: yes
-      yum:
+      package:
         name: "{{ item }}"
         state: present
         update_cache: yes
@@ -104,8 +104,6 @@
         - epel-release
         - java-1.8.0-openjdk
         - git
-        - python-pip
-        - python-virtualenv
         - libtool
         #- rpm-sign
         - autoconf
@@ -127,10 +125,37 @@
         - rpmdevtools
         - openssl-devel
         - libffi-devel
-      when: ansible_pkg_mgr  == "yum"
+      when:
+        - ansible_os_family == "RedHat"
+
+    - name: Install RPM requirements (<=7)
+      sudo: yes
+      package:
+        name: "{{ item }}"
+        state: present
+        update_cache: yes
+      with_items:
+        - python-pip
+        - python-virtualenv
+      when:
+        - ansible_os_family == "RedHat"
+        - ansible_distribution_major_version|int <= 7
+
+    - name: Install RPM requirements (>=8)
+      sudo: yes
+      package:
+        name: "{{ item }}"
+        state: present
+        update_cache: yes
+      with_items:
+        - python3-pip
+        - python3-virtualenv
+      when:
+        - ansible_os_family == "RedHat"
+        - ansible_distribution_major_version|int >= 8
 
     - name: install packages from epel
-      yum:
+      package:
         name: jq
         state: present
         enablerepo: epel

@@ -2,6 +2,8 @@
 # This playbook is used to configure static libvirt&&vagrant slaves.
 # Ubuntu >= 16.04 and CentOS 7.3 are the only tested distros
 #
+# This playbook needs to be updated for EL8 compatibility
+#
 # Example usage:
 # On a baremetal node already configured by the github.com/ceph/ceph-cm-ansible common role,
 # `cd ceph-build/ansible && cp examples/slave_libvirt_static.yml .` then:
