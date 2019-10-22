@@ -1,4 +1,5 @@
 ---
+# This playbook needs to be updated for EL8 compatibility
 
 - hosts: all
   become: true
