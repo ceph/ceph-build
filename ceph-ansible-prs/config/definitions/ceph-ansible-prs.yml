@@ -13,6 +13,17 @@
       - purge
       - collocation
       - lvm_batch
+    jobs:
+        - 'ceph-ansible-prs-auto'
+
+- project:
+    name: ceph-ansible-prs-ooo
+    slave_labels: 'vagrant && libvirt && (smithi || centos7)'
+    distribution:
+      - centos
+    deployment:
+      - container
+    scenario:
       - ooo_collocation
     jobs:
         - 'ceph-ansible-prs-auto'
