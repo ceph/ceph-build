@@ -63,6 +63,10 @@ lttng-tools-devel
 
 sudo yum install -y mock
 
+# Add the Jenkins slave UID to the mock group.
+sudo usermod -a -G mock $(whoami)
+newgrp mock
+
 # Normalize variables across rpm/deb builds
 NORMAL_DISTRO=$DISTRO
 NORMAL_DISTRO_VERSION=$RELEASE
