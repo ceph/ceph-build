@@ -5,6 +5,7 @@
   user: ubuntu
   vars:
    - jenkins_user: 'jenkins-build'
+   - jenkins_key: 'playbook/files/ssh/keys/jenkins_build.pub'
    # jenkins API credentials:
    - api_user: 'ceph-jenkins'
    - token: '{{ token }}'
@@ -13,6 +14,8 @@
    - nodename: '{{ nodename }}'
    - labels: '{{ labels }}'
    - use_jnlp: false
+   - osc_user: 'username'
+   - osc_pass: 'password'
 
   tasks:
     - name: uninstall resolvconf on Ubuntu to manually manage resolv.conf
@@ -49,9 +52,16 @@
         line: 'nameserver 8.8.8.8'
         state: present
 
+    - name: "create a {{ jenkins_user }} group"
+      group:
+        name: "{{ jenkins_user }}"
+        state: present
+
     - name: "create a {{ jenkins_user }} user"
       user:
         name: "{{ jenkins_user }}"
+        group: "{{ jenkins_user }}"
+        state: present
         comment: "Jenkins Build Slave User"
 
     - name: "create a {{ jenkins_user }} home directory"
@@ -69,7 +79,7 @@
     - name: set the authorized keys
       authorized_key:
         user: "{{ jenkins_user }}"
-        key: "{{ lookup('file', 'playbook/files/ssh/keys/jenkins_build.pub') }}"
+        key: "{{ lookup('file', '{{ jenkins_key }}') }}"
 
     - name: "ensure {{ jenkins_user }} can sudo without a prompt"
       lineinfile:
@@ -103,6 +113,29 @@
         path: "/home/{{ jenkins_user }}/build"
         state: directory
         owner: "{{ jenkins_user }}"
+
+    - name: Create .config/osc directory
+      file:
+        path: "/home/{{ jenkins_user }}/.config/osc"
+        state: directory
+        owner: "{{ jenkins_user }}"
+      when: ansible_pkg_mgr  == "zypper"
+
+    - name: Add oscrc file
+      blockinfile:
+        create: yes
+        block: |
+          [general]
+          apiurl = https://api.opensuse.org
+          #build-root = /var/tmp/build-root/%(repo)s-%{arch)s
+
+          [https://api.opensuse.org]
+          user = {{ osc_user }}
+          pass = {{ osc_pass }}
+
+        path: "/home/{{ jenkins_user }}/.config/osc/oscrc"
+      become_user: "{{ jenkins_user }}"
+      when: ansible_pkg_mgr  == "zypper"
 
     - name: ensure the home dir has the right owner permissions
       file:
@@ -158,6 +191,46 @@
         - libffi-devel
         - mock
       when: ansible_os_family == "RedHat"
+
+    - name: Install requirements using zypper
+      zypper:
+        state: latest
+        update_cache: yes
+        name:
+        - autoconf
+        - automake
+        - binutils
+        - bison
+        - cmake
+        - ccache
+        - createrepo
+        - flex
+        - gcc
+        - gcc-c++
+        - gettext-runtime
+        - git
+        - java-1_8_0-openjdk
+        - jq
+        - libffi-devel
+        - libopenssl-devel
+        - libtool
+        - lsb-release
+        - make
+        - patch
+        - pkg-config
+        - python2-pip
+        - python2-virtualenv
+        - python3-pip
+        - python3-virtualenv
+        - rpm-build
+        - rpmdevtools
+        - tig
+        - wget 
+        # obs requirements
+        - osc
+        - build
+      when: ansible_pkg_mgr  == "zypper"
+
 
     - name: install packages from epel (<=7)
       yum:
@@ -312,6 +385,7 @@
         backup: yes
         dest: /etc/cloud/templates/hosts.debian.tmpl
         line: '127.0.1.1 ceph-builders'
+      when: ansible_os_family  == "Debian"
 
     - name: update etc cloud templates for red hat /etc/hosts
       lineinfile:
@@ -319,11 +393,22 @@
         dest: /etc/cloud/templates/hosts.redhat.tmpl
         line: '127.0.1.1 ceph-builders'
       failed_when: false
+      when: ansible_os_family == "RedHat"
+
+    - name: update etc cloud templates for suse /etc/hosts
+      lineinfile:
+        backup: yes
+        dest: /etc/cloud/templates/hosts.suse.tmpl
+        line: '127.0.1.1 ceph-builders'
+      failed_when: false
+      when: ansible_os_family == "Suse"
+
 
     - name: install six, latest one
       pip:
         name: six
         state: latest
+      when: ansible_os_family != "Suse"
 
     - name: install python-jenkins
       # https://review.openstack.org/460363
@@ -338,6 +423,7 @@
         host: 'github.com'
         # github.com.pub is the output of `ssh-keyscan github.com`
         key: "{{ lookup('file', 'playbook/files/ssh/hostkeys/github.com.pub') }}"
+      tags: github
 
     - name: register the new slave to jenkins master with ssh
       jenkins_node:
@@ -355,6 +441,8 @@
         executors: '{{ executors|default(1) }}'
         exclusive: true
       when: not use_jnlp
+      tags:
+        - register_slave
 
     - name: register the new slave to jenkins master with jnlp
       jenkins_node:
@@ -374,3 +462,5 @@
         executors: '{{ executors|default(1) }}'
         exclusive: true
       when: use_jnlp
+      tags:
+        - register_slave
