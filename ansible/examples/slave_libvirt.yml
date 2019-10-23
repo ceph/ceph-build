@@ -131,6 +131,7 @@
         - openssl-devel
         - redhat-lsb-core
         - iproute
+        - mock
       when: ansible_os_family == "RedHat"
 
     - name: install packages from epel
@@ -166,6 +167,13 @@
         path: "/home/{{ jenkins_user }}/"
         state: directory
         owner: "{{ jenkins_user }}"
+
+    - name: "add {{ jenkins_user }} to mock group"
+      user:
+        name: "{{ jenkins_user }}"
+        groups: mock
+        append: yes
+      when: ansible_os_family == "RedHat"
 
     - name: Create .ssh directory
       file:
