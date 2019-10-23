@@ -156,6 +156,7 @@
         - rpmdevtools
         - openssl-devel
         - libffi-devel
+        - mock
       when: ansible_os_family == "RedHat"
 
     - name: install packages from epel (<=7)
@@ -267,6 +268,13 @@
       when:
         (ansible_distribution == 'Ubuntu' and ansible_distribution_release == 'precise') or
         (ansible_distribution == 'Debian' and ansible_distribution_release == 'wheezy')
+
+    - name: "add {{ jenkins_user }} to mock group"
+      user:
+        name: "{{ jenkins_user }}"
+        groups: mock
+        append: yes
+      when: ansible_os_family == "RedHat"
 
     - name: ensure the rpmmacros file exists to fix centos builds
       file:
