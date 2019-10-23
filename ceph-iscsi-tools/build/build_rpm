@@ -12,6 +12,10 @@ fi
 # Install the dependencies
 sudo yum install -y mock
 
+# Add the Jenkins slave UID to the mock group.
+sudo usermod -a -G mock $(whoami)
+newgrp mock
+
 ## Get some basic information about the system and the repository
 # Get version
 RELEASE="$(lsb_release --short -r | cut -d '.' -f 1)" # system release

@@ -4,6 +4,10 @@ set -ex
 # Install the dependencies
 sudo yum install -y mock
 
+# Add the Jenkins slave UID to the mock group.
+sudo usermod -a -G mock $(whoami)
+newgrp mock
+
 # Loop through the projects and build RPMs
 # Some of this might not need to be repeated 3 times
 REPO_MAJOR_VERSION=0
