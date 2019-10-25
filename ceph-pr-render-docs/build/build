@@ -15,7 +15,6 @@ if [ -z "$ghprbPullId" ]; then
     PR_ID="manual"
 fi
 
-
 ./admin/build-doc
 
 # publish docs to http://docs.ceph.com/ceph-prs/$PR_ID/
@@ -24,6 +23,10 @@ rsync -auv --delete build-doc/output/html/* "/var/ceph-prs/$PR_ID/"
 
 set +e
 set +x
+
+# Cleanup docs rendered 90+ days ago
+find /var/ceph-prs/ -mindepth 1 -maxdepth 1 -mtime +90 -exec rm -rvf {} \;
+
 echo
 echo "Docs available to preview at:"
 echo
