@@ -12,8 +12,8 @@
     node: 'arm64 && !centos8'
     parameters:
     - string:
-        name: sha1
-        description: "commit id or a refname, like 'origin/pr/72/head'"
+        name: ghprbPullId
+        description: "the GitHub pull id, like '72' in 'ceph/pull/72'"
         default: origin/master
     project-type: freestyle
     properties:
@@ -43,7 +43,7 @@
         url: https://github.com/ceph/ceph.git
         name: origin
         branches:
-          - ${sha1}
+          - origin/pr/${ghprbPullId}/merge
         refspec: +refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*
         skip-tag: true
         shallow-clone: true
