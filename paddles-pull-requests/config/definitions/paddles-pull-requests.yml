@@ -1,0 +1,64 @@
+- scm:
+    name: paddles
+    scm:
+      - git:
+          url: https://github.com/ceph/paddles
+          branches:
+            - ${sha1}
+          refspec: +refs/pull/*:refs/remotes/origin/pr/*
+          browser: auto
+          timeout: 20
+          basedir: "paddles"
+          skip-tag: true
+          wipe-workspace: true
+
+
+- job:
+    name: paddles-pull-requests
+    description: Runs tox tests for paddles on each GitHub PR
+    project-type: freestyle
+    node: python3 && centos7
+    block-downstream: false
+    block-upstream: false
+    defaults: global
+    display-name: 'paddles: Pull Requests'
+    quiet-period: 5
+    retry-count: 3
+
+
+    properties:
+      - build-discarder:
+          days-to-keep: 15
+          num-to-keep: 30
+          artifact-days-to-keep: 15
+          artifact-num-to-keep: 15
+      - github:
+          url: https://github.com/ceph/paddles/
+
+    parameters:
+      - string:
+          name: sha1
+          description: "A pull request ID, like 'origin/pr/72/head'"
+
+    triggers:
+      - github-pull-request:
+          admin-list:
+            - alfredodeza
+            - dmick
+            - ktdreyer
+            - andrewschoen
+          org-list:
+            - ceph
+          only-trigger-phrase: false
+          github-hooks: true
+          permit-all: true
+          auto-close-on-fail: false
+
+    scm:
+      - paddles
+
+    builders:
+      - shell:
+          !include-raw:
+            - ../../../scripts/build_utils.sh
+            - ../../build/build

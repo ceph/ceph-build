@@ -1,0 +1,12 @@
+#!/bin/bash
+
+# the following two methods exist in scripts/build_utils.sh
+pkgs=( "tox" )
+install_python_packages "pkgs[@]"
+
+sudo yum install -y epel-release
+sudo yum --enablerepo epel install -y python36
+
+cd "$WORKSPACE/paddles"
+
+$VENV/tox -rv
