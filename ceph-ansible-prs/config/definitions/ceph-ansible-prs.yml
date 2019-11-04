@@ -62,6 +62,12 @@
       - container
       - non_container
     scenario:
+      - add_mdss
+      - add_mgrs
+      - add_mons
+      - add_osds
+      - add_rbdmirrors
+      - add_rgws
       - rgw_multisite
       - shrink_mon
       - shrink_mgr
