@@ -4,7 +4,7 @@
 #
 # install python2.7 on xenial nodes
 - hosts: all
-  sudo: yes
+  become: yes
 # this will most likely need changed
   user: admin
   gather_facts: false
@@ -15,7 +15,7 @@
       failed_when: false
 
 - hosts: all
-  sudo: true
+  become: true
 # this will most likely need changed
   user: admin
   vars:
@@ -49,7 +49,7 @@
       authorized_key: user={{ jenkins_user }} key="{{ lookup('file', 'files/ssh/keys/jenkins_build.pub') }}"
 
     - name: ensure {{ jenkins_user }} can sudo without a prompt
-      sudo: yes
+      become: yes
       lineinfile:
         dest: /etc/sudoers
         regexp: '^{{ jenkins_user }} ALL'
@@ -84,7 +84,7 @@
 
     # smithi nodes do not have epel repos
     - name: install an yum epel repo
-      sudo: yes
+      become: yes
       template:
         src: "templates/yum-repos/epel.repo"
         dest: "/etc/yum.repos.d/epel.repo"
@@ -94,7 +94,7 @@
       when: ansible_pkg_mgr  == "yum"
 
     - name: Install RPM requirements (All distro versions)
-      sudo: yes
+      become: yes
       package:
         name: "{{ item }}"
         state: present
@@ -130,7 +130,7 @@
         - ansible_os_family == "RedHat"
 
     - name: Install RPM requirements (<=7)
-      sudo: yes
+      become: yes
       package:
         name: "{{ item }}"
         state: present
@@ -143,7 +143,7 @@
         - ansible_distribution_major_version|int <= 7
 
     - name: Install RPM requirements (>=8)
-      sudo: yes
+      become: yes
       package:
         name: "{{ item }}"
         state: present
@@ -168,7 +168,7 @@
       when: ansible_pkg_mgr  == "apt"
 
     - name: Install DEB requirements
-      sudo: yes
+      become: yes
       apt: name={{ item }} state=present
       with_items:
         - git
@@ -201,17 +201,17 @@
       when: ansible_pkg_mgr  == "apt"
 
     - name: Add the Debian Jessie Key
-      sudo: yes
+      become: yes
       when: ansible_pkg_mgr  == "apt"
       apt_key: id=2B90D010 url=https://ftp-master.debian.org/keys/archive-key-8.asc keyring=/etc/apt/trusted.gpg state=present
 
     - name: Add the Debian Security Jessie Key
-      sudo: yes
+      become: yes
       when: ansible_pkg_mgr  == "apt"
       apt_key: id=C857C906 url=https://ftp-master.debian.org/keys/archive-key-8-security.asc keyring=/etc/apt/trusted.gpg state=present
 
     - name: Add the Debian Jessie Stable Key
-      sudo: yes
+      become: yes
       when: ansible_pkg_mgr  == "apt"
       apt_key: id=518E17E1 url=http://download.ceph.com/keys/jessie-stable-release.asc keyring=/etc/apt/trusted.gpg state=present
 
@@ -260,12 +260,12 @@
         owner: "{{ jenkins_user }}"
 
     - name: Set Hostname with hostname command
-      sudo: yes
+      become: yes
       hostname:
         name: "{{ ansible_hostname }}"
 
     - name: ensure that the current host is in /etc/hosts. Yes this is a thing.
-      sudo: true
+      become: true
       replace:
         backup: yes
         dest: /etc/hosts
@@ -273,23 +273,23 @@
         replace: '\1 {{ ansible_hostname }}'
 
     - name: ensure that 127.0.1.1 is present with an actual hostname
-      sudo: true
+      become: true
       lineinfile:
         dest: /etc/hosts
         regexp: '^(127\.0\.1\.1(?!.*\b{{ ansible_hostname }}\b).*)$'
         line: '127.0.1.1 {{ ansible_hostname }}'
 
     - name: install six, latest one
-      sudo: true
+      become: true
       pip: name=six state=latest
 
     - name: install python-jenkins
-      sudo: true
+      become: true
       # https://review.openstack.org/460363
       pip: name=python-jenkins version=0.4.15
 
     - name: add github.com host key
-      sudo: true
+      become: true
       known_hosts:
         path: '/etc/ssh/ssh_known_hosts'
         # we need to use 'host' here because prado currently uses ansible-playbook==1.9.1
@@ -344,7 +344,7 @@
       template:
         src: "templates/systemd/jenkins.service.j2"
         dest: "/etc/systemd/system/jenkins.service"
-      sudo: true
+      become: true
       when: use_jnlp
 
     - name: start jenkins service
@@ -352,5 +352,5 @@
         name: jenkins
         state: started
         enabled: yes
-      sudo: yes
+      become: yes
       when: use_jnlp

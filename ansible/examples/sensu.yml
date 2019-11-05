@@ -4,7 +4,7 @@
 #     ansible-galaxy install -r requirements/sensu-requirements.yml
 #
 - hosts: sensu-server
-  sudo: true
+  become: true
   vars_files:
     - vars/sensu-vars.yml
   roles:
@@ -38,7 +38,7 @@
           vhost: "%2Fsensu"
 
 - hosts: sensu-clients
-  sudo: true
+  become: true
   vars_files:
     - vars/sensu-vars.yml
   roles:

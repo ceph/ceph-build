@@ -2,21 +2,21 @@
 
 
 - name: ensure /etc/sysconfig/ dir exists
-  sudo: true
+  become: true
   file:
     path: /etc/sysconfig
     state: directory
 
 # prevents issues when updating systemd files
 - name: reload systemd
-  sudo: yes
+  become: yes
   command: systemctl daemon-reload
 
 - name: install the systemd configuration file for celery
   template:
     src: helga.sysconfig.j2
     dest: /etc/sysconfig/helga
-  sudo: true
+  become: true
   notify:
      - reload systemd
 
@@ -24,12 +24,12 @@
   template:
     src: helga.service.j2
     dest: /etc/systemd/system/helga.service
-  sudo: true
+  become: true
   notify:
      - reload systemd
 
 - name: ensure helga is enabled and running
-  sudo: true
+  become: true
   service:
     name: helga
     state: running 

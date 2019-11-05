@@ -1,10 +1,10 @@
 ---
 - name: create nginx site config
   action: template src=../templates/nginx_site.conf dest=/etc/nginx/sites-available/{{ app_name }}.conf
-  sudo: true
+  become: true
   notify:
     - restart nginx
 
 - name: link nginx config
   action: file src=/etc/nginx/sites-available/{{ app_name }}.conf dest=/etc/nginx/sites-enabled/{{ app_name }}.conf state=link
-  sudo: true
+  become: true

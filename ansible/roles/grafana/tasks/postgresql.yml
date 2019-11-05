@@ -4,10 +4,10 @@
     name: postgresql
     state: started
     enabled: yes
-  sudo: yes
+  become: yes
 
 - name: allow users to connect locally
-  sudo: yes
+  become: yes
   lineinfile:
      # TODO: should not hardcode that version
      dest: /etc/postgresql/9.5/main/pg_hba.conf
@@ -19,7 +19,7 @@
 - service:
     name: postgresql
     state: restarted
-  sudo: true
+  become: true
   when: pg_hba_conf.changed
 
 - name: make {{ app_name }} user
@@ -37,12 +37,12 @@
     owner: "{{ app_name }}"
     state: present
     login_user: postgres
-  sudo_user: postgres
-  sudo: yes
+  become_user: postgres
+  become: yes
 
 - name: ensure database service is up
   service:
     name: postgresql
     state: started
     enabled: yes
-  sudo: yes
+  become: yes
