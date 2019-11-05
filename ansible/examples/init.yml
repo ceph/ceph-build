@@ -7,7 +7,7 @@
 
 # install python2.7 on xenial nodes
 - hosts: all
-  sudo: yes
+  become: yes
   user: admin 
   gather_facts: false
   tasks:
@@ -18,7 +18,7 @@
 
 - hosts: all
   user: admin
-  sudo: true
+  become: true
   tasks:
 
     - name: uncomment SSH port

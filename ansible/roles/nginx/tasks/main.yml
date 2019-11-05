@@ -3,34 +3,34 @@
   file:
     path: /etc/nginx/sites-available
     state: directory
-  sudo: true
+  become: true
 
 - name: ensure there is an nginx user
   user:
     name: nginx
     comment: "Nginx user"
-  sudo: true
+  become: true
 
 - name: ensure sites-enable for nginx
   file:
     path: /etc/nginx/sites-enabled
     state: directory
-  sudo: true
+  become: true
 
 - name: remove default nginx site
   file:
     path: /etc/nginx/sites-enabled/default
     state: absent
-  sudo: true
+  become: true
 
 - name: write nginx.conf
   template:
     src: nginx.conf
     dest: /etc/nginx/nginx.conf
-  sudo: true
+  become: true
 
 - name: enable nginx
-  sudo: true
+  become: true
   service:
     name: nginx
     enabled: true
@@ -39,7 +39,7 @@
   template:
     src: "nginx_site.conf"
     dest: "/etc/nginx/sites-available/{{ item.app_name }}.conf"
-  sudo: true
+  become: true
   with_items: nginx_hosts
   notify:
     - restart nginx
@@ -55,11 +55,11 @@
     src: "/etc/nginx/sites-available/{{ item.app_name }}.conf"
     dest: "/etc/nginx/sites-enabled/{{ item.app_name }}.conf"
     state: link
-  sudo: true
+  become: true
   with_items: nginx_hosts
 
 - name: ensure nginx is restarted
-  sudo: true
+  become: true
   service:
     name: nginx
     state: restarted

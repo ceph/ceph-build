@@ -6,7 +6,7 @@
     regexp: "^CARBON_CACHE_ENABLED=false"
     line: "CARBON_CACHE_ENABLED=true"
     state: present
-  sudo: true
+  become: true
 
 - name: enable whitelisting in carbon
   lineinfile:
@@ -15,7 +15,7 @@
     line: "USE_WHITELIST = True"
     state: present
     backrefs: true
-  sudo: true
+  become: true
 
 - name: create the rewrite config with the secret api key
   template:
@@ -23,7 +23,7 @@
     dest: "/etc/carbon/rewrite-rules.conf"
   notify:
     - restart carbon
-  sudo: true
+  become: true
 
 - name: create the whitelist/blacklist config allowing the api key only
   template:
@@ -31,7 +31,7 @@
     dest: "/etc/carbon/whitelist.conf"
   notify:
     - restart carbon
-  sudo: true
+  become: true
 
 - name: define the storage schemas
   template:
@@ -39,11 +39,11 @@
     dest: "/etc/carbon/storage-schemas.conf"
   notify:
     - restart carbon
-  sudo: true
+  become: true
 
 - name: ensure database service is up
   service:
     name: carbon-cache
     state: restarted
     enabled: yes
-  sudo: yes
+  become: yes

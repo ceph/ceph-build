@@ -1,7 +1,7 @@
 ---
 
 - name: "Build hosts file"
-  sudo: yes
+  become: yes
   lineinfile:
     dest: /etc/hosts
     regexp: ".*{{ fqdn }}$"
@@ -9,16 +9,16 @@
     state: present
 
 - name: Set Hostname with hostname command
-  sudo: yes
+  become: yes
   hostname: name="{{ fqdn }}"
 
 - name: update apt cache
   apt:
     update_cache: yes
-  sudo: yes
+  become: yes
 
 - name: install ssl system requirements
-  sudo: yes
+  become: yes
   apt:
     name: "{{ item }}"
     state: present
@@ -27,7 +27,7 @@
     - packages
 
 - name: install system packages
-  sudo: yes
+  become: yes
   apt:
     name: "{{ item }}"
     state: present
@@ -38,7 +38,7 @@
 - command: cp /usr/share/graphite-web/graphite.wsgi /usr/lib/python2.7/dist-packages/graphite/graphite_web.py
   args:
     creates: "/usr/lib/python2.7/dist-packages/graphite/graphite_web.py"
-  sudo: true
+  become: true
 
 - include: carbon.yml
 
@@ -51,7 +51,7 @@
     - postgresql
 
 - name: ensure graphite is running
-  sudo: true
+  become: true
   service:
     name: graphite
     state: restarted

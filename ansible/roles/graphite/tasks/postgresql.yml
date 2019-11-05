@@ -4,10 +4,10 @@
     name: postgresql
     state: started
     enabled: yes
-  sudo: yes
+  become: yes
 
 - name: allow users to connect locally
-  sudo: yes
+  become: yes
   lineinfile:
      # TODO: should not hardcode that version
      dest: /etc/postgresql/9.5/main/pg_hba.conf
@@ -19,7 +19,7 @@
 - service:
     name: postgresql
     state: restarted
-  sudo: true
+  become: true
   when: pg_hba_conf.changed
 
 - name: generate pseudo-random password for the database connection
@@ -42,15 +42,15 @@
     owner: "{{ app_name }}"
     state: present
     login_user: postgres
-  sudo_user: postgres
-  sudo: yes
+  become_user: postgres
+  become: yes
 
 - name: ensure database service is up
   service:
     name: postgresql
     state: started
     enabled: yes
-  sudo: yes
+  become: yes
 
 - name: create the config file with the db password
   template:
@@ -58,14 +58,14 @@
     dest: "/etc/graphite/local_settings.py"
   notify:
     - restart app
-  sudo: true
+  become: true
 
   # there is a bug where if you don't migrate auth first only it will fail
   # with "ProgrammingError: relation "auth_user" does not exist"
 - name: run migrate for auth first
   command: graphite-manage migrate --noinput auth
-  sudo: true
+  become: true
 
 - name: run migrate to ensure database schema
   command: graphite-manage migrate --noinput
-  sudo: true
+  become: true

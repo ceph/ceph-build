@@ -2,10 +2,10 @@
 - name: update apt cache
   apt:
     update_cache: yes
-  sudo: yes
+  become: yes
 
 - name: install ssl system requirements
-  sudo: yes
+  become: yes
   apt:
     name: "{{ item }}"
     state: present
@@ -14,7 +14,7 @@
     - packages
 
 - name: install system packages
-  sudo: yes
+  become: yes
   apt:
     name: "{{ item }}"
     state: present
@@ -38,7 +38,7 @@
     dest: "/etc/grafana/grafana.ini"
   notify:
     - restart app
-  sudo: true
+  become: true
 
 - include: postgresql.yml
   tags:
@@ -47,14 +47,14 @@
 - include: nginx.yml
 
 - name: ensure nginx is running
-  sudo: true
+  become: true
   service:
     name: nginx
     state: started
     enabled: yes
 
 - name: ensure grafana is restarted
-  sudo: true
+  become: true
   service:
     name: grafana-server
     state: restarted
