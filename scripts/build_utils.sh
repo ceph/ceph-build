@@ -482,6 +482,12 @@ setup_pbuilder() {
     echo "$components" > ~/.pbuilderrc
     echo "$debootstrapopts" >> ~/.pbuilderrc
 
+    # gcc 7.4.0 will come from bionic-updates, those need to be added as well
+    if [ $DIST = "bionic" ]; then
+        other_mirror='OTHERMIRROR="deb $mirror $DIST-updates $components"'
+        echo "$other_mirror" >> ~/.pbuilderrc
+    fi
+
     if [ -n "$use_gcc" ]; then
         # Newer pbuilder versions set $HOME to /nonexistent which breaks all kinds of
         # things that rely on a proper (writable) path. Setting this to the system user's $HOME is not enough
