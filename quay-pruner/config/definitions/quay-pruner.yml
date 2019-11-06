@@ -1,0 +1,48 @@
+- scm:
+    name: ceph-build
+    scm:
+      - git:
+          url: https://github.com/ceph/ceph-build.git
+          branches:
+            - origin/master
+          browser-url: https://github.com/ceph/ceph-build
+          timeout: 20
+          basedir: "ceph-build"
+
+
+- job:
+    name: quay-pruner
+    node: small
+    project-type: freestyle
+    defaults: global
+    display-name: 'Quay: prune container images'
+    concurrent: true
+    quiet-period: 5
+    block-downstream: false
+    block-upstream: false
+    retry-count: 3
+    properties:
+      - build-discarder:
+          days-to-keep: 15
+          artifact-days-to-keep: 15
+
+    triggers:
+      - timed: '@daily'
+
+    scm:
+      - ceph-build
+
+
+    builders:
+      - shell:
+          !include-raw:
+            - ../../build/build
+
+    wrappers:
+      - inject-passwords:
+          global: true
+          mask-password-params: true
+      - credentials-binding:
+          - text:
+              credential-id: quay-api-token
+              variable: QUAYTOKEN
