@@ -484,7 +484,7 @@ setup_pbuilder() {
 
     # gcc 7.4.0 will come from bionic-updates, those need to be added as well
     if [ $DIST = "bionic" ]; then
-        other_mirror='OTHERMIRROR="deb $mirror $DIST-updates $components"'
+        other_mirror="OTHERMIRROR=\"deb $mirror $DIST-updates main universe\""
         echo "$other_mirror" >> ~/.pbuilderrc
     fi
 
