@@ -1,5 +1,5 @@
 - job:
-    name: ceph-volume-pr
+    name: ceph-volume-pull-requests
     display-name: 'ceph-volume: Pull Request tox tests'
     node: python3
     project-type: freestyle
