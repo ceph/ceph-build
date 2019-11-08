@@ -77,8 +77,8 @@ If this is checked, then the binaries will be built and pushed to chacra even if
 
       - string:
           name: CONTAINER_REPO_ORGANIZATION
-          description: "For CI_CONTAINER: Name of container repo organization (i.e. 'cephci')"
-          default: "cephci"
+          description: "For CI_CONTAINER: Name of container repo organization (i.e. 'ceph-ci')"
+          default: "ceph-ci"
 
     builders:
       - multijob:
