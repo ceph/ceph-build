@@ -189,8 +189,8 @@ if [ "$PAUSEQUEUE" == "true" ]; then
   # Capturing a new OS image can interrupt active OS deployments.
   if [ $deploytasks -gt 0 ]; then
     for type in $MACHINETYPES; do
-      # Only pause the queue for 20 minutes just in case anything goes wrong with the Jenkins job.
-      teuthology-queue --pause 1200 --machine_type $type
+      # Only pause the queue for 1hr just in case anything goes wrong with the Jenkins job.
+      teuthology-queue --pause 3600 --machine_type $type
     done
     pausedqueue=true
     currentretries=0
@@ -199,8 +199,8 @@ if [ "$PAUSEQUEUE" == "true" ]; then
       sleep 10
       deploytasks=$(curl -f -s -k -H "fog-api-token: ${FOG_API_TOKEN}" -H "fog-user-token: ${FOG_USER_TOKEN}" http://fog.front.sepia.ceph.com/fog/task/active -d '{"typeID": "'${fogdeployid}'"}' -X GET | jq -r '.count')
       ((++currentretries))
-      # Retry for 30min
-      funRetry $currentretries 180
+      # Retry for 1hr
+      funRetry $currentretries 360
     done
   fi
 else
