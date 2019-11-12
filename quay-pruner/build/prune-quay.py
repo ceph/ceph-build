@@ -7,7 +7,7 @@ import requests
 import sys
 
 QUAYBASE = "https://quay.io/api/v1"
-REPO = "cephci/daemon-base"
+REPO = "ceph-ci/ceph"
 
 
 def get_all_quay_tags(quaytoken):
