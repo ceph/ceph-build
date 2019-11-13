@@ -161,10 +161,13 @@
             #!/bin/bash
             # Returns 1 if only .rst and README files were modified
             echo "Checking if only rst and READMEs were modified"
-            git diff --name-only $(git show HEAD | grep Merge | head -n 1 | cut -d ':' -f2) | grep -v '\.rst\|README'
-            if [ $? -eq 1 ]; then
-              echo "Only docs were modified.  Skipping the rest of the job."
-              exit 1
+            git show HEAD | grep -qo ^Merge:
+            if [ $? -eq 0 ]; then
+              git diff --name-only $(git show HEAD | grep ^Merge: | cut -d ':' -f2) | grep -v '\.rst\|README'
+              if [ $? -eq 1 ]; then
+                echo "Only docs were modified.  Skipping the rest of the job."
+                exit 1
+              fi
             fi
           on-evaluation-failure: dont-run
           steps:
@@ -256,10 +259,13 @@
             #!/bin/bash
             # Returns 1 if only .rst and README files were modified
             echo "Checking if only rst and READMEs were modified"
-            git diff --name-only $(git show HEAD | grep Merge | head -n 1 | cut -d ':' -f2) | grep -v '\.rst\|README'
-            if [ $? -eq 1 ]; then
-              echo "Only docs were modified.  Skipping the rest of the job."
-              exit 1
+            git show HEAD | grep -qo ^Merge:
+            if [ $? -eq 0 ]; then
+              git diff --name-only $(git show HEAD | grep ^Merge: | cut -d ':' -f2) | grep -v '\.rst\|README'
+              if [ $? -eq 1 ]; then
+                echo "Only docs were modified.  Skipping the rest of the job."
+                exit 1
+              fi
             fi
           on-evaluation-failure: dont-run
           steps:
@@ -351,10 +357,13 @@
             #!/bin/bash
             # Returns 1 if only .rst and README files were modified
             echo "Checking if only rst and READMEs were modified"
-            git diff --name-only $(git show HEAD | grep Merge | head -n 1 | cut -d ':' -f2) | grep -v '\.rst\|README'
-            if [ $? -eq 1 ]; then
-              echo "Only docs were modified.  Skipping the rest of the job."
-              exit 1
+            git show HEAD | grep -qo ^Merge:
+            if [ $? -eq 0 ]; then
+              git diff --name-only $(git show HEAD | grep ^Merge: | cut -d ':' -f2) | grep -v '\.rst\|README'
+              if [ $? -eq 1 ]; then
+                echo "Only docs were modified.  Skipping the rest of the job."
+                exit 1
+              fi
             fi
           on-evaluation-failure: dont-run
           steps:
