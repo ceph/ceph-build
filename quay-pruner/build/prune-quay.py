@@ -44,13 +44,21 @@ def get_all_quay_tags(quaytoken):
 NAME_RE = re.compile(r'(.*)-([0-9a-f]{7})-centos-7-x86_64-devel')
 
 
-def present_in_shaman(tag, verbose):
-    mo = NAME_RE.match(tag['name'])
+def parse_quay_tag(tag):
+
+    mo = NAME_RE.match(tag)
     if mo is None:
-        print('Can''t parse name', tag['name'], file=sys.stderr)
-        return False
+        return None, None
     ref = mo.group(1)
     short_sha1 = mo.group(2)
+    return ref, short_sha1
+
+
+def present_in_shaman(tag, verbose):
+    ref, short_sha1 = parse_quay_tag(tag['name'])
+    if ref is None:
+        print("Can't parse name", tag['name'], file=sys.stderr)
+        return False
     try:
         response = requests.get(
             'https://shaman.ceph.com/api/search/',
@@ -90,23 +98,23 @@ def present_in_shaman(tag, verbose):
     return False
 
 
-def delete_from_quay(tag, quaytoken, dryrun):
+def delete_from_quay(tagname, quaytoken, dryrun):
     if dryrun:
-        print('Would delete from quay: ', tag['name'])
+        print('Would delete from quay: ', tagname)
         return
 
     try:
         response = requests.delete(
-            '/'.join((QUAYBASE, 'repository', REPO, 'tag', tag['name'])),
+            '/'.join((QUAYBASE, 'repository', REPO, 'tag', tagname)),
             headers={'Authorization': 'Bearer %s' % quaytoken},
             timeout=30,
         )
         response.raise_for_status()
-        print('Deleted', tag['name'])
+        print('Deleted', tagname)
     except requests.exceptions.RequestException as e:
         print(
             'Problem on delete of tag %s:',
-            tag['name'],
+            tagname,
             e,
             response.reason,
             file=sys.stderr
@@ -134,14 +142,45 @@ def main():
             ).read().strip().decode()
 
     quaytags = get_all_quay_tags(quaytoken)
+
+    # find all full tags to delete, put them and ref tag on list
+    tags_to_delete = list()
+    short_sha1s_to_delete = list()
     for tag in quaytags:
         if 'expiration' in tag or 'end_ts' in tag:
             if args.verbose:
                 print('Skipping already-deleted tag', tag['name'])
             continue
+
+        ref, short_sha1 = parse_quay_tag(tag['name'])
+        if ref is None:
+            continue
+
         if present_in_shaman(tag, args.verbose):
             continue
-        delete_from_quay(tag, quaytoken, args.dryrun)
+
+        # accumulate full and ref tags to delete; keep list of short_sha1s
+        tags_to_delete.append(tag['name'])
+        if ref:
+            tags_to_delete.append(ref)
+        if short_sha1:
+            short_sha1s_to_delete.append(short_sha1)
+
+    # now find all the full-sha1 tags to delete by making a second
+    # pass and seeing if the tagname starts with a short_sha1 we
+    # know we want deleted
+    for tag in quaytags:
+        if 'expiration' in tag or 'end_ts' in tag:
+            continue
+        if tag['name'][0:7] in short_sha1s_to_delete:
+            tags_to_delete.append(tag['name'])
+
+    if args.verbose:
+        print('Deleting tags:', tags_to_delete)
+
+    # and now delete all the ones we found
+    for tagname in tags_to_delete:
+        delete_from_quay(tagname, quaytoken, args.dryrun)
 
 
 if __name__ == "__main__":
