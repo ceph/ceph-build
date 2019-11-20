@@ -75,6 +75,7 @@
       - shrink_rgw
       - shrink_mds
       - shrink_rbdmirror
+      - lvm_auto_discovery
     jobs:
         - 'ceph-ansible-prs-common-trigger'
 
