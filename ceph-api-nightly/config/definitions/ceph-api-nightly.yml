@@ -1,0 +1,65 @@
+- project:
+    name: ceph-api-nightly
+    ceph_branch:
+      - master
+      - nautilus:
+          ceph_build: "export CHECK_MAKEOPTS='-N -Q'; timeout 2h ./run-make-check.sh"
+    test_suite:
+      - backend:
+          test_suite_script: run-backend-api-tests.sh
+      - e2e:
+          test_suite_script: run-frontend-e2e-tests.sh
+    jobs:
+      - '{name}-{ceph_branch}-{test_suite}'
+
+- job-template:
+    name: '{name}-{ceph_branch}-{test_suite}'
+    display-name: '{name}-{ceph_branch}-{test_suite}'
+    project-type: freestyle
+    defaults: global
+    concurrent: true
+    node: huge && x86_64 && centos7 && rebootable
+    quiet-period: 5
+    block-downstream: false
+    block-upstream: false
+    retry-count: 3
+    properties:
+      - build-discarder:
+          days-to-keep: 15
+          num-to-keep: 300
+          artifact-days-to-keep: -1
+          artifact-num-to-keep: -1
+      - github:
+          url: https://github.com/ceph/ceph/
+      - rebuild:
+          auto-rebuild: true
+    ceph_build: "export FOR_MAKE_CHECK=1; timeout 2h ./src/script/run-make.sh --cmake-args '-DWITH_TESTS=OFF -DENABLE_GIT_VERSION=OFF'"
+
+    triggers:
+      - timed: '@midnight'
+
+    scm:
+      - git:
+          url: https://github.com/ceph/ceph.git
+          branches:
+            - '{ceph_branch}'
+          browser: auto
+          timeout: 20
+          skip-tag: true
+          shallow-clone: true
+          wipe-workspace: true
+
+    builders:
+      - shell: "export NPROC=$(nproc); {ceph_build}"
+      - conditional-step:
+          condition-kind: strings-match
+          condition-string1: '{test_suite}'
+          condition-string2: 'e2e'
+          steps:
+            - shell:
+                !include-raw: ../../../scripts/e2e/install-e2e-tests-deps.sh
+      - shell: "cd src/pybind/mgr/dashboard; timeout 2h ./{test_suite_script}"
+
+    publishers:
+      - email:
+          recipients: ceph-qa@ceph.io

@@ -61,5 +61,5 @@
       - shell: "export NPROC=$(nproc) CHECK_MAKEOPTS='-j$(nproc) -N -Q'; timeout 7200 ./run-make-check.sh"
       - shell:
           !include-raw:
-            - ../../setup/setup
+            - ../../../scripts/e2e/install-e2e-tests-deps.sh
       - shell: "cd src/pybind/mgr/dashboard; timeout 7200 ./run-frontend-e2e-tests.sh"
