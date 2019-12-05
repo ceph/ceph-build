@@ -72,6 +72,7 @@
       - shrink_mon
       - shrink_mgr
       - shrink_osd
+      - shrink_osd_legacy
       - shrink_rgw
       - shrink_mds
       - shrink_rbdmirror
