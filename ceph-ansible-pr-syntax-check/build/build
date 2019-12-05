@@ -9,7 +9,11 @@ set -e
 virtualenv $TEMPVENV
 "$VENV"/pip install --upgrade pip
 "$VENV"/pip install -r "$WORKSPACE"/ceph-ansible/requirements.txt
-"$VENV"/pip install ansible-lint
+if [[ "$ghprbTargetBranch" == "stable-3.2" ]]; then
+  "$VENV"/pip install 'ansible-lint<4.2'
+else
+  "$VENV"/pip install ansible-lint
+fi
 
 
 #############
