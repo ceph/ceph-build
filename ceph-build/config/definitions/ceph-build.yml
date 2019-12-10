@@ -33,6 +33,7 @@
             - xenial
             - bionic
             - centos7
+            - centos8
             - jessie
             - stretch
             - precise
