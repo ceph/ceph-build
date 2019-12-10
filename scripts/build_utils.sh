@@ -849,6 +849,9 @@ case $SCENARIO in
   podman)
     TOX_INI_FILE=tox-podman.ini
     ;;
+  filestore_to_bluestore)
+    TOX_INI_FILE=tox-filestore_to_bluestore.ini
+    ;;
   *)
     TOX_INI_FILE=tox.ini
     ;;
