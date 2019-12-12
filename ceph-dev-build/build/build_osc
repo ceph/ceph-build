@@ -2,7 +2,10 @@
 set -ex
 
 case $RELEASE_BRANCH in
-nautilus|octopus)
+octopus)
+    OBSREPO="openSUSE_Leap_15.2"
+    ;;
+nautilus)
     OBSREPO="openSUSE_Leap_15.1"
     ;;
 mimic)
