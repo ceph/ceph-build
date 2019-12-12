@@ -2,7 +2,7 @@
 
 - hosts: localhost
   user: jenkins-build
-  sudo: True
+  become: True
 
   tasks:
      - include: tasks/postgresql.yml

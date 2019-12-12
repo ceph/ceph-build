@@ -2,7 +2,7 @@
 - name: update apt cache
   apt:
     update_cache: yes
-  sudo: yes
+  become: yes
 
 - name: set postgresql version on trusty
   set_fact:
@@ -15,7 +15,7 @@
   when: ansible_distribution_release == "xenial"
 
 - name: install postgresql requirements
-  sudo: yes
+  become: yes
   apt:
     name: "{{ item }}"
     state: present
@@ -33,10 +33,10 @@
     name: postgresql
     state: started
     enabled: yes
-  sudo: yes
+  become: yes
 
 - name: allow users to connect locally
-  sudo: yes
+  become: yes
   lineinfile:
      dest: "/etc/postgresql/{{ postgresql_version }}/main/pg_hba.conf"
      # allow all ipv4 local connections without a password
@@ -55,4 +55,4 @@
 - service:
     name: postgresql
     state: restarted
-  sudo: true
+  become: true
