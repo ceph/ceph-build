@@ -163,7 +163,7 @@
       command: "dnf -y copr enable ktdreyer/ceph-el8"
       when:
         - ansible_os_family == "RedHat"
-        - ansible_distribution_major_version|int >= 8
+        - ansible_distribution_major_version|int == 8
 
     # This repo contains packages that were built from Fedora SRPMs.  Same thing here -- not in EPEL yet.
     - name: Enable EL8 lab-extras
@@ -174,7 +174,7 @@
         gpgcheck: no
       when:
         - ansible_os_family == "RedHat"
-        - ansible_distribution_major_version|int >= 8
+        - ansible_distribution_major_version|int == 8
 
     - name: Install RPM requirements
       package:
