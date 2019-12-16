@@ -58,7 +58,7 @@
                   predefined-parameters: |
                     BRANCH=${GIT_BRANCH}
                     FORCE=True
-                    DISTROS=centos7
+                    DISTROS=centos7 centos8
                     FLAVOR=notcmalloc
       - conditional-step:
           condition-kind: regex-match
