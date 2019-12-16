@@ -158,6 +158,24 @@
         line: 'enabled=0'
       when: ansible_os_family == "RedHat"
 
+    # This repo has EL8 packages that Ceph depends on.  These packages are not available in AppStream, BaseOS, or EPEL8 yet so we build and manage them.
+    - name: Enable EL8 copr repo
+      command: "dnf -y copr enable ktdreyer/ceph-el8"
+      when:
+        - ansible_os_family == "RedHat"
+        - ansible_distribution_major_version|int >= 8
+
+    # This repo contains packages that were built from Fedora SRPMs.  Same thing here -- not in EPEL yet.
+    - name: Enable EL8 lab-extras
+      yum_repository:
+        name: lab-extras
+        description: Ceph Lab extra packages
+        baseurl: http://apt-mirror.front.sepia.ceph.com/lab-extras/8/
+        gpgcheck: no
+      when:
+        - ansible_os_family == "RedHat"
+        - ansible_distribution_major_version|int >= 8
+
     - name: Install RPM requirements
       package:
         name: "{{ item }}"
