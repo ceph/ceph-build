@@ -85,7 +85,9 @@ for release in "${releases[@]}"
         for directory in `ls $path`
         do
           cd $directory
-          createrepo .
+	  # use the --no-database to workaround the large dbg packages issues
+	  # https://tracker.ceph.com/issues/39387
+          createrepo --no-database .
           cd -
         done
       fi
