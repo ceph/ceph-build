@@ -3,7 +3,7 @@
     project-type: freestyle
     defaults: global
     concurrent: true
-    node: huge && x86_64 && centos7 && rebootable
+    node: huge && bionic && rebootable && x86_64 && !xenial && !trusty
     display-name: 'ceph: dashboard Pull Requests backend'
     quiet-period: 5
     block-downstream: false
@@ -61,4 +61,5 @@
           !include-raw:
             - ../../../scripts/build_utils.sh
             - ../../build/build
+            - ../../../scripts/dashboard/install-backend-api-test-deps.sh
       - shell: "cd src/pybind/mgr/dashboard; timeout 7200 ./run-backend-api-tests.sh"

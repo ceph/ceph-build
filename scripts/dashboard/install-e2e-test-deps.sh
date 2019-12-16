@@ -11,7 +11,8 @@ if grep -q  debian /etc/*-release; then
     curl -fsSL https://dl.google.com/linux/linux_signing_key.pub | sudo apt-key add -
     sudo apt-get update
     sudo apt-get install -y google-chrome-stable
-    sudo apt-get install -y python-requests python-openssl python-jinja2 python-jwt python-scipy
+    sudo apt-get install -y python-requests python3-requests python-openssl python3-openssl python-jinja2 python3-jinja2 \
+	python-jwt python3-jwt python-scipy python3-scipy python-routes python3-routes
     sudo rm /etc/apt/sources.list.d/google-chrome.list
 elif grep -q rhel /etc/*-release; then
     sudo dd of=/etc/yum.repos.d/google-chrome.repo status=none <<EOF
@@ -24,5 +25,5 @@ gpgkey=https://dl-ssl.google.com/linux/linux_signing_key.pub
 EOF
     sudo yum install -y google-chrome-stable
     sudo rm /etc/yum.repos.d/google-chrome.repo
-    sudo yum install -y python-requests pyOpenSSL python-jinja2 python-jwt scipy
+    sudo yum install -y python-requests pyOpenSSL python-jinja2 python-jwt scipy python-routes python3-routes
 fi

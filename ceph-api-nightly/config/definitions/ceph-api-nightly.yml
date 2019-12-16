@@ -7,8 +7,10 @@
     test_suite:
       - backend:
           test_suite_script: run-backend-api-tests.sh
+          test_deps_script: install-backend-api-test-deps.sh
       - e2e:
           test_suite_script: run-frontend-e2e-tests.sh
+          test_deps_script: install-e2e-test-deps.sh
     jobs:
       - '{name}-{ceph_branch}-{test_suite}'
 
@@ -18,7 +20,7 @@
     project-type: freestyle
     defaults: global
     concurrent: true
-    node: huge && x86_64 && centos7 && rebootable
+    node: huge && bionic && rebootable && x86_64 && !xenial && !trusty
     quiet-period: 5
     block-downstream: false
     block-upstream: false
@@ -51,13 +53,9 @@
 
     builders:
       - shell: "export NPROC=$(nproc); {ceph_build}"
-      - conditional-step:
-          condition-kind: strings-match
-          condition-string1: '{test_suite}'
-          condition-string2: 'e2e'
-          steps:
-            - shell:
-                !include-raw: ../../../scripts/e2e/install-e2e-tests-deps.sh
+      - shell:
+          !include-raw:
+            -  ../../../scripts/dashboard/{test_deps_script}
       - shell: "cd src/pybind/mgr/dashboard; timeout 2h ./{test_suite_script}"
 
     publishers:
