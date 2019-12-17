@@ -15,7 +15,7 @@
       - string:
           name: DISTROS
           description: "A list of distros to build for. Available options are: centos7"
-          default: "centos7"
+          default: "centos7 centos8"
 
       - string:
           name: ARCHS
@@ -35,7 +35,9 @@ If this is checked, then the binaries will be built and pushed to chacra even if
           default: "/tmp/"
 
     execution-strategy:
-       combination-filter: DIST==AVAILABLE_DIST && ARCH==AVAILABLE_ARCH && (ARCH=="x86_64" || (ARCH == "arm64" && (DIST == "xenial" || DIST == "centos7")))
+       combination-filter: |
+         DIST == AVAILABLE_DIST && ARCH == AVAILABLE_ARCH &&
+         (ARCH == "x86_64" || (ARCH == "arm64" && ["centos7", "centos8"].contains(DIST)))
     axes:
       - axis:
           type: label-expression
@@ -52,6 +54,7 @@ If this is checked, then the binaries will be built and pushed to chacra even if
           name: AVAILABLE_DIST
           values:
             - centos7
+            - centos8
       - axis:
           type: dynamic
           name: DIST
