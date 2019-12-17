@@ -14,7 +14,7 @@
 
       - string:
           name: DISTROS
-          description: "A list of distros to build for. Available options are: centos7"
+          description: "A list of distros to build for. Available options are: centos7, centos8"
           default: "centos7 centos8"
 
       - string:
@@ -43,7 +43,7 @@ If this is checked, then the binaries will be built and pushed to chacra even if
           type: label-expression
           name: MACHINE_SIZE
           values:
-            - small
+            - huge
       - axis:
           type: label-expression
           name: AVAILABLE_ARCH
@@ -55,9 +55,6 @@ If this is checked, then the binaries will be built and pushed to chacra even if
           values:
             - centos7
             - centos8
-      - axis:
-          type: dynamic
-          name: DIST
       - axis:
           type: dynamic
           name: DIST
