@@ -281,7 +281,7 @@
         update_cache: yes
       when: ansible_pkg_mgr  == "apt"
 
-    - name: Install DEB requirements
+    - name: Install universal DEB requirements
       apt:
         name: "{{ item }}"
         state: present
@@ -291,7 +291,6 @@
         - fakeroot-ng
         - debhelper
         - reprepro
-        - dchroot
         - devscripts
         - pbuilder
         - pkg-config
@@ -312,6 +311,24 @@
         - ditaa
         - ant
       when: ansible_pkg_mgr  == "apt"
+
+    # For now schroot/dchroot are the only package differences.  This may change.
+    # Just change this to be a list if that happens.
+    - name: Install DEB requirements (>=18.04)
+      apt:
+        name: schroot
+        state: present
+      when:
+        - ansible_pkg_mgr  == "apt"
+        - ansible_distribution_major_version|int >= 18
+
+    - name: Install DEB requirements (<=16.04)
+      apt:
+        name: dchroot
+        state: present
+      when:
+        - ansible_pkg_mgr  == "apt"
+        - ansible_distribution_major_version|int <= 16
 
     - name: Add the Debian Jessie Key
       apt_key:
