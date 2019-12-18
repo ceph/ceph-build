@@ -28,9 +28,12 @@
           wipe-workspace: true
 
     builders:
+      # Build luminous on:
+      # default: centos7 bionic xenial trusty
+      # notcmalloc: centos7
       - conditional-step:
           condition-kind: regex-match
-          regex: .*(jewel|kraken|luminous).*
+          regex: .*luminous.*
           label: '${GIT_BRANCH}'
           on-evaluation-failure: dont-run
           steps:
@@ -43,15 +46,20 @@
                   predefined-parameters: |
                     BRANCH=${GIT_BRANCH}
                     FORCE=True
+                    DISTROS=centos7 bionic xenial trusty
                 - project: 'ceph-dev-new'
                   predefined-parameters: |
                     BRANCH=${GIT_BRANCH}
                     FORCE=True
                     FLAVOR=notcmalloc
+                    DISTROS=centos7
+      # build mimic on:
+      # default: bionic xenial centos7
+      # notcmalloc: centos7
       - conditional-step:
-          condition-kind: shell
-          condition-command: |
-            echo "${GIT_BRANCH}" | grep '\(mimic\|nautilus\)'
+          condition-kind: regex-match
+          regex: .*mimic.*
+          label: '${GIT_BRANCH}'
           on-evaluation-failure: dont-run
           steps:
             - shell:
@@ -63,17 +71,20 @@
                   predefined-parameters: |
                     BRANCH=${GIT_BRANCH}
                     FORCE=True
-                    DISTROS=bionic xenial centos7 centos8
+                    DISTROS=bionic xenial centos7
                 - project: 'ceph-dev-new'
                   predefined-parameters: |
                     BRANCH=${GIT_BRANCH}
                     FORCE=True
-                    DISTROS=centos7 centos8
+                    DISTROS=centos7
                     FLAVOR=notcmalloc
+      # build nautilus on:
+      # default: bionic xenial centos7 leap15
+      # notcmalloc: centos7
       - conditional-step:
-          condition-kind: shell
-          condition-command: |
-            echo "${GIT_BRANCH}" | grep -v '\(jewel\|kraken\|luminous\|mimic\|nautilus\)'
+          condition-kind: regex-match
+          regex: .*nautilus.*
+          label: '${GIT_BRANCH}'
           on-evaluation-failure: dont-run
           steps:
             - shell:
@@ -85,35 +96,44 @@
                   predefined-parameters: |
                     BRANCH=${GIT_BRANCH}
                     FORCE=True
-                    DISTROS=bionic centos7 leap15 centos8
+                    DISTROS=bionic xenial centos7 leap15
+                - project: 'ceph-dev-new'
+                  predefined-parameters: |
+                    BRANCH=${GIT_BRANCH}
+                    FORCE=True
+                    DISTROS=centos7
+                    FLAVOR=notcmalloc
+      # If no release name is found in branch, build on all possible distro/flavor combos
+      - conditional-step:
+          condition-kind: regex-match
+          regex: .*(luminous|mimic|nautilus).*
+          label: '${GIT_BRANCH}'
+          on-evaluation-failure: run
+          steps:
+            - shell:
+                !include-raw:
+                - ../../../scripts/build_utils.sh
+                - ../../build/notify
+            - trigger-builds:
+                - project: 'ceph-dev-new'
+                  predefined-parameters: |
+                    BRANCH=${GIT_BRANCH}
+                    FORCE=True
+                    DISTROS=bionic xenial centos7 centos8 leap15
+            - trigger-builds:
                 - project: 'ceph-dev-new'
                   predefined-parameters: |
                     BRANCH=${GIT_BRANCH}
                     FORCE=True
                     DISTROS=centos7 centos8
                     FLAVOR=notcmalloc
+            - trigger-builds:
                 - project: 'ceph-dev-new'
                   predefined-parameters: |
                     BRANCH=${GIT_BRANCH}
                     FORCE=True
                     DISTROS=bionic
                     FLAVOR=crimson
-      - conditional-step:
-          condition-kind: regex-match
-          regex: .*(luminous|mimic|nautilus).*
-          label: '${GIT_BRANCH}'
-          on-evaluation-failure: dont-run
-          steps:
-            - shell:
-                !include-raw:
-                - ../../../scripts/build_utils.sh
-                - ../../build/notify
-            - trigger-builds:
-                - project: 'ceph-dev-new'
-                  predefined-parameters: |
-                    BRANCH=${GIT_BRANCH}
-                    FORCE=True
-                    DISTROS=leap15
 
     wrappers:
       - inject-passwords:
