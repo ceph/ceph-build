@@ -72,17 +72,19 @@ rpmbuild \
     --nodeps -bs $WORKSPACE/${PROJECT}.spec
 SRPM=$(readlink -f $WORKSPACE/dist/SRPMS/*.src.rpm)
 
+# add shaman repo file to mock config
+cat /etc/mock/${MOCK_TARGET}-${RELEASE}-${ARCH}.cfg > tcmu-runner.cfg
+echo "" >> tcmu-runner.cfg
+echo "config_opts['yum.conf'] += \"\"\"" >> tcmu-runner.cfg
+cat $WORKSPACE/shaman.repo > tcmu-runner.cfg
+echo "\"\"\"" >> tcmu-runner.cfg
+# for debugging
+cat tcmu-runner.cfg
+
 ## Build the binaries with mock
 echo "Building RPMs"
-MOCK_CHROOT="${MOCK_TARGET}-${RELEASE}-${ARCH}"
-MOCK_CONFIG="/etc/mock/${MOCK_CHROOT}.cfg"
-sudo mock --verbose -r ${MOCK_CONFIG} --scrub=all
-sudo mock --verbose -r ${MOCK_CONFIG} --init
-
-# add shaman repo to mock config
-sudo cp $WORKSPACE/shaman.repo /var/lib/mock/${MOCK_CHROOT}/root/etc/yum.repos.d/
-
-sudo mock --verbose -r ${MOCK_CONFIG} --resultdir=$WORKSPACE/dist/RPMS/ ${SRPM} || ( tail -n +1 $WORKSPACE/dist/RPMS/{root,build}.log && exit 1 )
+sudo mock --verbose -r tcmu-runner.cfg --scrub=all
+sudo mock --verbose -r tcmu-runner.cfg --resultdir=$WORKSPACE/dist/RPMS/ ${SRPM} || ( tail -n +1 $WORKSPACE/dist/RPMS/{root,build}.log && exit 1 )
 
 ## Upload the created RPMs to chacra
 chacra_endpoint="tcmu-runner/${BRANCH}/${GIT_COMMIT}/${DISTRO}/${RELEASE}"
