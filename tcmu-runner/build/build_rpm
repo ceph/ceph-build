@@ -83,7 +83,7 @@ cat tcmu-runner.cfg
 ## Build the binaries with mock
 echo "Building RPMs"
 sudo mock --verbose -r tcmu-runner.cfg --scrub=all
-sudo mock --verbose -r tcmu-runner.cfg --define "dist .el7" --resultdir=$WORKSPACE/dist/RPMS/ ${SRPM} || ( tail -n +1 $WORKSPACE/dist/RPMS/{root,build}.log && exit 1 )
+sudo mock --verbose -r tcmu-runner.cfg --resultdir=$WORKSPACE/dist/RPMS/ ${SRPM} || ( tail -n +1 $WORKSPACE/dist/RPMS/{root,build}.log && exit 1 )
 
 ## Upload the created RPMs to chacra
 chacra_endpoint="tcmu-runner/${BRANCH}/${GIT_COMMIT}/${DISTRO}/${RELEASE}"
