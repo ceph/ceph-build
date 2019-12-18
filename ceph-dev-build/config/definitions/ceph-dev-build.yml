@@ -38,6 +38,7 @@
             - xenial
             - bionic
             - centos7
+            - centos8
             - jessie
             - precise
             - centos6
