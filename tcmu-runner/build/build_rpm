@@ -57,7 +57,7 @@ tar tfv dist/${PROJECT}-${VERSION}.tar.gz
 # Update spec version
 sed -i "s/^Version:.*$/Version:\t${VERSION}/g" $WORKSPACE/${PROJECT}.spec
 sed -i "s/^Release:.*$/Release:\t${REVISION}%{?dist}/g" $WORKSPACE/${PROJECT}.spec
-sed -i 's/^%define _RC.*$//g' tcmu-runner.spec
+sed -i 's/^[# ]*%define _RC.*$//g' tcmu-runner.spec
 # for debugging
 cat $WORKSPACE/${PROJECT}.spec
 
@@ -72,18 +72,17 @@ rpmbuild \
     --nodeps -bs $WORKSPACE/${PROJECT}.spec
 SRPM=$(readlink -f $WORKSPACE/dist/SRPMS/*.src.rpm)
 
-# add repo file to mock config
-sudo head -n -1 /etc/mock/${MOCK_TARGET}-${RELEASE}-${ARCH}.cfg > temp.cfg
-echo >> temp
-sudo cat temp.cfg $WORKSPACE/shaman.repo > tcmu-runner.cfg
-echo "\"\"\"" >> tcmu-runner.cfg
-# for debugging
-cat tcmu-runner.cfg
-
 ## Build the binaries with mock
 echo "Building RPMs"
-sudo mock --verbose -r tcmu-runner.cfg --scrub=all
-sudo mock --verbose -r tcmu-runner.cfg --resultdir=$WORKSPACE/dist/RPMS/ ${SRPM} || ( tail -n +1 $WORKSPACE/dist/RPMS/{root,build}.log && exit 1 )
+MOCK_CHROOT="${MOCK_TARGET}-${RELEASE}-${ARCH}"
+MOCK_CFG="/etc/mock/${MOCK_CHROOT}.cfg"
+sudo mock --verbose -r ${MOCK_CONFIG} --scrub=all
+sudo mock --verbose -r ${MOCK_CONFIG} --init
+
+# add shaman repo to mock config
+sudo cp $WORKSPACE/shaman.repo /var/lib/mock/${MOCK_CHROOT}/root/etc/yum.repos.d/
+
+sudo mock --verbose -r ${MOCK_CONFIG} --resultdir=$WORKSPACE/dist/RPMS/ ${SRPM} || ( tail -n +1 $WORKSPACE/dist/RPMS/{root,build}.log && exit 1 )
 
 ## Upload the created RPMs to chacra
 chacra_endpoint="tcmu-runner/${BRANCH}/${GIT_COMMIT}/${DISTRO}/${RELEASE}"
