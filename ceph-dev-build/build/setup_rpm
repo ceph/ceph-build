@@ -30,28 +30,7 @@ cd $(basename *.orig.tar.gz .orig.tar.gz | sed s/_/-/)
 pwd
 
 $SUDO yum install -y yum-utils
-if [ "$ARCH" = x86_64 ]; then
-    $SUDO yum install -y centos-release-scl
-elif [ "$ARCH" = arm64 ]; then
-    $SUDO yum install -y centos-release-scl-rh
-    $SUDO yum-config-manager --disable centos-sclo-rh
-    $SUDO yum-config-manager --enable centos-sclo-rh-testing
-fi
-sed -e 's/@//g' < ceph.spec.in > $DIR/ceph.spec
 
-# before installing the dependencies, python3-devel requires the
-# python-rpm-macro we use for identifying the python related dependencies
-$SUDO yum install -y python3-devel
-
-$SUDO yum-builddep -y --setopt=*.skip_if_unavailable=true $DIR/ceph.spec
-
-BRANCH=`branch_slash_filter $BRANCH`
-
-if [[ ! -f /etc/redhat-release && ! -f /usr/bin/zypper ]] ; then
-    exit 0
-fi
-
-cd $WORKSPACE
 
 get_rpm_dist() {
     LSB_RELEASE=/usr/bin/lsb_release
@@ -99,6 +78,36 @@ get_rpm_dist() {
 }
 
 get_rpm_dist
+
+if [ "$RELEASE" = 7 ]; then
+   if [ "$ARCH" = x86_64 ]; then
+       $SUDO yum install -y centos-release-scl
+   elif [ "$ARCH" = arm64 ]; then
+       $SUDO yum install -y centos-release-scl-rh
+       $SUDO yum-config-manager --disable centos-sclo-rh
+       $SUDO yum-config-manager --enable centos-sclo-rh-testing
+   fi
+elif [ "$RELEASE" = 8 ]; then
+    $SUDO dnf config-manager --set-enabled PowerTools
+    # chacractl is not python3 compatible yet
+    $SUDO dnf -y install python2
+fi
+
+sed -e 's/@//g' < ceph.spec.in > $DIR/ceph.spec
+
+# before installing the dependencies, python3-devel requires the
+# python-rpm-macro we use for identifying the python related dependencies
+$SUDO yum install -y python3-devel
+
+$SUDO yum-builddep -y --setopt=*.skip_if_unavailable=true $DIR/ceph.spec
+
+BRANCH=`branch_slash_filter $BRANCH`
+
+if [[ ! -f /etc/redhat-release && ! -f /usr/bin/zypper ]] ; then
+    exit 0
+fi
+
+cd $WORKSPACE
 
 # Normalize variables across rpm/deb builds
 NORMAL_DISTRO=$DISTRO
