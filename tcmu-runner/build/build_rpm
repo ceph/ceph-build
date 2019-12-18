@@ -75,7 +75,7 @@ SRPM=$(readlink -f $WORKSPACE/dist/SRPMS/*.src.rpm)
 ## Build the binaries with mock
 echo "Building RPMs"
 MOCK_CHROOT="${MOCK_TARGET}-${RELEASE}-${ARCH}"
-MOCK_CFG="/etc/mock/${MOCK_CHROOT}.cfg"
+MOCK_CONFIG="/etc/mock/${MOCK_CHROOT}.cfg"
 sudo mock --verbose -r ${MOCK_CONFIG} --scrub=all
 sudo mock --verbose -r ${MOCK_CONFIG} --init
 
