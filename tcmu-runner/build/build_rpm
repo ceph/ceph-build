@@ -76,7 +76,7 @@ SRPM=$(readlink -f $WORKSPACE/dist/SRPMS/*.src.rpm)
 cat /etc/mock/${MOCK_TARGET}-${RELEASE}-${ARCH}.cfg > tcmu-runner.cfg
 echo "" >> tcmu-runner.cfg
 echo "config_opts['yum.conf'] += \"\"\"" >> tcmu-runner.cfg
-cat $WORKSPACE/shaman.repo > tcmu-runner.cfg
+cat $WORKSPACE/shaman.repo >> tcmu-runner.cfg
 echo "\"\"\"" >> tcmu-runner.cfg
 # for debugging
 cat tcmu-runner.cfg
