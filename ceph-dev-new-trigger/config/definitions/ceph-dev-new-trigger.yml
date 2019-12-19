@@ -103,12 +103,13 @@
                     FORCE=True
                     DISTROS=centos7
                     FLAVOR=notcmalloc
-      # If no release name is found in branch, build on all possible distro/flavor combos
+      # If no release name is found in branch, build on all possible distro/flavor combos.
+      # regex matching and 'on-evaluation-failure: run' doesn't work here so triple negative it is.
       - conditional-step:
-          condition-kind: regex-match
-          regex: .*(luminous|mimic|nautilus).*
-          label: '${GIT_BRANCH}'
-          on-evaluation-failure: run
+          condition-kind: shell
+          condition-command: |
+            echo "${GIT_BRANCH}" | grep -v '\(luminous\|mimic\|nautilus\)'
+          on-evaluation-failure: dont-run
           steps:
             - shell:
                 !include-raw:
