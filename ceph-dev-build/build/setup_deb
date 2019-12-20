@@ -23,12 +23,6 @@ export LC_ALL=C # the following is vulnerable to i18n
 
 $SUDO apt-get install -y lsb-release
 
-# unpack the tar.gz that contains the debian dir
-cd dist
-tar xzf *.orig.tar.gz
-cd ceph-*
-pwd
-
 BRANCH=`branch_slash_filter $BRANCH`
 
 cd $WORKSPACE
