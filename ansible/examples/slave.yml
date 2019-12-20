@@ -185,7 +185,6 @@
         - epel-release
         - java-1.8.0-openjdk
         - git
-        - python-virtualenv
         - libtool
         #- rpm-sign
         - autoconf
@@ -259,6 +258,7 @@
       with_items:
         - jq
         - python-pip
+        - python-virtualenv
       when:
         - ansible_os_family == "RedHat"
         - ansible_distribution_major_version|int <= 7
@@ -272,6 +272,7 @@
       with_items:
         - jq
         - python3-pip
+        - python3-virtualenv
       when:
         - ansible_os_family == "RedHat"
         - ansible_distribution_major_version|int >= 8
