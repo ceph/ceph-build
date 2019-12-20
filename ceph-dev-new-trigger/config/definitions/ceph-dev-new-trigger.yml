@@ -103,7 +103,7 @@
                     FORCE=True
                     DISTROS=centos7
                     FLAVOR=notcmalloc
-      # If no release name is found in branch, build on all possible distro/flavor combos.
+      # If no release name is found in branch, build on all possible distro/flavor combos (except xenial).
       # regex matching and 'on-evaluation-failure: run' doesn't work here so triple negative it is.
       - conditional-step:
           condition-kind: shell
@@ -120,7 +120,7 @@
                   predefined-parameters: |
                     BRANCH=${GIT_BRANCH}
                     FORCE=True
-                    DISTROS=bionic xenial centos7 centos8 leap15
+                    DISTROS=bionic centos7 centos8 leap15
             - trigger-builds:
                 - project: 'ceph-dev-new'
                   predefined-parameters: |
