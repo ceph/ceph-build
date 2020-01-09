@@ -3,7 +3,7 @@
     project-type: freestyle
     defaults: global
     concurrent: true
-    node: huge && x86_64 && centos7 && rebootable
+    node: huge && bionic && rebootable && x86_64 && !xenial && !trusty
     display-name: 'ceph: dashboard Pull Requests'
     quiet-period: 5
     block-downstream: false
@@ -61,5 +61,5 @@
       - shell: "export NPROC=$(nproc) CHECK_MAKEOPTS='-j$(nproc) -N -Q'; timeout 7200 ./run-make-check.sh"
       - shell:
           !include-raw:
-            - ../../../scripts/e2e/install-e2e-tests-deps.sh
+            - ../../../scripts/dashboard/install-e2e-test-deps.sh
       - shell: "cd src/pybind/mgr/dashboard; timeout 7200 ./run-frontend-e2e-tests.sh"
