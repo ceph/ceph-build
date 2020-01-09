@@ -68,9 +68,6 @@ If this is checked, then the binaries will be built and pushed to chacra even if
       - axis:
           type: dynamic
           name: DIST
-      - axis:
-          type: dynamic
-          name: DIST
           values:
             - DISTROS
       - axis:
