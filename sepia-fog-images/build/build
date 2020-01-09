@@ -21,6 +21,9 @@ funSetProfiles () {
   elif [ "$splitdistro" == "centos" ]; then
     cobblerprofile="CentOS-$distroversion-x86_64"
     fogprofile="centos_$distroversion"
+  elif [ "$splitdistro" == "opensuse" ]; then
+    cobblerprofile="openSUSE-$distroversion-x86_64"
+    fogprofile="opensuse_$distroversion"
   else
     echo "Unknown profile $1"
     exit 1
