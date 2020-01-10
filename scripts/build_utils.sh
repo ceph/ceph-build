@@ -852,6 +852,9 @@ case $SCENARIO in
   filestore_to_bluestore)
     TOX_INI_FILE=tox-filestore_to_bluestore.ini
     ;;
+  docker_to_podman)
+    TOX_INI_FILE=tox-docker2podman.ini
+    ;;
   *)
     TOX_INI_FILE=tox.ini
     ;;
