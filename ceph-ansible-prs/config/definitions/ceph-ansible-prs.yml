@@ -53,6 +53,18 @@
         - 'ceph-ansible-prs-auto'
 
 - project:
+    name: ceph-ansible-prs-docker2podman
+    slave_labels: 'vagrant && libvirt && (smithi || centos7)'
+    distribution:
+      - centos
+    deployment:
+      - container
+    scenario:
+      - docker_to_podman
+    jobs:
+        - 'ceph-ansible-prs-common-trigger'
+
+- project:
     name: ceph-ansible-prs-common-trigger
     slave_labels: 'vagrant && libvirt && (smithi || centos7)'
     distribution:
