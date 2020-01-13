@@ -299,6 +299,12 @@
       become: yes
       hostname:
         name: "{{ ansible_hostname }}"
+      when: ansible_os_family != "Suse"
+
+    # https://github.com/ansible/ansible/issues/42726
+    - name: Set Hostname on OpenSUSE Leap
+      command: 'hostname ceph-builders'
+      when: ansible_os_family == "Suse"
 
     - name: ensure that the current host is in /etc/hosts. Yes this is a thing.
       become: true
