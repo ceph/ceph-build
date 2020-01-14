@@ -59,15 +59,6 @@ cephver=$vers
 
 echo version $cephver
 
-# This used to live in a *file* on /src/ceph-build. Now it lives here because
-# it doesn't make sense to have a file that lives in /srv/ that we then
-# concatenate to get its contents.
-
-
-# FIXME this looks exactly like `setup_pbuilder`, we probably don't need this
-# or we need to refactor.
-sudo pbuilder --clean
-
 echo deb vers $bpvers
 
 
