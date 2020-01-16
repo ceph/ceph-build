@@ -944,7 +944,7 @@ write_collect_logs_playbook() {
       with_items: "{{ results.files }}"
 
     - name: show ceph status
-      command: "ceph --cluster {{ (item.path | basename | splitext)[0] }} -s -f json"
+      command: "ceph --connect-timeout 10 --cluster {{ (item.path | basename | splitext)[0] }} -s -f json"
       with_items: "{{ results.files }}"
       when: "'.conf' in item.path"
       run_once: True
