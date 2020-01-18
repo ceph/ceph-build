@@ -45,19 +45,12 @@ git submodule update --init
 
 # Flavor Builds support
 
-#cryptopp is not default for CMake
-AUTOCONF_FLAVOR_FLAGS="--without-cryptopp"
-
 if [ "${FLAVOR}" == "notcmalloc" ]
 then
-    echo "Detected notcmalloc flavor: will use flag: --without-tcmalloc or -DALLOCATOR=libc"
-    AUTOCONF_FLAVOR_FLAGS="$AUTOCONF_FLAVOR_FLAGS --without-tcmalloc"
-    CEPH_EXTRA_CONFIGURE_ARGS="--without-tcmalloc"
+    echo "Detected notcmalloc flavor: will use flag: -DALLOCATOR=libc"
     CEPH_EXTRA_RPMBUILD_ARGS="--without tcmalloc"
     CEPH_EXTRA_CMAKE_ARGS="$CEPH_EXTRA_CMAKE_ARGS -DALLOCATOR=libc -DWITH_CEPH_DEBUG_MUTEX=ON"
 else
-    AUTOCONF_FLAVOR_FLAGS="$AUTOCONF_FLAVOR_FLAGS --with-tcmalloc"
-    CEPH_EXTRA_CONFIGURE_ARGS="--with-tcmalloc"
     CEPH_EXTRA_RPMBUILD_ARGS="--with tcmalloc"
     CEPH_EXTRA_CMAKE_ARGS="$CEPH_EXTRA_CMAKE_ARGS -DALLOCATOR=tcmalloc"
 fi
@@ -80,30 +73,6 @@ else
 	exit 1
     fi
     echo "forcing."
-fi
-
-# make-dist does not exist for autotools builds
-if [ ! -x make-dist ]; then
-    echo "Using autotools build system"
-    echo "Running autogen.sh ..."
-    ./autogen.sh
-    echo "Running configure ..."
-    ./configure \
-      --disable-option-checking \
-      '--prefix=/usr' \
-      '--sbindir=/sbin' \
-      '--localstatedir=/var' \
-      '--sysconfdir=/etc' \
-      '--with-debug' \
-      '--with-nss' \
-      '--with-radosgw' \
-      '--disable-static' \
-      '--without-lttng' \
-      $AUTOCONF_FLAVOR_FLAGS \
-      'CFLAGS= -Wno-unused-parameter' \
-      'CXXFLAGS=  -Wno-unused-parameter' \
-      --cache-file=/dev/null \
-      --srcdir=.
 fi
 
 mkdir -p release
@@ -130,21 +99,11 @@ else
     rm ceph-*.tar.gz || true
     rm ceph-*.tar.bz2 || true
 
-    if [ -x make-dist ]
-    then
-        ./make-dist $cephver
-        vers=`ls ceph-*.tar.bz2 | cut -c 6- | sed 's/.tar.bz2//'`
-        extension="tar.bz2"
-        extract_flags="jxf"
-        compress_flags="jcf"
-    else
-        make dist
-        make dist-bzip2
-        vers=`ls ceph-*.tar.gz | cut -c 6- | sed 's/.tar.gz//'`
-        extension="tar.gz"
-        extract_flags="zxf"
-        compress_flags="zcf"
-    fi
+    ./make-dist $cephver
+    vers=`ls ceph-*.tar.bz2 | cut -c 6- | sed 's/.tar.bz2//'`
+    extension="tar.bz2"
+    extract_flags="jxf"
+    compress_flags="jcf"
 
     echo tarball vers $vers
 
@@ -211,7 +170,6 @@ EOF
 # CEPH_EXTRA_{CONFIGURE,RPMBUILD}_ARGS are consumed by ceph-build before
 # the switch to cmake; CEPH_EXTRA_CMAKE_ARGS is for after cmake
 cat > dist/other_envvars << EOF
-CEPH_EXTRA_CONFIGURE_ARGS=${CEPH_EXTRA_CONFIGURE_ARGS}
 CEPH_EXTRA_RPMBUILD_ARGS=${CEPH_EXTRA_RPMBUILD_ARGS}
 CEPH_EXTRA_CMAKE_ARGS=${CEPH_EXTRA_CMAKE_ARGS}
 EOF
