@@ -70,7 +70,6 @@ DEB_BUILD_OPTIONS="parallel=$(get_nr_build_jobs)"
 # pass only those env vars specifically noted
 sudo \
     CEPH_EXTRA_CMAKE_ARGS="$CEPH_EXTRA_CMAKE_ARGS" \
-    CEPH_EXTRA_CONFIGURE_ARGS="$CEPH_EXTRA_CONFIGURE_ARGS" \
     DEB_BUILD_OPTIONS="$DEB_BUILD_OPTIONS" \
     pbuilder build \
     --distribution $DIST \
