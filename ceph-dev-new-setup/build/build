@@ -64,14 +64,6 @@ else
     echo "forcing."
 fi
 
-# because autogen+configure will check for dependencies, we are forced to install them
-# and ensure they are present in the current host
-if [ -x install-deps.sh ]; then
-    echo "Ensuring dependencies are installed"
-    [ "${FLAVOR}" == "crimson" ] && WITH_SEASTAR=1
-    WITH_SEASTAR=$WITH_SEASTAR ./install-deps.sh
-fi
-
 # Flavor Builds support
 
 case "${FLAVOR}" in
