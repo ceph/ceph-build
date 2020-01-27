@@ -13,6 +13,7 @@
       - purge
       - collocation
       - lvm_batch
+      - all_in_one
     jobs:
         - 'ceph-ansible-prs-auto'
 
