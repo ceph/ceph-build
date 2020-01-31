@@ -9,4 +9,5 @@ sudo yum --enablerepo epel install -y python36
 
 cd "$WORKSPACE/ceph-medic"
 
+export TOX_SKIP_ENV=py37
 $VENV/tox -rv
