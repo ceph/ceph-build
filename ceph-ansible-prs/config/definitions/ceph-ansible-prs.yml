@@ -14,6 +14,7 @@
       - collocation
       - lvm_batch
       - all_in_one
+      - external_clients
     jobs:
         - 'ceph-ansible-prs-auto'
 
