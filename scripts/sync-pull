@@ -27,7 +27,7 @@ echo "Found the most packages ($current_highest_count) in $highest_combo."
 # Check the the DEB and RPM chacra endpoints to see if the repos are or need updating.
 # This helps prevent packages from getting missed when signing and pushing.
 need_rerun=false
-for endpoint in https://chacra.ceph.com/repos/$project/$release/$sha1/$highest_combo https://chacra.ceph.com/repos/$project/$release/$sha1/centos/7; do
+for endpoint in https://chacra.ceph.com/repos/$project/$release/$sha1/$highest_combo https://chacra.ceph.com/repos/$project/$release/$sha1/centos/{7,8}; do
   chacra_repo_status=$(curl -s -L $endpoint)
   # python is only used here because jq isn't installed on the signer box
   chacra_needs_update=$(echo $chacra_repo_status | python -mjson.tool | grep needs_update | awk '{ print $2 }' | sed 's/,$//')
@@ -44,10 +44,12 @@ echo $deb_cmd
 echo "--------------------------------------------"
 rsync -Lavh -e 'ssh -p 2222' --progress $deb_cmd
 
-el7_cmd="ubuntu@chacra.ceph.com:/opt/repos/$project/$release/$sha1/centos/7/flavors/default/* /opt/repos/$project/$release/centos/7/"
-echo $el7_cmd
-echo "--------------------------------------------"
-rsync -Lavh -e 'ssh -p 2222' --progress $el7_cmd
+for el_version in 7 8; do
+  el_cmd="ubuntu@chacra.ceph.com:/opt/repos/$project/$release/$sha1/centos/$el_version/flavors/default/* /opt/repos/$project/$release/centos/$el_version/"
+  echo $el_cmd
+  echo "--------------------------------------------"
+  rsync -Lavh -e 'ssh -p 2222' --progress $el_cmd
+done
 
 if $need_rerun; then
   echo

@@ -15,8 +15,10 @@ ceph_sync() {
   deb_cmd="/opt/repos/ceph/$release/debian/jessie/* signer@download.ceph.com:/data/download.ceph.com/www/debian-$release/"
   rsync --progress --exclude '*lockfile*' -avr $deb_cmd
 
-  el7_cmd="/opt/repos/ceph/$release/centos/7/* signer@download.ceph.com:/data/download.ceph.com/www/rpm-$release/el7/"
-  rsync --progress -avr $el7_cmd
+  for el_version in 7 8; do
+    el_cmd="/opt/repos/ceph/$release/centos/$el_version/* signer@download.ceph.com:/data/download.ceph.com/www/rpm-$release/el${el_version}/"
+    rsync --progress -avr $el_cmd
+  done
 }
 
 for i in "${releases[@]}"
