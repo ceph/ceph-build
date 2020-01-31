@@ -855,6 +855,9 @@ case $SCENARIO in
   docker_to_podman)
     TOX_INI_FILE=tox-docker2podman.ini
     ;;
+  external_clients)
+    TOX_INI_FILE=tox-external_clients.ini
+    ;;
   *)
     TOX_INI_FILE=tox.ini
     ;;
