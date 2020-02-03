@@ -43,10 +43,10 @@
     triggers:
       - github-pull-request:
           admin-list:
-            - alfredodeza
             - dmick
             - ktdreyer
             - andrewschoen
+            - zmc
           org-list:
             - ceph
           only-trigger-phrase: false
