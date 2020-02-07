@@ -488,6 +488,11 @@ setup_pbuilder() {
         echo "$other_mirror" >> ~/.pbuilderrc
     fi
 
+    if [ $FLAVOR = "crimson" ]; then
+        extrapackages='EXTRAPACKAGES="libc-ares-dev libcrypto++-dev libgnutls28-dev libhwloc-dev libnuma-dev libpciaccess-dev libprotobuf-dev libsctp-dev libyaml-cpp-dev protobuf-compiler ragel systemtap-sdt-dev"'
+        echo "$extrapackages" >> ~/.pbuilderrc
+    fi
+
     if [ -n "$use_gcc" ]; then
         # Newer pbuilder versions set $HOME to /nonexistent which breaks all kinds of
         # things that rely on a proper (writable) path. Setting this to the system user's $HOME is not enough
