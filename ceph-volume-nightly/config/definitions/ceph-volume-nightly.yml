@@ -78,6 +78,8 @@
     ceph_branch:
       - master
       - nautilus
+      - mimic
+      - luminous
 
     jobs:
       - 'ceph-volume-nightly-{ceph_branch}-{subcommand}-{distro}-{objectstore}-{scenario}'
