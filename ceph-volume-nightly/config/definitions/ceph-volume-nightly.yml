@@ -3,6 +3,7 @@
     distro:
       - xenial
       - centos7
+      - centos8
     objectstore:
       - bluestore
       - filestore
@@ -16,6 +17,19 @@
       - mimic
       - luminous
       - nautilus
+    exclude:
+      - ceph-branch: master
+        distro: centos7
+      - ceph-branch: nautilus
+        distro: centos8
+      - ceph-branch: master
+        distro: xenial
+      - ceph-branch: nautilus
+        distro: xenial
+      - ceph-branch: mimic
+        distro: centos8
+      - ceph-branch: luminous
+        distro: centos8
 
     jobs:
       - 'ceph-volume-nightly-{ceph_branch}-{subcommand}-{distro}-{objectstore}-{scenario}'
@@ -46,6 +60,7 @@
     distro:
       - xenial
       - centos7
+      - centos8
     objectstore:
       - bluestore
       - filestore
@@ -59,6 +74,19 @@
       - mimic
       - luminous
       - nautilus
+    exclude:
+      - ceph-branch: master
+        distro: centos7
+      - ceph-branch: nautilus
+        distro: centos8
+      - ceph-branch: master
+        distro: xenial
+      - ceph-branch: nautilus
+        distro: xenial
+      - ceph-branch: mimic
+        distro: centos8
+      - ceph-branch: luminous
+        distro: centos8
 
     jobs:
       - 'ceph-volume-nightly-{ceph_branch}-{subcommand}-{distro}-{objectstore}-{scenario}'
@@ -67,6 +95,7 @@
     name: ceph-volume-nightly-batch-mixed
     distro:
       - centos7
+      - centos8
     objectstore:
       - bluestore
       - filestore
@@ -80,6 +109,19 @@
       - nautilus
       - mimic
       - luminous
+    exclude:
+      - ceph-branch: master
+        distro: centos7
+      - ceph-branch: nautilus
+        distro: centos8
+      - ceph-branch: master
+        distro: xenial
+      - ceph-branch: nautilus
+        distro: xenial
+      - ceph-branch: mimic
+        distro: centos8
+      - ceph-branch: luminous
+        distro: centos8
 
     jobs:
       - 'ceph-volume-nightly-{ceph_branch}-{subcommand}-{distro}-{objectstore}-{scenario}'
@@ -152,4 +194,4 @@
           latest-only: false
 
       - email:
-          recipients: aschoen@redhat.com adeza@redhat.com jfajerski@suse.com
+          recipients: aschoen@redhat.com jfajerski@suse.com
