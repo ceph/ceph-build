@@ -1,6 +1,10 @@
 #!/bin/bash
 set -ex
 
+# set to "true" or "false" so that both string comparisons
+# and 'if $CI_CONTAINER' work as expected.  Conventions vary across the
+# set of shell scripts and repos involved.
+CI_CONTAINER=${CI_CONTAINER:-false}
 
 # create a release directory for ceph-build tools
 mkdir -p release
@@ -178,6 +182,30 @@ EOF
     $VENV/chacractl repo update ${chacra_repo_endpoint}
 
     echo Check the status of the repo at: https://shaman.ceph.com/api/repos/${chacra_endpoint}/flavors/${FLAVOR}/
+fi
+
+# XXX perhaps use job parameters instead of literals; then
+# later stages can also use them to compare etc.
+if [[ "$CI_CONTAINER" == true && $DISTRO == "centos" && $FLAVOR == "default" ]] ; then
+    loop=0
+    ready=false
+    while ((loop < 15)); do
+      if [[ $(curl -s https://shaman.ceph.com/api/repos/${chacra_endpoint}/flavors/${FLAVOR}/ | jq '.[0].status') == '"ready"' ]] ; then ready=true; break; fi
+      ((loop = loop + 1))
+      sleep 60
+    done
+
+    if [[ "$ready" == "false" ]] ; then
+      echo "FAIL: timed out waiting for shaman repo to be built:  https://shaman.ceph.com/api/repos/${chacra_endpoint}/flavors/${FLAVOR}/"
+      # don't fail the build here on purpose
+      # update_build_status "failed" "ceph" $NORMAL_DISTRO $NORMAL_DISTRO_VERSION $NORMAL_ARCH
+      # exit 1
+    fi
+
+    cd $WORKSPACE/ceph-container
+    # avoid failing the build if build-push fails
+    CI_CONTAINER=${CI_CONTAINER} SHA1=${SHA1} /bin/bash ./contrib/build-push-ceph-container-imgs.sh || /bin/true
+    cd $WORKSPACE
 fi
 
 # update shaman with the completed build status

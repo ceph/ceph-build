@@ -14,6 +14,16 @@
           days-to-keep: 30
           artifact-days-to-keep: 30
 
+    scm:
+      - git:
+          url: git@github.com:ceph/ceph-container.git
+          basedir: ceph-container
+          credentials-id: 'jenkins-build'
+          branches:
+            - $CONTAINER_BRANCH
+          skip-tag: true
+          wipe-workspace: true
+
     execution-strategy:
        combination-filter: |
          DIST == AVAILABLE_DIST && ARCH == AVAILABLE_ARCH &&
@@ -122,3 +132,7 @@
           - text:
               credential-id: shaman-api-key
               variable: SHAMAN_API_KEY
+          - username-password-separated:
+              credential-id: dmick-quay
+              username: CONTAINER_REPO_USERNAME
+              password: CONTAINER_REPO_PASSWORD
