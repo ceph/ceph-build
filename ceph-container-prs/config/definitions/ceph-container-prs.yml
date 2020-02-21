@@ -2,13 +2,22 @@
     name: ceph-container-prs-auto
     os:
       - centos7
+      - centos8
     ceph-version:
       - luminous
+      - nautilus
+      - octopus
     test:
-      - cluster
-      - filestore_osds_container
-      - bluestore_osds_container
-      - docker_cluster_collocation
+      - all_daemons
+      - lvm_osds
+      - collocation
+    exclude:
+      - os: centos7
+        ceph-version: octopus
+      - os: centos8
+        ceph-version: luminous
+      - os: centos8
+        ceph-version: nautilus
     jobs:
         - 'ceph-container-prs-auto'
 
