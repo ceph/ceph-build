@@ -1,33 +1,19 @@
 - project:
     name: ceph-container-prs-auto
-    os:
-      - centos7
-      - centos8
-    ceph-version:
-      - luminous
-      - nautilus
-      - octopus
     test:
       - all_daemons
       - lvm_osds
       - collocation
-    exclude:
-      - os: centos7
-        ceph-version: octopus
-      - os: centos8
-        ceph-version: luminous
-      - os: centos8
-        ceph-version: nautilus
     jobs:
         - 'ceph-container-prs-auto'
 
 - job-template:
-    name: 'ceph-container-prs-ceph_ansible-{ceph-version}-{os}-{test}'
+    name: 'ceph-container-prs-ceph_ansible-{test}'
     id: 'ceph-container-prs-auto'
     node: vagrant&&libvirt&&centos7
     concurrent: true
     defaults: global
-    display-name: 'ceph-container: Pull Requests [ceph_ansible-{ceph-version}-{os}-{test}]'
+    display-name: 'ceph-container: Pull Requests [ceph_ansible-{test}]'
     quiet-period: 5
     block-downstream: false
     block-upstream: false
@@ -53,15 +39,15 @@
           org-list:
             - ceph
           skip-build-phrase: '^jenkins do not test.*|.*\[skip ci\].*'
-          trigger-phrase: 'jenkins test ceph_ansible-{ceph-version}-{os}-{test}'
+          trigger-phrase: 'jenkins test ceph_ansible-{test}'
           only-trigger-phrase: false
           github-hooks: true
           permit-all: true
           auto-close-on-fail: false
-          status-context: "Testing: ceph_ansible-{ceph-version}-{os}-{test}"
-          started-status: "Running: ceph_ansible-{ceph-version}-{os}-{test}"
-          success-status: "OK - ceph_ansible-{ceph-version}-{os}-{test}"
-          failure-status: "FAIL - ceph_ansible-{ceph-version}-{os}-{test}"
+          status-context: "Testing: ceph_ansible-{test}"
+          started-status: "Running: ceph_ansible-{test}"
+          success-status: "OK - ceph_ansible-{test}"
+          failure-status: "FAIL - ceph_ansible-{test}"
 
     scm:
       - git:
@@ -77,7 +63,7 @@
     builders:
       - inject:
           properties-content: |
-            SCENARIO=ceph_ansible-{ceph-version}-{os}-{test}
+            SCENARIO=ceph_ansible-{test}
       - shell:
           !include-raw-escape:
             - ../../../scripts/build_utils.sh
@@ -94,12 +80,12 @@
                 - shell: !include-raw: ../../build/teardown
 
 - job-template:
-    name: 'ceph-container-prs-ceph_ansible-{ceph-version}-{os}-{test}'
+    name: 'ceph-container-prs-ceph_ansible-{test}'
     id: 'ceph-container-prs-trigger'
     node: vagrant&&libvirt&&centos7
     concurrent: true
     defaults: global
-    display-name: 'ceph-container: Pull Requests [ceph_ansible-{ceph-version}-{os}-{test}]'
+    display-name: 'ceph-container: Pull Requests [ceph_ansible-{test}]'
     quiet-period: 5
     block-downstream: false
     block-upstream: false
@@ -125,15 +111,15 @@
           org-list:
             - ceph
           skip-build-phrase: '^jenkins do not test.*|.*\[skip ci\].*'
-          trigger-phrase: 'jenkins test ceph_ansible-{ceph-version}-{os}-{test}'
+          trigger-phrase: 'jenkins test ceph_ansible-{test}'
           only-trigger-phrase: true
           github-hooks: true
           permit-all: true
           auto-close-on-fail: false
-          status-context: "Testing: ceph_ansible-{ceph-version}-{os}-{test}"
-          started-status: "Running: ceph_ansible-{ceph-version}-{os}-{test}"
-          success-status: "OK - ceph_ansible-{ceph-version}-{os}-{test}"
-          failure-status: "FAIL - ceph_ansible-{ceph-version}-{os}-{test}"
+          status-context: "Testing: ceph_ansible-{test}"
+          started-status: "Running: ceph_ansible-{test}"
+          success-status: "OK - ceph_ansible-{test}"
+          failure-status: "FAIL - ceph_ansible-{test}"
 
     scm:
       - git:
@@ -149,7 +135,7 @@
     builders:
       - inject:
           properties-content: |
-            SCENARIO=ceph_ansible-{ceph-version}-{os}-{test}
+            SCENARIO=ceph_ansible-{test}
       - shell:
           !include-raw-escape:
             - ../../../scripts/build_utils.sh
