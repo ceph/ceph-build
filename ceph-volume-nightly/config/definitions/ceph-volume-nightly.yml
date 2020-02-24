@@ -18,17 +18,17 @@
       - luminous
       - nautilus
     exclude:
-      - ceph-branch: master
+      - ceph_branch: master
         distro: centos7
-      - ceph-branch: nautilus
+      - ceph_branch: nautilus
         distro: centos8
-      - ceph-branch: master
+      - ceph_branch: master
         distro: xenial
-      - ceph-branch: nautilus
+      - ceph_branch: nautilus
         distro: xenial
-      - ceph-branch: mimic
+      - ceph_branch: mimic
         distro: centos8
-      - ceph-branch: luminous
+      - ceph_branch: luminous
         distro: centos8
 
     jobs:
@@ -75,17 +75,17 @@
       - luminous
       - nautilus
     exclude:
-      - ceph-branch: master
+      - ceph_branch: master
         distro: centos7
-      - ceph-branch: nautilus
+      - ceph_branch: nautilus
         distro: centos8
-      - ceph-branch: master
+      - ceph_branch: master
         distro: xenial
-      - ceph-branch: nautilus
+      - ceph_branch: nautilus
         distro: xenial
-      - ceph-branch: mimic
+      - ceph_branch: mimic
         distro: centos8
-      - ceph-branch: luminous
+      - ceph_branch: luminous
         distro: centos8
 
     jobs:
@@ -110,17 +110,17 @@
       - mimic
       - luminous
     exclude:
-      - ceph-branch: master
+      - ceph_branch: master
         distro: centos7
-      - ceph-branch: nautilus
+      - ceph_branch: nautilus
         distro: centos8
-      - ceph-branch: master
+      - ceph_branch: master
         distro: xenial
-      - ceph-branch: nautilus
+      - ceph_branch: nautilus
         distro: xenial
-      - ceph-branch: mimic
+      - ceph_branch: mimic
         distro: centos8
-      - ceph-branch: luminous
+      - ceph_branch: luminous
         distro: centos8
 
     jobs:
