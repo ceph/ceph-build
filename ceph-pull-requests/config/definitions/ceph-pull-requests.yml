@@ -56,17 +56,12 @@
           wipe-workspace: true
 
     builders:
-      - shell: "export NPROC=$(nproc); timeout 7200 ./run-make-check.sh"
+    - shell:
+        !include-raw:
+          - ../../../scripts/build_utils.sh
+          - ../../build/build
 
     publishers:
-      - postbuildscript:
-          builders:
-            - role: SLAVE
-              build-on:
-                  - FAILURE
-                  - ABORTED
-              build-steps:
-                - shell: "sudo reboot"
       - cobertura:
           report-file: "src/pybind/mgr/dashboard/frontend/coverage/cobertura-coverage.xml"
           only-stable: "true"
