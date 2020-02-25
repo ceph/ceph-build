@@ -38,7 +38,11 @@ raw_version=`echo $vers | cut -d '-' -f 1`
 
 RELEASE_BRANCH=$(release_from_version $raw_version)
 case $RELEASE_BRANCH in
-nautilus|octopus)
+octopus)
+    DISTRO=opensuse
+    RELEASE="15.2"
+    ;;
+nautilus)
     DISTRO=opensuse
     RELEASE="15.1"
     ;;
