@@ -1,5 +1,4 @@
 ---
-# This playbook needs to be updated for EL8 compatibility
 
 - hosts: all
   become: true
@@ -74,13 +73,6 @@
         state: latest
       when: ansible_os_family == "RedHat"
 
-    - name: disable epel for now
-      lineinfile:
-        path: "/etc/yum.repos.d/epel.repo"
-        regexp: '^enabled=.*'
-        line: 'enabled=0'
-      when: ansible_os_family == "RedHat"
-
     # Run the equivalent of "apt-get update" as a separate step
     - apt:
         update_cache: yes
@@ -116,7 +108,6 @@
       with_items:
         - git
         - gcc
-        - python-devel
         - libffi-devel
         - java-1.8.0-openjdk-devel
         - qemu-kvm
@@ -127,14 +118,13 @@
         - vagrant
         - wget
         - curl
-        - python-virtualenv
         - openssl-devel
         - redhat-lsb-core
         - iproute
         - mock
       when: ansible_os_family == "RedHat"
 
-    - name: install packages from epel
+    - name: install packages from epel (<=7)
       yum:
         name: "{{ item }}"
         state: present
@@ -143,7 +133,26 @@
       with_items:
         - jq
         - python-pip
-      when: ansible_os_family == "RedHat"
+        - python-devel
+        - python-virtualenv
+      when:
+        - ansible_os_family == "RedHat"
+        - ansible_distribution_major_version|int <= 7
+
+    - name: install packages from epel (>=8)
+      dnf:
+        name: "{{ item }}"
+        state: present
+        enablerepo: epel
+        update_cache: yes
+      with_items:
+        - jq
+        - python3-pip
+        - python3-devel
+        - python3-virtualenv
+      when:
+        - ansible_os_family == "RedHat"
+        - ansible_distribution_major_version|int >= 8
 
     - set_fact:
         jenkins_group: 'libvirtd'
@@ -181,10 +190,19 @@
         state: directory
         owner: "{{ jenkins_user }}"
 
-    - name: install the vagrant-libvirt plugin
+    - name: install the vagrant-libvirt plugin (non-RHEL8)
       shell: vagrant plugin install vagrant-libvirt
       become: yes
       become_user: "{{ jenkins_user }}"
+      when: not (ansible_os_family == "RedHat" and ansible_distribution_major_version == "8")
+
+    - name: install the vagrant-libvirt plugin (RHEL8)
+      command: vagrant plugin install vagrant-libvirt
+      environment:
+        CONFIGURE_ARGS: 'with-libvirt-include=/usr/include/libvirt with-libvirt-lib=/usr/lib64'
+      when:
+        - ansible_os_family == "RedHat"
+        - ansible_distribution_major_version|int >= 8
 
     - name: set the authorized keys
       authorized_key:
