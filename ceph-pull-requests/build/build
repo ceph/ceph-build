@@ -2,4 +2,4 @@
 export NPROC=$(nproc)
 timeout 3h ./run-make-check.sh
 sleep 5
-ps -ef | grep ceph || true
+ps -ef | grep -v jnlp | grep ceph || true
