@@ -62,6 +62,14 @@
           - ../../build/build
 
     publishers:
+      - postbuildscript:
+          builders:
+            - role: SLAVE
+              build-on:
+                  - FAILURE
+                  - ABORTED
+              build-steps:
+                - shell: "cat $WORKSPACE/build/CMakeFiles/CMakeError.log"
       - cobertura:
           report-file: "src/pybind/mgr/dashboard/frontend/coverage/cobertura-coverage.xml"
           only-stable: "true"
