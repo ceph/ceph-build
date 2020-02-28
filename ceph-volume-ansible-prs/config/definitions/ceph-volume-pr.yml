@@ -2,7 +2,7 @@
 - project:
     name: ceph-volume-ansible-prs-lvm
     distro:
-      - centos7
+      - centos8
     objectstore:
       - bluestore
       - filestore
@@ -18,7 +18,7 @@
 - project:
     name: ceph-volume-ansible-prs-simple
     distro:
-      - centos7
+      - centos8
     objectstore:
       - bluestore
       - filestore
@@ -35,7 +35,7 @@
 - project:
     name: ceph-volume-ansible-prs-batch
     distro:
-      - centos7
+      - centos8
     objectstore:
       - bluestore
       - filestore
@@ -51,7 +51,7 @@
 - project:
     name: ceph-volume-ansible-prs-batch-mixed
     distro:
-      - centos7
+      - centos8
     objectstore:
       - bluestore
       - filestore
