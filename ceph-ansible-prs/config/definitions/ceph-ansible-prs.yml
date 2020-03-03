@@ -71,7 +71,6 @@
     slave_labels: 'vagrant && libvirt && (smithi || centos7)'
     distribution:
       - centos
-      - ubuntu
     deployment:
       - container
       - non_container
@@ -94,24 +93,6 @@
       - filestore_to_bluestore
     jobs:
         - 'ceph-ansible-prs-common-trigger'
-
-- project:
-    name: ceph-ansible-prs-ubuntu-trigger
-    slave_labels: 'vagrant && libvirt && (smithi || centos7)'
-    distribution:
-      - ubuntu
-    deployment:
-      - container
-      - non_container
-    scenario:
-      - all_daemons
-      - update
-      - purge
-      - lvm_osds
-      - lvm_batch
-      - collocation
-    jobs:
-        - 'ceph-ansible-prs-ubuntu-trigger'
 
 - job-template:
     name: 'ceph-ansible-prs-{distribution}-{deployment}-{scenario}'
