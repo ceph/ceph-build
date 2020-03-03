@@ -126,7 +126,7 @@
                   predefined-parameters: |
                     BRANCH=${GIT_BRANCH}
                     FORCE=True
-                    DISTROS=centos7 centos8
+                    DISTROS=centos8
                     FLAVOR=notcmalloc
             - trigger-builds:
                 - project: 'ceph-dev-new'
