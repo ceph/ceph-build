@@ -4,7 +4,6 @@
       - luminous
     distribution:
       - centos
-      - ubuntu
     deployment:
       - container
       - non_container
