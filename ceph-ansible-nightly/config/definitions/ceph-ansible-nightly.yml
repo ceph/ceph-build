@@ -60,7 +60,6 @@
       - nautilus
     distribution:
       - centos
-      - ubuntu
     deployment:
       - container
       - non_container
