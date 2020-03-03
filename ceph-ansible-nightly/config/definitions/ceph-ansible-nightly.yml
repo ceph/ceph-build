@@ -19,40 +19,17 @@
       - add_osds
       - rgw_multisite
       - purge
-    ceph_ansible_branch:
-      - stable-3.2
-    jobs:
-        - 'ceph-ansible-nightly-{release}-{distribution}-{deployment}-{ceph_ansible_branch}-{scenario}'
-
-- project:
-    name: ceph-ansible-nightly-stable3.2_ooo
-    release:
-      - luminous
-    distribution:
-      - centos
-    deployment:
-      - container
-    scenario:
       - ooo_collocation
-    ceph_ansible_branch:
-      - stable-3.2
-    jobs:
-        - 'ceph-ansible-nightly-{release}-{distribution}-{deployment}-{ceph_ansible_branch}-{scenario}'
-
-- project:
-    name: ceph-ansible-nightly-stable3.2_non_container
-    release:
-      - luminous
-    distribution:
-      - centos
-    deployment:
-      - non_container
-    scenario:
       - switch_to_containers
     ceph_ansible_branch:
       - stable-3.2
     jobs:
         - 'ceph-ansible-nightly-{release}-{distribution}-{deployment}-{ceph_ansible_branch}-{scenario}'
+    exclude:
+      - deployment: non_container
+        scenario: ooo_collocation
+      - deployment: container
+        scenario: switch_to_containers
 
 - project:
     name: ceph-ansible-nightly-stable4.0
@@ -75,40 +52,17 @@
       - rgw_multisite
       - purge
       - lvm_auto_discovery
-    ceph_ansible_branch:
-      - stable-4.0
-    jobs:
-        - 'ceph-ansible-nightly-{release}-{distribution}-{deployment}-{ceph_ansible_branch}-{scenario}'
-
-- project:
-    name: ceph-ansible-nightly-stable4.0_ooo
-    release:
-      - nautilus
-    distribution:
-      - centos
-    deployment:
-      - container
-    scenario:
       - ooo_collocation
-    ceph_ansible_branch:
-      - stable-4.0
-    jobs:
-        - 'ceph-ansible-nightly-{release}-{distribution}-{deployment}-{ceph_ansible_branch}-{scenario}'
-
-- project:
-    name: ceph-ansible-nightly-stable4.0_non_container
-    release:
-      - nautilus
-    distribution:
-      - centos
-    deployment:
-      - non_container
-    scenario:
       - switch_to_containers
     ceph_ansible_branch:
       - stable-4.0
     jobs:
         - 'ceph-ansible-nightly-{release}-{distribution}-{deployment}-{ceph_ansible_branch}-{scenario}'
+    exclude:
+      - deployment: non_container
+        scenario: ooo_collocation
+      - deployment: container
+        scenario: switch_to_containers
 
 - job-template:
     name: 'ceph-ansible-nightly-{release}-{distribution}-{deployment}-{ceph_ansible_branch}-{scenario}'
