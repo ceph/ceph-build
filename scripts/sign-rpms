@@ -26,7 +26,7 @@ distros=( centos rhel )
 
 # Although upstream these might be "el6" or "el7", we just use these since they
 # are the same values used by the build system.
-distro_versions=( 6 7 )
+distro_versions=( 6 7 8 )
 
 # To unlock the gpg keys for the current run, it is requested over STDIN as
 # a password and later passed into GPG directly as a variable.
