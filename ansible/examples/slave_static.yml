@@ -422,7 +422,7 @@
         # we need to use 'host' here because prado currently uses ansible-playbook==1.9.1
         host: 'github.com'
         # github.com.pub is the output of `ssh-keyscan github.com`
-        key: "{{ lookup('file', 'playbook/files/ssh/hostkeys/github.com.pub') }}"
+        key: "{{ lookup('file', 'files/ssh/hostkeys/github.com.pub') }}"
       tags: github
 
     # The jenkins_node library tries to use pip3 with python-jenkins but it's not compatible.
