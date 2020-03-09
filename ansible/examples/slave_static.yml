@@ -218,12 +218,15 @@
         - curl
       when: ansible_pkg_mgr  == "apt"
 
-    # For now schroot/dchroot are the only package differences.  This may change.
-    # Just change this to be a list if that happens.
     - name: Install DEB requirements (>=18.04)
       apt:
-        name: schroot
+        name: "{{ item }}"
         state: present
+      with_items:
+        - schroot
+        - python3-dev
+        - python3-pip
+        - python3-virtualenv
       when:
         - ansible_pkg_mgr  == "apt"
         - ansible_distribution_major_version|int >= 18
@@ -321,14 +324,30 @@
         regexp: '^(127\.0\.1\.1(?!.*\b{{ ansible_hostname }}\b).*)$'
         line: '127.0.1.1 {{ ansible_hostname }}'
 
+    - set_fact:
+        pip_version: pip
+      when: (ansible_os_family == "RedHat" and ansible_distribution_major_version|int <= 7) or
+            ansible_os_family == "Debian" or
+            ansible_os_family == "Suse"
+
+    - set_fact:
+        pip_version: pip3
+      when: ansible_os_family == "RedHat" and ansible_distribution_major_version|int >= 8
+
     - name: install six, latest one
       become: true
-      pip: name=six state=latest
+      pip:
+        name: six
+        state: latest
+        executable: "{{ pip_version }}"
 
     - name: install python-jenkins
       become: true
       # https://review.openstack.org/460363
-      pip: name=python-jenkins version=0.4.15
+      pip:
+        name: python-jenkins
+        version: 0.4.15
+        executable: "{{ pip_version }}"
 
     - name: add github.com host key
       become: true
@@ -338,6 +357,12 @@
         host: 'github.com'
         # github.com.pub is the output of `ssh-keyscan github.com`
         key: "{{ lookup('file', 'files/ssh/hostkeys/github.com.pub') }}"
+
+    # The jenkins_node library tries to use pip3 with python-jenkins but it's not compatible.
+    - set_fact:
+        ansible_python_interpreter: /usr/bin/python
+      when:
+        - ansible_os_family == "Debian"
 
     - name: register the new slave to jenkins master with ssh
       jenkins_node:

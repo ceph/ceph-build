@@ -1,6 +1,6 @@
 - job:
     name: teuthology-pull-requests
-    node: trusty && huge
+    node: bionic && huge && !xenial
     project-type: freestyle
     defaults: global
     concurrent: true
