@@ -192,6 +192,16 @@
         - mock
       when: ansible_os_family == "RedHat"
 
+    - name: Add OpenSUSE Leap repos
+      command: "zypper ar {{ item }}"
+      with_items:
+        - "http://download.opensuse.org/distribution/leap/15.1/repo/non-oss/ repo-non-oss"
+        - "http://download.opensuse.org/distribution/leap/15.1/repo/oss/ repo-oss"
+        - "http://download.opensuse.org/update/leap/15.1/oss/ repo-update"
+        - "http://download.opensuse.org/update/leap/15.1/non-oss/ repo-update-non-oss"
+      when: ansible_pkg_mgr  == "zypper"
+      ignore_errors: true
+
     - name: Install requirements using zypper
       zypper:
         state: latest
