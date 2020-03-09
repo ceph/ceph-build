@@ -20,20 +20,34 @@
   user: admin
   vars:
    - jenkins_user: 'jenkins-build'
+   - jenkins_key: 'playbook/files/ssh/keys/jenkins_build.pub'
    # jenkins API credentials:
    - api_user: 'ceph-jenkins'
    - token: '{{ token }}'
    - api_uri: 'https://jenkins.ceph.com'
-   # this is also set in the example/hosts-static file
-   - nodename: '{{ ansible_hostname }}'
+   - jenkins_credentials_uuid: 'jenkins-build'
    - labels: '{{ labels }}'
+   - use_jnlp: false
+   - osc_user: 'username'
+   - osc_pass: 'password'
+   - nodename: '{{ ansible_hostname }}'
    - use_jnlp: true
 
   tasks:
-    - name: create a {{ jenkins_user }} user
-      user: name={{ jenkins_user }} comment="Jenkins Build Slave User"
 
-    - name: create a {{ jenkins_user }} home directory
+    - name: "create a {{ jenkins_user }} group"
+      group:
+        name: "{{ jenkins_user }}"
+        state: present
+
+    - name: "create a {{ jenkins_user }} user"
+      user:
+        name: "{{ jenkins_user }}"
+        group: "{{ jenkins_user }}"
+        state: present
+        comment: "Jenkins Build Slave User"
+
+    - name: "create a {{ jenkins_user }} home directory"
       file:
         path: "/home/{{ jenkins_user }}/"
         state: directory
@@ -46,10 +60,11 @@
         owner: "{{ jenkins_user }}"
 
     - name: set the authorized keys
-      authorized_key: user={{ jenkins_user }} key="{{ lookup('file', 'files/ssh/keys/jenkins_build.pub') }}"
+      authorized_key:
+        user: "{{ jenkins_user }}"
+        key: "{{ lookup('file', '{{ jenkins_key }}') }}"
 
-    - name: ensure {{ jenkins_user }} can sudo without a prompt
-      become: yes
+    - name: "ensure {{ jenkins_user }} can sudo without a prompt"
       lineinfile:
         dest: /etc/sudoers
         regexp: '^{{ jenkins_user }} ALL'
@@ -77,21 +92,54 @@
         line: "export LANGUAGE=en_US.UTF-8"
 
     - name: ensure the build dir exists
-      file: path=/home/{{ jenkins_user }}/build state=directory owner={{ jenkins_user }}
+      file:
+        path: "/home/{{ jenkins_user }}/build"
+        state: directory
+        owner: "{{ jenkins_user }}"
+
+    - name: Create .config/osc directory
+      file:
+        path: "/home/{{ jenkins_user }}/.config/osc"
+        state: directory
+        owner: "{{ jenkins_user }}"
+      when: ansible_pkg_mgr  == "zypper"
+
+    - name: Add oscrc file
+      blockinfile:
+        create: yes
+        block: |
+          [general]
+          apiurl = https://api.opensuse.org
+          #build-root = /var/tmp/build-root/%(repo)s-%{arch)s
+
+          [https://api.opensuse.org]
+          user = {{ osc_user }}
+          pass = {{ osc_pass }}
+
+        path: "/home/{{ jenkins_user }}/.config/osc/oscrc"
+      become_user: "{{ jenkins_user }}"
+      when: ansible_pkg_mgr  == "zypper"
 
     - name: ensure the home dir has the right owner permissions
-      file: path=/home/{{ jenkins_user }} state=directory owner={{ jenkins_user }} group={{ jenkins_user }} recurse=yes
+      file:
+        path: "/home/{{ jenkins_user }}"
+        state: directory
+        owner: "{{ jenkins_user }}"
+        group: "{{ jenkins_user }}"
+        recurse: yes
 
-    # smithi nodes do not have epel repos
-    - name: install an yum epel repo
-      become: yes
-      template:
-        src: "templates/yum-repos/epel.repo"
-        dest: "/etc/yum.repos.d/epel.repo"
-        owner: root
-        group: root
-        mode: 0644
-      when: ansible_pkg_mgr  == "yum"
+    - name: Install epel repo
+      yum:
+        name: epel-release
+        state: latest
+      when: ansible_os_family == "RedHat"
+
+    - name: disable epel for now
+      lineinfile:
+        path: "/etc/yum.repos.d/epel.repo"
+        regexp: '^enabled=.*'
+        line: 'enabled=0'
+      when: ansible_os_family == "RedHat"
 
     # This repo has EL8 packages that Ceph depends on.  These packages are not available in AppStream, BaseOS, or EPEL8 yet so we build and manage them.
     - name: Enable EL8 copr repo
@@ -111,12 +159,10 @@
         - ansible_os_family == "RedHat"
         - ansible_distribution_major_version|int == 8
 
-    - name: Install RPM requirements (All distro versions)
-      become: yes
+    - name: Install RPM requirements
       package:
         name: "{{ item }}"
         state: present
-        update_cache: yes
       with_items:
         - createrepo
         - epel-release
@@ -144,45 +190,79 @@
         - openssl-devel
         - libffi-devel
         - mock
-      when:
-        - ansible_os_family == "RedHat"
+      when: ansible_os_family == "RedHat"
 
-    - name: Install RPM requirements (<=7)
-      become: yes
-      package:
+    - name: Install requirements using zypper
+      zypper:
+        state: latest
+        update_cache: yes
+        name:
+        - autoconf
+        - automake
+        - binutils
+        - bison
+        - cmake
+        - ccache
+        - createrepo
+        - flex
+        - gcc
+        - gcc-c++
+        - gettext-runtime
+        - git
+        - java-1_8_0-openjdk
+        - jq
+        - libffi-devel
+        - libopenssl-devel
+        - libtool
+        - lsb-release
+        - make
+        - patch
+        - pkg-config
+        - python2-pip
+        - python2-virtualenv
+        - python3-pip
+        - python3-virtualenv
+        - rpm-build
+        - rpmdevtools
+        - tig
+        - wget 
+        # obs requirements
+        - osc
+        - build
+      when: ansible_pkg_mgr  == "zypper"
+
+
+    - name: install packages from epel (<=7)
+      yum:
         name: "{{ item }}"
         state: present
+        enablerepo: epel
         update_cache: yes
       with_items:
+        - jq
         - python-pip
         - python-virtualenv
       when:
         - ansible_os_family == "RedHat"
         - ansible_distribution_major_version|int <= 7
 
-    - name: Install RPM requirements (>=8)
-      become: yes
-      package:
+    - name: install packages from epel (>=8)
+      dnf:
         name: "{{ item }}"
         state: present
+        enablerepo: epel
         update_cache: yes
       with_items:
+        - jq
         - python3-pip
         - python3-virtualenv
       when:
         - ansible_os_family == "RedHat"
         - ansible_distribution_major_version|int >= 8
 
-    - name: install packages from epel
-      package:
-        name: jq
-        state: present
-        enablerepo: epel
-        update_cache: yes
-      when: ansible_os_family == "RedHat"
-
     # Run the equivalent of "apt-get update" as a separate step
-    - apt: update_cache=yes
+    - apt:
+        update_cache: yes
       when: ansible_pkg_mgr  == "apt"
 
     - name: Install universal DEB requirements
@@ -202,11 +282,10 @@
         - python-pip
         - python-virtualenv
         - libtool
-        - libssl-dev
-        - libffi-dev
         - autotools-dev
         - automake
-        - cmake
+        - libssl-dev
+        - libffi-dev
         - debian-archive-keyring
         # jenkins-job-builder job:
         - libyaml-dev
@@ -215,7 +294,6 @@
         - doxygen
         - ditaa
         - ant
-        - curl
       when: ansible_pkg_mgr  == "apt"
 
     - name: Install DEB requirements (>=18.04)
@@ -240,27 +318,38 @@
         - ansible_distribution_major_version|int <= 16
 
     - name: Add the Debian Jessie Key
-      become: yes
+      apt_key:
+       id: 2B90D010
+       url: https://ftp-master.debian.org/keys/archive-key-8.asc
+       keyring: /etc/apt/trusted.gpg
+       state: present
       when: ansible_pkg_mgr  == "apt"
-      apt_key: id=2B90D010 url=https://ftp-master.debian.org/keys/archive-key-8.asc keyring=/etc/apt/trusted.gpg state=present
 
     - name: Add the Debian Security Jessie Key
-      become: yes
+      apt_key:
+        id: C857C906
+        url: https://ftp-master.debian.org/keys/archive-key-8-security.asc
+        keyring: /etc/apt/trusted.gpg
+        state: present
       when: ansible_pkg_mgr  == "apt"
-      apt_key: id=C857C906 url=https://ftp-master.debian.org/keys/archive-key-8-security.asc keyring=/etc/apt/trusted.gpg state=present
 
     - name: Add the Debian Jessie Stable Key
-      become: yes
+      apt_key:
+        keyserver: pgp.mit.edu
+        id: 518E17E1
       when: ansible_pkg_mgr  == "apt"
-      apt_key: id=518E17E1 url=http://download.ceph.com/keys/jessie-stable-release.asc keyring=/etc/apt/trusted.gpg state=present
 
     - name: Install openjdk-7-jre
-      apt: name=openjdk-7-jre state=present
+      apt:
+        name: openjdk-7-jre
+        state: present
       when:
         ansible_distribution_release in ['precise', 'trusty', 'wheezy', 'jessie']
 
     - name: Install default openjdk for Xenial only
-      apt: name={{ item }} state=present
+      apt:
+        name: "{{ item }}"
+        state: present
       with_items:
         - default-jdk
         - default-jre
@@ -268,7 +357,9 @@
         ansible_distribution_release == 'xenial'
 
     - name: correct java version selected
-      alternatives: name=java path=/usr/lib/jvm/java-7-openjdk-amd64/jre/bin/java
+      alternatives:
+        name: java
+        path: /usr/lib/jvm/java-7-openjdk-amd64/jre/bin/java
       when:
         (ansible_distribution == 'Ubuntu' and ansible_distribution_release == 'precise') or
         (ansible_distribution == 'Debian' and ansible_distribution_release == 'wheezy')
@@ -281,7 +372,10 @@
       when: ansible_os_family == "RedHat"
 
     - name: ensure the rpmmacros file exists to fix centos builds
-      file: path="/home/{{ jenkins_user }}/.rpmmacros" owner="{{ jenkins_user }}" state=touch
+      file:
+        path: "/home/{{ jenkins_user }}/.rpmmacros"
+        owner: "{{ jenkins_user }}"
+        state: touch
 
     - name: write the rpmmacros needed in centos
       lineinfile:
@@ -298,32 +392,6 @@
         path: "/home/{{ jenkins_user }}/.gitconfig"
         owner: "{{ jenkins_user }}"
 
-    - name: Set Hostname with hostname command
-      become: yes
-      hostname:
-        name: "{{ ansible_hostname }}"
-      when: ansible_os_family != "Suse"
-
-    # https://github.com/ansible/ansible/issues/42726
-    - name: Set Hostname on OpenSUSE Leap
-      command: 'hostname ceph-builders'
-      when: ansible_os_family == "Suse"
-
-    - name: ensure that the current host is in /etc/hosts. Yes this is a thing.
-      become: true
-      replace:
-        backup: yes
-        dest: /etc/hosts
-        regexp: '^(127\.0\.1\.1(?!.*\b{{ ansible_hostname }}\b).*)$'
-        replace: '\1 {{ ansible_hostname }}'
-
-    - name: ensure that 127.0.1.1 is present with an actual hostname
-      become: true
-      lineinfile:
-        dest: /etc/hosts
-        regexp: '^(127\.0\.1\.1(?!.*\b{{ ansible_hostname }}\b).*)$'
-        line: '127.0.1.1 {{ ansible_hostname }}'
-
     - set_fact:
         pip_version: pip
       when: (ansible_os_family == "RedHat" and ansible_distribution_major_version|int <= 7) or
@@ -335,14 +403,13 @@
       when: ansible_os_family == "RedHat" and ansible_distribution_major_version|int >= 8
 
     - name: install six, latest one
-      become: true
       pip:
         name: six
         state: latest
         executable: "{{ pip_version }}"
+      when: ansible_os_family != "Suse"
 
     - name: install python-jenkins
-      become: true
       # https://review.openstack.org/460363
       pip:
         name: python-jenkins
@@ -350,13 +417,13 @@
         executable: "{{ pip_version }}"
 
     - name: add github.com host key
-      become: true
       known_hosts:
         path: '/etc/ssh/ssh_known_hosts'
         # we need to use 'host' here because prado currently uses ansible-playbook==1.9.1
         host: 'github.com'
         # github.com.pub is the output of `ssh-keyscan github.com`
-        key: "{{ lookup('file', 'files/ssh/hostkeys/github.com.pub') }}"
+        key: "{{ lookup('file', 'playbook/files/ssh/hostkeys/github.com.pub') }}"
+      tags: github
 
     # The jenkins_node library tries to use pip3 with python-jenkins but it's not compatible.
     - set_fact:
