@@ -80,7 +80,7 @@
       file: path=/home/{{ jenkins_user }}/build state=directory owner={{ jenkins_user }}
 
     - name: ensure the home dir has the right owner permissions
-      file: path=/home/{{ jenkins_user }} state=directory owner={{ jenkins_user }} group={{ jenkins_user }} recurse=yes
+      file: path=/home/{{ jenkins_user }} state=directory owner={{ jenkins_user }} group={{ jenkins_user }} recurse=yes follow=no
 
     # smithi nodes do not have epel repos
     - name: install an yum epel repo
