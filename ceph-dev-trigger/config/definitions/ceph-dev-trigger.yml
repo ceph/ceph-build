@@ -31,6 +31,7 @@
             - 'origin/luminous'
             - 'origin/mimic*'
             - 'origin/nautilus'
+            - 'origin/octopus'
           skip-tag: true
           timeout: 20
           wipe-workspace: true
