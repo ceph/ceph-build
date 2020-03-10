@@ -985,7 +985,7 @@ collect_ceph_logs() {
 teardown_vagrant_tests() {
     # collect ceph logs and teardown any running vagrant vms
     # this also cleans up any lingering livirt networks
-    scenarios=$(find . | grep vagrant_ssh_config | xargs dirname)
+    scenarios=$(find . | grep vagrant_ssh_config | xargs -r dirname)
 
     for scenario in $scenarios; do
         cd $scenario
