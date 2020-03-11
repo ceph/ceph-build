@@ -163,12 +163,6 @@
                     FORCE=True
                     DISTROS=centos8
                     FLAVOR=notcmalloc
-                - project: 'ceph-dev'
-                  predefined-parameters: |
-                    BRANCH=${GIT_BRANCH}
-                    FORCE=True
-                    DISTROS=bionic
-                    FLAVOR=crimson
 
     wrappers:
       - inject-passwords:
