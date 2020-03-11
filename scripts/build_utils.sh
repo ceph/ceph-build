@@ -90,7 +90,11 @@ create_virtualenv () {
     if [ "$(ls -A $path)" ]; then
         echo "Will reuse existing virtual env: $path"
     else
-        virtualenv -p python2.7 $path
+        if [ $(command -v python2.7) ]; then
+            virtualenv -p python2.7 $path
+        else
+            virtualenv -p python3 $path
+        fi
     fi
 }
 
