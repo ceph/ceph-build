@@ -31,6 +31,11 @@
     axes:
       - axis:
           type: label-expression
+          name: MACHINE_TYPE
+          values:
+            - braggi
+      - axis:
+          type: label-expression
           name: MACHINE_SIZE
           values:
             - huge
