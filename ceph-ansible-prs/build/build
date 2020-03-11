@@ -18,7 +18,7 @@ update_vagrant_boxes
 # crashes before teardown is executed, it means we keep leftofver from previous build.
 # We ensure before the test is launched that no fetch directory from previous build is present.
 pushd $WORKSPACE/tests
-scenarios=$(find . -name Vagrantfile | xargs dirname)
+scenarios=$(find . -name Vagrantfile | xargs -r dirname)
 for scenario in $scenarios; do
   pushd $scenario
   rm -rf fetch/

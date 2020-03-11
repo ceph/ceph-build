@@ -4,7 +4,7 @@
 
 cd $WORKSPACE/ceph-ansible/tests/functional
 
-scenarios=$(find . | grep Vagrantfile | xargs dirname)
+scenarios=$(find . | grep Vagrantfile | xargs -r dirname)
 
 for scenario in $scenarios; do
     cd $scenario
