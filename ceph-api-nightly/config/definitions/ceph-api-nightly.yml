@@ -2,6 +2,7 @@
     name: ceph-api-nightly
     ceph_branch:
       - master
+      - octopus
       - nautilus:
           ceph_build: "export CHECK_MAKEOPTS='-N -Q'; timeout 2h ./run-make-check.sh"
     test_suite:
