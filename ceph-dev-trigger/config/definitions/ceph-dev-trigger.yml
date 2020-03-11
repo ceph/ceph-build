@@ -112,13 +112,38 @@
                     FORCE=True
                     DISTROS=centos7
                     FLAVOR=notcmalloc
-      # build master and octopus on:
+      # build octopus on:
+      # default: bionic centos7 centos8 leap15
+      # notcmalloc: centos8
+      - conditional-step:
+          condition-kind: regex-match
+          regex: .*octopus.*
+          label: '${GIT_BRANCH}'
+          on-evaluation-failure: dont-run
+          steps:
+            - shell:
+                !include-raw:
+                - ../../../scripts/build_utils.sh
+                - ../../build/notify
+            - trigger-builds:
+                - project: 'ceph-dev'
+                  predefined-parameters: |
+                    BRANCH=${GIT_BRANCH}
+                    FORCE=True
+                    DISTROS=bionic centos7 centos8 leap15
+                - project: 'ceph-dev'
+                  predefined-parameters: |
+                    BRANCH=${GIT_BRANCH}
+                    FORCE=True
+                    DISTROS=centos8
+                    FLAVOR=notcmalloc
+      # build master on:
       # default: bionic centos7 centos8 leap15
       # notcmalloc: centos8
       # crimson: bionic
       - conditional-step:
           condition-kind: regex-match
-          regex: .*(master|octopus).*
+          regex: master
           label: '${GIT_BRANCH}'
           on-evaluation-failure: dont-run
           steps:
