@@ -8,17 +8,51 @@
 # Since the binaries are created with a different repository layout, this
 # script maps directories like "centos/6" to "rpm-$release/el6"
 
-releases=${*:-"firefly giant hammer infernalis testing"}
+releases=${*:-"nautilus octopus"}
 
 ceph_sync() {
   release=$1
-  deb_cmd="/opt/repos/ceph/$release/debian/jessie/* signer@download.ceph.com:/data/download.ceph.com/www/debian-$release/"
-  rsync --progress --exclude '*lockfile*' -avr $deb_cmd
+  for path in /opt/repos/ceph/$release*; do
 
-  for el_version in 7 8; do
-    el_cmd="/opt/repos/ceph/$release/centos/$el_version/* signer@download.ceph.com:/data/download.ceph.com/www/rpm-$release/el${el_version}/"
-    rsync --progress -avr $el_cmd
+    # We started using the new /opt/repos/ceph/$release-X.X.X format with Octopus.
+    # Older releases have all packages in one big $release dir without a dash.
+    if echo $path | grep -s '-'; then
+      # Octopus and later
+      newgen=true
+    else
+      # Nautilus and older
+      newgen=false
+    fi
+
+    if $newgen; then
+      version=$(echo $path | cut -d '-' -f2)
+      ssh signer@download.ceph.com "mkdir -p /data/download.ceph.com/www/debian-$version"
+
+      deb_cmd="$path/debian/jessie/* signer@download.ceph.com:/data/download.ceph.com/www/debian-$version/"
+    else
+      deb_cmd="$path/debian/jessie/* signer@download.ceph.com:/data/download.ceph.com/www/debian-$release/"
+    fi
+    rsync --progress --exclude '*lockfile*' -avr $deb_cmd
+
+    for el_version in 7 8; do
+      if $newgen; then
+        ssh signer@download.ceph.com "mkdir -p /data/download.ceph.com/www/rpm-$version/el$el_version"
+
+        el_cmd="$path/centos/$el_version/* signer@download.ceph.com:/data/download.ceph.com/www/rpm-$version/el${el_version}/"
+      else
+        el_cmd="$path/centos/$el_version/* signer@download.ceph.com:/data/download.ceph.com/www/rpm-$release/el${el_version}/"
+      fi
+      if [ -d "$path/centos/$el_version" ]; then
+        rsync --progress -avr $el_cmd
+      fi
+    done
   done
+
+  # Since paths are listed alphabetically/numerically in the first `for` loop, the last $version is what gets used for the new symlink below.
+  if $newgen; then
+    ssh signer@download.ceph.com "ln -sfn /data/download.ceph.com/www/debian-$version /data/download.ceph.com/www/debian-$release; \
+                                  ln -sfn /data/download.ceph.com/www/rpm-$version /data/download.ceph.com/www/rpm-$release"
+  fi
 }
 
 for i in "${releases[@]}"

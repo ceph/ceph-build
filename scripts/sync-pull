@@ -38,14 +38,18 @@ for endpoint in https://chacra.ceph.com/repos/$project/$release/$sha1/$highest_c
   fi
 done
 
+# Get numerical version number and create directory tree
+version=$(echo $chacra_repo_status | python -mjson.tool | grep \"version\" | awk '{ print $2 }' | sed 's/"//g')
+[[ -d /opt/repos/$project/$release-$version ]] | mkdir -p /opt/repos/$project/$release-$version/{debian/jessie,centos/{7,8}}
+
 # Replace $highest_combo with your own DISTRO/VERSION if you don't want to sync from the repo with the most packages.
-deb_cmd="ubuntu@chacra.ceph.com:/opt/repos/$project/$release/$sha1/$highest_combo/flavors/default/* /opt/repos/$project/$release/debian/jessie/"
+deb_cmd="ubuntu@chacra.ceph.com:/opt/repos/$project/$release/$sha1/$highest_combo/flavors/default/* /opt/repos/$project/$release-$version/debian/jessie/"
 echo $deb_cmd
 echo "--------------------------------------------"
-rsync -Lavh -e 'ssh -p 2222' --progress $deb_cmd
+rsync -Lavh -e 'ssh -p 2222' --progress --exclude '*lockfile*' $deb_cmd
 
 for el_version in 7 8; do
-  el_cmd="ubuntu@chacra.ceph.com:/opt/repos/$project/$release/$sha1/centos/$el_version/flavors/default/* /opt/repos/$project/$release/centos/$el_version/"
+  el_cmd="ubuntu@chacra.ceph.com:/opt/repos/$project/$release/$sha1/centos/$el_version/flavors/default/* /opt/repos/$project/$release-$version/centos/$el_version/"
   echo $el_cmd
   echo "--------------------------------------------"
   rsync -Lavh -e 'ssh -p 2222' --progress $el_cmd
