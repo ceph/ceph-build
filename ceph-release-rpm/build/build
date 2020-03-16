@@ -31,6 +31,10 @@ if [ "$target" = "centos7" ] ; then
     target=el7
     chacra_baseurl="ceph-release/${chacra_ref}/HEAD/centos/7"
 fi
+if [ "$target" = "centos8" ] ; then
+    target=el8
+    chacra_baseurl="ceph-release/${chacra_ref}/HEAD/centos/8"
+fi
 if [ "$target" = "sles11sp2" ] ; then
     target=sles11
     chacra_baseurl="ceph-release/${chacra_ref}/HEAD/sles/11"
@@ -47,6 +51,9 @@ BUILDAREA=$WORKSPACE/RPMBUILD
 cat <<EOF > ${BUILDAREA}/SPECS/ceph-release.spec
 %if 0%{?centos} == 7
 %define dist .el7
+%endif
+%if 0%{?centos} == 8
+%define dist .el8
 %endif
 
 
