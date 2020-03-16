@@ -38,6 +38,7 @@ If this is checked, then the binaries will be built and pushed to chacra even if
           values:
             - centos6
             - centos7
+            - centos8
 
     builders:
       - shell:
