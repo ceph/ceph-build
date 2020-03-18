@@ -27,7 +27,7 @@
     execution-strategy:
        combination-filter: |
          DIST == AVAILABLE_DIST && ARCH == AVAILABLE_ARCH &&
-         (ARCH == "x86_64" || (ARCH == "arm64" && ["xenial", "centos7"].contains(DIST)))
+         (ARCH == "x86_64" || (ARCH == "arm64" && ["xenial", "bionic", "centos7", "centos8"].contains(DIST)))
     axes:
       - axis:
           type: label-expression
