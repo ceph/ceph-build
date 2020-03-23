@@ -303,6 +303,7 @@
         - automake
         - libssl-dev
         - libffi-dev
+        - debian-keyring
         - debian-archive-keyring
         # jenkins-job-builder job:
         - libyaml-dev
@@ -354,6 +355,30 @@
       apt_key:
         keyserver: pgp.mit.edu
         id: 518E17E1
+      when: ansible_pkg_mgr  == "apt"
+
+    - name: Add the Debian Buster Key
+      apt_key:
+       id: 3CBBABEE
+       url: https://ftp-master.debian.org/keys/archive-key-10.asc
+       keyring: /etc/apt/trusted.gpg
+       state: present
+      when: ansible_pkg_mgr  == "apt"
+
+    - name: Add the Debian Security Buster Key
+      apt_key:
+        id: CAA96DFA
+        url: https://ftp-master.debian.org/keys/archive-key-10-security.asc
+        keyring: /etc/apt/trusted.gpg
+        state: present
+      when: ansible_pkg_mgr  == "apt"
+
+    - name: Add the Debian Buster Stable Key
+      apt_key:
+        id: 77E11517
+        url: https://ftp-master.debian.org/keys/release-10.asc
+        keyring: /etc/apt/trusted.gpg
+        state: present
       when: ansible_pkg_mgr  == "apt"
 
     - name: Install openjdk-7-jre
