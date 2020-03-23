@@ -4,6 +4,8 @@
 # a repository layout. The layout follows this convention:
 #
 #     /opt/repos/$project/$release/$distro/$distro_version
+#     OR (for octopus and later)
+#     /opt/repos/$project/$release-X.X.X/$distro/$distro_version
 #
 # If no arguments are passed in, all defined releases are used. It can
 # optionally be just one or any combination of them, like:
@@ -17,80 +19,78 @@
 
 keyid=460F3994
 
-# default releases
-releases=${*:-"giant hammer infernalis testing"}
+if [ $# -eq 0 ]; then
+  # Default releases if no arguments passed
+  releases=( mimic nautilus octopus )
+else
+  releases=( "$@" )
+fi
 
 # distros are not configurable. "rhel" might not exist in every release (for
 # example it doesn't exist for infernalis releases.
 distros=( centos rhel )
 
-# Although upstream these might be "el6" or "el7", we just use these since they
+# Although upstream these might be "el7" or "el8", we just use these since they
 # are the same values used by the build system.
-distro_versions=( 6 7 8 )
+distro_versions=( 7 8 )
 
 # To unlock the gpg keys for the current run, it is requested over STDIN as
 # a password and later passed into GPG directly as a variable.
 read -s -p "Key Passphrase: " GPG_PASSPHRASE
 echo
 
-for release in "${releases[@]}"
-  do
-  for distro in  "${distros[@]}"
-    do
-    for distro_version in  "${distro_versions[@]}"
-      do
-      path="/opt/repos/ceph/$release/$distro/$distro_version"
-      printf '=%.0s' {1..100}
-      echo "Release:        " $release
-      echo "Distro:         " $distro
-      echo "Distro Version: " $distro_version
-      echo "Path:           " $path
-      printf '=%.0s' {1..100}
-      update_repo=0
-      cd $path
-      for rpm in `find -name "*.rpm"`
-        do
-        # this call to `rpm -qi -p` will spit out metatada information
-        # from an rpm file which will tell us about the signature. This
-        # is significantly faster than letting gpg see if this needs to
-        # be signed or not.
-        signature=$(rpm -qi  -p $rpm 2>/dev/null | grep ^Signature)
-        if ! grep -iq $keyid <<< "$signature" ; then
-          rpm_path=`readlink -f $rpm`
-          echo "signing:  $rpm_path"
-          update_repo=1
+for release in "${releases[@]}"; do
+  for distro in  "${distros[@]}"; do
+    for distro_version in  "${distro_versions[@]}"; do
+      for path in /opt/repos/ceph/$release*; do
+        if [ -d "$path/$distro/$distro_version" ]; then
+          #path="/opt/repos/ceph/$release/$distro/$distro_version"
+          echo "Checking packages in: $path/$distro/$distro_version"
+          update_repo=0
+          cd $path/$distro/$distro_version
 
-          echo "yes" | setsid rpm \
-            --define "_gpg_name '$keyid'" \
-            --define '_signature gpg' \
-            --define '__gpg_check_password_cmd /bin/true' \
-            --define "__gpg_sign_cmd %{__gpg} gpg --no-tty --yes --batch --no-armor --passphrase '$GPG_PASSPHRASE' --no-secmem-warning -u "%{_gpg_name}" --sign --detach-sign --output %{__signature_filename} %{__plaintext_filename}" \
-            --resign "$rpm_path"
+          for rpm in `find -name "*.rpm"`; do
+            # this call to `rpm -qi -p` will spit out metatada information
+            # from an rpm file which will tell us about the signature. This
+            # is significantly faster than letting gpg see if this needs to
+            # be signed or not.
+            signature=$(rpm -qi  -p $rpm 2>/dev/null | grep ^Signature)
+            if ! grep -iq $keyid <<< "$signature" ; then
+              rpm_path=`readlink -f $rpm`
+              echo "signing:  $rpm_path"
+              update_repo=1
+
+              echo "yes" | setsid rpm \
+                --define "_gpg_name '$keyid'" \
+                --define '_signature gpg' \
+                --define '__gpg_check_password_cmd /bin/true' \
+                --define "__gpg_sign_cmd %{__gpg} gpg --no-tty --yes --batch --no-armor --passphrase '$GPG_PASSPHRASE' --no-secmem-warning -u "%{_gpg_name}" --sign --detach-sign --output %{__signature_filename} %{__plaintext_filename}" \
+                --resign "$rpm_path"
+
+            fi
+          done
+
+          # now sign the repomd.xml files
+          if [[ $update_repo -eq 1 ]]; then
+            for repomd in `find -name repomd.xml`; do
+              echo "signing repomd: $repomd"
+              gpg --batch --yes --passphrase "$GPG_PASSPHRASE" --detach-sign --armor -u $keyid $repomd
+            done
+          fi
+
+          # finally, update the repo metadata
+          if [[ $update_repo -eq 1 ]]; then
+            for directory in $(ls $path/$distro/$distro_version); do
+              cd $directory
+              # use the --no-database to workaround the large dbg packages issues
+              # https://tracker.ceph.com/issues/39387
+              createrepo --no-database .
+              cd -
+            done
+          fi
 
         fi
-  	  done
-
-  	  # now sign the repomd.xml files
-      if [[ $update_repo -eq 1 ]]; then
-  	    for repomd in `find -name repomd.xml`
-  	      do
-  	      echo "signing repomd: $repomd"
-  	      gpg --batch --yes --passphrase "$GPG_PASSPHRASE" --detach-sign --armor -u $keyid $repomd
-  	    done
-      fi
-
-      # finally, update the repo metadata because when signing the RPM files
-      # the metadata gets all messed up.
-      if [[ $update_repo -eq 1 ]]; then
-        for directory in `ls $path`
-        do
-          cd $directory
-	  # use the --no-database to workaround the large dbg packages issues
-	  # https://tracker.ceph.com/issues/39387
-          createrepo --no-database .
-          cd -
-        done
-      fi
+      done
     done
   done
 done
