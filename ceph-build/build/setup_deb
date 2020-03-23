@@ -31,6 +31,7 @@ get_bptag() {
     dist=$1
 
     [ "$dist" = "sid" ] && dver=""
+    [ "$dist" = "buster" ] && dver="~bpo10+1"
     [ "$dist" = "stretch" ] && dver="~bpo90+1"
     [ "$dist" = "jessie" ] && dver="~bpo80+1"
     [ "$dist" = "wheezy" ] && dver="~bpo70+1"
@@ -61,7 +62,7 @@ vers=`cat ./dist/version`
 # like project/ref/ubuntu/jessie/.
 distro=""
 case $DIST in
-    stretch|jessie|wheezy)
+    buster|stretch|jessie|wheezy)
         distro="debian"
         ;;
     *)
@@ -76,6 +77,7 @@ gen_debian_version() {
     dist=$2
 
     [ "$dist" = "sid" ] && dver="$raw"
+    [ "$dist" = "buster" ] && dver="$raw~bpo10+1"
     [ "$dist" = "stretch" ] && dver="$raw~bpo90+1"
     [ "$dist" = "jessie" ] && dver="$raw~bpo80+1"
     [ "$dist" = "wheezy" ] && dver="$raw~bpo70+1"

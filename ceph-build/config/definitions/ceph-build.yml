@@ -36,6 +36,7 @@
             - centos8
             - jessie
             - stretch
+            - buster
             - precise
             - centos6
             - wheezy
