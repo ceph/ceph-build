@@ -50,8 +50,9 @@ ceph_sync() {
 
   # Since paths are listed alphabetically/numerically in the first `for` loop, the last $version is what gets used for the new symlink below.
   if $newgen; then
-    ssh signer@download.ceph.com "ln -sfn /data/download.ceph.com/www/debian-$version /data/download.ceph.com/www/debian-$release; \
-                                  ln -sfn /data/download.ceph.com/www/rpm-$version /data/download.ceph.com/www/rpm-$release"
+    ssh signer@download.ceph.com "cd /data/download.ceph.com/www/; \
+                                  ln -sfn debian-$version debian-$release; \
+                                  ln -sfn rpm-$version rpm-$release"
   fi
 }
 
