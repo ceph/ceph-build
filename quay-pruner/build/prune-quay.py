@@ -41,21 +41,22 @@ def get_all_quay_tags(quaytoken):
     return ret
 
 
-NAME_RE = re.compile(r'(.*)-([0-9a-f]{7})-centos-7-x86_64-devel')
+NAME_RE = re.compile(r'(.*)-([0-9a-f]{7})-centos-([78])-x86_64-devel')
 
 
 def parse_quay_tag(tag):
 
     mo = NAME_RE.match(tag)
     if mo is None:
-        return None, None
+        return None, None, None
     ref = mo.group(1)
     short_sha1 = mo.group(2)
-    return ref, short_sha1
+    el = mo.group(3)
+    return ref, short_sha1, el
 
 
 def present_in_shaman(tag, verbose):
-    ref, short_sha1 = parse_quay_tag(tag['name'])
+    ref, short_sha1, el = parse_quay_tag(tag['name'])
     if ref is None:
         print("Can't parse name", tag['name'], file=sys.stderr)
         return False
@@ -64,7 +65,7 @@ def present_in_shaman(tag, verbose):
             'https://shaman.ceph.com/api/search/',
             params={
                 'ref': ref,
-                'distros': 'centos/7/x86_64',
+                'distros': 'centos/{el}/x86_64'.format(el=el),
                 'flavor': 'default',
                 'status': 'ready',
             },
@@ -152,7 +153,7 @@ def main():
                 print('Skipping already-deleted tag', tag['name'])
             continue
 
-        ref, short_sha1 = parse_quay_tag(tag['name'])
+        ref, short_sha1, el = parse_quay_tag(tag['name'])
         if ref is None:
             continue
 
