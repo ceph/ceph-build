@@ -21,7 +21,7 @@ fi
 #############
 function syntax_check {
   "$VENV"/ansible-playbook -i "$WORKSPACE"/ceph-ansible/tests/functional/all_daemons/hosts site.yml.sample --syntax-check --list-tasks -vv
-  "$VENV"/ansible-playbook -i "$WORKSPACE"/ceph-ansible/tests/functional/all_daemons/hosts site-docker.yml.sample --syntax-check --list-tasks -vv
+  "$VENV"/ansible-playbook -i "$WORKSPACE"/ceph-ansible/tests/functional/all_daemons/hosts site-container.yml.sample --syntax-check --list-tasks -vv
   "$VENV"/ansible-playbook -i "$WORKSPACE"/ceph-ansible/tests/functional/all_daemons/hosts infrastructure-playbooks/*.yml --syntax-check --list-tasks -vv
 }
 
