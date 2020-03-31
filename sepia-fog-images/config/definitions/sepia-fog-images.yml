@@ -15,10 +15,14 @@
           artifact-days-to-keep: -1
           artifact-num-to-keep: -1
 
+    # Run every Sunday at noon
+    triggers:
+      - timed: "0 12 * * 0"
+
     parameters:
       - string:
           name: DISTROS
-          default: "ubuntu_14.04 ubuntu_16.04 centos_7.5 rhel_7.5"
+          default: "ubuntu_18.04 centos_8.1 rhel_8.1"
           description: "Distro to capture images for: (e.g., 'ubuntu_16.04', 'centos_7.5' or 'ubuntu_16.04 rhel_7.5' for multiple distros)"
       - string:
           name: MACHINETYPES
