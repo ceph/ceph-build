@@ -1,26 +1,18 @@
 - project:
     name: ceph-container-nightly
-    os:
-      - centos7
-    ceph-version:
-      - jewel
-      - luminous
     test:
-      - cluster
-      - bluestore_osds_container
-      - filestore_osds_container
-    exclude:
-       - ceph-version: jewel
-         test: bluestore_osds_container
+      - all_daemons
+      - collocation
+      - lvm_osds
     jobs:
-        - 'ceph-container-nightly-ceph_ansible-{ceph-version}-{os}-{test}'
+        - 'ceph-container-nightly-ceph_ansible-{test}'
 
 - job-template:
-    name: 'ceph-container-nightly-ceph_ansible-{ceph-version}-{os}-{test}'
+    name: 'ceph-container-nightly-ceph_ansible-{test}'
     node: vagrant&&libvirt&&centos7
     concurrent: true
     defaults: global
-    display-name: 'ceph-container: Nightly tests [ceph_ansible-{ceph-version}-{os}-{test}]'
+    display-name: 'ceph-container: Nightly tests [ceph_ansible-{test}]'
     quiet-period: 5
     block-downstream: false
     block-upstream: false
@@ -54,7 +46,7 @@
     builders:
       - inject:
           properties-content: |
-            SCENARIO=ceph_ansible-{ceph-version}-{os}-{test}
+            SCENARIO=ceph_ansible-{test}
             NIGHTLY=TRUE
       - shell:
           !include-raw-escape:
