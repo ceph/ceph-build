@@ -38,6 +38,10 @@ raw_version=`echo $vers | cut -d '-' -f 1`
 
 RELEASE_BRANCH=$(release_from_version $raw_version)
 case $RELEASE_BRANCH in
+pacific)
+    DISTRO=opensuse
+    RELEASE="15.2"
+    ;;
 octopus)
     DISTRO=opensuse
     RELEASE="15.2"
