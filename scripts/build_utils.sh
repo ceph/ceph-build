@@ -8,6 +8,9 @@ VENV="$TEMPVENV/bin"
 function release_from_version() {
     local ver=$1
     case $ver in
+    16.*)
+        rel="pacific"
+        ;;
     15.*)
         rel="octopus"
         ;;
