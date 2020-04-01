@@ -204,7 +204,7 @@ if [[ "$CI_CONTAINER" == true && $DISTRO == "centos" && $FLAVOR == "default" ]] 
 
     cd $WORKSPACE/ceph-container
     # avoid failing the build if build-push fails
-    CI_CONTAINER=${CI_CONTAINER} SHA1=${SHA1} /bin/bash ./contrib/build-push-ceph-container-imgs.sh || /bin/true
+    sudo CI_CONTAINER=${CI_CONTAINER} SHA1=${SHA1} /bin/bash ./contrib/build-push-ceph-container-imgs.sh || /bin/true
     cd $WORKSPACE
 fi
 
