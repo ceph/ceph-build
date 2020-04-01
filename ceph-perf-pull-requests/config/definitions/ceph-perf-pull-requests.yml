@@ -128,7 +128,7 @@
           debian|ubuntu)
               sudo env DEBIAN_FRONTEND=noninteractive apt-get install -y python3-yaml python3-lxml python3-prettytable;;
           centos|fedora|rhel)
-              sudo yum install -y python36-PyYAML python36-lxml python36-prettytable;;
+              sudo yum install -y python3-pyyaml python3-lxml python3-prettytable;;
           *)
               echo "unknown distro: $ID"
               exit 1
