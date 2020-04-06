@@ -207,6 +207,7 @@ if [[ $CI_CONTAINER == "true" && $DISTRO == "centos" && $FLAVOR == "default" ]] 
     # avoid failing the build if build-push fails
     sudo -E CI_CONTAINER=${CI_CONTAINER} SHA1=${SHA1} /bin/bash ./contrib/build-push-ceph-container-imgs.sh || /bin/true
     cd $WORKSPACE
+    sudo rm -rf ceph-container
 fi
 
 # update shaman with the completed build status
