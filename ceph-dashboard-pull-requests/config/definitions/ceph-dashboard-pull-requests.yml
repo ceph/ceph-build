@@ -62,4 +62,6 @@
       - shell:
           !include-raw:
             - ../../../scripts/dashboard/install-e2e-test-deps.sh
+            - ../../../scripts/dashboard/install-prometheus-and-alertmanager.sh  
       - shell: "cd src/pybind/mgr/dashboard; timeout 7200 ./run-frontend-e2e-tests.sh"
+      - shell: pkill prometheus && pkill alertmanager
