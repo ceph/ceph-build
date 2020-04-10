@@ -15,13 +15,13 @@ ceph_sync() {
   for path in /opt/repos/ceph/$release*; do
 
     # We started using the new /opt/repos/ceph/$release-X.X.X format with Octopus.
-    # Older releases have all packages in one big $release dir without a dash.
-    if echo $path | grep -s '-'; then
-      # Octopus and later
-      newgen=true
-    else
+    # Older releases have all packages in one big $release dir without a trailing "-X.X.X" so we need to adjust paths accordingly.
+    if [[ "$release" =~ ^[a-n].* ]]; then
       # Nautilus and older
       newgen=false
+    else
+      # Octopus and newer
+      newgen=true
     fi
 
     if $newgen; then
