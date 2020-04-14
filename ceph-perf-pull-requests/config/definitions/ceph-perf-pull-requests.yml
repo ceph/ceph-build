@@ -147,17 +147,17 @@
           src_dir: "ceph-master"
           osd-flavor: '{osd-flavor}'
           # ideally cbt-results should be persited across jobs, so the test result can be reused
-          archive_basedir: "${WORKSPACE}/cbt-results"
+          archive_basedir: "$WORKSPACE/cbt-results"
       - run-cbt:
           src_dir: "ceph-pr"
           osd-flavor: '{osd-flavor}'
           # use the basedir of git checkout, so it can be wiped
-          archive_basedir: "${WORKSPACE}/ceph-pr"
+          archive_basedir: "$WORKSPACE/ceph-pr"
       - compare-cbt-results:
           src_dir_master: "ceph-master"
-          archive_master: "${WORKSPACE}/cbt-results"
+          archive_master: "$WORKSPACE/cbt-results"
           src_dir_pr: "ceph-pr"
-          archive_pr: "${WORKSPACE}/ceph-pr"
+          archive_pr: "$WORKSPACE/ceph-pr"
 
     publishers:
       - postbuildscript:
