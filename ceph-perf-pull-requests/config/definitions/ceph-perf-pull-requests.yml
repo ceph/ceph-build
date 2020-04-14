@@ -70,13 +70,13 @@
             -a $archive_dir_pr             \
             -b $archive_dir_master
 
-- job:
-    name: ceph-perf-pull-requests
+- job-template:
+    name: 'ceph-perf-{osd-flavor}'
     project-type: freestyle
     defaults: global
     concurrent: true
     node: performance
-    display-name: 'ceph: crimson perf test'
+    display-name: 'ceph: {osd-flavor} perf test'
     quiet-period: 5
     block-downstream: false
     block-upstream: false
@@ -102,7 +102,7 @@
           allow-whitelist-orgs-as-admins: true
           org-list:
             - ceph
-          trigger-phrase: 'jenkins test crimson perf'
+          trigger-phrase: 'jenkins test {osd-flavor} perf'
           skip-build-phrase: '^jenkins do not test.*'
           only-trigger-phrase: false
           white-list-labels:
@@ -137,10 +137,12 @@
           esac
       - run-cbt:
           src_dir: "ceph-master"
+          osd-flavor: '{osd-flavor}'
           # ideally cbt-results should be persited across jobs, so the test result can be reused
           archive_basedir: "${WORKSPACE}/cbt-results"
       - run-cbt:
           src_dir: "ceph-pr"
+          osd-flavor: '{osd-flavor}'
           # use the basedir of git checkout, so it can be wiped
           archive_basedir: "${WORKSPACE}/ceph-pr"
       - compare-cbt-results:
@@ -158,3 +160,9 @@
                   - ABORTED
               build-steps:
                 - shell: "sudo reboot"
+- project:
+    name: ceph-perf
+    osd-flavor:
+      - crimson
+    jobs:
+      - ceph-perf-{osd-flavor}
