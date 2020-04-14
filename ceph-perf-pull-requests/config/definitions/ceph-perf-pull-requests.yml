@@ -131,7 +131,7 @@
 
     builders:
       - shell: |
-          cd ${WORKSPACE}/cbt
+          cd ${{WORKSPACE}}/cbt
           source /etc/os-release || ID=ubuntu
           case $ID in
           debian|ubuntu)
