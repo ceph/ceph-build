@@ -26,7 +26,7 @@
           description: "Distro to capture images for: (e.g., 'ubuntu_16.04', 'centos_7.5' or 'ubuntu_16.04 rhel_7.5' for multiple distros)"
       - string:
           name: MACHINETYPES
-          default: "smithi mira"
+          default: "smithi"
           description: "Machine types to capture images for.  (e.g., 'smithi' or 'smithi mira' for multiple machine types)"
       - string:
           name: TEUTHOLOGYBRANCH
