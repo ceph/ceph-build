@@ -49,8 +49,8 @@
     name: run-cbt
     builders:
       - shell: |
-          cd {src_dir}
-          archive_dir={archive_basedir}/$(git rev-parse --short HEAD)
+          cd {src-dir}
+          archive_dir={archive-basedir}/$(git rev-parse --short HEAD)
           if test -d $archive_dir ; then
               exit 0
           fi
@@ -69,10 +69,10 @@
     name: compare-cbt-results
     builders:
       - shell: |
-          cd ${{WORKSPACE}}/{src_dir_master}
-          archive_dir_master={archive_master}/$(git rev-parse --short HEAD)
-          cd ${{WORKSPACE}}/{src_dir_pr}
-          archive_dir_pr={archive_pr}/$(git rev-parse --short HEAD)
+          cd ${{WORKSPACE}}/{src-dir-master}
+          archive_dir_master={archive-master}/$(git rev-parse --short HEAD)
+          cd ${{WORKSPACE}}/{src-dir-pr}
+          archive_dir_pr={archive-pr}/$(git rev-parse --short HEAD)
           ${{WORKSPACE}}/cbt/compare.py -v \
             -a $archive_dir_pr             \
             -b $archive_dir_master
@@ -144,20 +144,20 @@
               ;;
           esac
       - run-cbt:
-          src_dir: "ceph-master"
+          src-dir: "ceph-master"
           osd-flavor: '{osd-flavor}'
           # ideally cbt-results should be persited across jobs, so the test result can be reused
-          archive_basedir: "$WORKSPACE/cbt-results"
+          archive-basedir: "$WORKSPACE/cbt-results"
       - run-cbt:
-          src_dir: "ceph-pr"
+          src-dir: "ceph-pr"
           osd-flavor: '{osd-flavor}'
           # use the basedir of git checkout, so it can be wiped
-          archive_basedir: "$WORKSPACE/ceph-pr"
+          archive-basedir: "$WORKSPACE/ceph-pr"
       - compare-cbt-results:
-          src_dir_master: "ceph-master"
-          archive_master: "$WORKSPACE/cbt-results"
-          src_dir_pr: "ceph-pr"
-          archive_pr: "$WORKSPACE/ceph-pr"
+          src-dir-master: "ceph-master"
+          archive-master: "$WORKSPACE/cbt-results"
+          src-dir-pr: "ceph-pr"
+          archive-pr: "$WORKSPACE/ceph-pr"
 
     publishers:
       - postbuildscript:
