@@ -118,14 +118,6 @@ install_python_packages_no_binary () {
     PIP_SDIST_INDEX="$HOME/.cache/pip"
     mkdir -p $PIP_SDIST_INDEX
 
-    echo "Ensuring latest pip is installed"
-    # XXX This means we are now pinning to 10.0.0, to prevent issues on pip
-    # mismtaching versions, but also that we need to revisit this when newer
-    # options are needed. ``easy_install`` is a must on systems with ancient
-    # versions of pip that break with newer versions of pkg_resources that come
-    # with the virtualenv. Doing an initial upgrade with easy_install
-    # circumvents the problem
-    $VENV/easy_install --upgrade pip
     $VENV/pip install "pip==10.0.0"
 
     echo "Updating setuptools"
@@ -157,14 +149,6 @@ install_python_packages () {
     PIP_SDIST_INDEX="$HOME/.cache/pip"
     mkdir -p $PIP_SDIST_INDEX
 
-    echo "Ensuring latest pip is installed"
-    # XXX This means we are now pinning to 10.0.0, to prevent issues on pip
-    # mismtaching versions, but also that we need to revisit this when newer
-    # options are needed. ``easy_install`` is a must on systems with ancient
-    # versions of pip that break with newer versions of pkg_resources that come
-    # with the virtualenv. Doing an initial upgrade with easy_install
-    # circumvents the problem
-    $VENV/easy_install --upgrade pip
     $VENV/pip install "pip==10.0.0"
 
     echo "Updating setuptools"
