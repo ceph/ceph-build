@@ -107,10 +107,20 @@ install_python_packages_no_binary () {
     # the virtualenv exists it will get re-used since this function can be used
     # along with install_python_packages
     #
-    # Usage:
+    # Usage (with pip 10.0.0 [the default]):
     #
     #   to_install=( "ansible" "chacractl>=0.0.4" )
     #   install_python_packages_no_binary "to_install[@]"
+    #
+    # Usage (with pip<X.X.X [can also do ==X.X.X or !=X.X.X]):
+    #
+    #   to_install=( "ansible" "chacractl>=0.0.4" )
+    #   install_python_packages_no_binary "to_install[@]" "pip<X.X.X"
+    #
+    # Usage (with latest pip):
+    #
+    #   to_install=( "ansible" "chacractl>=0.0.4" )
+    #   install_python_packages_no_binary "to_install[@]" latest
 
     create_virtualenv $TEMPVENV
 
@@ -118,15 +128,21 @@ install_python_packages_no_binary () {
     PIP_SDIST_INDEX="$HOME/.cache/pip"
     mkdir -p $PIP_SDIST_INDEX
 
-    echo "Ensuring latest pip is installed"
-    # XXX This means we are now pinning to 10.0.0, to prevent issues on pip
-    # mismtaching versions, but also that we need to revisit this when newer
-    # options are needed. ``easy_install`` is a must on systems with ancient
-    # versions of pip that break with newer versions of pkg_resources that come
-    # with the virtualenv. Doing an initial upgrade with easy_install
-    # circumvents the problem
-    $VENV/easy_install --upgrade pip
-    $VENV/pip install "pip==10.0.0"
+    # We started pinning pip to 10.0.0 as the default to prevent mismatching
+    # versions on non-ephemeral slaves.  Some jobs require different or latest
+    # pip though so these if statements allow for that.
+    if [ "$2" == "latest" ]; then
+        echo "Ensuring latest pip is installed"
+        $VENV/pip install -U pip
+    elif [[ -n $2 && "$2" != "latest" ]]; then
+        echo "Installing $2"
+        $VENV/pip install "$2"
+    else
+        # This is the default for most jobs.
+        # See ff01d2c5 and fea10f52
+        echo "Installing pip 10.0.0"
+        $VENV/pip install "pip==10.0.0"
+    fi
 
     echo "Updating setuptools"
     pip_download setuptools
@@ -146,10 +162,20 @@ install_python_packages () {
     # Use this function to create a virtualenv and install
     # python packages. Pass a list of package names.
     #
-    # Usage:
+    # Usage (with pip 10.0.0 [the default]):
     #
     #   to_install=( "ansible" "chacractl>=0.0.4" )
     #   install_python_packages "to_install[@]"
+    #
+    # Usage (with pip<X.X.X [can also do ==X.X.X or !=X.X.X]):
+    #
+    #   to_install=( "ansible" "chacractl>=0.0.4" )
+    #   install_python_packages_no_binary "to_install[@]" "pip<X.X.X"
+    #
+    # Usage (with latest pip):
+    #
+    #   to_install=( "ansible" "chacractl>=0.0.4" )
+    #   install_python_packages "to_install[@]" latest
 
     create_virtualenv $TEMPVENV
 
@@ -157,15 +183,21 @@ install_python_packages () {
     PIP_SDIST_INDEX="$HOME/.cache/pip"
     mkdir -p $PIP_SDIST_INDEX
 
-    echo "Ensuring latest pip is installed"
-    # XXX This means we are now pinning to 10.0.0, to prevent issues on pip
-    # mismtaching versions, but also that we need to revisit this when newer
-    # options are needed. ``easy_install`` is a must on systems with ancient
-    # versions of pip that break with newer versions of pkg_resources that come
-    # with the virtualenv. Doing an initial upgrade with easy_install
-    # circumvents the problem
-    $VENV/easy_install --upgrade pip
-    $VENV/pip install "pip==10.0.0"
+    # We started pinning pip to 10.0.0 as the default to prevent mismatching
+    # versions on non-ephemeral slaves.  Some jobs require different or latest
+    # pip though so these if statements allow for that.
+    if [ "$2" == "latest" ]; then
+        echo "Ensuring latest pip is installed"
+        $VENV/pip install -U pip
+    elif [[ -n $2 && "$2" != "latest" ]]; then
+        echo "Installing $2"
+        $VENV/pip install "$2"
+    else
+        # This is the default for most jobs.
+        # See ff01d2c5 and fea10f52
+        echo "Installing pip 10.0.0"
+        $VENV/pip install "pip==10.0.0"
+    fi
 
     echo "Updating setuptools"
     pip_download setuptools
