@@ -13,6 +13,7 @@ if grep -q  debian /etc/*-release; then
     sudo apt-get install -y google-chrome-stable
     sudo apt-get install -y python-requests python3-requests python-openssl python3-openssl python-jinja2 python3-jinja2 \
 	python-jwt python3-jwt python-scipy python3-scipy python-routes python3-routes
+    sudo apt-get install -y xvfb
     sudo rm /etc/apt/sources.list.d/google-chrome.list
 elif grep -q rhel /etc/*-release; then
     sudo dd of=/etc/yum.repos.d/google-chrome.repo status=none <<EOF
@@ -26,4 +27,5 @@ EOF
     sudo yum install -y google-chrome-stable
     sudo rm /etc/yum.repos.d/google-chrome.repo
     sudo yum install -y python-requests pyOpenSSL python-jinja2 python-jwt scipy python-routes python3-routes
+    sudo yum install -y xorg-x11-server-Xvfb.x86_64
 fi
