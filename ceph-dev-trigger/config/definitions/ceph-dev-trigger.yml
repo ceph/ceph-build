@@ -113,7 +113,7 @@
                     DISTROS=centos7
                     FLAVOR=notcmalloc
       # build octopus on:
-      # default: bionic centos7 centos8 leap15
+      # default: focal bionic centos7 centos8 leap15
       # notcmalloc: centos8
       - conditional-step:
           condition-kind: regex-match
@@ -130,7 +130,7 @@
                   predefined-parameters: |
                     BRANCH=${GIT_BRANCH}
                     FORCE=True
-                    DISTROS=bionic centos7 centos8 leap15
+                    DISTROS=focal bionic centos7 centos8 leap15
                 - project: 'ceph-dev'
                   predefined-parameters: |
                     BRANCH=${GIT_BRANCH}
@@ -138,7 +138,7 @@
                     DISTROS=centos8
                     FLAVOR=notcmalloc
       # build master on:
-      # default: bionic centos7 centos8 leap15
+      # default: focal bionic centos7 centos8 leap15
       # notcmalloc: centos8
       # crimson: bionic
       - conditional-step:
@@ -156,7 +156,7 @@
                   predefined-parameters: |
                     BRANCH=${GIT_BRANCH}
                     FORCE=True
-                    DISTROS=bionic centos7 centos8 leap15
+                    DISTROS=focal bionic centos7 centos8 leap15
                 - project: 'ceph-dev'
                   predefined-parameters: |
                     BRANCH=${GIT_BRANCH}

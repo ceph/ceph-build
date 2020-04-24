@@ -35,6 +35,7 @@ get_bptag() {
     [ "$dist" = "wheezy" ] && dver="~bpo70+1"
     [ "$dist" = "squeeze" ] && dver="~bpo60+1"
     [ "$dist" = "lenny" ] && dver="~bpo50+1"
+    [ "$dist" = "focal" ] && dver="$dist"
     [ "$dist" = "bionic" ] && dver="$dist"
     [ "$dist" = "xenial" ] && dver="$dist"
     [ "$dist" = "trusty" ] && dver="$dist"
@@ -84,6 +85,7 @@ gen_debian_version() {
     [ "$dist" = "trusty" ] && dver="$raw$dist"
     [ "$dist" = "xenial" ] && dver="$raw$dist"
     [ "$dist" = "bionic" ] && dver="$raw$dist"
+    [ "$dist" = "focal" ] && dver="$raw$dist"
 
     echo $dver
 }

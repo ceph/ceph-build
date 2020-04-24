@@ -47,6 +47,7 @@
             - trusty
             - xenial
             - bionic
+            - focal
             - centos7
             - centos8
             - jessie

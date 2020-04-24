@@ -47,6 +47,7 @@
             - trusty
             - xenial
             - bionic
+            - focal
             - jessie
             - precise
             - centos6
