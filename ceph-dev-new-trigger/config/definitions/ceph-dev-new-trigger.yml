@@ -158,7 +158,7 @@
                   predefined-parameters: |
                     BRANCH=${GIT_BRANCH}
                     FORCE=True
-                    DISTROS=bionic
+                    DISTROS=focal
                     FLAVOR=crimson
 
     wrappers:

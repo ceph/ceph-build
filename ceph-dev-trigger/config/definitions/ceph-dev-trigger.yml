@@ -140,7 +140,6 @@
       # build master on:
       # default: focal bionic centos7 centos8 leap15
       # notcmalloc: centos8
-      # crimson: bionic
       - conditional-step:
           condition-kind: regex-match
           regex: .*master.*
