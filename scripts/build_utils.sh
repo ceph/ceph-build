@@ -411,6 +411,10 @@ get_distro_and_target() {
             DIST=wheezy
             DISTRO="debian"
             ;;
+        focal*)
+            DIST=focal
+            DISTRO="ubuntu"
+            ;;
         bionic*)
             DIST=bionic
             DISTRO="ubuntu"
@@ -474,6 +478,7 @@ setup_pbuilder() {
     [ "$DIST" = "trusty" ] && os="ubuntu"
     [ "$DIST" = "xenial" ] && os="ubuntu"
     [ "$DIST" = "bionic" ] && os="ubuntu"
+    [ "$DIST" = "focal" ] && os="ubuntu"
 
     if [ $os = "debian" ]; then
         mirror="http://www.gtlib.gatech.edu/pub/debian"
@@ -585,13 +590,6 @@ use_ppa() {
                     use_ppa=true;;
                 xenial)
                     use_ppa=true;;
-                bionic)
-                    if [ "$FLAVOR" = "crimson" ]; then
-                        use_ppa=true
-                    else
-                        use_ppa=false
-                    fi
-                    ;;
                 *)
                     use_ppa=false;;
             esac
@@ -710,6 +708,8 @@ setup_pbuilder_for_old_gcc() {
             old=5;;
         bionic)
             old=8;;
+        focal)
+            old=9;;
     esac
     setup_gcc_hook $old > $hookdir/D10update-gcc-alternatives
     chmod +x $hookdir/D10update-gcc-alternatives

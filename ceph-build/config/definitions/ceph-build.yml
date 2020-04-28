@@ -32,6 +32,7 @@
             - trusty
             - xenial
             - bionic
+            - focal
             - centos7
             - centos8
             - jessie
@@ -64,7 +65,7 @@
                   regex: (mimic|nautilus|octopus)
                   label: '${BRANCH}'
                 - condition-kind: regex-match
-                  regex: (xenial|bionic|centos7|centos8|buster|bullseye)
+                  regex: (xenial|bionic|focal|centos7|centos8|buster|bullseye)
                   label: '${DIST}'
           on-evaluation-failure: dont-run
           steps:
