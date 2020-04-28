@@ -30,7 +30,7 @@
           allow-whitelist-orgs-as-admins: true
           org-list:
             - ceph
-          white-list-labels: 
+          white-list-labels:
             - dashboard
           black-list-target-branches:
             - luminous
@@ -62,4 +62,15 @@
       - shell:
           !include-raw:
             - ../../../scripts/dashboard/install-e2e-test-deps.sh
-      - shell: "cd src/pybind/mgr/dashboard; timeout 7200 ./run-frontend-e2e-tests.sh"
+      - shell: |
+          export CYPRESS_ARGS="--record --key $CYPRESS_RECORD_KEY --tag $ghprbTargetBranch" COMMIT_INFO_MESSAGE="$ghprbPullTitle"
+          cd src/pybind/mgr/dashboard; timeout 7200 ./run-frontend-e2e-tests.sh
+
+    wrappers:
+      - inject-passwords:
+          global: true
+          mask-password-params: true
+      - credentials-binding:
+          - text:
+              credential-id: cd-cypress-record-key
+              variable: CYPRESS_RECORD_KEY
