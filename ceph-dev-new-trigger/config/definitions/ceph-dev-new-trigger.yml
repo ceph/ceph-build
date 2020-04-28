@@ -106,6 +106,7 @@
       # build octopus on:
       # default: focal bionic centos7 centos8 leap15
       # notcmalloc: centos8
+      # crimson: centos8
       - conditional-step:
           condition-kind: regex-match
           regex: .*octopus.*
@@ -128,6 +129,12 @@
                     FORCE=True
                     DISTROS=centos8
                     FLAVOR=notcmalloc
+                - project: 'ceph-dev-new'
+                  predefined-parameters: |
+                    BRANCH=${GIT_BRANCH}
+                    FORCE=True
+                    DISTROS=centos8
+                    FLAVOR=crimson
       # If no release name is found in branch, build on all possible distro/flavor combos (except xenial).
       # regex matching and 'on-evaluation-failure: run' doesn't work here so triple negative it is.
       - conditional-step:
@@ -158,7 +165,7 @@
                   predefined-parameters: |
                     BRANCH=${GIT_BRANCH}
                     FORCE=True
-                    DISTROS=focal
+                    DISTROS=centos8
                     FLAVOR=crimson
 
     wrappers:

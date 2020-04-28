@@ -112,6 +112,7 @@
       # build octopus on:
       # default: focal bionic centos7 centos8 leap15
       # notcmalloc: centos8
+      # crimson: centos8
       - conditional-step:
           condition-kind: regex-match
           regex: .*octopus.*
@@ -134,9 +135,16 @@
                     FORCE=True
                     DISTROS=centos8
                     FLAVOR=notcmalloc
+                - project: 'ceph-dev'
+                  predefined-parameters: |
+                    BRANCH=${GIT_BRANCH}
+                    FORCE=True
+                    DISTROS=centos8
+                    FLAVOR=crimson
       # build master on:
       # default: focal bionic centos7 centos8 leap15
       # notcmalloc: centos8
+      # crimson: centos8
       - conditional-step:
           condition-kind: regex-match
           regex: .*master.*
@@ -159,8 +167,12 @@
                     FORCE=True
                     DISTROS=centos8
                     FLAVOR=notcmalloc
-#                    DISTROS=bionic
-#                    FLAVOR=crimson
+                - project: 'ceph-dev'
+                  predefined-parameters: |
+                    BRANCH=${GIT_BRANCH}
+                    FORCE=True
+                    DISTROS=centos8
+                    FLAVOR=crimson
 
     wrappers:
       - inject-passwords:
