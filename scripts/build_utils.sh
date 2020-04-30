@@ -532,8 +532,15 @@ setup_pbuilder() {
 
     # gcc 7.4.0 will come from bionic-updates, those need to be added as well
     if [ $DIST = "bionic" ]; then
+        extrapackages='EXTRAPACKAGES="nlohmann-json-dev"'
         other_mirror="OTHERMIRROR=\"deb $mirror $DIST-updates main universe\""
+        echo "$extrapackages" >> ~/.pbuilderrc
         echo "$other_mirror" >> ~/.pbuilderrc
+    fi
+
+    if [ $DIST = "focal" ]; then
+        extrapackages='EXTRAPACKAGES="nlohmann-json3-dev"'
+        echo "$extrapackages" >> ~/.pbuilderrc
     fi
 
     if [ $FLAVOR = "crimson" ]; then
