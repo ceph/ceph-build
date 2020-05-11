@@ -95,11 +95,6 @@ fi
 
 sed -e 's/@//g' < ceph.spec.in > $DIR/ceph.spec
 
-if [ "$FLAVOR" = "crimson" ]; then
-    # enable more build depends required by crimson
-    sed -i -e 's/%bcond_with seastar/%bcond_without seastar/g' $DIR/ceph.spec
-esac
-
 # before installing the dependencies, python3-devel requires the
 # python-rpm-macro we use for identifying the python related dependencies
 $SUDO yum install -y python3-devel
