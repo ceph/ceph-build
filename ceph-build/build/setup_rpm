@@ -97,7 +97,7 @@ sed -e 's/@//g' < ceph.spec.in > $DIR/ceph.spec
 if [ "$FLAVOR" = "crimson" ]; then
     # enable more build depends required by crimson
     sed -i -e 's/%bcond_with seastar/%bcond_without seastar/g' $DIR/ceph.spec
-esac
+fi
 
 # Make sure we have all the rpm macros installed and at the latest version
 # before installing the dependencies, python3-devel requires the
