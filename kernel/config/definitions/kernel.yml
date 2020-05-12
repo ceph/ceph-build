@@ -65,6 +65,7 @@ If this is checked, then the binaries will be built and pushed to chacra even if
             - trusty
             - xenial
             - bionic
+            - focal
       - axis:
           type: dynamic
           name: DIST
