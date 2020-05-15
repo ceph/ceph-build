@@ -22,7 +22,7 @@
     parameters:
       - string:
           name: DISTROS
-          default: "ubuntu_18.04 centos_8.1 rhel_8.1"
+          default: "ubuntu_18.04 ubuntu_20.04 centos_8.1 rhel_8.2"
           description: "Distro to capture images for: (e.g., 'ubuntu_16.04', 'centos_7.5' or 'ubuntu_16.04 rhel_7.5' for multiple distros)"
       - string:
           name: MACHINETYPES
