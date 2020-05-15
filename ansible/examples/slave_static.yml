@@ -28,6 +28,8 @@
    - nodename: '{{ ansible_hostname }}'
    - labels: '{{ labels }}'
    - use_jnlp: true
+   - osc_user: 'username'
+   - osc_pass: 'password'
 
   tasks:
     - name: create a {{ jenkins_user }} user
@@ -78,6 +80,29 @@
 
     - name: ensure the build dir exists
       file: path=/home/{{ jenkins_user }}/build state=directory owner={{ jenkins_user }}
+
+    - name: Create .config/osc directory
+      file:
+        path: "/home/{{ jenkins_user }}/.config/osc"
+        state: directory
+        owner: "{{ jenkins_user }}"
+      when: ansible_pkg_mgr  == "zypper"
+
+    - name: Add oscrc file
+      blockinfile:
+        create: yes
+        block: |
+          [general]
+          apiurl = https://api.opensuse.org
+          #build-root = /var/tmp/build-root/%(repo)s-%{arch)s
+
+          [https://api.opensuse.org]
+          user = {{ osc_user }}
+          pass = {{ osc_pass }}
+
+        path: "/home/{{ jenkins_user }}/.config/osc/oscrc"
+      become_user: "{{ jenkins_user }}"
+      when: ansible_pkg_mgr  == "zypper"
 
     - name: ensure the home dir has the right owner permissions
       file: path=/home/{{ jenkins_user }} state=directory owner={{ jenkins_user }} group={{ jenkins_user }} recurse=yes follow=no
