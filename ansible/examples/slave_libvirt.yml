@@ -79,15 +79,12 @@
         update_cache: yes
       when: ansible_pkg_mgr  == "apt"
 
-    - name: Install DEB requirements
+    - name: Install universal DEB requirements
       apt:
         name: "{{ item }}"
         state: present
       with_items:
         - git
-        - python-dev
-        - python-pip
-        - python-virtualenv
         - libtool
         - libssl-dev
         - libffi-dev
@@ -99,6 +96,32 @@
         - libvirt-dev
         - vagrant
       when: ansible_pkg_mgr  == "apt"
+
+    - name: Install DEB requirements (>=18.04)
+      apt:
+        name: "{{ item }}"
+        state: present
+      with_items:
+        - schroot
+        - python3-dev
+        - python3-pip
+        - python3-virtualenv
+      when:
+        - ansible_pkg_mgr  == "apt"
+        - ansible_distribution_major_version|int >= 18
+
+    - name: Install DEB requirements (<=16.04)
+      apt:
+        name: "{{ item }}"
+        state: present
+      with_items:
+        - dchroot
+        - python-pip
+        - python-dev
+        - python-virtualenv
+      when:
+        - ansible_pkg_mgr  == "apt"
+        - ansible_distribution_major_version|int <= 16
 
     - name: install requirements without epel
       yum:

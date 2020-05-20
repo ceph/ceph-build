@@ -297,9 +297,6 @@
         - devscripts
         - pbuilder
         - pkg-config
-        - python-dev
-        - python-pip
-        - python-virtualenv
         - libtool
         - autotools-dev
         - automake
@@ -331,8 +328,13 @@
 
     - name: Install DEB requirements (<=16.04)
       apt:
-        name: dchroot
+        name: "{{ item }}"
         state: present
+      with_items:
+        - dchroot
+        - python-pip
+        - python-dev
+        - python-virtualenv
       when:
         - ansible_pkg_mgr  == "apt"
         - ansible_distribution_major_version|int <= 16
