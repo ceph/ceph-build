@@ -1,0 +1,27 @@
+#!/bin/bash
+set -ex
+
+## TODO: Check if only the src/ dir changed and `exit 0` if only the ceph.io.git README or something else inconsequential changed.
+env
+
+BRANCH=`branch_slash_filter ${GIT_BRANCH}`
+
+# Don't think this is even necessary
+#git checkout ${BRANCH}
+
+npm install
+
+npm run build
+
+if [ ! -d /opt/www/${BRANCH} ]; then
+  mkdir -p /opt/www/${BRANCH}
+fi
+
+rsync -av --delete-after dist/* /opt/www/${BRANCH}/
+
+# This just makes the last `echo` line not repeat
+{ set +x; } 2>/dev/null
+
+echo "Success!  This site is available at https://${BRANCH}.ceph.io."
+
+## TODO: Prune deleted branches from /opt/www/
