@@ -19,6 +19,7 @@
    - api_uri: 'https://2.jenkins.ceph.com'
    - nodename: '{{ ansible_hostname }}'
    - labels: 'vagrant libvirt'
+   - grant_sudo: true
 
   tasks:
 
@@ -212,6 +213,7 @@
         regexp: '^{{ jenkins_user }} ALL'
         line: '{{ jenkins_user }}   ALL=(ALL:ALL) NOPASSWD:ALL'
         validate: 'visudo -cf %s'
+      when: grant_sudo
 
     - name: set utf-8 for LC_ALL
       lineinfile:

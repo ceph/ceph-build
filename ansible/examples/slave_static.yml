@@ -28,6 +28,7 @@
    - nodename: '{{ ansible_hostname }}'
    - labels: '{{ labels }}'
    - use_jnlp: true
+   - grant_sudo: true
    - osc_user: 'username'
    - osc_pass: 'password'
 
@@ -57,6 +58,7 @@
         regexp: '^{{ jenkins_user }} ALL'
         line: '{{ jenkins_user }}   ALL=(ALL:ALL) NOPASSWD:ALL'
         validate: 'visudo -cf %s'
+      when: grant_sudo
 
     - name: set utf-8 for LC_ALL
       lineinfile:
