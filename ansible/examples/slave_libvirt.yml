@@ -13,6 +13,7 @@
    - nodename: '{{ nodename }}'
    - labels: '{{ labels }}'
    - use_jnlp: false
+   - grant_sudo: true
 
   tasks:
     - name: uninstall resolvconf on Ubuntu to manually manage resolv.conf
@@ -215,6 +216,7 @@
         regexp: '^{{ jenkins_user }} ALL'
         line: '{{ jenkins_user }}   ALL=(ALL:ALL) NOPASSWD:ALL'
         validate: 'visudo -cf %s'
+      when: grant_sudo
 
     - name: set utf-8 for LC_ALL
       lineinfile:
