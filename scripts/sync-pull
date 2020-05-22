@@ -38,18 +38,33 @@ for endpoint in https://chacra.ceph.com/repos/$project/$release/$sha1/$highest_c
   fi
 done
 
-# Get numerical version number and create directory tree
-version=$(echo $chacra_repo_status | python -mjson.tool | grep \"version\" | awk '{ print $2 }' | sed 's/"//g')
-[[ -d /opt/repos/$project/$release-$version ]] | mkdir -p /opt/repos/$project/$release-$version/{debian/jessie,centos/{7,8}}
+# We started using the new /opt/repos/ceph/$release-X.X.X format with Octopus.
+# Older releases have all packages in one big $release dir without a trailing "-X.X.X" so we need to adjust paths accordingly.
+if [[ "$release" =~ ^[a-n].* ]]; then
+  newgen=false
+else
+  newgen=true
+  # Get numerical version number (we only need this with Octopus or later because of the new directory/path scheme).
+  version=$(echo $chacra_repo_status | python -mjson.tool | grep \"version\" | awk '{ print $2 }' | sed 's/"//g')
+  [[ -d /opt/repos/$project/$release-$version ]] | mkdir -p /opt/repos/$project/$release-$version/{debian/jessie,centos/{7,8}}
+fi
 
 # Replace $highest_combo with your own DISTRO/VERSION if you don't want to sync from the repo with the most packages.
-deb_cmd="ubuntu@chacra.ceph.com:/opt/repos/$project/$release/$sha1/$highest_combo/flavors/default/* /opt/repos/$project/$release-$version/debian/jessie/"
+if $newgen; then
+  deb_cmd="ubuntu@chacra.ceph.com:/opt/repos/$project/$release/$sha1/$highest_combo/flavors/default/* /opt/repos/$project/$release-$version/debian/jessie/"
+else
+  deb_cmd="ubuntu@chacra.ceph.com:/opt/repos/$project/$release/$sha1/$highest_combo/flavors/default/* /opt/repos/$project/$release/debian/jessie/"
+fi
 echo $deb_cmd
 echo "--------------------------------------------"
 rsync -Lavh -e 'ssh -p 2222' --progress --exclude '*lockfile*' $deb_cmd
 
 for el_version in 7 8; do
-  el_cmd="ubuntu@chacra.ceph.com:/opt/repos/$project/$release/$sha1/centos/$el_version/flavors/default/* /opt/repos/$project/$release-$version/centos/$el_version/"
+  if $newgen; then
+    el_cmd="ubuntu@chacra.ceph.com:/opt/repos/$project/$release/$sha1/centos/$el_version/flavors/default/* /opt/repos/$project/$release-$version/centos/$el_version/"
+  else
+    el_cmd="ubuntu@chacra.ceph.com:/opt/repos/$project/$release/$sha1/centos/$el_version/flavors/default/* /opt/repos/$project/$release/centos/$el_version/"
+  fi
   echo $el_cmd
   echo "--------------------------------------------"
   rsync -Lavh -e 'ssh -p 2222' --progress $el_cmd
