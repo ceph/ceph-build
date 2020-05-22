@@ -1,71 +1,423 @@
 ---
+## Instead of trying to keep 4 separate playbooks up to date, let's do it all here.
+## The only difference from using multiple playbooks is we need to specify `-e libvirt=true` and/or `-e permanent=true` if the slave will be permanent/static.
+## Tested on: CentOS 7, CentOS 8, Xenial, Bionic, Focal, Leap 15.1 using ansible 2.8.5
+##
+## Example:
+## ansible-playbook -vvv -M ./library/ slave.yml -e '{"labels": "x86_64 xenial etc", "token": "XXXXX", "jenkins_credentials_uuid": "jenkins-build", "api_uri": "https://jenkins.ceph.com"}' -e permanent=true -e ansible_ssh_user=ubuntu --limit braggi01*
 
 - hosts: all
   become: true
-  user: ubuntu
+  user: ubuntu # This should be overridden on the CLI (e.g., -e user=centos).  It doesn't matter on a mita/prado slave because the playbook is run locally by root.
   vars:
-   - jenkins_user: 'jenkins-build'
-   - jenkins_key: 'playbook/files/ssh/keys/jenkins_build.pub'
-   # jenkins API credentials:
-   - api_user: 'ceph-jenkins'
-   - token: '{{ token }}'
-   - api_uri: 'https://jenkins.ceph.com'
-   - jenkins_credentials_uuid: 'jenkins-build'
-   - nodename: '{{ nodename }}'
-   - labels: '{{ labels }}'
-   - use_jnlp: false
-   - grant_sudo: true
-   - osc_user: 'username'
-   - osc_pass: 'password'
+    - libvirt: false # Should vagrant be installed?
+    - permanent: false # Is this a permanent slave?  Since the ephemeral (non-permanent) tasks get run more often, we'll default to false.
+    - jenkins_user: 'jenkins-build'
+    #- jenkins_key: This gets defined below now.
+    # jenkins API credentials:
+    - api_user: 'ceph-jenkins'
+    - token: '{{ token }}'
+    - api_uri: 'https://jenkins.ceph.com'
+    - jenkins_credentials_uuid: 'jenkins-build'
+    - nodename: '{{ nodename }}'
+    - labels: '{{ labels }}'
+    - grant_sudo: true
+    - osc_user: 'username'
+    - osc_pass: 'password'
 
   tasks:
-    - name: uninstall resolvconf on Ubuntu to manually manage resolv.conf
+    ## DEFINE PACKAGE LISTS BELOW
+    # Universal DEBs
+    - set_fact:
+        universal_debs:
+          - git
+          - fakeroot
+          - fakeroot-ng
+          - debhelper
+          - reprepro
+          - devscripts
+          - pbuilder
+          - pkg-config
+          - libtool
+          - autotools-dev
+          - automake
+          - libssl-dev
+          - libffi-dev
+          - default-jdk
+          - default-jre
+          - debian-keyring
+          - debian-archive-keyring
+          # jenkins-job-builder job:
+          - libyaml-dev
+          - jq
+          # ceph-docs job:
+          - doxygen
+          - ditaa
+          - ant
+      when: ansible_os_family == "Debian"
+
+    # Libvirt DEBs (Bionic and older)
+    - set_fact:
+        libvirt_debs:
+          - qemu-kvm
+          - libvirt-bin
+          - libvirt-dev
+          - vagrant
+      when:
+        - ansible_os_family == "Debian"
+        - ansible_distribution_major_version|int <= 18
+        - libvirt|bool
+
+    # Libvirt DEBs (Focal and newer)
+    - set_fact:
+        libvirt_debs:
+          - qemu-kvm
+          - libvirt-daemon-system
+          - libvirt-clients
+          - libvirt-dev
+          - vagrant
+      when:
+        - ansible_os_family == "Debian"
+        - ansible_distribution_major_version|int >= 20
+        - libvirt|bool
+
+    # python2 DEBs
+    - set_fact:
+        python2_debs:
+          - python
+          - python-dev
+          - python-pip
+          - python-virtualenv
+      when:
+        - ansible_os_family == "Debian"
+        - ansible_distribution_major_version|int <= 18
+
+    # python3 DEBs (We only install python2 *and* python3 on Bionic)
+    - set_fact:
+        python3_debs:
+          - python3
+          - python3-dev
+          - python3-pip
+          - python3-virtualenv
+      when:
+        - ansible_os_family == "Debian"
+        - ansible_distribution_major_version|int >= 18
+
+    # chroot DEBs (Xenial and older)
+    - set_fact:
+        chroot_deb: dchroot
+      when:
+        - ansible_os_family == "Debian"
+        - ansible_distribution_major_version|int <= 16
+
+    # chroot DEBs (Bionic and newer)
+    - set_fact:
+        chroot_deb: schroot
+      when:
+        - ansible_os_family == "Debian"
+        - ansible_distribution_major_version|int >= 18
+
+    # Universal RPMs
+    - set_fact:
+        universal_rpms:
+          - createrepo
+          - java-1.8.0-openjdk
+          - git
+          - libtool
+          #- rpm-sign
+          - autoconf
+          - redhat-lsb-core
+          - automake
+          - cmake
+          - binutils
+          - bison
+          - flex
+          - gcc
+          - gcc-c++
+          - gettext
+          - libtool
+          - make
+          - patch
+          - pkgconfig
+          - redhat-rpm-config
+          - rpm-build
+          - rpmdevtools
+          - openssl-devel
+          - libffi-devel
+          - mock
+      when: ansible_os_family == "RedHat"
+
+    # Libvirt RPMs
+    - set_fact:
+        libvirt_rpms:
+          - qemu-kvm
+          - libvirt-devel
+          - libguestfs
+          - libvirt
+          - libguestfs-tools
+          - vagrant
+      when:
+        - ansible_os_family == "RedHat"
+        - libvirt|bool
+
+    # EPEL7 RPMs
+    - set_fact:
+        epel_rpms:
+          - jq
+          - python-pip
+          - python-devel
+          - python-virtualenv
+      when:
+        - ansible_os_family == "RedHat"
+        - ansible_distribution_major_version|int <= 7
+
+    # EPEL8 RPMs
+    - set_fact:
+        epel_rpms:
+          - jq
+          - python3-pip
+          - python3-devel
+          - python3-virtualenv
+      when:
+        - ansible_os_family == "RedHat"
+        - ansible_distribution_major_version|int >= 8
+
+    # OpenSUSE RPMs
+    - set_fact:
+        zypper_rpms:
+          - autoconf
+          - automake
+          - binutils
+          - bison
+          - cmake
+          - ccache
+          - createrepo
+          - flex
+          - gcc
+          - gcc-c++
+          - gettext-runtime
+          - git
+          - java-1_8_0-openjdk
+          - jq
+          - libffi-devel
+          - libopenssl-devel
+          - libtool
+          - lsb-release
+          - make
+          - patch
+          - pkg-config
+          - python2-pip
+          - python2-virtualenv
+          - python3-pip
+          - python3-virtualenv
+          - rpm-build
+          - rpmdevtools
+          - tig
+          - wget 
+          # obs requirements
+          - osc
+          - build
+      when: ansible_os_family == "Suse"
+
+    # OpenSUSE Libvirt RPMs (We've never tried this to date so more might be needed)
+    - set_fact:
+        zypper_libvirt_rpms:
+          - libvirt
+          - libvirt-devel
+          - qemu
+          - kvm
+          - vagrant
+          - ruby-devel
+      when:
+        - ansible_os_family == "Suse"
+        - libvirt|bool
+
+    ## Let's make sure we don't accidentally set up a permanent slave from Sepia as ephemeral
+    - set_fact:
+        permanent: true
+      with_items: "{{ ansible_all_ipv4_addresses }}"
+      when: "item.startswith('172.21.')"
+
+    ## EPHEMERAL SLAVE TASKS
+    # We would occasionally have issues with name resolution on the Ephemeral slaves
+    # so we force them to use Google's DNS servers. This has to be done before
+    # package-related tasks to avoid communication errors with various repos.
+    - name: Ephemeral Slave Tasks
+      block:
+        - name: Uninstall resolvconf on Ubuntu to manually manage resolv.conf
+          apt:
+            name: resolvconf
+            state: absent
+          when: ansible_os_family == "Debian"
+    
+        - name: Check for NetworkManager conf
+          stat:
+            path: /etc/NetworkManager/NetworkManager.conf
+          register: nm_conf
+    
+        - name: Tell NetworkManager to leave resolv.conf alone on CentOS
+          lineinfile:
+            dest: /etc/NetworkManager/NetworkManager.conf
+            regexp: '^dns='
+            line: 'dns=none'
+            state: present
+          when: ansible_os_family == "RedHat" and nm_conf.stat.exists
+    
+        - name: Tell dhclient to leave resolv.conf alone on Ubuntu
+          lineinfile:
+            dest: /etc/dhcp/dhclient.conf
+            regexp: 'prepend domain-name-servers'
+            line: 'supersede domain-name-servers 8.8.8.8;'
+            state: present
+          when: ansible_os_family == "Debian"
+    
+        - name: Use Google DNS for name resolution
+          lineinfile:
+            dest: /etc/resolv.conf
+            regexp: '^nameserver'
+            line: 'nameserver 8.8.8.8'
+            state: present
+
+        - name: Set Hostname with hostname command
+          hostname:
+            name: "ceph-builders"
+          when: ansible_os_family != "Suse"
+    
+        # https://github.com/ansible/ansible/issues/42726
+        - name: Set Hostname on OpenSUSE Leap
+          command: 'hostname ceph-builders'
+          when: ansible_os_family == "Suse"
+    
+        - name: Ensure that 127.0.1.1 is present with an actual hostname
+          lineinfile:
+            backup: yes
+            dest: /etc/hosts
+            line: '127.0.1.1 ceph-builders'
+    
+        - name: Update etc cloud templates for debian /etc/hosts
+          lineinfile:
+            backup: yes
+            dest: /etc/cloud/templates/hosts.debian.tmpl
+            line: '127.0.1.1 ceph-builders'
+          when: ansible_os_family  == "Debian"
+    
+        - name: Update /etc/cloud templates for Red Hat /etc/hosts
+          lineinfile:
+            backup: yes
+            dest: /etc/cloud/templates/hosts.redhat.tmpl
+            line: '127.0.1.1 ceph-builders'
+          failed_when: false
+          when: ansible_os_family == "RedHat"
+    
+        - name: Update /etc/cloud templates for Suse /etc/hosts
+          lineinfile:
+            backup: yes
+            dest: /etc/cloud/templates/hosts.suse.tmpl
+            line: '127.0.1.1 ceph-builders'
+          failed_when: false
+          when: ansible_os_family == "Suse"
+      when: not permanent|bool
+
+    ## VAGRANT REPO TASKS (for libvirt slaves)
+    # vagrant doesn't have repositories, this chacra repo will be better to have
+    # around and can get updates as soon as a new vagrant version is published via
+    # chacractl
+    - name: Vagrant/Libvirt Repo Tasks
+      block:
+        - name: Add our vagrant DEB repository
+          apt_repository:
+            repo: "deb [trusted=yes] https://chacra.ceph.com/r/vagrant/latest/HEAD/ubuntu/{{ ansible_distribution_release }}/flavors/default/ {{ ansible_distribution_release }} main"
+            state: present
+          when: ansible_os_family == "Debian"
+
+        - name: Add our vagrant RPM repository
+          yum_repository:
+            name: vagrant
+            description: self-hosted vagrant repo
+            # Although this is a 'CentOS7' repo, the vagrant RPM is OS-version agnostic
+            baseurl: "https://chacra.ceph.com/r/vagrant/latest/HEAD/centos/7/flavors/default/x86_64/"
+            enabled: yes
+            gpgcheck: no
+          when: ansible_os_family == "RedHat"
+      when: libvirt|bool
+
+    ## PACKAGE INSTALLATION TASKS
+    # We do this in one big task to save time and avoid using `with` loops.  If a variable isn't defined, it's fine because of the |defaults.
+    - name: Install DEBs
       apt:
-        name: resolvconf
-        state: absent
+        name: "{{ universal_debs + libvirt_debs|default([]) + python2_debs|default([]) + python3_debs|default([]) + [ chroot_deb|default('') ] }}"
+        state: latest
+        update_cache: yes
       when: ansible_os_family == "Debian"
 
-    - name: check for NetworkManager conf
-      stat:
-        path: /etc/NetworkManager/NetworkManager.conf
-      register: nm_conf
+    - name: Install EPEL repo
+      yum:
+        name: epel-release
+        state: latest
+      when: ansible_os_family == "RedHat"
 
-    - name: tell NetworkManager to leave resolv.conf alone on CentOS
-      lineinfile:
-        dest: /etc/NetworkManager/NetworkManager.conf
-        regexp: '^dns='
-        line: 'dns=none'
+    - name: Install RPMs without EPEL
+      yum:
+        name: "{{ universal_rpms + libvirt_rpms|default([]) }}"
         state: present
-      when: ansible_os_family == "RedHat" and nm_conf.stat.exists
+        disablerepo: epel
+      when: ansible_os_family == "RedHat"
 
-    - name: tell dhclient to leave resolv.conf alone on Ubuntu
-      lineinfile:
-        dest: /etc/dhcp/dhclient.conf
-        regexp: 'prepend domain-name-servers'
-        line: 'supersede domain-name-servers 8.8.8.8;'
-        state: present
-      when: ansible_os_family == "Debian"
+    - name: Install RPMs with EPEL
+      yum:
+        name: "{{ epel_rpms|default([]) }}"
+        state: latest
+        enablerepo: epel
+      when: ansible_os_family == "RedHat"
 
-    - name: use Google DNS for name resolution
-      lineinfile:
-        dest: /etc/resolv.conf
-        regexp: '^nameserver'
-        line: 'nameserver 8.8.8.8'
-        state: present
+    - name: Install Suse RPMs
+      zypper:
+        name: "{{ zypper_rpms + zypper_libvirt_rpms|default([]) }}"
+        state: latest
+        update_cache: yes
+      when: ansible_os_family == "Suse"
 
-    - name: "create a {{ jenkins_user }} group"
+    ## JENKINS USER TASKS
+    - set_fact:
+        jenkins_groups:
+          - "{{ jenkins_user }}"
+          - libvirtd
+      when:
+        - ansible_os_family == "Debian"
+        - ansible_distribution_version == '16.04'
+        - libvirt|bool
+
+    # The group name changed to 'libvirt' in Ubuntu 16.10 and is already 'libvirt' everywhere else
+    - set_fact:
+        jenkins_groups:
+          - "{{ jenkins_user }}"
+          - libvirt
+      when:
+        - not (ansible_os_family == "Debian" and ansible_distribution_version == '16.04')
+        - libvirt|bool
+
+    - name: "Create a {{ jenkins_user }} group"
       group:
         name: "{{ jenkins_user }}"
         state: present
 
-    - name: "create a {{ jenkins_user }} user"
+    - name: "Create a {{ jenkins_user }} user"
       user:
         name: "{{ jenkins_user }}"
-        group: "{{ jenkins_user }}"
+        # This will add to the jenkins_user and appropriate libvirt group if jenkins_groups is defined.
+        # Otherwise, default to just adding to {{ jenkins_user }} group.
+        groups: "{{ jenkins_groups|default(jenkins_user) }}"
         state: present
         comment: "Jenkins Build Slave User"
 
-    - name: "create a {{ jenkins_user }} home directory"
+    - name: "Add {{ jenkins_user }} to mock group"
+      user:
+        name: "{{ jenkins_user }}"
+        groups: mock
+        append: yes
+      when: ansible_os_family == "RedHat"
+
+    - name: "Create a {{ jenkins_user }} home directory"
       file:
         path: "/home/{{ jenkins_user }}/"
         state: directory
@@ -77,20 +429,30 @@
         state: directory
         owner: "{{ jenkins_user }}"
 
-    - name: set the authorized keys
+    # On a mita/prado provisioned slave, everything gets put into a 'playbook' dir.
+    # Otherwise it can be found in files/ssh/...
+    - set_fact:
+        jenkins_key: "{{ lookup('first_found', key_locations) }}"
+      vars:
+        key_locations:
+          - "playbook/files/ssh/keys/jenkins_build.pub"
+          - "files/ssh/keys/jenkins_build.pub"
+
+    # And worst case scenario, we just pull the key from github.
+    - name: Set the authorized keys
       authorized_key:
         user: "{{ jenkins_user }}"
-        key: "{{ lookup('file', '{{ jenkins_key }}') }}"
+        key: "{{ lookup('file', '{{ jenkins_key }}')|default('https://raw.githubusercontent.com/ceph/ceph-build/master/ansible/files/ssh/keys/jenkins_build.pub') }}"
 
-    - name: "ensure {{ jenkins_user }} can sudo without a prompt"
+    - name: "Ensure {{ jenkins_user }} can sudo without a prompt"
       lineinfile:
         dest: /etc/sudoers
         regexp: '^{{ jenkins_user }} ALL'
         line: '{{ jenkins_user }}   ALL=(ALL:ALL) NOPASSWD:ALL'
         validate: 'visudo -cf %s'
-      when: grant_sudo
+      when: grant_sudo|bool
 
-    - name: set utf-8 for LC_ALL
+    - name: Set utf-8 for LC_ALL
       lineinfile:
         dest: "/home/{{ jenkins_user }}/.bashrc"
         regexp: '^export LC_ALL='
@@ -98,19 +460,19 @@
         create: true
         state: present
 
-    - name: set utf-8 for LANG
+    - name: Set utf-8 for LANG
       lineinfile:
         dest: "/home/{{ jenkins_user }}/.bashrc"
         regexp: '^export LANG='
         line: "export LANG=en_US.UTF-8"
 
-    - name: set utf-8 for LANGUAGE
+    - name: Set utf-8 for LANGUAGE
       lineinfile:
         dest: "/home/{{ jenkins_user }}/.bashrc"
         regexp: '^export LANGUAGE='
         line: "export LANGUAGE=en_US.UTF-8"
 
-    - name: ensure the build dir exists
+    - name: Ensure the build dir exists
       file:
         path: "/home/{{ jenkins_user }}/build"
         state: directory
@@ -121,7 +483,7 @@
         path: "/home/{{ jenkins_user }}/.config/osc"
         state: directory
         owner: "{{ jenkins_user }}"
-      when: ansible_pkg_mgr  == "zypper"
+      when: ansible_os_family == "Suse"
 
     - name: Add oscrc file
       blockinfile:
@@ -130,16 +492,14 @@
           [general]
           apiurl = https://api.opensuse.org
           #build-root = /var/tmp/build-root/%(repo)s-%{arch)s
-
           [https://api.opensuse.org]
           user = {{ osc_user }}
           pass = {{ osc_pass }}
-
         path: "/home/{{ jenkins_user }}/.config/osc/oscrc"
       become_user: "{{ jenkins_user }}"
-      when: ansible_pkg_mgr  == "zypper"
+      when: ansible_os_family == "Suse"
 
-    - name: ensure the home dir has the right owner permissions
+    - name: Ensure the home dir has the right owner permissions
       file:
         path: "/home/{{ jenkins_user }}"
         state: directory
@@ -147,393 +507,153 @@
         group: "{{ jenkins_user }}"
         recurse: yes
 
-    - name: Install epel repo
-      yum:
-        name: epel-release
-        state: latest
+    ## DEBIAN GPG KEY TASKS
+    - name: Install Debian GPG Keys on Ubuntu
+      block:
+        - name: Add the Debian Jessie Key
+          apt_key:
+           id: 2B90D010
+           url: https://ftp-master.debian.org/keys/archive-key-8.asc
+           keyring: /etc/apt/trusted.gpg
+           state: present
+      
+        - name: Add the Debian Security Jessie Key
+          apt_key:
+            id: C857C906
+            url: https://ftp-master.debian.org/keys/archive-key-8-security.asc
+            keyring: /etc/apt/trusted.gpg
+            state: present
+      
+        - name: Add the Debian Jessie Stable Key
+          apt_key:
+            id: 518E17E1
+            url: https://ftp-master.debian.org/keys/release-8.asc
+            keyring: /etc/apt/trusted.gpg
+            state: present
+      
+        - name: Add the Debian Buster Key
+          apt_key:
+           id: 3CBBABEE
+           url: https://ftp-master.debian.org/keys/archive-key-10.asc
+           keyring: /etc/apt/trusted.gpg
+           state: present
+      
+        - name: Add the Debian Security Buster Key
+          apt_key:
+            id: CAA96DFA
+            url: https://ftp-master.debian.org/keys/archive-key-10-security.asc
+            keyring: /etc/apt/trusted.gpg
+            state: present
+      
+        - name: Add the Debian Buster Stable Key
+          apt_key:
+            id: 77E11517
+            url: https://ftp-master.debian.org/keys/release-10.asc
+            keyring: /etc/apt/trusted.gpg
+            state: present
+      when: ansible_os_family == "Debian"
+
+    ## VAGRANT PLUGIN TASKS
+    - name: Install vagrant-libvirt plugin
+      block:
+        - name: Install the vagrant-libvirt plugin (without args)
+          shell: vagrant plugin install vagrant-libvirt
+          become_user: "{{ jenkins_user }}"
+          when: (ansible_os_family == "RedHat" and ansible_distribution_major_version|int <= 7) or
+                (ansible_os_family == "Debian" and ansible_distribution_major_version|int <= 18)
+    
+        - name: Install the vagrant-libvirt plugin (EL8/Suse)
+          command: vagrant plugin install vagrant-libvirt
+          become_user: "{{ jenkins_user }}"
+          environment:
+            CONFIGURE_ARGS: 'with-libvirt-include=/usr/include/libvirt with-libvirt-lib=/usr/lib64'
+          when: (ansible_os_family == "RedHat" and ansible_distribution_major_version|int >= 8) or
+                ansible_os_family == "Suse"
+    
+        - name: Install the vagrant-libvirt plugin (Focal)
+          command: vagrant plugin install vagrant-libvirt
+          become_user: "{{ jenkins_user }}"
+          environment:
+            CONFIGURE_ARGS: 'with-libvirt-include=/usr/include/libvirt with-libvirt-lib=/usr/lib'
+          when: ansible_os_family == "Debian" and ansible_distribution_major_version|int >= 20
+      when: libvirt|bool
+
+    ## RPMMACROS TASKS
+    - name: rpmmacros Tasks
+      block:
+        - name: Ensure the rpmmacros file exists to fix centos builds
+          file:
+            path: "/home/{{ jenkins_user }}/.rpmmacros"
+            owner: "{{ jenkins_user }}"
+            state: touch
+    
+        - name: Write the rpmmacros needed in centos
+          lineinfile:
+            dest: "/home/{{ jenkins_user }}/.rpmmacros"
+            regexp: '^%dist'
+            line: '%dist .el{{ ansible_distribution_major_version }}'
       when: ansible_os_family == "RedHat"
 
-    - name: disable epel for now
-      lineinfile:
-        path: "/etc/yum.repos.d/epel.repo"
-        regexp: '^enabled=.*'
-        line: 'enabled=0'
-      when: ansible_os_family == "RedHat"
-
-    # This repo has EL8 packages that Ceph depends on.  These packages are not available in AppStream, BaseOS, or EPEL8 yet so we build and manage them.
-    - name: Enable EL8 copr repo
-      command: "dnf -y copr enable ktdreyer/ceph-el8"
-      when:
-        - ansible_os_family == "RedHat"
-        - ansible_distribution_major_version|int == 8
-
-    # This repo contains packages that were built from Fedora SRPMs.  Same thing here -- not in EPEL yet.
-    - name: Enable EL8 lab-extras
-      yum_repository:
-        name: lab-extras
-        description: Ceph Lab extra packages
-        baseurl: http://apt-mirror.front.sepia.ceph.com/lab-extras/8/
-        gpgcheck: no
-      when:
-        - ansible_os_family == "RedHat"
-        - ansible_distribution_major_version|int == 8
-
-    - name: Install RPM requirements
-      package:
-        name: "{{ item }}"
-        state: present
-      with_items:
-        - createrepo
-        - epel-release
-        - java-1.8.0-openjdk
-        - git
-        - libtool
-        #- rpm-sign
-        - autoconf
-        - redhat-lsb-core
-        - automake
-        - cmake
-        - binutils
-        - bison
-        - flex
-        - gcc
-        - gcc-c++
-        - gettext
-        - libtool
-        - make
-        - patch
-        - pkgconfig
-        - redhat-rpm-config
-        - rpm-build
-        - rpmdevtools
-        - openssl-devel
-        - libffi-devel
-        - mock
-      when: ansible_os_family == "RedHat"
-
-    - name: Install requirements using zypper
-      zypper:
-        state: latest
-        update_cache: yes
-        name:
-        - autoconf
-        - automake
-        - binutils
-        - bison
-        - cmake
-        - ccache
-        - createrepo
-        - flex
-        - gcc
-        - gcc-c++
-        - gettext-runtime
-        - git
-        - java-1_8_0-openjdk
-        - jq
-        - libffi-devel
-        - libopenssl-devel
-        - libtool
-        - lsb-release
-        - make
-        - patch
-        - pkg-config
-        - python2-pip
-        - python2-virtualenv
-        - python3-pip
-        - python3-virtualenv
-        - rpm-build
-        - rpmdevtools
-        - tig
-        - wget 
-        # obs requirements
-        - osc
-        - build
-      when: ansible_pkg_mgr  == "zypper"
-
-
-    - name: install packages from epel (<=7)
-      yum:
-        name: "{{ item }}"
-        state: present
-        enablerepo: epel
-        update_cache: yes
-      with_items:
-        - jq
-        - python-pip
-        - python-virtualenv
-      when:
-        - ansible_os_family == "RedHat"
-        - ansible_distribution_major_version|int <= 7
-
-    - name: install packages from epel (>=8)
-      dnf:
-        name: "{{ item }}"
-        state: present
-        enablerepo: epel
-        update_cache: yes
-      with_items:
-        - jq
-        - python3-pip
-        - python3-virtualenv
-      when:
-        - ansible_os_family == "RedHat"
-        - ansible_distribution_major_version|int >= 8
-
-    # Run the equivalent of "apt-get update" as a separate step
-    - apt:
-        update_cache: yes
-      when: ansible_pkg_mgr  == "apt"
-
-    - name: Install universal DEB requirements
-      apt:
-        name: "{{ item }}"
-        state: present
-      with_items:
-        - git
-        - fakeroot
-        - fakeroot-ng
-        - debhelper
-        - reprepro
-        - devscripts
-        - pbuilder
-        - pkg-config
-        - python-dev
-        - python-pip
-        - python-virtualenv
-        - libtool
-        - autotools-dev
-        - automake
-        - libssl-dev
-        - libffi-dev
-        - debian-keyring
-        - debian-archive-keyring
-        # jenkins-job-builder job:
-        - libyaml-dev
-        - jq
-        # ceph-docs job:
-        - doxygen
-        - ditaa
-        - ant
-      when: ansible_pkg_mgr  == "apt"
-
-    - name: Install DEB requirements (>=18.04)
-      apt:
-        name: "{{ item }}"
-        state: present
-      with_items:
-        - schroot
-        - python3-dev
-        - python3-pip
-        - python3-virtualenv
-      when:
-        - ansible_pkg_mgr  == "apt"
-        - ansible_distribution_major_version|int >= 18
-
-    - name: Install DEB requirements (<=16.04)
-      apt:
-        name: dchroot
-        state: present
-      when:
-        - ansible_pkg_mgr  == "apt"
-        - ansible_distribution_major_version|int <= 16
-
-    - name: Add the Debian Jessie Key
-      apt_key:
-       id: 2B90D010
-       url: https://ftp-master.debian.org/keys/archive-key-8.asc
-       keyring: /etc/apt/trusted.gpg
-       state: present
-      when: ansible_pkg_mgr  == "apt"
-
-    - name: Add the Debian Security Jessie Key
-      apt_key:
-        id: C857C906
-        url: https://ftp-master.debian.org/keys/archive-key-8-security.asc
-        keyring: /etc/apt/trusted.gpg
-        state: present
-      when: ansible_pkg_mgr  == "apt"
-
-    - name: Add the Debian Jessie Stable Key
-      apt_key:
-        keyserver: pgp.mit.edu
-        id: 518E17E1
-      when: ansible_pkg_mgr  == "apt"
-
-    - name: Add the Debian Buster Key
-      apt_key:
-       id: 3CBBABEE
-       url: https://ftp-master.debian.org/keys/archive-key-10.asc
-       keyring: /etc/apt/trusted.gpg
-       state: present
-      when: ansible_pkg_mgr  == "apt"
-
-    - name: Add the Debian Security Buster Key
-      apt_key:
-        id: CAA96DFA
-        url: https://ftp-master.debian.org/keys/archive-key-10-security.asc
-        keyring: /etc/apt/trusted.gpg
-        state: present
-      when: ansible_pkg_mgr  == "apt"
-
-    - name: Add the Debian Buster Stable Key
-      apt_key:
-        id: 77E11517
-        url: https://ftp-master.debian.org/keys/release-10.asc
-        keyring: /etc/apt/trusted.gpg
-        state: present
-      when: ansible_pkg_mgr  == "apt"
-
-    - name: Install openjdk-7-jre
-      apt:
-        name: openjdk-7-jre
-        state: present
-      when:
-        ansible_distribution_release in ['precise', 'trusty', 'wheezy', 'jessie']
-
-    - name: Install default openjdk for Xenial only
-      apt:
-        name: "{{ item }}"
-        state: present
-      with_items:
-        - default-jdk
-        - default-jre
-      when:
-        ansible_distribution_release == 'xenial'
-
-    - name: correct java version selected
-      alternatives:
-        name: java
-        path: /usr/lib/jvm/java-7-openjdk-amd64/jre/bin/java
-      when:
-        (ansible_distribution == 'Ubuntu' and ansible_distribution_release == 'precise') or
-        (ansible_distribution == 'Debian' and ansible_distribution_release == 'wheezy')
-
-    - name: "add {{ jenkins_user }} to mock group"
-      user:
-        name: "{{ jenkins_user }}"
-        groups: mock
-        append: yes
-      when: ansible_os_family == "RedHat"
-
-    - name: ensure the rpmmacros file exists to fix centos builds
-      file:
-        path: "/home/{{ jenkins_user }}/.rpmmacros"
-        owner: "{{ jenkins_user }}"
-        state: touch
-
-    - name: write the rpmmacros needed in centos
-      lineinfile:
-        dest: "/home/{{ jenkins_user }}/.rpmmacros"
-        regexp: '^%dist'
-        line: '%dist .el{{ ansible_distribution_major_version }}'
-      when: ansible_pkg_mgr  == "yum"
-
-    - name: ensure the gitconfig file exists
+    ## GITCONFIG TASKS
+    - name: Ensure the gitconfig file exists
       shell: printf "[user]\name=Ceph CI\nemail=ceph-release-team@redhat.com\n" > /home/{{ jenkins_user }}/.gitconfig
+      tags: github
 
-    - name: ensure the gitconfig file has right permissions
+    - name: Ensure the gitconfig file has right permissions
       file:
         path: "/home/{{ jenkins_user }}/.gitconfig"
         owner: "{{ jenkins_user }}"
+      tags: github
 
-    - name: Set Hostname with hostname command
-      hostname:
-        name: "ceph-builders"
-      when: ansible_os_family != "Suse"
+    # On a mita/prado provisioned slave, everything gets put into a 'playbook' dir.
+    # If all else fails, get it from github (using the |default)
+    - set_fact:
+        github_key: "{{ lookup('first_found', key_locations) }}"
+      vars:
+        key_locations:
+          # github.com.pub is the output of `ssh-keyscan github.com`
+          - "playbook/files/ssh/hostkeys/github.com.pub"
+          - "files/ssh/hostkeys/github.com.pub"
+      tags: github
 
-    # https://github.com/ansible/ansible/issues/42726
-    - name: Set Hostname on OpenSUSE Leap
-      command: 'hostname ceph-builders'
-      when: ansible_os_family == "Suse"
+    - name: Add github.com host key
+      known_hosts:
+        name: github.com
+        path: '/etc/ssh/ssh_known_hosts'
+        key: "{{ lookup('file', '{{ github_key }}')|default('https://raw.githubusercontent.com/ceph/ceph-build/master/ansible/files/ssh/hostkeys/github.com.pub') }}"
+      tags: github
 
-    - name: ensure that 127.0.1.1 is present with an actual hostname
-      lineinfile:
-        backup: yes
-        dest: /etc/hosts
-        line: '127.0.1.1 ceph-builders'
-
-    - name: update etc cloud templates for debian /etc/hosts
-      lineinfile:
-        backup: yes
-        dest: /etc/cloud/templates/hosts.debian.tmpl
-        line: '127.0.1.1 ceph-builders'
-      when: ansible_os_family  == "Debian"
-
-    - name: update etc cloud templates for red hat /etc/hosts
-      lineinfile:
-        backup: yes
-        dest: /etc/cloud/templates/hosts.redhat.tmpl
-        line: '127.0.1.1 ceph-builders'
-      failed_when: false
-      when: ansible_os_family == "RedHat"
-
-    - name: update etc cloud templates for suse /etc/hosts
-      lineinfile:
-        backup: yes
-        dest: /etc/cloud/templates/hosts.suse.tmpl
-        line: '127.0.1.1 ceph-builders'
-      failed_when: false
-      when: ansible_os_family == "Suse"
-
+    ## PIP TASKS
     - set_fact:
         pip_version: pip
+        ansible_python_interpreter: /usr/bin/python
       when: (ansible_os_family == "RedHat" and ansible_distribution_major_version|int <= 7) or
-            ansible_os_family == "Debian" or
-            ansible_os_family == "Suse"
+            (ansible_os_family == "Debian" and ansible_distribution_major_version|int <= 16)
 
     - set_fact:
         pip_version: pip3
-      when: ansible_os_family == "RedHat" and ansible_distribution_major_version|int >= 8
+        ansible_python_interpreter: /usr/bin/python3
+      when: (ansible_os_family == "RedHat" and ansible_distribution_major_version|int >= 8) or
+            (ansible_os_family == "Debian" and ansible_distribution_major_version|int >= 18) or
+            ansible_os_family == "Suse"
 
-    - name: install six, latest one
+    - name: Install six, latest one
       pip:
         name: six
         state: latest
         executable: "{{ pip_version }}"
       when: ansible_os_family != "Suse"
 
-    - name: install python-jenkins
+    - name: Install python-jenkins
       # https://review.openstack.org/460363
       pip:
         name: python-jenkins
         version: 0.4.15
         executable: "{{ pip_version }}"
 
-    - name: add github.com host key
-      known_hosts:
-        path: '/etc/ssh/ssh_known_hosts'
-        # we need to use 'host' here because prado currently uses ansible-playbook==1.9.1
-        host: 'github.com'
-        # github.com.pub is the output of `ssh-keyscan github.com`
-        key: "{{ lookup('file', 'playbook/files/ssh/hostkeys/github.com.pub') }}"
-      tags: github
-
-    # The jenkins_node library tries to use pip3 with python-jenkins but it's not compatible.
-    - set_fact:
-        ansible_python_interpreter: /usr/bin/python
-      when:
-        - ansible_os_family == "Debian"
-
-    - name: register the new slave to jenkins master with ssh
-      jenkins_node:
-        username: "{{ api_user }}"
-        uri: "{{ api_uri }}"
-        password: "{{ token }}"
-        # relies on a convention to set a unique name that allows a reverse
-        # mapping from Jenkins back to whatever service created the current
-        # node
-        name: "{{ ansible_default_ipv4.address }}+{{ nodename }}"
-        labels: "{{ labels }}"
-        host: "{{ ansible_default_ipv4.address }}"
-        credentialsId: "{{ jenkins_credentials_uuid }}"
-        remoteFS: '/home/{{ jenkins_user }}/build'
-        executors: '{{ executors|default(1) }}'
-        exclusive: true
-      when: not use_jnlp
-      tags:
-        - register_slave
-
-    - name: register the new slave to jenkins master with jnlp
+    ## JENKINS SLAVE AGENT TASKS
+    # We use jnlp on ephemeral non-permanent slaves because ???
+    - name: Register the new slave to jenkins master with jnlp
       jenkins_node:
         username: "{{ api_user }}"
         uri: "{{ api_uri }}"
@@ -547,9 +667,46 @@
         credentialsId: "{{ jenkins_credentials_uuid }}"
         launcher: 'hudson.slaves.JNLPLauncher'
         remoteFS: '/home/{{ jenkins_user }}/build'
-        # XXX this should be configurable, not all nodes should have one executor
         executors: '{{ executors|default(1) }}'
         exclusive: true
-      when: use_jnlp
-      tags:
-        - register_slave
+      when: not permanent|bool
+
+    - name: Register Permanent Slave
+      block:
+        - name: Register the new slave to jenkins master with ssh
+          jenkins_node:
+            username: "{{ api_user }}"
+            uri: "{{ api_uri }}"
+            password: "{{ token }}"
+            # relies on a convention to set a unique name that allows a reverse
+            # mapping from Jenkins back to whatever service created the current
+            # node
+            name: "{{ ansible_default_ipv4.address }}+{{ ansible_hostname }}"
+            labels: "{{ labels }}"
+            host: "{{ ansible_default_ipv4.address }}"
+            credentialsId: "{{ jenkins_credentials_uuid }}"
+            remoteFS: '/home/{{ jenkins_user }}/build'
+            executors: '{{ executors|default(1) }}'
+            exclusive: true
+
+        - name: Download slave.jar
+          get_url:
+            url: "{{ api_uri }}/jnlpJars/slave.jar"
+            dest: "/home/{{ jenkins_user }}/slave.jar"
+            force: yes
+
+        - name: Install the systemd unit file for jenkins
+          template:
+            src: "templates/systemd/jenkins.service.j2"
+            dest: "/etc/systemd/system/jenkins.service"
+
+        - name: Reload systemd unit files (to pick up potential changes)
+          systemd:
+            daemon_reload: yes
+
+        - name: Start jenkins service
+          service:
+            name: jenkins
+            state: started
+            enabled: yes
+      when: permanent|bool
