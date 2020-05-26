@@ -1,0 +1,58 @@
+- job:
+    name: ceph-website
+    description: This job builds branches from github.com/ceph/ceph.io and updates the website accordingly.
+    node: www
+    project-type: freestyle
+    defaults: global
+    quiet-period: 5
+    block-downstream: false
+    block-upstream: false
+    properties:
+      - build-discarder:
+          days-to-keep: 1
+          num-to-keep: 10
+          artifact-days-to-keep: -1
+          artifact-num-to-keep: -1
+      - github:
+          url: https://github.com/ceph/ceph.io
+
+    parameters:
+      - string:
+          name: sha1
+          description: "A pull request ID or branch, like 'origin/pr/72/head' or wip-blogpost1"
+
+    triggers:
+      - github
+      - github-pull-request:
+          org-list:
+            - ceph
+          cancel-builds-on-update: true
+          trigger-phrase: 'jenkins test.*|jenkins retest.*'
+          only-trigger-phrase: false
+          github-hooks: true
+          permit-all: false
+          auto-close-on-fail: false
+          status-context: "Compiling site"
+          started-status: "Compiling site"
+          success-status: "Site compiled successfully!"
+          failure-status: "Site compilation failed"
+#         This is kinda noisy if there's lots of force pushes
+#         success-comment: "Site built successfully!  https://${GIT_BRANCH}.ceph.io"
+
+    scm:
+      - git:
+          url: https://github.com/ceph/ceph.io
+          browser: auto
+          # The default is to build and publish every branch.
+          # Uncomment this for testing:
+          #branches:
+          #  - 'origin/master'
+          skip-tag: true
+          timeout: 20
+          wipe-workspace: true
+
+    builders:
+      - shell:
+          !include-raw:
+            - ../../../scripts/build_utils.sh
+            - ../../build/build
