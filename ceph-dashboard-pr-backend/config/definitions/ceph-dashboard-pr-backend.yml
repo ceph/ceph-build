@@ -30,12 +30,11 @@
           allow-whitelist-orgs-as-admins: true
           org-list:
             - ceph
-          black-list-target-branches:
-            - luminous
-            - mimic
+          white-list-target-branches:
+            - octopus
           trigger-phrase: 'jenkins test dashboard backend'
           skip-build-phrase: '^jenkins do not test.*'
-          only-trigger-phrase: true
+          only-trigger-phrase: false
           github-hooks: true
           permit-all: true
           auto-close-on-fail: false
