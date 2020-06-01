@@ -74,3 +74,4 @@
           - text:
               credential-id: cd-cypress-record-key
               variable: CYPRESS_RECORD_KEY
+      - ansicolor
