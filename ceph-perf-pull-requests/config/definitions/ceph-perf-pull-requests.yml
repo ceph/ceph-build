@@ -94,6 +94,7 @@
     project-type: freestyle
     defaults: global
     concurrent: true
+    # use lastest rhel and ubuntu for crimson for clang build
     node: performance
     display-name: 'ceph: {osd-flavor} perf test'
     quiet-period: 5
@@ -145,11 +146,14 @@
       - shell: |
           cd ${{WORKSPACE}}/cbt
           source /etc/os-release || ID=ubuntu
+          if test {osd-flavor} = "crimson" ; then
+              extra_pkgs=clang
+          fi
           case $ID in
           debian|ubuntu)
-              sudo env DEBIAN_FRONTEND=noninteractive apt-get install -y python3-yaml python3-lxml python3-prettytable;;
+              sudo env DEBIAN_FRONTEND=noninteractive apt-get install -y python3-yaml python3-lxml python3-prettytable ${{extra_pkgs}};;
           centos|fedora|rhel)
-              sudo yum install -y python3-pyyaml python3-lxml python3-prettytable;;
+              sudo yum install -y python3-pyyaml python3-lxml python3-prettytable ${{extra_pkgs}};;
           *)
               echo "unknown distro: $ID"
               exit 1
