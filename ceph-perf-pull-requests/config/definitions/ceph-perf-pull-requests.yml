@@ -56,9 +56,21 @@
           fi
           export NPROC=$(nproc)
           export FOR_MAKE_CHECK=true
+          cxx_compiler=g++
+          c_compiler=gcc
+          for i in $(seq 11 -1 8); do
+              if type -t clang-$i > /dev/null; then
+                  cxx_compiler="clang++-$i"
+                  c_compiler="clang-$i"
+                  break
+              fi
+          done
           if test {osd-flavor} = "crimson" ; then
               export WITH_SEASTAR=true
-              timeout 7200 src/script/run-make.sh --cmake-args "-DCMAKE_BUILD_TYPE=Release -DWITH_SEASTAR=ON -DWITH_TESTS=OFF" vstart-base crimson-osd
+              # TODO use clang-10 on ubuntu/focal
+              timeout 7200 src/script/run-make.sh \
+                --cmake-args "-DCMAKE_CXX_COMPILER=$cxx_compiler -DCMAKE_C_COMPILER=$c_compiler -DCMAKE_BUILD_TYPE=Release -DWITH_SEASTAR=ON -DWITH_TESTS=OFF" \
+                vstart-base crimson-osd
               src/script/run-cbt.sh --build-dir $PWD/build --source-dir $PWD --cbt ${{WORKSPACE}}/cbt -a $archive_dir src/test/crimson/cbt/radosbench_4K_read.yaml
           else
               timeout 7200 src/script/run-make.sh --cmake-args "-DCMAKE_BUILD_TYPE=Release -DWITH_TESTS=OFF" vstart-base
@@ -82,6 +94,7 @@
     project-type: freestyle
     defaults: global
     concurrent: true
+    # use lastest rhel and ubuntu for crimson for clang build
     node: performance
     display-name: 'ceph: {osd-flavor} perf test'
     quiet-period: 5
@@ -133,11 +146,14 @@
       - shell: |
           cd ${{WORKSPACE}}/cbt
           source /etc/os-release || ID=ubuntu
+          if test {osd-flavor} = "crimson" ; then
+              extra_pkgs=clang
+          fi
           case $ID in
           debian|ubuntu)
-              sudo env DEBIAN_FRONTEND=noninteractive apt-get install -y python3-yaml python3-lxml python3-prettytable;;
+              sudo env DEBIAN_FRONTEND=noninteractive apt-get install -y python3-yaml python3-lxml python3-prettytable ${{extra_pkgs}};;
           centos|fedora|rhel)
-              sudo yum install -y python3-pyyaml python3-lxml python3-prettytable;;
+              sudo yum install -y python3-pyyaml python3-lxml python3-prettytable ${{extra_pkgs}};;
           *)
               echo "unknown distro: $ID"
               exit 1
