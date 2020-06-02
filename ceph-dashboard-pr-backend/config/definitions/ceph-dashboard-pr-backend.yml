@@ -31,6 +31,7 @@
           org-list:
             - ceph
           white-list-target-branches:
+            - master
             - octopus
           trigger-phrase: 'jenkins test dashboard backend'
           skip-build-phrase: '^jenkins do not test.*'
