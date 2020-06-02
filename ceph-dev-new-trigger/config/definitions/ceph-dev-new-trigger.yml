@@ -158,7 +158,7 @@
                   predefined-parameters: |
                     BRANCH=${GIT_BRANCH}
                     FORCE=True
-                    DISTROS=focal centos8
+                    DISTROS=centos8
                     FLAVOR=crimson
 
     wrappers:
