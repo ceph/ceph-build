@@ -78,3 +78,6 @@
                 healthy: 10
                 unhealthy: 20
                 failing: 30
+
+    wrappers:
+      - ansicolor

@@ -63,3 +63,6 @@
             - ../../build/build
             - ../../../scripts/dashboard/install-backend-api-test-deps.sh
       - shell: "cd src/pybind/mgr/dashboard; timeout 7200 ./run-backend-api-tests.sh"
+
+    wrappers:
+      - ansicolor
