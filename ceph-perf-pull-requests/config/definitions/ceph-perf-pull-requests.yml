@@ -62,6 +62,7 @@
               if type -t clang-$i > /dev/null; then
                   cxx_compiler="clang++-$i"
                   c_compiler="clang-$i"
+                  export CFLAGS=$(echo $CFLAGS | (sed -e 's/\-fstack-clash-protection//'))
                   break
               fi
           done
