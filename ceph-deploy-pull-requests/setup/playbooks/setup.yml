@@ -2,7 +2,7 @@
 
 - hosts: localhost
   user: jenkins-build
-  sudo: True
+  become: yes
 
   tasks:
      - include: tasks/ubuntu.yml
