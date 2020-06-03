@@ -3,7 +3,7 @@
     action: apt update_cache=yes
 
   - name: install python requirements
-    action: apt pkg={{ item }} state=installed
+    action: apt pkg={{ item }}
     with_items:
       - python-software-properties
       - python-dev
