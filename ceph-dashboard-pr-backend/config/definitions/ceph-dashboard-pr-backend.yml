@@ -33,6 +33,7 @@
           white-list-target-branches:
             - master
             - octopus
+            - nautilus
           trigger-phrase: 'jenkins test dashboard backend'
           skip-build-phrase: '^jenkins do not test.*'
           only-trigger-phrase: false
