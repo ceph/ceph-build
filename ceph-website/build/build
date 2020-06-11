@@ -17,7 +17,7 @@ if [ ! -d /opt/www/${BRANCH} ]; then
   mkdir -p /opt/www/${BRANCH}
 fi
 
-rsync -av --delete-after dist/* /opt/www/${BRANCH}/
+rsync -av --delete-after dist/ /opt/www/${BRANCH}/
 
 # This just makes the last `echo` line not repeat
 { set +x; } 2>/dev/null
