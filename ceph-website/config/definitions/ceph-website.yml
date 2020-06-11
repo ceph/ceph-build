@@ -26,6 +26,8 @@
       - github-pull-request:
           org-list:
             - ceph
+          white-list:
+            - adamduncan
           cancel-builds-on-update: true
           trigger-phrase: 'jenkins test.*|jenkins retest.*'
           only-trigger-phrase: false
