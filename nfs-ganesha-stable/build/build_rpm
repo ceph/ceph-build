@@ -55,8 +55,19 @@ librados-devel-${CEPH_VERSION}
 librgw-devel-${CEPH_VERSION}
 libcephfs-devel-${CEPH_VERSION}
 lttng-ust-devel
-lttng-tools-devel
 "
+
+# Removed "lttng-tools-devel" from above xargs list because it isn't available in el8
+if [ $DIST = centos7 ]
+then
+	sudo yum install -y lttng-tools-devel
+fi
+
+# The libnsl2-devel package is needed on el8 builds, but not el7
+if [ $DIST = centos8 ]
+then
+	sudo yum -y install libnsl2-devel
+fi
 
 sudo yum install -y mock
 
@@ -89,7 +100,13 @@ mkdir build
 cd build
 
 # generate .spec file, edit .spec file for correct versions of libs and make source tarball
-cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo -DSTRICT_PACKAGE=ON -DUSE_FSAL_ZFS=OFF -DUSE_FSAL_GLUSTER=OFF -DUSE_FSAL_CEPH=ON -DUSE_FSAL_RGW=ON -DRADOS_URLS=ON -DUSE_RADOS_RECOV=ON -DUSE_LTTNG=ON $WORKSPACE/nfs-ganesha/src && make dist || exit 1
+if [ $DIST = centos7 ]
+then
+    cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo -DSTRICT_PACKAGE=ON -DUSE_FSAL_ZFS=OFF -DUSE_FSAL_GLUSTER=OFF -DUSE_FSAL_CEPH=ON -DUSE_FSAL_RGW=ON -DRADOS_URLS=ON -DUSE_RADOS_RECOV=ON -DUSE_LTTNG=ON -DUSE_ADMIN_TOOLS=ON $WORKSPACE/nfs-ganesha/src && make dist || exit 1
+else
+    # Don't enable LTTNG for el8 builds - the "lttng-tools-devel" package isn't available
+    cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo -DSTRICT_PACKAGE=ON -DUSE_FSAL_ZFS=OFF -DUSE_FSAL_GLUSTER=OFF -DUSE_FSAL_CEPH=ON -DUSE_FSAL_RGW=ON -DRADOS_URLS=ON -DUSE_RADOS_RECOV=ON -DUSE_ADMIN_TOOLS=ON $WORKSPACE/nfs-ganesha/src && make dist || exit 1
+fi
 
 sed -i 's/libcephfs1-devel/libcephfs-devel/' $WORKSPACE/nfs-ganesha/src/nfs-ganesha.spec
 sed -i 's/librgw2-devel/librgw-devel/' $WORKSPACE/nfs-ganesha/src/nfs-ganesha.spec
@@ -106,18 +123,23 @@ rpmbuild \
     --nodeps -bs $WORKSPACE/nfs-ganesha/src/nfs-ganesha.spec
 SRPM=$(readlink -f $WORKSPACE/dist/SRPMS/*.src.rpm)
 
-# add repo file to mock config
-sudo head -n -1 /etc/mock/${MOCK_TARGET}-${RELEASE}-${ARCH}.cfg > temp.cfg
-echo >> temp
-sudo cat temp.cfg $WORKSPACE/shaman.repo > nfs-ganesha.cfg
-echo "\"\"\"" >> nfs-ganesha.cfg
+# Add repo file to mock config. The new version of mock uses templates.
+if [ $DIST = centos7 ]
+then
+    sudo cat /etc/mock/${MOCK_TARGET}-${RELEASE}-${ARCH}.cfg /etc/mock/templates/epel-${RELEASE}.tpl  > nfs-ganesha-mock.temp
+else
+    sudo cat /etc/mock/${MOCK_TARGET}-${RELEASE}-${ARCH}.cfg /etc/mock/templates/centos-${RELEASE}.tpl /etc/mock/templates/epel-${RELEASE}.tpl  > nfs-ganesha-mock.temp
+fi
+sudo head -n -1 nfs-ganesha-mock.temp > nfs-ganesha.cfg
+sudo cat $WORKSPACE/shaman.repo >> nfs-ganesha.cfg
+sudo echo "\"\"\"" >> nfs-ganesha.cfg
 # for debugging
 cat nfs-ganesha.cfg
 
 ## Build the binaries with mock
 echo "Building RPMs"
 sudo mock --verbose -r nfs-ganesha.cfg --scrub=all
-sudo mock --verbose -r nfs-ganesha.cfg --define "dist .el7" --resultdir=$WORKSPACE/dist/RPMS/ ${SRPM} || ( tail -n +1 $WORKSPACE/dist/RPMS/{root,build}.log && exit 1 )
+sudo mock --verbose -r nfs-ganesha.cfg --define "dist .el${RELEASE}" --resultdir=$WORKSPACE/dist/RPMS/ ${SRPM} || ( tail -n +1 $WORKSPACE/dist/RPMS/{root,build}.log && exit 1 )
 
 VERSION=`grep -R "#define GANESHA_VERSION \"" $WORKSPACE/nfs-ganesha/build/include/config.h | sed -e 's/#define GANESHA_VERSION "//1; s/"//1;'`
 chacra_endpoint="nfs-ganesha-stable/${NFS_GANESHA_BRANCH}/${GIT_COMMIT}/${DISTRO}/${RELEASE}"
