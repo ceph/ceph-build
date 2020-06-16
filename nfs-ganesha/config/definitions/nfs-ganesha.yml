@@ -57,8 +57,8 @@
 
       - string:
           name: DISTROS
-          description: "A list of distros to build for. Available options are: bionic, centos7"
-          default: "centos7 bionic"
+          description: "A list of distros to build for. Available options are: bionic, centos7, centos8"
+          default: "centos7 centos8 bionic"
 
       - string:
           name: ARCHS
@@ -102,6 +102,7 @@ If this is checked, then the binaries will be built and pushed to chacra even if
           name: AVAILABLE_DIST
           values:
             - centos7
+            - centos8
             - xenial
             - bionic
       - axis:
