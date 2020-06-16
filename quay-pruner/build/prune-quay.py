@@ -6,7 +6,7 @@ import re
 import requests
 import sys
 
-QUAYBASE = "https://quay.io/api/v1"
+QUAYBASE = "https://quay.ceph.io/api/v1"
 REPO = "ceph-ci/ceph"
 
 
