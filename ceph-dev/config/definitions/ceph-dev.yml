@@ -72,7 +72,7 @@ If this is checked, then the binaries will be built and pushed to chacra even if
       - string:
           name: CONTAINER_REPO_HOSTNAME
           description: "For CI_CONTAINER: Name of container repo server (i.e. 'quay.io')"
-          default: "quay.io"
+          default: "quay.ceph.io"
 
       - string:
           name: CONTAINER_REPO_ORGANIZATION

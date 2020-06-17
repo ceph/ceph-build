@@ -44,5 +44,5 @@
           mask-password-params: true
       - credentials-binding:
           - text:
-              credential-id: quay-api-token
+              credential-id: quay-dot-ceph-dot-io-pruner-token
               variable: QUAYTOKEN
