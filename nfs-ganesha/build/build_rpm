@@ -15,6 +15,12 @@ then
 	sudo yum-config-manager --disable google-chrome
 fi
 
+# Some  -devel packages are only available in the CentOS 8 PowerTools repo. Enable it:
+if [ $DIST = centos8 ]
+then
+	sudo yum-config-manager --enable PowerTools
+fi
+
 # Clean up Jenkins slave before each build
 sudo rm -rf /var/cache/yum/*
 sudo yum -y clean all
@@ -118,9 +124,6 @@ fi
 sed -i 's/libcephfs1-devel/libcephfs-devel/' $WORKSPACE/nfs-ganesha/src/nfs-ganesha.spec
 sed -i 's/librgw2-devel/librgw-devel/' $WORKSPACE/nfs-ganesha/src/nfs-ganesha.spec
 sed -i 's/CMAKE_BUILD_TYPE=Debug/CMAKE_BUILD_TYPE=RelWithDebInfo/' $WORKSPACE/nfs-ganesha/src/nfs-ganesha.spec
-
-# libacl-devel needs to be a CephFS BuildRequires in the upstream nfs-ganesha.spec-in.cmake
-sed -i 's/krb5-devel/krb5-devel libacl-devel/' $WORKSPACE/nfs-ganesha/src/nfs-ganesha.spec
 
 ## Create the source rpm
 echo "Building SRPM"
