@@ -138,7 +138,7 @@
                     DISTROS=centos8
                     FLAVOR=notcmalloc
       # build master on:
-      # default: focal bionic centos7 centos8 leap15
+      # default: focal bionic centos8 leap15
       # notcmalloc: centos8
       - conditional-step:
           condition-kind: regex-match
@@ -155,7 +155,7 @@
                   predefined-parameters: |
                     BRANCH=${GIT_BRANCH}
                     FORCE=True
-                    DISTROS=focal bionic centos7 centos8 leap15
+                    DISTROS=focal bionic centos8 leap15
                 - project: 'ceph-dev'
                   predefined-parameters: |
                     BRANCH=${GIT_BRANCH}
