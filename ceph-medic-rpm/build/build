@@ -17,7 +17,7 @@ make rpm || ( tail -n +1 {root,build}.log && exit 1 )
 
 # Chacra time
 
-pkgs=( "chacractl>=0.0.4" )
+pkgs=( "chacractl>=0.0.21" )
 install_python_packages "pkgs[@]"
 
 # ask shaman which chacra instance to use

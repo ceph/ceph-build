@@ -88,8 +88,6 @@ if [ "$RELEASE" = 7 ]; then
    fi
 elif [ "$RELEASE" = 8 ]; then
     $SUDO dnf config-manager --set-enabled PowerTools
-    # chacractl is not python3 compatible yet
-    $SUDO dnf -y install python2
 fi
 
 sed -e 's/@//g' < ceph.spec.in > $DIR/ceph.spec
@@ -122,7 +120,7 @@ NORMAL_ARCH=$ARCH
 # create build status in shaman
 create_build_status "started" "ceph" $NORMAL_DISTRO $NORMAL_DISTRO_VERSION $NORMAL_ARCH
 
-pkgs=( "chacractl>=0.0.4" )
+pkgs=( "chacractl>=0.0.21" )
 install_python_packages "pkgs[@]"
 
 # create the .chacractl config file using global variables

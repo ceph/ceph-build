@@ -12,7 +12,7 @@ echo "Building on Host: $(hostname)"
 rm -rf dist
 rm -rf RPMBUILD
 
-pkgs=( "chacractl>=0.0.4" )
+pkgs=( "chacractl>=0.0.21" )
 install_python_packages "pkgs[@]"
 
 # create the .chacractl config file using global variables
