@@ -3,5 +3,4 @@ set -e
 
 
 cd "$WORKSPACE"/ceph-container/ || exit
-sed -i -e 's/master luminous mimic nautilus octopus/master nautilus octopus/' contrib/build-push-ceph-container-imgs.sh
 bash -x contrib/build-push-ceph-container-imgs.sh
