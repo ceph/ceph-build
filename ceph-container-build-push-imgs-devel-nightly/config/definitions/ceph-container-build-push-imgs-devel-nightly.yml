@@ -33,6 +33,7 @@
       - inject:
           properties-content: |
             DEVEL=true
+            FLAVORS="nautilus,centos,7 octopus,centos,8 master,centos,8"
       - shell:
           !include-raw:
             - ../../../scripts/build_utils.sh
