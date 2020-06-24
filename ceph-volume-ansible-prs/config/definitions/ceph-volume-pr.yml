@@ -16,23 +16,6 @@
       - 'ceph-volume-prs-{subcommand}-{distro}-{objectstore}-{scenario}'
 
 - project:
-    name: ceph-volume-ansible-prs-simple
-    distro:
-      - centos8
-    objectstore:
-      - bluestore
-      - filestore
-    scenario:
-      - activate
-      - dmcrypt_luks
-      - dmcrypt_plain
-    subcommand:
-      - simple
-
-    jobs:
-      - 'ceph-volume-prs-{subcommand}-{distro}-{objectstore}-{scenario}'
-
-- project:
     name: ceph-volume-ansible-prs-batch
     distro:
       - centos8
