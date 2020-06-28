@@ -17,7 +17,7 @@ if test -f /etc/redhat-release ; then
     sudo yum install -y $rpm_deps
 fi
 
-pkgs=( "chacractl>=0.0.4" )
+pkgs=( "chacractl>=0.0.21" )
 install_python_packages "pkgs[@]"
 
 # create the .chacractl config file using global variables

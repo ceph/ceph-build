@@ -109,17 +109,17 @@ install_python_packages_no_binary () {
     #
     # Usage (with pip 10.0.0 [the default]):
     #
-    #   to_install=( "ansible" "chacractl>=0.0.4" )
+    #   to_install=( "ansible" "chacractl>=0.0.21" )
     #   install_python_packages_no_binary "to_install[@]"
     #
     # Usage (with pip<X.X.X [can also do ==X.X.X or !=X.X.X]):
     #
-    #   to_install=( "ansible" "chacractl>=0.0.4" )
+    #   to_install=( "ansible" "chacractl>=0.0.21" )
     #   install_python_packages_no_binary "to_install[@]" "pip<X.X.X"
     #
     # Usage (with latest pip):
     #
-    #   to_install=( "ansible" "chacractl>=0.0.4" )
+    #   to_install=( "ansible" "chacractl>=0.0.21" )
     #   install_python_packages_no_binary "to_install[@]" latest
 
     create_virtualenv $TEMPVENV
@@ -164,17 +164,17 @@ install_python_packages () {
     #
     # Usage (with pip 10.0.0 [the default]):
     #
-    #   to_install=( "ansible" "chacractl>=0.0.4" )
+    #   to_install=( "ansible" "chacractl>=0.0.21" )
     #   install_python_packages "to_install[@]"
     #
     # Usage (with pip<X.X.X [can also do ==X.X.X or !=X.X.X]):
     #
-    #   to_install=( "ansible" "chacractl>=0.0.4" )
+    #   to_install=( "ansible" "chacractl>=0.0.21" )
     #   install_python_packages_no_binary "to_install[@]" "pip<X.X.X"
     #
     # Usage (with latest pip):
     #
-    #   to_install=( "ansible" "chacractl>=0.0.4" )
+    #   to_install=( "ansible" "chacractl>=0.0.21" )
     #   install_python_packages "to_install[@]" latest
 
     create_virtualenv $TEMPVENV

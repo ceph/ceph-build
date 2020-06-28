@@ -53,7 +53,7 @@ CentOS|Fedora|SUSE*|RedHatEnterpriseServer)
         ;;
 esac
 
-pkgs=( "chacractl>=0.0.4" )
+pkgs=( "chacractl>=0.0.21" )
 install_python_packages "pkgs[@]"
 
 # ask shaman which chacra instance to use
