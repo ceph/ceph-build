@@ -1072,3 +1072,38 @@ get_nr_build_jobs() {
     fi
     echo $n_build_jobs
 }
+
+update_github_status() {
+    # https://developer.github.com/v3/repos/statuses/#create-a-status
+    # To use this function in your job, you must use define the following in your job yaml:
+    # wrappers:
+    #   - credentials-binding:
+    #      - text:
+    #          credential-id: 8dff73ff-506c-4397-969d-023f15aedea9
+    #          variable: GITHUB_API_TOKEN
+    #
+    # Also note that since this is really only useful for updating a PR status, it will only work when the job is triggered by the ghprb plugin.
+
+    if [ $# -lt 3 ]; then
+        echo "The update_github_status function requires at least 3 arguments."
+        echo "Be sure to send them like this: update_github_status \"ceph\" \"error|failure|pending|success\" \"context with spaces (like 'make check')\" \"optional description (like 'running')\""
+    fi
+
+    repo="$1"
+    state="$2"
+    context="$3"
+    if [ -n "$4" ]; then
+        description="$4"
+        curl -s "https://api.github.com/repos/ceph/${repo}/statuses/${ghprbActualCommit}" \
+            -H "Content-Type: application/json" \
+            -H "Authorization: token ${GITHUB_API_TOKEN}" \
+            -X POST \
+            -d "{\"state\": \"$state\",\"context\": \"$context\", \"description\": \"$description\", \"target_url\": \"${BUILD_URL}/console\"}" > /dev/null
+    else
+        curl -s "https://api.github.com/repos/ceph/${repo}/statuses/${ghprbActualCommit}" \
+            -H "Content-Type: application/json" \
+            -H "Authorization: token ${GITHUB_API_TOKEN}" \
+            -X POST \
+            -d "{\"state\": \"$state\",\"context\": \"$context\", \"target_url\": \"${BUILD_URL}/console\"}" > /dev/null
+    fi
+}
