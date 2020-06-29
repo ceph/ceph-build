@@ -1,6 +1,8 @@
 #!/bin/bash -ex
+update_github_status "ceph" "pending" "make check" "Running"
 export NPROC=$(nproc)
 export WITH_SEASTAR=true
 timeout 3h ./run-make-check.sh
+update_github_status "ceph" "success" "make check"
 sleep 5
 ps -ef | grep -v jnlp | grep ceph || true
