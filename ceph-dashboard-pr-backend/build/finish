@@ -1,0 +1,2 @@
+#!/bin/bash
+update_github_status "ceph" "success" "ceph dashboard backend API tests"

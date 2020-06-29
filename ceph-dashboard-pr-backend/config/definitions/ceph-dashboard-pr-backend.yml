@@ -1,6 +1,5 @@
 - job:
     name: ceph-dashboard-pr-backend
-    project-type: freestyle
     defaults: global
     concurrent: true
     node: huge && bionic && x86_64 && !xenial && !trusty
@@ -25,26 +24,6 @@
           name: sha1
           description: "commit id or a refname, like 'origin/pr/72/head'"
 
-    triggers:
-      - github-pull-request:
-          allow-whitelist-orgs-as-admins: true
-          org-list:
-            - ceph
-          white-list-target-branches:
-            - master
-            - octopus
-            - nautilus
-          trigger-phrase: 'jenkins test dashboard backend'
-          skip-build-phrase: '^jenkins do not test.*'
-          only-trigger-phrase: false
-          github-hooks: true
-          permit-all: true
-          auto-close-on-fail: false
-          status-context: "ceph dashboard backend API tests"
-          started-status: "running ceph dashboard backend API tests"
-          success-status: "ceph dashboard backend API tests succeeded"
-          failure-status: "ceph dashboard backend API tests failed"
-
     scm:
       - git:
           url: https://github.com/ceph/ceph.git
@@ -58,12 +37,41 @@
           wipe-workspace: true
 
     builders:
+      - copyartifact:
+          project: ceph-pull-requests
+          filter: 'build/**'
+          which-build: multijob-build
       - shell:
           !include-raw:
             - ../../../scripts/build_utils.sh
             - ../../build/build
             - ../../../scripts/dashboard/install-backend-api-test-deps.sh
       - shell: "cd src/pybind/mgr/dashboard; timeout 7200 ./run-backend-api-tests.sh"
+      - shell:
+          !include-raw:
+            - ../../../scripts/build_utils.sh
+            - ../../build/finish
 
     wrappers:
       - ansicolor
+      - credentials-binding:
+          - text:
+              credential-id: 8dff73ff-506c-4397-969d-023f15aedea9
+              variable: GITHUB_API_TOKEN
+
+    publishers:
+      - archive:
+          artifacts: 'build/**'
+          allow-empty: false
+          latest-only: false
+      - postbuildscript:
+          builders:
+            - role: SLAVE
+              build-on:
+                  - FAILURE
+                  - ABORTED
+              build-steps:
+                - shell:
+                    !include-raw:
+                      - ../../../scripts/build_utils.sh
+                      - ../../build/failure
