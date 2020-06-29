@@ -1,0 +1,82 @@
+- job:
+    name: ceph-pull-requests-trigger
+    node: master
+    project-type: multijob
+    defaults: global
+    # We want make check to only run on Bionic b/c it has python2 and python3 and b/c all builds should build on Bionic
+    display-name: 'ceph: Pull Requests Trigger'
+    description: "This job kicks off `make check` and any subsequent jobs that can reuse that built environment."
+    quiet-period: 5
+    block-downstream: false
+    block-upstream: false
+    properties:
+      - build-discarder:
+          days-to-keep: 15
+          num-to-keep: 300
+          artifact-days-to-keep: -1
+          artifact-num-to-keep: -1
+      - github:
+          url: https://github.com/ceph/ceph/
+
+    triggers:
+      - github-pull-request:
+          allow-whitelist-orgs-as-admins: true
+          org-list:
+            - ceph
+          trigger-phrase: 'jenkins test.*'
+          skip-build-phrase: '^jenkins do not test.*'
+          only-trigger-phrase: false
+          github-hooks: true
+          permit-all: true
+          auto-close-on-fail: false
+          status-context: "Ceph Pull Request Pipeline"
+          started-status: "Running"
+          success-status: "Passed!"
+          failure-status: "Failed"
+
+#    scm:
+#      - git:
+#          url: https://github.com/ceph/ceph.git
+#          branches:
+#            - origin/pr/${ghprbPullId}/merge
+#          refspec: +refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*
+#          browser: auto
+#          timeout: 20
+#          skip-tag: true
+#          shallow-clone: true
+#          honor-refspec: true
+#          wipe-workspace: true
+
+    builders:
+      - multijob:
+          name: 'make check'
+          condition: SUCCESSFUL
+          projects:
+            - name: ceph-pull-requests-dgalloway
+              current-parameters: true
+              exposed-scm: false
+      - multijob:
+          name: 'ceph dashboard backend'
+          condition: SUCCESSFUL
+          projects:
+            - name: ceph-dashboard-pr-backend-dgalloway
+              current-parameters: true
+              exposed-scm: false
+
+#    publishers:
+#      - cobertura:
+#          report-file: "src/pybind/mgr/dashboard/frontend/coverage/cobertura-coverage.xml"
+#          only-stable: "true"
+#          health-auto-update: "false"
+#          stability-auto-update: "false"
+#          zoom-coverage-chart: "true"
+#          source-encoding: "Big5"
+#          targets:
+#            - files:
+#                healthy: 10
+#                unhealthy: 20
+#                failing: 30
+#            - method:
+#                healthy: 10
+#                unhealthy: 20
+#                failing: 30
