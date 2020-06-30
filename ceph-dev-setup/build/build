@@ -38,15 +38,24 @@ git submodule update --init
 
 # Flavor Builds support
 
-if [ "${FLAVOR}" == "notcmalloc" ]
-then
-    echo "Detected notcmalloc flavor: will use flag: -DALLOCATOR=libc"
-    CEPH_EXTRA_RPMBUILD_ARGS="--without tcmalloc"
-    CEPH_EXTRA_CMAKE_ARGS="$CEPH_EXTRA_CMAKE_ARGS -DALLOCATOR=libc -DWITH_CEPH_DEBUG_MUTEX=ON"
-else
-    CEPH_EXTRA_RPMBUILD_ARGS="--with tcmalloc"
-    CEPH_EXTRA_CMAKE_ARGS="$CEPH_EXTRA_CMAKE_ARGS -DALLOCATOR=tcmalloc"
-fi
+case "${FLAVOR}" in
+    notcmalloc)
+        echo "Detected notcmalloc flavor: will use flag: -DALLOCATOR=libc"
+        CEPH_EXTRA_RPMBUILD_ARGS="--without tcmalloc"
+        CEPH_EXTRA_CMAKE_ARGS="$CEPH_EXTRA_CMAKE_ARGS -DALLOCATOR=libc -DWITH_CEPH_DEBUG_MUTEX=ON"
+        ;;
+    default)
+        CEPH_EXTRA_RPMBUILD_ARGS="--with tcmalloc"
+        CEPH_EXTRA_CMAKE_ARGS="$CEPH_EXTRA_CMAKE_ARGS -DALLOCATOR=tcmalloc"
+        ;;
+    crimson)
+        CEPH_EXTRA_RPMBUILD_ARGS="--with seastar"
+        CEPH_EXTRA_CMAKE_ARGS="$CEPH_EXTRA_CMAKE_ARGS -DWITH_SEASTAR=ON"
+        ;;
+    *)
+        echo "unknown FLAVOR: ${FLAVOR}" >&2
+        exit 1
+esac
 
 # When using autotools/autoconf it is possible to see output from `git diff`
 # since some macros can be copied over to the ceph source, triggering this

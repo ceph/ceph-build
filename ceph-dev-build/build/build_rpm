@@ -186,7 +186,7 @@ fi
 
 # XXX perhaps use job parameters instead of literals; then
 # later stages can also use them to compare etc.
-if [[ "$CI_CONTAINER" == true && $DISTRO == "centos" && $FLAVOR == "default" ]] ; then
+if [[ "$CI_CONTAINER" == true && $DISTRO == "centos" && $FLAVOR != "notcmalloc" ]] ; then
     loop=0
     ready=false
     while ((loop < 15)); do
