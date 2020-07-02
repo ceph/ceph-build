@@ -1072,3 +1072,12 @@ get_nr_build_jobs() {
     fi
     echo $n_build_jobs
 }
+
+maybe_reset_ci_container() {
+    # ceph-container includes ceph-mgr-cephadm by default, but nautilus does
+    # not ship this package
+    if [[ "$CI_CONTAINER" && "$BRANCH" =~ nautilus ]]; then
+        echo "disabling CI container build for $BRANCH"
+        CI_CONTAINER=false
+    fi
+}
