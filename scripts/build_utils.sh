@@ -1287,3 +1287,13 @@ EOF
                  ${build_area}/SPECS/ceph-release.spec
     fi
 }
+
+maybe_reset_ci_container() {
+    if ! "$CI_CONTAINER"; then
+        return
+    fi
+    if [[ "$BRANCH" =~ octopus && "$DIST" == centos7 ]]; then
+        echo "disabling CI container build for $BRANCH"
+        CI_CONTAINER=false
+    fi
+}
