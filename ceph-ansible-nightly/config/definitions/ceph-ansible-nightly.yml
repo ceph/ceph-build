@@ -168,3 +168,13 @@
           artifacts: 'logs/**'
           allow-empty: true
           latest-only: false
+
+    wrappers:
+      - inject-passwords:
+          global: true
+          mask-password-params: true
+      - credentials-binding:
+          - username-password-separated:
+              credential-id: ceph-ansible-upstream-ci
+              username: DOCKER_HUB_USERNAME
+              password: DOCKER_HUB_PASSWORD
