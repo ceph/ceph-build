@@ -23,10 +23,6 @@ make_chacractl_config
 [ "$TEST" = true ] && chacra_ref="test" || chacra_ref="${RELEASE}"
 
 target=$DIST
-if [ "$target" = "centos6" ] ; then
-    target=el6
-    chacra_baseurl="ceph-release/${chacra_ref}/HEAD/centos/6"
-fi
 if [ "$target" = "centos7" ] ; then
     target=el7
     chacra_baseurl="ceph-release/${chacra_ref}/HEAD/centos/7"

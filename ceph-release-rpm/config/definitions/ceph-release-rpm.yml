@@ -9,7 +9,7 @@
     parameters:
       - string:
           name: RELEASE
-          default: firefly
+          default: pacific
 
       - bool:
           name: TEST
@@ -36,7 +36,6 @@ If this is checked, then the binaries will be built and pushed to chacra even if
           type: label-expression
           name: DIST
           values:
-            - centos6
             - centos7
             - centos8
 
