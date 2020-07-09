@@ -91,6 +91,7 @@
       - shrink_rbdmirror
       - lvm_auto_discovery
       - filestore_to_bluestore
+      - cephadm_adopt
     jobs:
         - 'ceph-ansible-prs-common-trigger'
 
