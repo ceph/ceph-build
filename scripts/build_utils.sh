@@ -1093,7 +1093,9 @@ setup_rpm_build_area() {
     mkdir -p ${build_area}/{SOURCES,SRPMS,SPECS,RPMS,BUILD}
     cp -a ceph-*.tar.bz2 ${build_area}/SOURCES/.
     cp -a ceph.spec ${build_area}/SPECS/.
-    cp -a rpm/*.patch ${build_area}/SOURCES/. || true
+    for f in rpm/*.patch; do
+        cp -a $f ${build_area}/SOURCES/.
+    done
     ### rpm wants absolute path
     echo `readlink -fn $build_area`
 }
