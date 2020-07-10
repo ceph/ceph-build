@@ -41,17 +41,8 @@ RPM_RELEASE=`grep Release ceph.spec | sed 's/Release:[ \t]*//g' | cut -d '%' -f 
 RPM_VERSION=`grep Version ceph.spec | sed 's/Version:[ \t]*//g'`
 PACKAGE_MANAGER_VERSION="$RPM_VERSION-$RPM_RELEASE"
 
-# Set up build area
-BUILDAREA=./rpm/$dist
-mkdir -p ${BUILDAREA}/{SOURCES,SRPMS,SPECS,RPMS,BUILD}
-cp -a ceph-*.tar.bz2 ${BUILDAREA}/SOURCES/.
-cp -a ceph.spec ${BUILDAREA}/SPECS/.
-cp -a rpm/*.patch ${BUILDAREA}/SOURCES/. || true
-
-# Build RPMs
-BUILDAREA=`readlink -fn ${BUILDAREA}`   ### rpm wants absolute path
-cd ${BUILDAREA}/SPECS
-rpmbuild -ba --define "_topdir ${BUILDAREA}" ${CEPH_EXTRA_RPMBUILD_ARGS} ceph.spec
+BUILDAREA=$(setup_rpm_build_area ./rpm/$dist)
+build_rpms $BUILDAREA ${CEPH_EXTRA_RPMBUILD_ARGS}
 
 # The following was copied from autobuild-ceph/build-ceph-rpm.sh
 # which creates the ceph-release rpm meant to create the repository file for the repo

@@ -1084,3 +1084,28 @@ maybe_reset_ci_container() {
         CI_CONTAINER=false
     fi
 }
+
+setup_rpm_build_area() {
+    local build_area=$1
+    shift
+
+    # Set up build area
+    mkdir -p ${build_area}/{SOURCES,SRPMS,SPECS,RPMS,BUILD}
+    cp -a ceph-*.tar.bz2 ${build_area}/SOURCES/.
+    cp -a ceph.spec ${build_area}/SPECS/.
+    cp -a rpm/*.patch ${build_area}/SOURCES/. || true
+    ### rpm wants absolute path
+    echo `readlink -fn $build_area`
+}
+
+build_rpms() {
+    local build_area=$1
+    shift
+    local extra_rpm_build_args=$1
+    shift
+
+    # Build RPMs
+    cd ${build_area_path}/SPECS
+    rpmbuild -ba --define "_topdir ${build_area}" ${extra_rpm_build_args} ceph.spec
+    echo done
+}
