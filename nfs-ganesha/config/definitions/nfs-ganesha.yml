@@ -143,6 +143,7 @@ If this is checked, then the binaries will be built and pushed to chacra even if
             - ../../../scripts/build_utils.sh
             - ../../build/setup
             - ../../build/build_rpm
+      - shell: if [ -f /etc/yum.repos.d/shaman.repo ]; then sudo rm -f /etc/yum.repos.d/shaman.repo; fi
 
     publishers:
       - postbuildscript:
@@ -159,6 +160,7 @@ If this is checked, then the binaries will be built and pushed to chacra even if
                     !include-raw:
                       - ../../../scripts/build_utils.sh
                       - ../../build/failure
+                - shell: if [ -f /etc/yum.repos.d/shaman.repo ]; then sudo rm -f /etc/yum.repos.d/shaman.repo; fi
 
     wrappers:
       - inject-passwords:
