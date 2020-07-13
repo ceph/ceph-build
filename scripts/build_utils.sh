@@ -906,6 +906,9 @@ case $SCENARIO in
   external_clients)
     TOX_INI_FILE=tox-external_clients.ini
     ;;
+  cephadm)
+    TOX_INI_FILE=tox-cephadm.ini
+    ;;
   *)
     TOX_INI_FILE=tox.ini
     ;;
