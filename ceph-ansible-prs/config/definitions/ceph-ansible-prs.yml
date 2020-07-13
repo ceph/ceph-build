@@ -67,6 +67,18 @@
         - 'ceph-ansible-prs-common-trigger'
 
 - project:
+    name: ceph-ansible-prs-cephadm
+    slave_labels: 'vagrant && libvirt && (smithi || braggi || centos7)'
+    distribution:
+      - centos
+    deployment:
+      - container
+    scenario:
+      - cephadm
+    jobs:
+        - 'ceph-ansible-prs-common-trigger'
+
+- project:
     name: ceph-ansible-prs-common-trigger
     slave_labels: 'vagrant && libvirt && (smithi || braggi || centos7)'
     distribution:
