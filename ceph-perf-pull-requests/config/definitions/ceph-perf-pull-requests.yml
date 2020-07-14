@@ -151,10 +151,6 @@
           github-hooks: true
           permit-all: true
           auto-close-on-fail: false
-          status-context: "perf test"
-          started-status: "running perf test"
-          success-status: "perf test succeeded"
-          failure-status: "perf test failed"
           cancel-builds-on-update: true
 
     scm:
