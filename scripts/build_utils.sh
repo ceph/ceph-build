@@ -1084,3 +1084,172 @@ maybe_reset_ci_container() {
         CI_CONTAINER=false
     fi
 }
+
+setup_rpm_build_area() {
+    local build_area=$1
+    shift
+
+    # Set up build area
+    mkdir -p ${build_area}/{SOURCES,SRPMS,SPECS,RPMS,BUILD}
+    cp -a ceph-*.tar.bz2 ${build_area}/SOURCES/.
+    cp -a ceph.spec ${build_area}/SPECS/.
+    for f in rpm/*.patch; do
+        cp -a $f ${build_area}/SOURCES/.
+    done
+    ### rpm wants absolute path
+    echo `readlink -fn $build_area`
+}
+
+build_rpms() {
+    local build_area=$1
+    shift
+    local extra_rpm_build_args=$1
+    shift
+
+    # Build RPMs
+    cd ${build_area_path}/SPECS
+    rpmbuild -ba --define "_topdir ${build_area}" ${extra_rpm_build_args} ceph.spec
+    echo done
+}
+
+build_ceph_release_rpm() {
+    local build_area=$1
+    shift
+    local is_dev_release=$1
+    shift
+
+    # The following was copied from autobuild-ceph/build-ceph-rpm.sh
+    # which creates the ceph-release rpm meant to create the repository file for the repo
+    # that will be built and served later.
+    # Create and build an RPM for the repository
+
+    if $is_dev_release; then
+        summary="Ceph Development repository configuration"
+        project_url=${chacra_url}r/ceph/${chacra_ref}/${SHA1}/${DISTRO}/${RELEASE}/flavors/$FLAVOR/
+        epoch=0
+        repo_base_url="${chacra_url}/r/ceph/${chacra_ref}/${SHA1}/${DISTRO}/${RELEASE}/flavors/${FLAVOR}"
+        gpgcheck=0
+        gpgkey=autobuild.asc
+    else
+        summary="Ceph repository configuration"
+        project_url=http://download.ceph.com/
+        epoch=1
+        repo_base_url="http://download.ceph.com/rpm-${ceph_release}/${target}"
+        gpgcheck=1
+        gpgkey=release.asc
+    fi
+    cat <<EOF > ${build_area}/SPECS/ceph-release.spec
+Name:           ceph-release
+Version:        1
+Release:        ${epoch}%{?dist}
+Summary:        Ceph Development repository configuration
+Group:          System Environment/Base
+License:        GPLv2
+URL:            ${project_url}
+Source0:        ceph.repo
+#Source0:        RPM-GPG-KEY-CEPH
+#Source1:        ceph.repo
+BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
+BuildArch:	noarch
+
+%description
+This package contains the Ceph repository GPG key as well as configuration
+for yum and up2date.
+
+%prep
+
+%setup -q  -c -T
+install -pm 644 %{SOURCE0} .
+#install -pm 644 %{SOURCE1} .
+
+%build
+
+%install
+rm -rf %{buildroot}
+#install -Dpm 644 %{SOURCE0} \
+#    %{buildroot}/%{_sysconfdir}/pki/rpm-gpg/RPM-GPG-KEY-CEPH
+%if 0%{defined suse_version}
+install -dm 755 %{buildroot}/%{_sysconfdir}/zypp
+install -dm 755 %{buildroot}/%{_sysconfdir}/zypp/repos.d
+install -pm 644 %{SOURCE0} \
+    %{buildroot}/%{_sysconfdir}/zypp/repos.d
+%else
+install -dm 755 %{buildroot}/%{_sysconfdir}/yum.repos.d
+install -pm 644 %{SOURCE0} \
+    %{buildroot}/%{_sysconfdir}/yum.repos.d
+%endif
+
+%clean
+#rm -rf %{buildroot}
+
+%post
+
+%postun
+
+%files
+%defattr(-,root,root,-)
+#%doc GPL
+%if 0%{defined suse_version}
+/etc/zypp/repos.d/*
+%else
+/etc/yum.repos.d/*
+%endif
+#/etc/pki/rpm-gpg/*
+
+%changelog
+* Fri Aug 12 2016 Alfredo Deza <adeza@redhat.com> 1-1
+* Mon Jan 12 2015 Travis Rhoden <trhoden@redhat.com> 1-1
+- Make .repo files be %config(noreplace)
+* Tue Mar 10 2013 Gary Lowell <glowell@inktank.com> - 1-0
+- Handle both yum and zypper
+- Use URL to ceph git repo for key
+- remove config attribute from repo file
+* Tue Aug 27 2012 Gary Lowell <glowell@inktank.com> - 1-0
+- Initial Package
+EOF
+    #  End of ceph-release.spec file.
+
+    # GPG Key
+    #gpg --export --armor $keyid > ${build_area}/SOURCES/RPM-GPG-KEY-CEPH
+    #chmod 644 ${build_area}/SOURCES/RPM-GPG-KEY-CEPH
+
+    # Install ceph.repo file
+    cat <<EOF > $build_area/SOURCES/ceph.repo
+[Ceph]
+name=Ceph packages for \$basearch
+baseurl=${repo_base_url}/\$basearch
+enabled=1
+gpgcheck=${gpgcheck}
+type=rpm-md
+gpgkey=https://download.ceph.com/keys/${gpgkey}
+
+[Ceph-noarch]
+name=Ceph noarch packages
+baseurl=${repo_base_url/noarch
+enabled=1
+gpgcheck=${gpgcheck}
+type=rpm-md
+gpgkey=https://download.ceph.com/keys/${gpgkey}
+
+[ceph-source]
+name=Ceph source packages
+baseurl=${repo_base_url}/SRPMS
+enabled=1
+gpgcheck=${gpgcheck}
+type=rpm-md
+gpgkey=https://download.ceph.com/keys/${gpgkey}
+EOF
+# End of ceph.repo file
+
+    if $is_dev_release; then
+        rpmbuild -bb \
+                 --define "_topdir ${build_area}" \
+                 ${build_area}/SPECS/ceph-release.spec
+    else
+        # build source packages for official releases
+        rpmbuild -ba \
+                 --define "_topdir ${build_area}" \
+                 --define "_unpackaged_files_terminate_build 0" \
+                 ${build_area}/SPECS/ceph-release.spec
+    fi
+}
