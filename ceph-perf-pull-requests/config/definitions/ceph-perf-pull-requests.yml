@@ -85,9 +85,23 @@
           archive_dir_master={archive-master}/$(git rev-parse --short HEAD)
           cd ${{WORKSPACE}}/{src-dir-pr}
           archive_dir_pr={archive-pr}/$(git rev-parse --short HEAD)
+          source ${{WORKSPACE}}/gh-venv/bin/activate
           ${{WORKSPACE}}/cbt/compare.py -v \
             -a $archive_dir_pr             \
-            -b $archive_dir_master
+            -b $archive_dir_master         \
+            --output report.md && result=success || result=failure
+          github-check                                   \
+            --owner {check-repo-owner}                   \
+            --repo {check-repo-name}                     \
+            --pkey-file ${{GITHUB_CHECK_PKEY_PEM}}       \
+            --name {check-name}                          \
+            --app-id {check-app-id}                      \
+            --install-id {check-install-id}              \
+            --sha ${{ghprbActualCommit}}                 \
+            --status completed --conclusion ${{result}}  \
+            --title perf-test                            \
+            --summary ${{result}}                        \
+            --text report.md
 
 - job-template:
     name: 'ceph-perf-{osd-flavor}'
@@ -101,6 +115,12 @@
     block-downstream: false
     block-upstream: false
     retry-count: 3
+    check-app-id: "62865"
+    check-install-id: "8465036"
+    check-name: "perf-test"
+    check-repo-owner: "ceph"
+    check-repo-name: "ceph"
+
     properties:
       - build-discarder:
           days-to-keep: 15
@@ -131,10 +151,6 @@
           github-hooks: true
           permit-all: true
           auto-close-on-fail: false
-          status-context: "perf test"
-          started-status: "running perf test"
-          success-status: "perf test succeeded"
-          failure-status: "perf test failed"
           cancel-builds-on-update: true
 
     scm:
@@ -159,6 +175,21 @@
               exit 1
               ;;
           esac
+          virtualenv -q --python python3 ${{WORKSPACE}}/gh-venv
+          source ${{WORKSPACE}}/gh-venv/bin/activate
+          pip install -e ${{WORKSPACE}}/cbt/tools/githubcheck
+          echo "please hold tight..." | github-check     \
+            --owner {check-repo-owner}                   \
+            --repo {check-repo-name}                     \
+            --pkey-file ${{GITHUB_CHECK_PKEY_PEM}}       \
+            --name {check-name}                          \
+            --app-id {check-app-id}                      \
+            --install-id {check-install-id}              \
+            --sha ${{ghprbActualCommit}}                 \
+            --status in_progress                         \
+            --title perf-test                            \
+            --summary running
+
       - run-cbt:
           src-dir: "ceph-master"
           osd-flavor: '{osd-flavor}'
@@ -174,6 +205,11 @@
           archive-master: "$WORKSPACE/cbt-results"
           src-dir-pr: "ceph-pr"
           archive-pr: "$WORKSPACE/ceph-pr"
+          check-app-id: '{check-app-id}'
+          check-install-id: '{check-install-id}'
+          check-name: '{check-name}'
+          check-repo-owner: '{check-repo-owner}'
+          check-repo-name: '{check-repo-name}'
 
     publishers:
       - postbuildscript:
@@ -184,6 +220,12 @@
                   - ABORTED
               build-steps:
                 - shell: "sudo reboot"
+
+    wrappers:
+      - credentials-binding:
+          - file:
+              credential-id: cephacheck.2020-04-29.private-key.pem
+              variable: GITHUB_CHECK_PKEY_PEM
 - project:
     name: ceph-perf
     osd-flavor:
