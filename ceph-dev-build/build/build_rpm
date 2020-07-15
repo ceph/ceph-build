@@ -42,7 +42,7 @@ RPM_VERSION=`grep Version ceph.spec | sed 's/Version:[ \t]*//g'`
 PACKAGE_MANAGER_VERSION="$RPM_VERSION-$RPM_RELEASE"
 
 BUILDAREA=$(setup_rpm_build_area ./rpm/$dist)
-build_rpms $BUILDAREA ${CEPH_EXTRA_RPMBUILD_ARGS}
+build_rpms $BUILDAREA "${CEPH_EXTRA_RPMBUILD_ARGS}"
 build_ceph_release_rpm $BUILDAREA true
 
 # Make sure we execute at the top level directory

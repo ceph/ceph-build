@@ -1093,7 +1093,7 @@ setup_rpm_build_area() {
     mkdir -p ${build_area}/{SOURCES,SRPMS,SPECS,RPMS,BUILD}
     cp -a ceph-*.tar.bz2 ${build_area}/SOURCES/.
     cp -a ceph.spec ${build_area}/SPECS/.
-    for f in rpm/*.patch; do
+    for f in $(find rpm -maxdepth 1 -name '*.patch'); do
         cp -a $f ${build_area}/SOURCES/.
     done
     ### rpm wants absolute path
@@ -1107,7 +1107,7 @@ build_rpms() {
     shift
 
     # Build RPMs
-    cd ${build_area_path}/SPECS
+    cd ${build_area}/SPECS
     rpmbuild -ba --define "_topdir ${build_area}" ${extra_rpm_build_args} ceph.spec
     echo done
 }
@@ -1225,7 +1225,7 @@ gpgkey=https://download.ceph.com/keys/${gpgkey}
 
 [Ceph-noarch]
 name=Ceph noarch packages
-baseurl=${repo_base_url/noarch
+baseurl=${repo_base_url}/noarch
 enabled=1
 gpgcheck=${gpgcheck}
 type=rpm-md
