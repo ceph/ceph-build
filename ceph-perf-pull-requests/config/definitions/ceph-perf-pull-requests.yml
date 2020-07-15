@@ -94,10 +94,12 @@
             --owner {check-repo-owner}                   \
             --repo {check-repo-name}                     \
             --pkey-file ${{GITHUB_CHECK_PKEY_PEM}}       \
-            --name {check-name}                          \
             --app-id {check-app-id}                      \
             --install-id {check-install-id}              \
+            --name {check-name}                          \
             --sha ${{ghprbActualCommit}}                 \
+            --external-id ${{BUILD_ID}}                  \
+            --details-url ${{BUILD_URL}}                 \
             --status completed --conclusion ${{result}}  \
             --title perf-test                            \
             --summary ${{result}}                        \
@@ -182,10 +184,12 @@
             --owner {check-repo-owner}                   \
             --repo {check-repo-name}                     \
             --pkey-file ${{GITHUB_CHECK_PKEY_PEM}}       \
-            --name {check-name}                          \
             --app-id {check-app-id}                      \
             --install-id {check-install-id}              \
+            --name {check-name}                          \
             --sha ${{ghprbActualCommit}}                 \
+            --external-id ${{BUILD_ID}}                  \
+            --details-url ${{BUILD_URL}}                 \
             --status in_progress                         \
             --title perf-test                            \
             --summary running
