@@ -1200,11 +1200,11 @@ install -pm 644 %{SOURCE0} \
 * Fri Aug 12 2016 Alfredo Deza <adeza@redhat.com> 1-1
 * Mon Jan 12 2015 Travis Rhoden <trhoden@redhat.com> 1-1
 - Make .repo files be %config(noreplace)
-* Tue Mar 10 2013 Gary Lowell <glowell@inktank.com> - 1-0
+* Sun Mar 10 2013 Gary Lowell <glowell@inktank.com> - 1-0
 - Handle both yum and zypper
 - Use URL to ceph git repo for key
 - remove config attribute from repo file
-* Tue Aug 27 2012 Gary Lowell <glowell@inktank.com> - 1-0
+* Mon Aug 27 2012 Gary Lowell <glowell@inktank.com> - 1-0
 - Initial Package
 EOF
     #  End of ceph-release.spec file.
