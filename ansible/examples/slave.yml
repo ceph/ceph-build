@@ -144,7 +144,6 @@
           - rpmdevtools
           - openssl-devel
           - libffi-devel
-          - mock
       when: ansible_os_family == "RedHat"
 
     # Libvirt RPMs
@@ -167,6 +166,7 @@
           - python-pip
           - python-devel
           - python-virtualenv
+          - mock
       when:
         - ansible_os_family == "RedHat"
         - ansible_distribution_major_version|int <= 7
@@ -178,6 +178,7 @@
           - python3-pip
           - python3-devel
           - python3-virtualenv
+          - mock
       when:
         - ansible_os_family == "RedHat"
         - ansible_distribution_major_version|int >= 8
