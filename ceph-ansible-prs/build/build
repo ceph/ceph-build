@@ -31,5 +31,7 @@ rm -rf $HOME/ansible/facts/*
 # Skip these scenarios, they don't exist.
 [[ "$ghprbTargetBranch" == stable-3.1 && "$SCENARIO" =~ lvm_batch|lvm_osds ]] ||
 [[ "$ghprbTargetBranch" != stable-4.0 && "$SCENARIO" == podman ]] ||
+[[ "$ghprbTargetBranch" =~ stable-4.0|stable-3 && "$SCENARIO" =~ cephadm|cephadm_adopt ]] ||
+[[ "$ghprbTargetBranch" == stable-4.0 && "$SCENARIO" == shrink_osd_legacy ]] ||
 [[ "$ghprbTargetBranch" =~ stable-3 && "$SCENARIO" == filestore_to_bluestore ]] ||
 start_tox
