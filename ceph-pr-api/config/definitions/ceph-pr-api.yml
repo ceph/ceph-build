@@ -1,0 +1,70 @@
+- job:
+    name: ceph-api
+    project-type: freestyle
+    defaults: global
+    concurrent: true
+    node: huge && bionic && x86_64 && !xenial && !trusty
+    display-name: 'ceph: API'
+    quiet-period: 5
+    block-downstream: false
+    block-upstream: false
+    retry-count: 3
+    properties:
+      - build-discarder:
+          days-to-keep: 15
+          num-to-keep: 300
+          artifact-days-to-keep: -1
+          artifact-num-to-keep: -1
+      - github:
+          url: https://github.com/ceph/ceph/
+      - rebuild:
+          auto-rebuild: true
+
+    parameters:
+      - string:
+          name: sha1
+          description: "commit id or a refname, like 'origin/pr/72/head'"
+
+    triggers:
+      - github-pull-request:
+          cancel-builds-on-update: true
+          allow-whitelist-orgs-as-admins: true
+          org-list:
+            - ceph
+          white-list-target-branches:
+            - master
+            - octopus
+            - nautilus
+          trigger-phrase: 'jenkins test api'
+          skip-build-phrase: '^jenkins do not test.*'
+          only-trigger-phrase: false
+          github-hooks: true
+          permit-all: true
+          auto-close-on-fail: false
+          status-context: "ceph API tests"
+          started-status: "running API tests"
+          success-status: "ceph API tests succeeded"
+          failure-status: "ceph API tests failed"
+
+    scm:
+      - git:
+          url: https://github.com/ceph/ceph.git
+          branches:
+            - ${sha1}
+          refspec: +refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*
+          browser: auto
+          timeout: 20
+          skip-tag: true
+          shallow-clone: true
+          wipe-workspace: true
+
+    builders:
+      - shell:
+          !include-raw:
+            - ../../../scripts/build_utils.sh
+            - ../../build/build
+            - ../../../scripts/dashboard/install-backend-api-test-deps.sh
+      - shell: "cd src/pybind/mgr/dashboard; timeout 7200 ./run-backend-api-tests.sh"
+
+    wrappers:
+      - ansicolor
