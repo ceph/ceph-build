@@ -93,7 +93,8 @@ if [[ "$CI_CONTAINER" == true && $DISTRO == "centos" && $FLAVOR != "notcmalloc" 
     fi
 
     cd $WORKSPACE/ceph-container
-    sudo -E CI_CONTAINER=${CI_CONTAINER} SHA1=${SHA1} OSD_FLAVOR=${FLAVOR} /bin/bash ./contrib/build-push-ceph-container-imgs.sh
+    sudo -E CI_CONTAINER=${CI_CONTAINER} SHA1=${SHA1} OSD_FLAVOR=${FLAVOR} CONTAINER_FLAVOR=${BRANCH},${DISTRO},${RELEASE} \
+      /bin/bash ./contrib/build-push-ceph-container-imgs.sh
     cd $WORKSPACE
     sudo rm -rf ceph-container
 fi
