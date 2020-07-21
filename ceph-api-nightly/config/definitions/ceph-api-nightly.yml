@@ -57,7 +57,19 @@
       - shell:
           !include-raw:
             -  ../../../scripts/dashboard/{test_deps_script}
-      - shell: "cd src/pybind/mgr/dashboard; timeout 2h ./{test_suite_script}"
+      - shell: |
+          export CYPRESS_ARGS="--record --key $CYPRESS_RECORD_KEY --tag $JOB_NAME" COMMIT_INFO_MESSAGE="$JOB_NAME"
+          cd src/pybind/mgr/dashboard; timeout 2h ./{test_suite_script}
+
+    wrappers:
+      - inject-passwords:
+          global: true
+          mask-password-params: true
+      - credentials-binding:
+          - text:
+              credential-id: cd-cypress-record-key
+              variable: CYPRESS_RECORD_KEY
+      - ansicolor
 
     publishers:
       - email:
