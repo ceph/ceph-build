@@ -7,8 +7,6 @@ set -ex
 # set of shell scripts and repos involved.
 CI_CONTAINER=${CI_CONTAINER:-false}
 
-maybe_reset_ci_container
-
 # create a release directory for ceph-build tools
 mkdir -p release
 cp -a dist release/${vers}
