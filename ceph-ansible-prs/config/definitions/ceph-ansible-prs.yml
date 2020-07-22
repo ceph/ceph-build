@@ -96,7 +96,8 @@
       - rgw_multisite
       - shrink_mon
       - shrink_mgr
-      - shrink_osd
+      - shrink_osd_multiple
+      - shrink_osd_single
       - shrink_osd_legacy
       - shrink_rgw
       - shrink_mds
