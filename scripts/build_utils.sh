@@ -909,6 +909,12 @@ case $SCENARIO in
   cephadm)
     TOX_INI_FILE=tox-cephadm.ini
     ;;
+  shrink_osd_single)
+    TOX_INI_FILE=tox-shrink_osd.ini
+    ;;
+  shrink_osd_multiple)
+    TOX_INI_FILE=tox-shrink_osd.ini
+    ;;
   *)
     TOX_INI_FILE=tox.ini
     ;;
