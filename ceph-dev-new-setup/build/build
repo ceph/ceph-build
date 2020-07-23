@@ -79,7 +79,7 @@ case "${FLAVOR}" in
     crimson)
         echo "Detected crimson flavor: will use flag: -DWITH_SEASTAR=ON"
         CEPH_EXTRA_RPMBUILD_ARGS="--with seastar"
-        CEPH_EXTRA_CMAKE_ARGS="$CEPH_EXTRA_CMAKE_ARGS -DWITH_SEASTAR=ON"
+        CEPH_EXTRA_CMAKE_ARGS="$CEPH_EXTRA_CMAKE_ARGS -DWITH_SEASTAR=ON -DSeastar_CXX_FLAGS=-DSEASTAR_DEFAULT_ALLOCATOR"
         ;;
     *)
         echo "unknown FLAVOR: ${FLAVOR}" >&2
