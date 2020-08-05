@@ -14,6 +14,6 @@ cd src/ceph-volume
 
 GITHUB_STATUS_STATE="pending" $VENV/github-status create
 
-$VENV/tox -v -e py27,py35,py36,flake8
+$VENV/tox -vr
 
 GITHUB_STATUS_STATE="success" $VENV/github-status create
