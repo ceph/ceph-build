@@ -45,7 +45,8 @@
       - update
       - lvm_osds
       - shrink_mon
-      - shrink_osd
+      - shrink_osd_multiple
+      - shrink_osd_single
       - lvm_batch
       - add_osds
       - rgw_multisite
@@ -78,7 +79,8 @@
       - update
       - lvm_osds
       - shrink_mon
-      - shrink_osd
+      - shrink_osd_multiple
+      - shrink_osd_single
       - lvm_batch
       - add_osds
       - rgw_multisite
