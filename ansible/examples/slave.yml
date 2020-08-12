@@ -659,8 +659,8 @@
         executable: "{{ pip_version }}"
 
     ## JENKINS SLAVE AGENT TASKS
-    # We use jnlp on ephemeral non-permanent slaves because ???
-    - name: Register the new slave to jenkins master with jnlp
+    # We use SSH for ephemeral slaves
+    - name: Register ephemeral slave using SSH
       jenkins_node:
         username: "{{ api_user }}"
         uri: "{{ api_uri }}"
@@ -672,7 +672,6 @@
         labels: "{{ labels }}"
         host: "{{ ansible_default_ipv4.address }}"
         credentialsId: "{{ jenkins_credentials_uuid }}"
-        launcher: 'hudson.slaves.JNLPLauncher'
         remoteFS: '/home/{{ jenkins_user }}/build'
         executors: '{{ executors|default(1) }}'
         exclusive: true
@@ -680,7 +679,7 @@
 
     - name: Register Permanent Slave
       block:
-        - name: Register the new slave to jenkins master with ssh
+        - name: Register permenant slave using JNLP
           jenkins_node:
             username: "{{ api_user }}"
             uri: "{{ api_uri }}"
@@ -692,6 +691,7 @@
             labels: "{{ labels }}"
             host: "{{ ansible_default_ipv4.address }}"
             credentialsId: "{{ jenkins_credentials_uuid }}"
+            launcher: 'hudson.slaves.JNLPLauncher'
             remoteFS: '/home/{{ jenkins_user }}/build'
             executors: '{{ executors|default(1) }}'
             exclusive: true
