@@ -239,6 +239,12 @@
       with_items: "{{ ansible_all_ipv4_addresses }}"
       when: "item.startswith('172.21.')"
 
+    ## Let's make sure nodename gets set using our Sepia hostnames if the builder's in Sepia
+    - set_fact:
+        nodename: "{{ ansible_hostname }}"
+      with_items: "{{ ansible_all_ipv4_addresses }}"
+      when: "item.startswith('172.21.')"
+
     ## EPHEMERAL SLAVE TASKS
     # We would occasionally have issues with name resolution on the Ephemeral slaves
     # so we force them to use Google's DNS servers. This has to be done before
