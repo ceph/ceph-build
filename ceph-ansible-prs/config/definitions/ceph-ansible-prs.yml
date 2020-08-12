@@ -1,6 +1,6 @@
 - project:
-    name: ceph-ansible-prs-smithi
-    slave_labels: 'centos7 && libvirt && smithi && vagrant'
+    name: ceph-ansible-prs-smithi-or-braggi
+    slave_labels: '(centos7 && smithi) || (centos8 && braggi) && libvirt && vagrant'
     distribution:
       - centos
     deployment:
@@ -35,6 +35,10 @@
       - lvm_batch
       - all_in_one
       - external_clients
+      - ooo_collocation
+    exclude:
+      - deployment: non_container
+        scenario: ooo_collocation
     jobs:
       - 'ceph-ansible-prs-auto'
 
