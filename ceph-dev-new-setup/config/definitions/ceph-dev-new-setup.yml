@@ -14,6 +14,8 @@
           artifact-num-to-keep: -1
       - github:
           url: https://github.com/ceph/ceph-ci
+      - copyartifact:
+          projects: ceph-dev-new-build
 
     parameters:
       - string:
