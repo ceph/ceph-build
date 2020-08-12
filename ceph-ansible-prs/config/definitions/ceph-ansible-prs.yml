@@ -1,4 +1,27 @@
 - project:
+    name: ceph-ansible-prs-smithi
+    slave_labels: 'centos7 && libvirt && smithi && vagrant'
+    distribution:
+      - centos
+    deployment:
+      - container
+      - non_container
+    scenario:
+      - all_daemons
+      - update
+      - purge
+      - switch_to_containers
+    exclude:
+      - deployment: container
+        scenario: switch_to_containers
+      - deployment: non_container
+        scenario: ooo_collocation
+      - deployment: non_container
+        scenario: podman
+    jobs:
+      - 'ceph-ansible-prs-auto'
+
+- project:
     name: ceph-ansible-prs
     slave_labels: 'vagrant && libvirt && (smithi || braggi || centos7)'
     distribution:
@@ -7,52 +30,13 @@
       - container
       - non_container
     scenario:
-      - all_daemons
       - lvm_osds
-      - update
-      - purge
       - collocation
       - lvm_batch
       - all_in_one
       - external_clients
     jobs:
-        - 'ceph-ansible-prs-auto'
-
-- project:
-    name: ceph-ansible-prs-ooo
-    slave_labels: 'vagrant && libvirt && (smithi || braggi || centos7)'
-    distribution:
-      - centos
-    deployment:
-      - container
-    scenario:
-      - ooo_collocation
-    jobs:
-        - 'ceph-ansible-prs-auto'
-
-- project:
-    name: ceph-ansible-prs-podman
-    slave_labels: 'vagrant && libvirt && (smithi || braggi || centos7)'
-    distribution:
-      - centos
-    deployment:
-      - container
-    scenario:
-      - podman
-    jobs:
-        - 'ceph-ansible-prs-auto'
-
-- project:
-    name: ceph-ansible-prs-auto-switch_to_container
-    slave_labels: 'vagrant && libvirt && (smithi || braggi || centos7)'
-    distribution:
-      - centos
-    deployment:
-      - non_container
-    scenario:
-      - switch_to_containers
-    jobs:
-        - 'ceph-ansible-prs-auto'
+      - 'ceph-ansible-prs-auto'
 
 - project:
     name: ceph-ansible-prs-docker2podman
@@ -64,7 +48,7 @@
     scenario:
       - docker_to_podman
     jobs:
-        - 'ceph-ansible-prs-common-trigger'
+      - 'ceph-ansible-prs-common-trigger'
 
 - project:
     name: ceph-ansible-prs-cephadm
@@ -76,7 +60,7 @@
     scenario:
       - cephadm
     jobs:
-        - 'ceph-ansible-prs-common-trigger'
+      - 'ceph-ansible-prs-common-trigger'
 
 - project:
     name: ceph-ansible-prs-common-trigger
@@ -105,8 +89,11 @@
       - lvm_auto_discovery
       - filestore_to_bluestore
       - cephadm_adopt
+    exclude:
+      - deployment: non_container
+        scenario: cephadm_adopt
     jobs:
-        - 'ceph-ansible-prs-common-trigger'
+      - 'ceph-ansible-prs-common-trigger'
 
 - job-template:
     name: 'ceph-ansible-prs-{distribution}-{deployment}-{scenario}'
