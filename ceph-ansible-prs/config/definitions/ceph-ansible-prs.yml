@@ -1,6 +1,6 @@
 - project:
-    name: ceph-ansible-prs-smithi-or-braggi
-    slave_labels: '(centos7 && smithi) || (centos8 && braggi) && libvirt && vagrant'
+    name: ceph-ansible-prs-smithi
+    slave_labels: 'vagrant && libvirt && (smithi || centos7)'
     distribution:
       - centos
     deployment:
