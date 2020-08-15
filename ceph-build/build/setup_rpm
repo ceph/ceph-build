@@ -29,83 +29,8 @@ tar xzf *.orig.tar.gz
 cd $(basename *.orig.tar.gz .orig.tar.gz | sed s/_/-/)
 pwd
 
-$SUDO yum install -y yum-utils
-
-get_rpm_dist() {
-    LSB_RELEASE=/usr/bin/lsb_release
-    [ ! -x $LSB_RELEASE ] && echo unknown && exit
-
-    ID=`$LSB_RELEASE --short --id`
-
-    case $ID in
-    RedHatEnterpriseServer)
-        RELEASE=`$LSB_RELEASE --short --release | cut -d. -f1`
-        DIST=rhel$RELEASE
-        DISTRO=rhel
-        ;;
-    CentOS)
-        RELEASE=`$LSB_RELEASE --short --release | cut -d. -f1`
-        DIST=el$RELEASE
-        DISTRO=centos
-        ;;
-    Fedora)
-        RELEASE=`$LSB_RELEASE --short --release`
-        DIST=fc$RELEASE
-        DISTRO=fedora
-        ;;
-    SUSE\ LINUX)
-        DESC=`$LSB_RELEASE --short --description`
-        RELEASE=`$LSB_RELEASE --short --release`
-        case $DESC in
-        *openSUSE*)
-                DIST=opensuse$RELEASE
-                DISTRO=opensuse
-            ;;
-        *Enterprise*)
-                DIST=sles$RELEASE
-                DISTRO=sles
-                ;;
-            esac
-        ;;
-    *)
-        DIST=unknown
-        DISTRO=unknown
-        ;;
-    esac
-
-    echo $DIST
-}
-
 get_rpm_dist
-
-if [ "$RELEASE" = 7 ]; then
-   if [ "$ARCH" = x86_64 ]; then
-       $SUDO yum install -y centos-release-scl
-   elif [ "$ARCH" = arm64 ]; then
-       $SUDO yum install -y centos-release-scl-rh
-       $SUDO yum-config-manager --disable centos-sclo-rh
-       $SUDO yum-config-manager --enable centos-sclo-rh-testing
-   fi
-elif [ "$RELEASE" = 8 ]; then
-    $SUDO dnf config-manager --set-enabled PowerTools
-    # before EPEL8 and PowerTools provide all dependencies, we use sepia for the dependencies
-    $SUDO dnf config-manager --add-repo http://apt-mirror.front.sepia.ceph.com/lab-extras/8/
-    $SUDO dnf config-manager --setopt=apt-mirror.front.sepia.ceph.com_lab-extras_8_.gpgcheck=0 --save
-fi
-
-sed -e 's/@//g' < ceph.spec.in > $DIR/ceph.spec
-
-if [ "$FLAVOR" = "crimson" ]; then
-    # enable more build depends required by crimson
-    sed -i -e 's/%bcond_with seastar/%bcond_without seastar/g' $DIR/ceph.spec
-fi
-
-# Make sure we have all the rpm macros installed and at the latest version
-# before installing the dependencies, python3-devel requires the
-# python-rpm-macro we use for identifying the python related dependencies
-$SUDO yum install -y python3-devel
-
-$SUDO yum-builddep -y --setopt=*.skip_if_unavailable=true $DIR/ceph.spec
+setup_rpm_build_deps
 
 BRANCH=`branch_slash_filter $BRANCH`
 
