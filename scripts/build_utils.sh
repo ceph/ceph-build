@@ -1155,6 +1155,9 @@ setup_rpm_build_deps() {
     if [ "$FLAVOR" = "crimson" ]; then
         # enable more build depends required by crimson
         sed -i -e 's/%bcond_with seastar/%bcond_without seastar/g' $DIR/ceph.spec
+        # use gcc-toolset-9 for the better support of C++17 from GCC
+        # see also https://bugzilla.redhat.com/show_bug.cgi?id=1853900
+        $SUDO dnf copr enable -y tchaikov/gcc-toolset-9 centos-stream-x86_64
     fi
 
     # Make sure we have all the rpm macros installed and at the latest version
