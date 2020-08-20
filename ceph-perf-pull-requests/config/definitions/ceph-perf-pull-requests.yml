@@ -58,7 +58,7 @@
           export FOR_MAKE_CHECK=true
           cxx_compiler=g++
           c_compiler=gcc
-          for i in $(seq 11 -1 8); do
+          for i in $(seq 11 -1 10); do
               if type -t clang-$i > /dev/null; then
                   cxx_compiler="clang++-$i"
                   c_compiler="clang-$i"
@@ -169,9 +169,23 @@
           fi
           case $ID in
           debian|ubuntu)
-              sudo env DEBIAN_FRONTEND=noninteractive apt-get install -y python3-yaml python3-lxml python3-prettytable ${{extra_pkgs}};;
-          centos|fedora|rhel)
+              sudo env DEBIAN_FRONTEND=noninteractive apt-get install -y python3-yaml python3-lxml python3-prettytable ${{extra_pkgs}}
+              ;;
+          centos|rhel)
+              sudo dnf module disable -y llvm-toolset
+              sudo dnf copr enable -y tchaikov/llvm-toolset-10 centos-stream-x86_64
               sudo yum install -y python3-pyyaml python3-lxml python3-prettytable ${{extra_pkgs}};;
+              gcc_toolset_ver=9
+              # so clang is able to find gcc-toolset-${{gcc_toolset_ver}} which is listed as a
+              # BuildRequires in ceph.spec.in, and it is installed by `run-make.sh`.
+              # clang searches for GCC in a bunch of well known places:
+              # see https://github.com/llvm-mirror/clang/blob/master/lib/Driver/ToolChains/Gnu.cpp
+              sudo ln -s /opt/rh/gcc-toolset-${{gcc_toolset_ver}}/root/lib/gcc/x86_64-redhat-linux/${{gcc_toolset_ver}} \
+                         /usr/lib/gcc/x86_64-redhat-linux/${{gcc_toolset_ver}}
+              ;;
+          fedora)
+              sudo yum install -y python3-pyyaml python3-lxml python3-prettytable ${{extra_pkgs}}
+              ;;
           *)
               echo "unknown distro: $ID"
               exit 1
