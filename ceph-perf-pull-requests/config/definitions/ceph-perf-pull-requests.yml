@@ -164,17 +164,14 @@
       - shell: |
           cd ${{WORKSPACE}}/cbt
           source /etc/os-release || ID=ubuntu
-          if test {osd-flavor} = "crimson" ; then
-              extra_pkgs=clang
-          fi
           case $ID in
           debian|ubuntu)
-              sudo env DEBIAN_FRONTEND=noninteractive apt-get install -y python3-yaml python3-lxml python3-prettytable ${{extra_pkgs}}
+              sudo env DEBIAN_FRONTEND=noninteractive apt-get install -y python3-yaml python3-lxml python3-prettytable clang-10
               ;;
           centos|rhel)
               sudo dnf module disable -y llvm-toolset
               sudo dnf copr enable -y tchaikov/llvm-toolset-10 centos-stream-x86_64
-              sudo yum install -y python3-pyyaml python3-lxml python3-prettytable ${{extra_pkgs}}
+              sudo yum install -y python3-pyyaml python3-lxml python3-prettytable clang
               gcc_toolset_ver=9
               # so clang is able to find gcc-toolset-${{gcc_toolset_ver}} which is listed as a
               # BuildRequires in ceph.spec.in, and it is installed by `run-make.sh`.
@@ -184,7 +181,7 @@
                           /usr/lib/gcc/x86_64-redhat-linux/${{gcc_toolset_ver}}
               ;;
           fedora)
-              sudo yum install -y python3-pyyaml python3-lxml python3-prettytable ${{extra_pkgs}}
+              sudo yum install -y python3-pyyaml python3-lxml python3-prettytable clang
               ;;
           *)
               echo "unknown distro: $ID"
