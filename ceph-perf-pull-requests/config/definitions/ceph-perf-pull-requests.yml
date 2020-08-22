@@ -180,8 +180,8 @@
               # BuildRequires in ceph.spec.in, and it is installed by `run-make.sh`.
               # clang searches for GCC in a bunch of well known places:
               # see https://github.com/llvm-mirror/clang/blob/master/lib/Driver/ToolChains/Gnu.cpp
-              sudo ln -s /opt/rh/gcc-toolset-${{gcc_toolset_ver}}/root/lib/gcc/x86_64-redhat-linux/${{gcc_toolset_ver}} \
-                         /usr/lib/gcc/x86_64-redhat-linux/${{gcc_toolset_ver}}
+              sudo ln -sf /opt/rh/gcc-toolset-${{gcc_toolset_ver}}/root/lib/gcc/x86_64-redhat-linux/${{gcc_toolset_ver}} \
+                          /usr/lib/gcc/x86_64-redhat-linux/${{gcc_toolset_ver}}
               ;;
           fedora)
               sudo yum install -y python3-pyyaml python3-lxml python3-prettytable ${{extra_pkgs}}
