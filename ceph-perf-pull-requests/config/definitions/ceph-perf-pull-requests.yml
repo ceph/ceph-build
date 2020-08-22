@@ -163,7 +163,7 @@
     builders:
       - shell: |
           cd ${{WORKSPACE}}/cbt
-          source /etc/os-release || ID=ubuntu
+          . /etc/os-release || ID=ubuntu
           case $ID in
           debian|ubuntu)
               sudo env DEBIAN_FRONTEND=noninteractive apt-get install -y python3-yaml python3-lxml python3-prettytable clang-10
@@ -189,7 +189,7 @@
               ;;
           esac
           virtualenv -q --python python3 ${{WORKSPACE}}/gh-venv
-          source ${{WORKSPACE}}/gh-venv/bin/activate
+          . ${{WORKSPACE}}/gh-venv/bin/activate
           pip install -e ${{WORKSPACE}}/cbt/tools/githubcheck
           echo "please hold tight..." | github-check     \
             --owner {check-repo-owner}                   \
