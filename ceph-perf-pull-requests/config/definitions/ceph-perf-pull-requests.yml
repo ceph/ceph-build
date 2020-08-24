@@ -163,28 +163,25 @@
     builders:
       - shell: |
           cd ${{WORKSPACE}}/cbt
-          source /etc/os-release || ID=ubuntu
-          if test {osd-flavor} = "crimson" ; then
-              extra_pkgs=clang
-          fi
+          . /etc/os-release || ID=ubuntu
           case $ID in
           debian|ubuntu)
-              sudo env DEBIAN_FRONTEND=noninteractive apt-get install -y python3-yaml python3-lxml python3-prettytable ${{extra_pkgs}}
+              sudo env DEBIAN_FRONTEND=noninteractive apt-get install -y python3-yaml python3-lxml python3-prettytable clang-10
               ;;
           centos|rhel)
               sudo dnf module disable -y llvm-toolset
               sudo dnf copr enable -y tchaikov/llvm-toolset-10 centos-stream-x86_64
-              sudo yum install -y python3-pyyaml python3-lxml python3-prettytable ${{extra_pkgs}}
+              sudo yum install -y python3-pyyaml python3-lxml python3-prettytable clang
               gcc_toolset_ver=9
               # so clang is able to find gcc-toolset-${{gcc_toolset_ver}} which is listed as a
               # BuildRequires in ceph.spec.in, and it is installed by `run-make.sh`.
               # clang searches for GCC in a bunch of well known places:
               # see https://github.com/llvm-mirror/clang/blob/master/lib/Driver/ToolChains/Gnu.cpp
-              sudo ln -s /opt/rh/gcc-toolset-${{gcc_toolset_ver}}/root/lib/gcc/x86_64-redhat-linux/${{gcc_toolset_ver}} \
-                         /usr/lib/gcc/x86_64-redhat-linux/${{gcc_toolset_ver}}
+              sudo ln -sf /opt/rh/gcc-toolset-${{gcc_toolset_ver}}/root/lib/gcc/x86_64-redhat-linux/${{gcc_toolset_ver}} \
+                          /usr/lib/gcc/x86_64-redhat-linux/${{gcc_toolset_ver}}
               ;;
           fedora)
-              sudo yum install -y python3-pyyaml python3-lxml python3-prettytable ${{extra_pkgs}}
+              sudo yum install -y python3-pyyaml python3-lxml python3-prettytable clang
               ;;
           *)
               echo "unknown distro: $ID"
@@ -192,7 +189,7 @@
               ;;
           esac
           virtualenv -q --python python3 ${{WORKSPACE}}/gh-venv
-          source ${{WORKSPACE}}/gh-venv/bin/activate
+          . ${{WORKSPACE}}/gh-venv/bin/activate
           pip install -e ${{WORKSPACE}}/cbt/tools/githubcheck
           echo "please hold tight..." | github-check     \
             --owner {check-repo-owner}                   \
