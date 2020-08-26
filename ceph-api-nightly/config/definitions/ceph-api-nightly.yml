@@ -36,6 +36,9 @@
           url: https://github.com/ceph/ceph/
       - rebuild:
           auto-rebuild: true
+      - inject:
+          properties-content: |
+            TERM=xterm
     ceph_build: "export FOR_MAKE_CHECK=1; timeout 2h ./src/script/run-make.sh --cmake-args '-DWITH_TESTS=OFF -DENABLE_GIT_VERSION=OFF'"
 
     triggers:
