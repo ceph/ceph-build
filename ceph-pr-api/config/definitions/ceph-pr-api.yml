@@ -19,6 +19,9 @@
           url: https://github.com/ceph/ceph/
       - rebuild:
           auto-rebuild: true
+      - inject:
+          properties-content: |
+            TERM=xterm
 
     parameters:
       - string:
