@@ -56,6 +56,9 @@
           wipe-workspace: true
 
     builders:
+      - shell:
+          !include-raw-escape:
+            - ../../build/cleanup
       - shell: "export NPROC=$(nproc); {ceph_build}"
       - shell:
           !include-raw:

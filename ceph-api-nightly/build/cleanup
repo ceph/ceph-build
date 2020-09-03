@@ -1,0 +1,15 @@
+#!/bin/bash
+use_percentage=$(df -m ~ | grep -v Filesystem | awk '{ print $5 }' | cut -d '%' -f1)
+if [ $use_percentage -gt 90 ]; then
+  rm -rf ~/.ccache
+  for dir in $(ls ~/build/workspace/); do
+    # Used "${var}" instead of ${var+x} here because I also want to check if the string is empty
+    if [ -z "${dir}" ] || [ -z "${JOB_NAME}" ]; then
+      echo "Either \$dir or \$JOB_NAME aren't set.  Not cleaning up job directories."
+    else
+      if [ "$dir" != "$JOB_NAME" ]; then
+        rm -rf ~/build/workspace/$dir
+      fi
+    fi
+  done
+fi
