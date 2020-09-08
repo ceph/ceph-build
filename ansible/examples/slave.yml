@@ -658,6 +658,29 @@
         version: 0.4.15
         executable: "{{ pip_version }}"
 
+    ## LIBVIRT SERVICE TASKS
+    - name: start DEB libvirt services
+      service:
+        name: "{{ item }}"
+        state: restarted
+      with_items:
+        - libvirt-bin
+        - libvirt-guests
+      when:
+        - libvirt|bool
+        - ansible_os_family == "Debian"
+
+    - name: start RPM libvirt services
+      service:
+        name: "{{ item }}"
+        state: restarted
+      with_items:
+        - libvirtd
+        - libvirt-guests
+      when:
+        - libvirt|bool
+        - ansible_os_family == "RedHat"
+
     ## JENKINS SLAVE AGENT TASKS
     # We use SSH for ephemeral slaves
     - name: Register ephemeral slave using SSH
