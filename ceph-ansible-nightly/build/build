@@ -13,27 +13,23 @@ page_size=100
 #############
 # FUNCTIONS #
 #############
-function count_tag_pages {
-  sudo yum -y install jq
-  tag_count=$(curl -s "https://registry.hub.docker.com/v2/repositories/ceph/daemon/tags/" | jq '.count')
-  total_pages=$((tag_count / ${page_size}))
-  remainder=$((tag_count % ${page_size}))
-  if [ ${remainder} -gt 0 ]; then
-    let total_pages++
-  fi
-}
-
 function find_latest_tag {
   release="$1"
   el="7"
   if [ "${release}" == "octopus" ]; then
     el="8"
   fi
-  for page in $(seq 1 $total_pages); do
-    tag=$(curl -s "https://registry.hub.docker.com/v2/repositories/ceph/daemon/tags/?page=$page&page_size=${page_size}" | jq ".\"results\"[] | select((.name | contains(\"stable\")) and (.name | contains(\"${release}-centos-${el}-x86_64\"))) | .name")
-    if [ -n "$tag" ]; then
-      echo "$tag" | head -n 1 | cut -d '"' -f 2
+  page=1
+  while response=$(curl -s "https://quay.ceph.io/api/v1/repository/ceph-ci/daemon/tag/?page=${page}&limit=${page_size}"); do
+    tag=$(echo "${response}" | jq -r ".tags[] | select((.name | contains(\"stable\")) and (.name | contains(\"${release}-centos-${el}-x86_64\"))) | .name")
+    if [ -n "${tag}" ]; then
+      echo "${tag}"
       return
+    fi
+    if [ $(echo "${response}" | jq -r .has_additional) == "false" ]; then
+      break
+    else
+      let page++
     fi
   done
 }
@@ -58,5 +54,4 @@ delete_libvirt_vms
 clear_libvirt_networks
 restart_libvirt_services
 update_vagrant_boxes
-count_tag_pages
 run_tox
