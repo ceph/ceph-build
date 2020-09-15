@@ -13,7 +13,7 @@ User={{ jenkins_user }}
 ExecStart=/usr/bin/java \
           -jar /home/{{ jenkins_user }}/slave.jar \
           -jnlpUrl {{ api_uri }}/computer/{{ ansible_default_ipv4.address }}+{{ nodename }}/slave-agent.jnlp \
-          -jnlpCredentials {{ api_user }}:{{ token }}
+          -jnlpCredentials @/etc/systemd/system/jenkins.secret
 StandardOutput=journal
 StandardError=journal
 Restart=always

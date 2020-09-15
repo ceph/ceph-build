@@ -725,10 +725,13 @@
             dest: "/home/{{ jenkins_user }}/slave.jar"
             force: yes
 
-        - name: Install the systemd unit file for jenkins
+        - name: Install the systemd unit files for jenkins
           template:
-            src: "templates/systemd/jenkins.service.j2"
-            dest: "/etc/systemd/system/jenkins.service"
+            src: "templates/systemd/jenkins.{{ item }}.j2"
+            dest: "/etc/systemd/system/jenkins.{{ item }}"
+          with_items:
+            - service
+            - secret
 
         - name: Reload systemd unit files (to pick up potential changes)
           systemd:
