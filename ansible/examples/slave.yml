@@ -513,6 +513,7 @@
         owner: "{{ jenkins_user }}"
         group: "{{ jenkins_user }}"
         recurse: yes
+        follow: no
 
     ## DEBIAN GPG KEY TASKS
     - name: Install Debian GPG Keys on Ubuntu
