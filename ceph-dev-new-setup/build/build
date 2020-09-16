@@ -26,7 +26,7 @@ if [ -x "$BRANCH" ] ; then
     exit 1
 fi
 
-echo "Building version $(git describe) Branch $BRANCH"
+echo "Building version $(git describe --abbrev=8) Branch $BRANCH"
 
 rm -rf dist
 rm -rf release
@@ -96,7 +96,7 @@ mkdir -p release
 releasedir='release'
 versionfile='release/version'
 
-cephver=`git describe --match "v*" | sed s/^v//`
+cephver=`git describe --abbrev=8 --match "v*" | sed s/^v//`
 echo current version $cephver
 
 srcdir=`pwd`
