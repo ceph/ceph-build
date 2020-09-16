@@ -725,6 +725,7 @@
             url: "{{ api_uri }}/jnlpJars/slave.jar"
             dest: "/home/{{ jenkins_user }}/slave.jar"
             force: yes
+          register: jar_changed
 
         - name: Install the systemd unit files for jenkins
           template:
@@ -733,6 +734,7 @@
           with_items:
             - service
             - secret
+          register: unit_files_changed
 
         - name: Reload systemd unit files (to pick up potential changes)
           systemd:
@@ -743,4 +745,11 @@
             name: jenkins
             state: started
             enabled: yes
+
+        - name: REstart jenkins service (if necessary)
+          service:
+            name: jenkins
+            state: restarted
+            enabled: yes
+          when: jar_changed is changed or unit_files_changed is changed
       when: permanent|bool
