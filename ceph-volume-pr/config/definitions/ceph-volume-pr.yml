@@ -1,7 +1,7 @@
 - job:
     name: ceph-volume-pr
     display-name: 'ceph-volume: Pull Request tox tests'
-    node: python3
+    node: small && centos7
     project-type: freestyle
     defaults: global
     quiet-period: 5
