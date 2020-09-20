@@ -137,3 +137,6 @@
               credential-id: dmick-quay
               username: CONTAINER_REPO_USERNAME
               password: CONTAINER_REPO_PASSWORD
+      - build-name:
+          name: "#${BUILD_NUMBER} ${BRANCH}, ${DISTROS}, ${FLAVOR}"
+

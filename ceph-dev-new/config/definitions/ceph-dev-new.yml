@@ -100,3 +100,5 @@ If this is checked, then the binaries will be built and pushed to chacra even if
       - inject-passwords:
           global: true
           mask-password-params: true
+      - build-name:
+          name: "#${BUILD_NUMBER} ${BRANCH}, ${DISTROS}, ${FLAVOR}"
