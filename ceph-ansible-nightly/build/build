@@ -23,7 +23,7 @@ function find_latest_tag {
   while response=$(curl -s "https://quay.ceph.io/api/v1/repository/ceph-ci/daemon/tag/?page=${page}&limit=${page_size}"); do
     tag=$(echo "${response}" | jq -r ".tags[] | select((.name | contains(\"stable\")) and (.name | contains(\"${release}-centos-${el}-x86_64\"))) | .name")
     if [ -n "${tag}" ]; then
-      echo "${tag}"
+      echo "${tag}" | head -n 1 | cut -d '"' -f 2
       return
     fi
     if [ $(echo "${response}" | jq -r .has_additional) == "false" ]; then
