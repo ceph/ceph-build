@@ -15,7 +15,7 @@
       - github:
           url: https://github.com/ceph/ceph
       - copyartifact:
-          projects: ceph-dev-build
+          projects: ceph-dev-build, ceph-dev
 
     parameters:
       - string:
