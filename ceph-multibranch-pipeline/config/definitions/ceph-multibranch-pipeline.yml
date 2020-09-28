@@ -1,0 +1,18 @@
+---
+- job:
+    name: ceph-multibranch-pipeline
+    project-type: multibranch
+    number-to-keep: 300
+    days-to-keep: 30
+    scm:
+      - github:
+          repo: ceph
+          repo-owner: ceph
+          ssh-checkout:
+            credentials: 'jenkins-build'
+          credentials-id: 8cffdeb4-283c-4d96-a190-05d5645bcc2f
+          clean:
+            before: true
+          shallow-clone: true
+          do-not-fetch-tags: true
+          discover-pr-forks-trust: permission
