@@ -94,6 +94,12 @@ If this is checked, then the binaries will be built and pushed to chacra even if
           which-build: multijob-build
       - inject:
           properties-file: ${WORKSPACE}/dist/sha1
+      - copyartifact:
+          project: ceph-dev-new-setup
+          filter: dist/branch
+          which-build: multijob-build
+      - inject:
+          properties-file: ${WORKSPACE}/dist/branch
       - multijob:
           name: 'ceph dev build phase'
           condition: SUCCESSFUL
