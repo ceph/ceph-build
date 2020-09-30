@@ -71,3 +71,7 @@
 
     wrappers:
       - ansicolor
+
+    publishers:
+      - junit:
+          results: '**/reports/*.xml'

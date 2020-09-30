@@ -21,7 +21,7 @@
           auto-rebuild: true
       - inject:
           properties-content: |
-            TERM=xterm
+            TERM=xterm-256color
 
     parameters:
       - string:
@@ -78,4 +78,9 @@
           - text:
               credential-id: cd-cypress-record-key
               variable: CYPRESS_RECORD_KEY
-      - ansicolor
+      - ansicolor:
+          colormap: "gnome-terminal"
+
+    publishers:
+      - junit:
+          results: '**/reports/*.xml'
