@@ -54,7 +54,11 @@ then
         fi
 
         # Create Tarball
-        python setup.py sdist --formats=bztar
+        if [ "$RELEASE" = 7 ]; then
+            python setup.py sdist --formats=bztar
+        else
+            python3 setup.py sdist --formats=bztar
+        fi
 
         # Build RPM
         mkdir -p rpmbuild/{BUILD,BUILDROOT,RPMS,SOURCES,SPECS,SRPMS}
