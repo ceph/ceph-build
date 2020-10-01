@@ -239,25 +239,29 @@ get_rpm_dist() {
 
     case $ID in
     RedHatEnterpriseServer)
-        DISTRO_VERSION=`$LSB_RELEASE --short --release | cut -d. -f1`
+        RELEASE=`$LSB_RELEASE --short --release | cut -d. -f1`
+        DIST=rhel$RELEASE
         DISTRO=rhel
         ;;
     CentOS)
-        DISTRO_VERSION=`$LSB_RELEASE --short --release | cut -d. -f1`
+        RELEASE=`$LSB_RELEASE --short --release | cut -d. -f1`
+        DIST=el$RELEASE
         DISTRO=centos
         ;;
     Fedora)
-        DISTRO_VERSION=`$LSB_RELEASE --short --release`
+        RELEASE=`$LSB_RELEASE --short --release`
         DISTRO=fedora
         ;;
     SUSE\ LINUX|openSUSE)
         DESC=`$LSB_RELEASE --short --description`
-        DISTRO_VERSION=`$LSB_RELEASE --short --release`
+        RELEASE=`$LSB_RELEASE --short --release`
         case $DESC in
         *openSUSE*)
+                DIST=opensuse$RELEASE
                 DISTRO=opensuse
             ;;
         *Enterprise*)
+                DIST=sles$RELEASE
                 DISTRO=sles
                 ;;
             esac
@@ -267,7 +271,8 @@ get_rpm_dist() {
         DISTRO=unknown
         ;;
     esac
-
+    DISTRO_VERSION=$RELEASE
+    echo $DIST
 }
 
 check_binary_existence () {
@@ -1086,51 +1091,6 @@ maybe_reset_ci_container() {
         echo "disabling CI container build for $BRANCH"
         CI_CONTAINER=false
     fi
-}
-
-get_rpm_dist() {
-    LSB_RELEASE=/usr/bin/lsb_release
-    [ ! -x $LSB_RELEASE ] && echo unknown && exit
-
-    ID=`$LSB_RELEASE --short --id`
-
-    case $ID in
-    RedHatEnterpriseServer)
-        RELEASE=`$LSB_RELEASE --short --release | cut -d. -f1`
-        DIST=rhel$RELEASE
-        DISTRO=rhel
-        ;;
-    CentOS)
-        RELEASE=`$LSB_RELEASE --short --release | cut -d. -f1`
-        DIST=el$RELEASE
-        DISTRO=centos
-        ;;
-    Fedora)
-        RELEASE=`$LSB_RELEASE --short --release`
-        DIST=fc$RELEASE
-        DISTRO=fedora
-        ;;
-    SUSE\ LINUX)
-        DESC=`$LSB_RELEASE --short --description`
-        RELEASE=`$LSB_RELEASE --short --release`
-        case $DESC in
-        *openSUSE*)
-                DIST=opensuse$RELEASE
-                DISTRO=opensuse
-            ;;
-        *Enterprise*)
-                DIST=sles$RELEASE
-                DISTRO=sles
-                ;;
-            esac
-        ;;
-    *)
-        DIST=unknown
-        DISTRO=unknown
-        ;;
-    esac
-
-    echo $DIST
 }
 
 setup_rpm_build_deps() {
