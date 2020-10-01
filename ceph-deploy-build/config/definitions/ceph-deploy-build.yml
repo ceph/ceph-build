@@ -30,8 +30,9 @@
           type: label-expression
           name: DIST
           values:
-            - xenial
+            - bionic
             - centos7
+            - centos8
 
     builders:
       - shell:
@@ -44,3 +45,10 @@
       - inject-passwords:
           global: true
           mask-password-params: true
+      - credentials-binding:
+          - text:
+              credential-id: chacractl-key
+              variable: CHACRACTL_KEY
+          - text:
+              credential-id: shaman-api-key
+              variable: SHAMAN_API_KEY
