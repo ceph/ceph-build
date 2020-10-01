@@ -17,8 +17,8 @@ echo "  SHA1=$GIT_COMMIT"
 
 # FIXME A very naive way to just list the RPM $DIST that we currently support.
 # We should be a bit more lenient to allow any rhel/centos/sles/suse
-rpm_dists="rhel centos6 centos7 centos"
-deb_dists="precise wheezy squeeze trusty jessie"
+rpm_dists="rhel el7 centos7 el8 centos8 centos"
+deb_dists="xenial bionic focal stretch buster"
 
 # A helper to match an item in a list of items, like python's `if item in list`
 listcontains() {
@@ -79,13 +79,13 @@ then
 
     REPO=debian-repo
     COMPONENT=main
-    DEB_DIST="sid wheezy squeeze jessie precise raring trusty"
+    DEB_DIST="sid xenial bionic focal stretch buster"
     DEB_BUILD=$(lsb_release -s -c)
     #XXX only releases until we fix this
     RELEASE=1
     DISTRO=""
     case $DIST in
-        jessie|wheezy)
+        jessie|buster)
             DISTRO="debian"
             ;;
         *)

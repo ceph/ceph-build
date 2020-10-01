@@ -30,8 +30,9 @@
           type: label-expression
           name: DIST
           values:
-            - xenial
+            - bionic
             - centos7
+            - centos8
 
     builders:
       - shell:
