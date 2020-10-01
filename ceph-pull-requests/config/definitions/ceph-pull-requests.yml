@@ -66,8 +66,6 @@
           - ../../build/build
 
     publishers:
-      - junit:
-          results: '**/reports/*.xml'
       - cobertura:
           report-file: "src/pybind/mgr/dashboard/frontend/coverage/cobertura-coverage.xml"
           only-stable: "true"
