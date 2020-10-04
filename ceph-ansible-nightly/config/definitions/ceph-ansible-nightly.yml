@@ -18,15 +18,12 @@
       - add_osds
       - rgw_multisite
       - purge
-      - ooo_collocation
       - switch_to_containers
     ceph_ansible_branch:
       - stable-3.2
     jobs:
         - 'ceph-ansible-nightly-{release}-{distribution}-{deployment}-{ceph_ansible_branch}-{scenario}'
     exclude:
-      - deployment: non_container
-        scenario: ooo_collocation
       - deployment: container
         scenario: switch_to_containers
 
@@ -52,15 +49,12 @@
       - rgw_multisite
       - purge
       - lvm_auto_discovery
-      - ooo_collocation
       - switch_to_containers
     ceph_ansible_branch:
       - stable-4.0
     jobs:
         - 'ceph-ansible-nightly-{release}-{distribution}-{deployment}-{ceph_ansible_branch}-{scenario}'
     exclude:
-      - deployment: non_container
-        scenario: ooo_collocation
       - deployment: container
         scenario: switch_to_containers
 
@@ -86,15 +80,12 @@
       - rgw_multisite
       - purge
       - lvm_auto_discovery
-      - ooo_collocation
       - switch_to_containers
     ceph_ansible_branch:
       - stable-5.0
     jobs:
         - 'ceph-ansible-nightly-{release}-{distribution}-{deployment}-{ceph_ansible_branch}-{scenario}'
     exclude:
-      - deployment: non_container
-        scenario: ooo_collocation
       - deployment: container
         scenario: switch_to_containers
 

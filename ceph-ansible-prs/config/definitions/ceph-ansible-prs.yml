@@ -15,8 +15,6 @@
       - deployment: container
         scenario: switch_to_containers
       - deployment: non_container
-        scenario: ooo_collocation
-      - deployment: non_container
         scenario: podman
     jobs:
       - 'ceph-ansible-prs-auto'
@@ -35,10 +33,6 @@
       - lvm_batch
       - all_in_one
       - external_clients
-      - ooo_collocation
-    exclude:
-      - deployment: non_container
-        scenario: ooo_collocation
     jobs:
       - 'ceph-ansible-prs-auto'
 
