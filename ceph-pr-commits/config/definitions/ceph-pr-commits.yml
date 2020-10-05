@@ -78,3 +78,4 @@
     publishers:
       - junit:
           results: report.xml
+          allow-empty-results: true
