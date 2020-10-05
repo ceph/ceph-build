@@ -69,5 +69,17 @@
             - ../../../scripts/dashboard/install-backend-api-test-deps.sh
       - shell: "cd src/pybind/mgr/dashboard; timeout 7200 ./run-backend-api-tests.sh"
 
+    # This job seems to get aborted more often than others.  Multiple times in the past week,
+    # it's gotten aborted during an apt transaction which leaves a dirty dpkg DB.
+    # This will make sure that gets cleaned up before the next job runs (and would inevitably fail).
+    publishers:
+      - postbuildscript:
+          builders:
+            - role: SLAVE
+              build-on:
+                  - ABORTED
+              build-steps:
+                - shell: "sudo dpkg --configure -a"
+
     wrappers:
       - ansicolor
