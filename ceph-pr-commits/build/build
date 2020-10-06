@@ -14,7 +14,7 @@ if git rev-parse --verify ${GIT_COMMIT}^2; then
          pytest_mark="code_test"
      else
          echo "Only the doc/ dir changed.  No need to check for signed commits."
-         pytest_mark="not code_test"
+         pytest_mark="doc_test"
      fi
 fi
 popd

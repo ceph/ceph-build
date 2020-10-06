@@ -5,6 +5,9 @@ def pytest_configure(config):
     config.addinivalue_line(
         "markers", "code_test: mark test to run against code related changes"
     )
+    config.addinivalue_line(
+        "markers", "doc_test: mark test to run against doc only changes"
+    )
 
 
 def pytest_addoption(parser):

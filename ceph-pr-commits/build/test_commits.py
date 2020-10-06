@@ -35,6 +35,23 @@ class TestCommits(object):
             'git fetch origin +refs/heads/{target_branch}:refs/remotes/origin/{target_branch}'.format(
                 target_branch=cls.target_branch))
 
+    @pytest.mark.doc_test
+    def test_doc_title(self):
+        doc_regex = '\nDate:[^\n]+\n\n    doc'
+        all_commits = 'git log -z --no-merges origin/%s..%s' % (
+            self.target_branch, self.source_branch)
+        wrong_commits = list(filterfalse(
+            re.compile(doc_regex).search,
+            self.command(all_commits).split('\0')))
+        if wrong_commits:
+            raise AssertionError("\n".join([
+                "The title/s of following commit/s is/are not started with 'doc', but they only touch files under 'doc/'. Please make sure the commit titles",
+                "are started with 'doc'. See the 'Submitting Patches' guide:",
+                "https://github.com/ceph/ceph/blob/master/SubmittingPatches.rst#commit-title",
+                ""] +
+                wrong_commits
+            ))
+
     @pytest.mark.code_test
     def test_signed_off_by(self):
         signed_off_regex = r'Signed-off-by: \S.* <[^@]+@[^@]+\.[^@]+>'
