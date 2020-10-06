@@ -30,6 +30,7 @@ class TestCommits(object):
             'git fetch origin +refs/heads/{target_branch}:refs/remotes/origin/{target_branch}'.format(
                 target_branch=cls.target_branch))
 
+    @pytest.mark.code_test
     def test_signed_off_by(self):
         signed_off_regex = r'Signed-off-by: \S.* <[^@]+@[^@]+\.[^@]+>'
         # '-z' puts a '\0' between commits, see later split('\0')
