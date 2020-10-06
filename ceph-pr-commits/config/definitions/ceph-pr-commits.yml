@@ -74,8 +74,3 @@
           !include-raw:
             - ../../../scripts/build_utils.sh
             - ../../build/build
-
-    publishers:
-      - junit:
-          results: report.xml
-          allow-empty-results: true
