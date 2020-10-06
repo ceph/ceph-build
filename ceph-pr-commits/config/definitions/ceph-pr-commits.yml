@@ -18,7 +18,7 @@
       - git:
           url: https://github.com/ceph/ceph-build.git
           branches:
-            - origin/master
+            - origin/wip-ceph-pr-commits-junit
           browser-url: https://github.com/ceph/ceph-build
           timeout: 20
           skip-tag: true
