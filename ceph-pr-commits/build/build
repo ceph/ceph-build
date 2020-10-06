@@ -4,22 +4,24 @@
 # Modified from ceph-docs/build/build.
 # I tried using the excluded-regions parameter for the ghprb plugin but since
 # this job/check is required, it hung with 'Expected — Waiting for status to be reported'
+pushd .
 cd "$WORKSPACE/ceph"
 if git rev-parse --verify ${GIT_COMMIT}^2; then
      files="$(git diff --name-only ${GIT_COMMIT}^1...${GIT_COMMIT}^2)"
      echo -e "changed files:\n$files"
      if [ $(echo "$files" | grep -v '^doc/' | wc -l) -gt 0 ]; then
          echo "Not a docs only change.  Will proceed with signed commit check."
-         cd -
+         pytest_mark="code_test"
      else
          echo "Only the doc/ dir changed.  No need to check for signed commits."
-         exit 0
+         pytest_mark="doc_test"
      fi
 fi
+popd
 
 # the following two methods exist in scripts/build_utils.sh
 pkgs=( "pytest" )
 install_python_packages "pkgs[@]"
 
 cd "$WORKSPACE"
-timeout 600 $VENV/py.test -vs --junitxml="$WORKSPACE/report.xml" "$WORKSPACE/ceph-build/ceph-pr-commits/build/test_commits.py"
+timeout 600 $VENV/py.test -m "${pytest_mark}" -vs --junitxml="$WORKSPACE/report.xml" "$WORKSPACE/ceph-build/ceph-pr-commits/build/test_commits.py"
