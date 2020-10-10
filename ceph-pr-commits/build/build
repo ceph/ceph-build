@@ -6,8 +6,8 @@
 # this job/check is required, it hung with 'Expected — Waiting for status to be reported'
 pushd .
 cd "$WORKSPACE/ceph"
-if git rev-parse --verify ${GIT_COMMIT}^2; then
-     files="$(git diff --name-only ${GIT_COMMIT}^1...${GIT_COMMIT}^2)"
+if git rev-parse --verify ${sha1}^2; then
+     files="$(git diff --name-only ${sha1}^1...${sha1}^2)"
      echo -e "changed files:\n$files"
      if [ $(echo "$files" | grep -v '^doc/' | wc -l) -gt 0 ]; then
          echo "Not a docs only change.  Will proceed with signed commit check."
