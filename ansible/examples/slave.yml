@@ -498,7 +498,7 @@
         block: |
           [general]
           apiurl = https://api.opensuse.org
-          #build-root = /var/tmp/build-root/%(repo)s-%{arch)s
+          build-root = /home/{{ jenkins_user }}/osc/%(repo)s-%{arch)s
           [https://api.opensuse.org]
           user = {{ osc_user }}
           pass = {{ osc_pass }}
