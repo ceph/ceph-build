@@ -6,16 +6,14 @@
 # this job/check is required, it hung with 'Expected — Waiting for status to be reported'
 pushd .
 cd "$WORKSPACE/ceph"
-if git rev-parse --verify ${sha1}^2; then
-     files="$(git diff --name-only ${sha1}^1...${sha1}^2)"
-     echo -e "changed files:\n$files"
-     if [ $(echo "$files" | grep -v '^doc/' | wc -l) -gt 0 ]; then
-         echo "Not a docs only change.  Will proceed with signed commit check."
-         pytest_mark="code_test"
-     else
-         echo "Only the doc/ dir changed.  No need to check for signed commits."
-         pytest_mark="doc_test"
-     fi
+files="$(git diff --name-only origin/${ghprbTargetBranch}...origin/pr/${ghprbPullId}/head)"
+echo -e "changed files:\n$files"
+if [ $(echo "$files" | grep -v '^doc/' | wc -l) -gt 0 ]; then
+    echo "Not a docs only change.  Will proceed with signed commit check."
+    pytest_mark="code_test"
+else
+    echo "Only the doc/ dir changed.  No need to check for signed commits."
+    pytest_mark="doc_test"
 fi
 popd
 
