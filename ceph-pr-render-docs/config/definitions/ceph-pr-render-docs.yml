@@ -30,7 +30,7 @@
           started-status: "Docs: building to render"
           success-status: "OK - docs rendered"
           failure-status: "Docs: render failed with errors"
-          success-comment: "Doc render available at http://docs.ceph.com/ceph-prs/${ghprbPullId}/"
+          success-comment: "Doc render available at https://ceph--${ghprbPullId}.org.readthedocs.build/en/${ghprbPullId}/"
 
     scm:
       - git:
