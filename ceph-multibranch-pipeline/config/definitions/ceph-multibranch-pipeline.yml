@@ -15,4 +15,4 @@
             before: true
           shallow-clone: true
           do-not-fetch-tags: true
-          discover-pr-forks-trust: permission
+          discover-pr-forks-trust: contributors
