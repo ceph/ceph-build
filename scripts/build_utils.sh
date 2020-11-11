@@ -1287,3 +1287,12 @@ EOF
                  ${build_area}/SPECS/ceph-release.spec
     fi
 }
+
+# dockerhub started aggressively rate limiting in November 2020. We can use an internal docker mirror if the builder is in the upstream lab.
+use_internal_container_registry() {
+  if ping -c 1 docker-mirror.front.sepia.ceph.com; then
+    REGISTRY="docker-mirror.front.sepia.ceph.com:5000/library"
+  else
+    REGISTRY="docker.io"
+  fi
+}
