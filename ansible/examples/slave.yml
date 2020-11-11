@@ -24,6 +24,7 @@
     - grant_sudo: true
     - osc_user: 'username'
     - osc_pass: 'password'
+    - insecure_registry: 'docker-mirror.front.sepia.ceph.com:5000'
 
   tasks:
     ## DEFINE PACKAGE LISTS BELOW
@@ -167,6 +168,7 @@
           - python-devel
           - python-virtualenv
           - mock
+          - docker
       when:
         - ansible_os_family == "RedHat"
         - ansible_distribution_major_version|int <= 7
@@ -179,6 +181,7 @@
           - python3-devel
           - python3-virtualenv
           - mock
+          - podman
       when:
         - ansible_os_family == "RedHat"
         - ansible_distribution_major_version|int >= 8
@@ -681,6 +684,42 @@
       when:
         - libvirt|bool
         - ansible_os_family == "RedHat"
+
+    ## CONTAINER SERVICE TASKS
+    - name: Container Tasks
+      block:
+        - name: Allow nodes to use an insecure registry - docker
+          copy:
+            dest: /etc/docker/daemon.json
+            content: |
+              {
+                "insecure-registries": ["{{ insecure_registry }}"]
+              }
+          when: ansible_distribution_major_version|int <= 7
+
+        - name: Restart docker service
+          service:
+            name: docker
+            state: restarted
+          when: ansible_distribution_major_version|int <= 7
+
+        - name: allow nodes to use an insecure registry - podman | location
+          ini_file:
+            path: /etc/containers/registries.conf
+            section: "[registry]"
+            option: location
+            value: "\"{{ insecure_registry }}\""
+          when: ansible_distribution_major_version|int >= 8
+
+        - name: allow nodes to use an insecure registry - podman | insecure
+          ini_file:
+            path: /etc/containers/registries.conf
+            section: "[registry]"
+            option: insecure
+            value: "true"
+          when: ansible_distribution_major_version|int >= 8
+      when: ansible_os_family == "RedHat"
+      tags: container
 
     ## JENKINS SLAVE AGENT TASKS
     # We use SSH for ephemeral slaves
