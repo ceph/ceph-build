@@ -24,6 +24,7 @@
     - grant_sudo: true
     - osc_user: 'username'
     - osc_pass: 'password'
+    - container_mirror: 'docker-mirror.front.sepia.ceph.com:5000'
 
   tasks:
     ## DEFINE PACKAGE LISTS BELOW
@@ -167,6 +168,9 @@
           - python-devel
           - python-virtualenv
           - mock
+          - docker
+        container_service_name: docker
+        container_certs_path: "/etc/docker/certs.d/{{ container_mirror }}"
       when:
         - ansible_os_family == "RedHat"
         - ansible_distribution_major_version|int <= 7
@@ -179,6 +183,9 @@
           - python3-devel
           - python3-virtualenv
           - mock
+          - podman
+        container_service_name: podman
+        container_certs_path: "/etc/containers/certs.d/{{ container_mirror }}"
       when:
         - ansible_os_family == "RedHat"
         - ansible_distribution_major_version|int >= 8
@@ -681,6 +688,56 @@
       when:
         - libvirt|bool
         - ansible_os_family == "RedHat"
+
+    ## CONTAINER SERVICE TASKS
+    - name: Container Tasks
+      block:
+        - name: "Create {{ container_certs_path }}"
+          file:
+            path: "{{ container_certs_path }}"
+            state: directory
+
+        - name: "Copy {{ container_mirror }} self-signed cert"
+          copy:
+            dest: "{{ container_certs_path }}/docker-mirror.crt"
+            content: |
+              -----BEGIN CERTIFICATE-----
+              MIIGRTCCBC2gAwIBAgIUPCTsbv8FMCQdzmusdvXTdO8UaKMwDQYJKoZIhvcNAQEL
+              BQAwgbExCzAJBgNVBAYTAlVTMQswCQYDVQQIDAJOQzEUMBIGA1UEBwwLTW9ycmlz
+              dmlsbGUxFjAUBgNVBAoMDVJlZCBIYXQsIEluYy4xDTALBgNVBAsMBENlcGgxKzAp
+              BgNVBAMMImRvY2tlci1taXJyb3IuZnJvbnQuc2VwaWEuY2VwaC5jb20xKzApBgkq
+              hkiG9w0BCQEWHGNlcGgtaW5mcmEtYWRtaW5zQHJlZGhhdC5jb20wHhcNMjAxMTEy
+              MDAwMjM1WhcNMjAxMjEyMDAwMjM1WjCBsTELMAkGA1UEBhMCVVMxCzAJBgNVBAgM
+              Ak5DMRQwEgYDVQQHDAtNb3JyaXN2aWxsZTEWMBQGA1UECgwNUmVkIEhhdCwgSW5j
+              LjENMAsGA1UECwwEQ2VwaDErMCkGA1UEAwwiZG9ja2VyLW1pcnJvci5mcm9udC5z
+              ZXBpYS5jZXBoLmNvbTErMCkGCSqGSIb3DQEJARYcY2VwaC1pbmZyYS1hZG1pbnNA
+              cmVkaGF0LmNvbTCCAiIwDQYJKoZIhvcNAQEBBQADggIPADCCAgoCggIBALUfPWaA
+              Gyuu+McgrPmPBafco3NjOQ2Na8rfLA5X0pz1tTfWgmtwuzhgKR674Nh6yz1WKXmS
+              ic5416dSx6r8NnBXkPSVLP3HlejPki1ohrqm9M1rXdPqvdmzV5TcRvmmLljo1IjI
+              Glwhv+XjJlKPLOUmi4Yk8cmgwVThc9OGC67sve2oDY0+JufFdiMPB5OLi13t9vPz
+              lixFzHXsss4KgD95Ou2PVLQpPCJ4Bxyar5BR0sb4+b2J0b3V3sxg/bvuOdlUuxAy
+              yCogtCTVXCBsERJ3wVI28MsibfBy+tLbNMbIJTZC+LblFOKfxbNiLGNv6z2NQ12h
+              S9C3YCxmgs8b3h9dkQtTj0/7/kpOppLPTvU9v/MOt177biTlbw8QQAjYyZYdXkZT
+              6LwdQmQQGCIQUUaMoeZgIplxEu7My1Gk3M2dfy/c36+r/olfbuTxPav2y9/wwjV2
+              2TrmbSTrAxZwFVvlb9wJCpW6jKh+Cl55XS4wFmEdgf5OJC8W2Rsa69pUmFnro+2z
+              d6zXlDXj5lxdqwSu6FF/PkImToUJ2J9hvotejIdRIJ/TfowwVygqC9k3wgRDYRut
+              q/tmorElTMDmwt1sATuvK81WkTZ28d3hcg5Xu9o1qwCQnKRHUeOOyP4M6c0lSvLb
+              lkZsptmUHyslGBlc9MOd6kH4REZH9x2pga2nAgMBAAGjUzBRMB0GA1UdDgQWBBSk
+              4Vk1KYHJ4VmDAorKCtSx5RVD7TAfBgNVHSMEGDAWgBSk4Vk1KYHJ4VmDAorKCtSx
+              5RVD7TAPBgNVHRMBAf8EBTADAQH/MA0GCSqGSIb3DQEBCwUAA4ICAQBYaG8PFoE5
+              PSdIwjT2NRV0ARC+xkM/P8Vo4H2tYewSz/wGwdfjpz7NJD/os6Tiff6BWBaD75t0
+              2X2MLXeGT2vOJ05hoETCJ1PqHSSlBXkH8De925lGfz4lTeS0gz6qZuEWxeN0Utib
+              5Q3hq7OByS6I8L5kE6L9acFzKqbIOtJOWXXx9J4B7GEUoE+Jk5Vm6yfH4AeGhEbT
+              bQ8J5FbP+zk6iPkXGQdb/3aUBbOCn5OCSmERcTPyK9XzuyBz6wkFjZ9PAvbFLvOI
+              bD1KGIte1Np4jrM4ur924vjZTxm+wVKFDNS64J8t48yN2LUS2pV2zfwC6ACHypf4
+              WhsGpd1hNy+ZGt0dIrgRgKkttNx5VoVaLgzn3ozFz5BXbdHRCXV2BmY36QDzGQqw
+              2BdKeJ/7INdB9NkGSkJYTvkNAS9YixqATxNsaOMt35HRADUlPQoUqzxIEujJzYdz
+              LVpzeTMNDxASqDG1MRIjNDp6l2xgC+H5wVpm5wn4eGvf4A7GXr35Q1TNRzmHayiP
+              FBp0Epiy+oFS1Xd/WQvMHCQMT4HoKSGf5u0++DpU1E5vN29vrxIOZ4+a9a5kZA95
+              QnsemvTiYf3C1xktkYR9AmUqYqCDTp/5nfqbQibRO0Chpy5UnhAXujkL0ABeaSaz
+              MViiJ2AX7vk2E++MXkBhi4IMyz0Vw2lPhg==
+              -----END CERTIFICATE-----
+      when: ansible_os_family == "RedHat"
 
     ## JENKINS SLAVE AGENT TASKS
     # We use SSH for ephemeral slaves
