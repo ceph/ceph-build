@@ -1099,6 +1099,8 @@ setup_rpm_build_deps() {
         # before EPEL8 and PowerTools provide all dependencies, we use sepia for the dependencies
         $SUDO dnf config-manager --add-repo http://apt-mirror.front.sepia.ceph.com/lab-extras/8/
         $SUDO dnf config-manager --setopt=apt-mirror.front.sepia.ceph.com_lab-extras_8_.gpgcheck=0 --save
+        $SUDO dnf config-manager --add-repo http://mirror.centos.org/centos-8/8/storage/${ARCH}/ceph-octopus/
+        $SUDO dnf config-manager --setopt=mirror.centos.org*.gpgcheck=0 --save
     fi
 
     sed -e 's/@//g' < ceph.spec.in > $DIR/ceph.spec
