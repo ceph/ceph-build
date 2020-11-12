@@ -69,6 +69,16 @@
             - ../../../scripts/build_utils.sh
             - ../../build/build
 
+    wrappers:
+      - inject-passwords:
+          global: true
+          mask-password-params: true
+      - credentials-binding:
+          - username-password-separated:
+              credential-id: docker-hub-leseb
+              username: DOCKER_HUB_USERNAME
+              password: DOCKER_HUB_PASSWORD
+
     publishers:
       - postbuildscript:
           builders:
@@ -140,6 +150,16 @@
           !include-raw-escape:
             - ../../../scripts/build_utils.sh
             - ../../build/build
+
+    wrappers:
+      - inject-passwords:
+          global: true
+          mask-password-params: true
+      - credentials-binding:
+          - username-password-separated:
+              credential-id: docker-hub-leseb
+              username: DOCKER_HUB_USERNAME
+              password: DOCKER_HUB_PASSWORD
 
     publishers:
       - postbuildscript:
