@@ -79,7 +79,7 @@
                     DISTROS=centos7
                     FLAVOR=notcmalloc
       # build nautilus on:
-      # default: bionic xenial centos7 centos8 leap15
+      # default: bionic xenial centos7 centos8
       # notcmalloc: centos7
       - conditional-step:
           condition-kind: regex-match
@@ -96,7 +96,7 @@
                   predefined-parameters: |
                     BRANCH=${GIT_BRANCH}
                     FORCE=True
-                    DISTROS=bionic xenial centos7 centos8 leap15
+                    DISTROS=bionic xenial centos7 centos8
                 - project: 'ceph-dev-new'
                   predefined-parameters: |
                     BRANCH=${GIT_BRANCH}
