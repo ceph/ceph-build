@@ -135,6 +135,11 @@ for type in $MACHINETYPES; do
     foghostid=$(curl -f -s -k -H "fog-api-token: ${FOG_API_TOKEN}" -H "fog-user-token: ${FOG_USER_TOKEN}" http://fog.front.sepia.ceph.com/fog/host -d '{"name": "'${array1[$i-1]}'"}' -X GET | jq -r '.hosts[0].id')
     # Get FOG image ID
     fogimageid=$(curl -f -s -k -H "fog-api-token: ${FOG_API_TOKEN}" -H "fog-user-token: ${FOG_USER_TOKEN}" http://fog.front.sepia.ceph.com/fog/image -d '{"name": "'${type}_${fogprofile}'"}' -X GET | jq -r '.images[0].id')
+    # Check if FOG image ID got set and create the image template if it's not set
+    if [ "$fogimageid" == "null" ]; then
+      curl -s -k -H "fog-api-token: ${FOG_API_TOKEN}" -H "fog-user-token: ${FOG_USER_TOKEN}" http://fog.front.sepia.ceph.com/fog/image/ -d '{ "imageTypeID": "1", "imagePartitionTypeID": "1", "name": "'${type}_${fogprofile}'", "path": "'${type}_${fogprofile}'", "osID": "50", "format": "0", "magnet": "", "protected": "0", "compress": "6", "isEnabled": "1", "toReplicate": "1", "os": {"id": "50", "name": "Linux", "description": ""}, "imagepartitiontype": {"id": "1", "name": "Everything", "type": "all"}, "imagetype": {"id": "1", "name": "Single Disk - Resizable", "type": "n"}, "imagetypename": "Single Disk - Resizable", "imageparttypename": "Everything", "osname": "Linux", "storagegroupname": "default"}' -X POST
+      fogimageid=$(curl -s -k -H "fog-api-token: ${FOG_API_TOKEN}" -H "fog-user-token: ${FOG_USER_TOKEN}" http://fog.front.sepia.ceph.com/fog/image -d '{"name": "'${type}_${fogprofile}'"}' -X GET | jq -r '.images[0].id')
+    fi
     # Set foghostid (target host) to capture fogimageid
     curl -f -s -k -H "fog-api-token: ${FOG_API_TOKEN}" -H "fog-user-token: ${FOG_USER_TOKEN}" http://fog.front.sepia.ceph.com/fog/host/$foghostid -d '{"imageID": "'${fogimageid}'"}' -X PUT
     # Create 'Capture' task for each machine
