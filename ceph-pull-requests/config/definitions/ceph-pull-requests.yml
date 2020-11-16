@@ -45,26 +45,25 @@
           started-status: "running make check"
           success-status: "make check succeeded"
           failure-status: "make check failed"
-          exclude-region:
-            ^.github/
-            ^admin/
-            ^ceph-menv
-            ^doc/
-            ^etc/
-            ^examples/
-            ^fusetrace/
-            ^keys/
-            ^man/
-            ^mirroring/
-            ^qa/
-            ^selinux/
-            ^share/
-            ^sudoers.d/
-            ^systemd/
-            ^udev/
-            \.rst$
-            \.txt$
-            \.md$
+          excluded-regions:
+            - ^.github/
+            - ^admin/
+            - ^ceph-menv/
+            - ^doc/
+            - ^etc/
+            - ^examples/
+            - ^fusetrace/
+            - ^keys/
+            - ^man/
+            - ^mirroring/
+            - ^selinux/
+            - ^share/
+            - ^sudoers.d/
+            - ^systemd/
+            - ^udev/
+            - \.rst$
+            - \.txt$
+            - \.md$
 
     scm:
       - git:
