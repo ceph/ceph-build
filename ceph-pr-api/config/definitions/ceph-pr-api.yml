@@ -48,25 +48,6 @@
           started-status: "running API tests"
           success-status: "ceph API tests succeeded"
           failure-status: "ceph API tests failed"
-          exclude-region:
-            ^.github/
-            ^admin/
-            ^ceph-menv
-            ^doc/
-            ^etc/
-            ^examples/
-            ^fusetrace/
-            ^keys/
-            ^man/
-            ^mirroring/
-            ^selinux/
-            ^share/
-            ^sudoers.d/
-            ^systemd/
-            ^udev/
-            \.rst$
-            \.txt$
-            \.md$
 
     scm:
       - git:
