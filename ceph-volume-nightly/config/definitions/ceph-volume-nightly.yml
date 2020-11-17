@@ -14,7 +14,6 @@
       - lvm
     ceph_branch:
       - master
-      - mimic
       - luminous
       - nautilus
     exclude:
@@ -26,8 +25,6 @@
         distro: xenial
       - ceph_branch: nautilus
         distro: xenial
-      - ceph_branch: mimic
-        distro: centos8
       - ceph_branch: luminous
         distro: centos8
 
@@ -49,7 +46,6 @@
     subcommand:
       - simple
     ceph_branch:
-      - mimic
       - luminous
 
     jobs:
@@ -71,7 +67,6 @@
       - batch
     ceph_branch:
       - master
-      - mimic
       - luminous
       - nautilus
     exclude:
@@ -83,8 +78,6 @@
         distro: xenial
       - ceph_branch: nautilus
         distro: xenial
-      - ceph_branch: mimic
-        distro: centos8
       - ceph_branch: luminous
         distro: centos8
 
@@ -109,7 +102,6 @@
     ceph_branch:
       - master
       - nautilus
-      - mimic
       - luminous
     exclude:
       - ceph_branch: master
@@ -120,8 +112,6 @@
         distro: xenial
       - ceph_branch: nautilus
         distro: xenial
-      - ceph_branch: mimic
-        distro: centos8
       - ceph_branch: luminous
         distro: centos8
 
