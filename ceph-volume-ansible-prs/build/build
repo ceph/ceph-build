@@ -22,10 +22,14 @@ update_vagrant_boxes
 
 cd src/ceph-volume/ceph_volume/tests/functional/$SUBCOMMAND
 
-if [[ "$ghprbTargetBranch" == "mimic" ]]; then
+if [[ "$ghprbTargetBranch" == "luminous" ]]; then
     CEPH_ANSIBLE_BRANCH="stable-3.2"
-elif [[ "$ghprbTargetBranch" == "luminous" ]]; then
+elif [[ "$ghprbTargetBranch" == "mimic" ]]; then
     CEPH_ANSIBLE_BRANCH="stable-3.2"
+elif [[ "$ghprbTargetBranch" == "nautilus" ]]; then
+    CEPH_ANSIBLE_BRANCH="stable-4.0"
+elif [[ "$ghprbTargetBranch" == "octopus" ]]; then
+    CEPH_ANSIBLE_BRANCH="stable-5.0"
 else
     CEPH_ANSIBLE_BRANCH="master"
 fi
