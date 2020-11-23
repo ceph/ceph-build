@@ -30,6 +30,10 @@ else
     CEPH_ANSIBLE_BRANCH="master"
 fi
 
+if [[ "$ghprbTargetBranch" == "nautilus" ]]; then
+    DISTRO="centos7"
+fi
+
 CEPH_ANSIBLE_BRANCH=$CEPH_ANSIBLE_BRANCH CEPH_DEV_BRANCH=$ghprbTargetBranch $VENV/tox --workdir=$WORKDIR -vre $DISTRO-$OBJECTSTORE-$SCENARIO -- --provider=libvirt
 
 GITHUB_STATUS_STATE="success" $VENV/github-status create
