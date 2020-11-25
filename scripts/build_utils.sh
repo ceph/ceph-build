@@ -1301,7 +1301,7 @@ maybe_reset_ci_container() {
 
 # dockerhub started aggressively rate limiting in November 2020. We can use an internal docker mirror if the builder is in the upstream lab.
 use_internal_container_registry() {
-  if curl -s "https://docker-mirror.front.sepia.ceph.com:5000"; then
+  if curl -s -k "https://docker-mirror.front.sepia.ceph.com:5000"; then
     REGISTRY="docker-mirror.front.sepia.ceph.com:5000/library"
   else
     REGISTRY="docker.io"
