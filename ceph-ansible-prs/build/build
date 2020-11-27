@@ -34,4 +34,7 @@ rm -rf $HOME/ansible/facts/*
 [[ "$ghprbTargetBranch" =~ stable-4.0|stable-3 && "$SCENARIO" =~ cephadm|cephadm_adopt ]] ||
 [[ "$ghprbTargetBranch" != stable-3.2 && "$SCENARIO" == shrink_osd_legacy ]] ||
 [[ "$ghprbTargetBranch" =~ stable-3 && "$SCENARIO" == filestore_to_bluestore ]] ||
+[[ "$ghprbTargetBranch" == stable-5.0 && "$SCENARIO" == update ]] ||
 start_tox
+
+# Update scenario on stable-5.0 must be enabled back once 15.2.8 is out
