@@ -1032,7 +1032,7 @@ collect_ceph_logs() {
 
         export ANSIBLE_SSH_ARGS='-F ./vagrant_ssh_config'
         export ANSIBLE_STDOUT_CALLBACK='debug'
-        $VENV/ansible-playbook -vv -i hosts --limit $limit --extra-vars "archive_path=$WORKSPACE/logs" $WORKSPACE/collect-logs.yml
+        $VENV/ansible-playbook -vv -i hosts --limit $limit --extra-vars "archive_path=$WORKSPACE/logs" $WORKSPACE/collect-logs.yml || true
     fi
 }
 
