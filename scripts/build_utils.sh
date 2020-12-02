@@ -814,6 +814,7 @@ build_debs() {
         --distribution $DIST \
         --basetgz $pbuilddir/$DIST.tgz \
         --buildresult $releasedir/$cephver \
+        --profiles nocheck \
         $releasedir/$cephver/ceph_$bpvers.dsc
 
     # do lintian checks
