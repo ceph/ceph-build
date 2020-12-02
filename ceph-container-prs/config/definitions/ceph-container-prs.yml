@@ -4,6 +4,7 @@
       - all_daemons
       - lvm_osds
       - collocation
+      - cephadm
     jobs:
         - 'ceph-container-prs-auto'
 

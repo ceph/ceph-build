@@ -4,6 +4,7 @@
       - all_daemons
       - collocation
       - lvm_osds
+      - cephadm
     jobs:
         - 'ceph-container-nightly-ceph_ansible-{test}'
 
