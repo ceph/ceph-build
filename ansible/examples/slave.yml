@@ -330,6 +330,24 @@
             line: '127.0.1.1 ceph-builders'
           failed_when: false
           when: ansible_os_family == "Suse"
+
+        # Sometimes, slaves would connect to Jenkins and try to run an apt transaction right away.  Except apt-daily/unattended-upgrades has the dpkg lock so the Jenkins job would fail.
+        - name: Uninstall unattended-upgrades
+          package:
+            name: unattended-upgrades
+            state: absent
+          when: ansible_os_family == "Debian"
+
+        - name: Stop and disable daily apt activities
+          command: "{{ item }}"
+          with_items:
+            - systemctl stop apt-daily.timer
+            - systemctl disable apt-daily.timer
+            - systemctl disable apt-daily.service
+            - systemctl daemon-reload
+          when: ansible_os_family == "Debian"
+          # Just in case.  This isn't a super important task and might not even be required.
+          ignore_errors: true
       when: not permanent|bool
 
     ## VAGRANT REPO TASKS (for libvirt slaves)
