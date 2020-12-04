@@ -53,7 +53,7 @@
       - git:
           url: https://github.com/ceph/ceph.git
           branches:
-            - ${sha1}
+            - origin/pr/${ghprbPullId}/merge
           refspec: +refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*
           browser: auto
           timeout: 20
