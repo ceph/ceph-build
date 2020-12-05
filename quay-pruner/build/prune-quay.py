@@ -9,13 +9,17 @@ import sys
 QUAYBASE = "https://quay.ceph.io/api/v1"
 REPO = "ceph-ci/ceph"
 
+# quay page ranges to fetch; hackable for testing
+start_page = 1
+page_limit = 100000
+
 
 def get_all_quay_tags(quaytoken):
-    page = 1
+    page = start_page
     has_additional = True
     ret = list()
 
-    while has_additional:
+    while has_additional and page < page_limit:
         try:
             response = requests.get(
                 '/'.join((QUAYBASE, 'repository', REPO, 'tag')),
