@@ -128,8 +128,10 @@ def delete_from_quay(tagname, quaytoken, dryrun):
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('-d', '--dryrun', action='store_true', help="don't actually delete")
-    parser.add_argument('-v', '--verbose', action='store_true', help="say more")
+    parser.add_argument('-d', '--dryrun', action='store_true',
+                        help="don't actually delete")
+    parser.add_argument('-v', '--verbose', action='store_true',
+                        help="say more")
     return parser.parse_args()
 
 
@@ -181,10 +183,10 @@ def main():
             tags_to_delete.append(tag['name'])
 
     if args.verbose:
-        print('Deleting tags:', tags_to_delete)
+        print('Deleting tags:', sorted(tags_to_delete))
 
     # and now delete all the ones we found
-    for tagname in tags_to_delete:
+    for tagname in sorted(tags_to_delete):
         delete_from_quay(tagname, quaytoken, args.dryrun)
 
 
