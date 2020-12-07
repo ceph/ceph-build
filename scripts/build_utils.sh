@@ -740,6 +740,122 @@ setup_pbuilder_for_ppa() {
     echo "HOOKDIR=$hookdir"
 }
 
+build_debs() {
+    local vers=$1
+    shift
+    local debian_version=$1
+    shift
+
+    # create a release directory for ceph-build tools
+    mkdir -p release
+    cp -a dist release/${vers}
+    echo $DIST > release/${vers}/debian_dists
+    echo "${debian_version}" > release/${vers}/debian_version
+
+    cd release/$vers
+
+
+    # HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK
+    # FIXME: I don't think we need this 'hack' anymore
+    # Dirty Hack:
+    baddist=$(echo $DIST | grep -ic -e squeeze -e wheezy || true)
+    if [ $baddist -eq 1 ]; then
+        sed -i 's/ libbabeltrace-ctf-dev, libbabeltrace-dev,//g' ceph_${vers}-1.dsc || true
+        sed -i 's/ liblttng-ust-dev//g' ceph_${vers}-1.dsc || true
+    fi
+    # HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK
+
+    # unpack sources
+    dpkg-source -x ceph_${vers}-1.dsc
+
+    # HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK
+    if [ $baddist -eq 1 ]; then
+        rm -vf *.orig.tar.gz || true
+        grep -v babeltrace ceph-${vers}/debian/control  | grep -v liblttng > ceph-${vers}/debian/control.new
+        mv -v ceph-${vers}/debian/control.new ceph-${vers}/debian/control
+    fi
+    # HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK
+
+
+    (  cd ceph-${vers}
+       DEB_VERSION=$(dpkg-parsechangelog | sed -rne 's,^Version: (.*),\1, p')
+       BP_VERSION=${DEB_VERSION}${BPTAG}
+       dch -D $DIST --force-distribution -b -v "$BP_VERSION" "$comment"
+    )
+    dpkg-source -b ceph-${vers}
+
+    echo "Building Debian"
+    cd "$WORKSPACE"
+    # Before, at this point, this script called the below contents that
+    # was part of /srv/ceph-buid/build_debs.sh. Now everything is in here, in one
+    # place, no need to checkout/clone anything. WYSIWYG::
+    #
+    #    sudo $bindir/build_debs.sh ./release /srv/debian-base $vers
+
+    releasedir="./release"
+    pbuilddir="/srv/debian-base"
+    cephver=$vers
+
+    echo version $cephver
+
+    echo deb vers $bpvers
+
+
+    echo building debs for $DIST
+
+    CEPH_EXTRA_CMAKE_ARGS="$CEPH_EXTRA_CMAKE_ARGS $(extra_cmake_args)"
+    DEB_BUILD_OPTIONS="parallel=$(get_nr_build_jobs)"
+
+    # pass only those env vars specifically noted
+    sudo \
+        CEPH_EXTRA_CMAKE_ARGS="$CEPH_EXTRA_CMAKE_ARGS" \
+        DEB_BUILD_OPTIONS="$DEB_BUILD_OPTIONS" \
+        pbuilder build \
+        --distribution $DIST \
+        --basetgz $pbuilddir/$DIST.tgz \
+        --buildresult $releasedir/$cephver \
+        --profiles nocheck \
+        $releasedir/$cephver/ceph_$bpvers.dsc
+
+    # do lintian checks
+    echo lintian checks for $bpvers
+    echo lintian --allow-root $releasedir/$cephver/*$bpvers*.deb
+
+    [ "$FORCE" = true ] && chacra_flags="--force" || chacra_flags=""
+
+    if [ "$THROWAWAY" = false ] ; then
+        # push binaries to chacra
+        find release/$vers/ | \
+            egrep "*\.(changes|deb|ddeb|dsc|gz)$" | \
+            egrep -v "(Packages|Sources|Contents)" | \
+            $VENV/chacractl binary ${chacra_flags} create ${chacra_endpoint}
+        # write json file with build info
+        cat > $WORKSPACE/repo-extra.json << EOF
+{
+    "version":"$vers",
+    "package_manager_version":"$bpvers",
+    "build_url":"$BUILD_URL",
+    "root_build_cause":"$ROOT_BUILD_CAUSE",
+    "node_name":"$NODE_NAME",
+    "job_name":"$JOB_NAME"
+}
+EOF
+        # post the json to repo-extra json to chacra
+        curl -X POST \
+             -H "Content-Type:application/json" \
+             --data "@$WORKSPACE/repo-extra.json" \
+             -u $CHACRACTL_USER:$CHACRACTL_KEY \
+             ${chacra_url}repos/${chacra_repo_endpoint}/extra/
+        # start repo creation
+        $VENV/chacractl repo update ${chacra_repo_endpoint}
+
+        echo Check the status of the repo at: https://shaman.ceph.com/api/repos/${chacra_repo_endpoint}/
+    fi
+
+    # update shaman with the completed build status
+    update_build_status "completed" "ceph" $NORMAL_DISTRO $NORMAL_DISTRO_VERSION $NORMAL_ARCH
+}
+
 extra_cmake_args() {
     # statically link against libstdc++ for building new releases on old distros
     if [ "${FLAVOR}" = "crimson" ]; then

@@ -107,6 +107,7 @@ create_build_status "started" "ceph" $NORMAL_DISTRO $NORMAL_DISTRO_VERSION $NORM
 pkgs=( "chacractl>=0.0.21" )
 install_python_packages "pkgs[@]"
 
+chacra_url=https://chacra.ceph.com/
 make_chacractl_config
 
 FLAVOR="default"
