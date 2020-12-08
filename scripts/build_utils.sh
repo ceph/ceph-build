@@ -766,24 +766,12 @@ get_bptag() {
 }
 
 gen_debian_version() {
-    raw=$1
-    dist=$2
+    local raw=$1
+    local dist=$2
+    local bptag
 
-    [ "$dist" = "sid" ] && dver="$raw"
-    [ "$dist" = "buster" ] && dver="$raw~bpo10+1"
-    [ "$dist" = "stretch" ] && dver="$raw~bpo90+1"
-    [ "$dist" = "jessie" ] && dver="$raw~bpo80+1"
-    [ "$dist" = "wheezy" ] && dver="$raw~bpo70+1"
-    [ "$dist" = "squeeze" ] && dver="$raw~bpo60+1"
-    [ "$dist" = "lenny" ] && dver="$raw~bpo50+1"
-    [ "$dist" = "precise" ] && dver="$raw$dist"
-    [ "$dist" = "saucy" ] && dver="$raw$dist"
-    [ "$dist" = "trusty" ] && dver="$raw$dist"
-    [ "$dist" = "xenial" ] && dver="$raw$dist"
-    [ "$dist" = "bionic" ] && dver="$raw$dist"
-    [ "$dist" = "focal" ] && dver="$raw$dist"
-
-    echo $dver
+    bptag=$(get_bptag $dist)
+    echo "${raw}${bptag}"
 }
 
 build_debs() {
