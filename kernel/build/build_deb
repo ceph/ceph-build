@@ -3,30 +3,6 @@ set -ex
 
 cd $WORKSPACE
 
-get_bptag() {
-    dist=$1
-
-    [ "$dist" = "sid" ] && dver=""
-    [ "$dist" = "jessie" ] && dver="~bpo80+1"
-    [ "$dist" = "wheezy" ] && dver="~bpo70+1"
-    [ "$dist" = "squeeze" ] && dver="~bpo60+1"
-    [ "$dist" = "lenny" ] && dver="~bpo50+1"
-    [ "$dist" = "focal" ] && dver="$dist"
-    [ "$dist" = "bionic" ] && dver="$dist"
-    [ "$dist" = "xenial" ] && dver="$dist"
-    [ "$dist" = "trusty" ] && dver="$dist"
-    [ "$dist" = "saucy" ] && dver="$dist"
-    [ "$dist" = "precise" ] && dver="$dist"
-    [ "$dist" = "oneiric" ] && dver="$dist"
-    [ "$dist" = "natty" ] && dver="$dist"
-    [ "$dist" = "maverick" ] && dver="$dist"
-    [ "$dist" = "lucid" ] && dver="$dist"
-    [ "$dist" = "karmic" ] && dver="$dist"
-
-    echo $dver
-}
-
-
 # slap -rc to the ref if we are doing a release-candidate build
 chacra_ref="$BRANCH"
 [ "$RC" = true ] && chacra_ref="$BRANCH-rc"
