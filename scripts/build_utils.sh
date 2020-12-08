@@ -758,7 +758,7 @@ build_debs() {
     # HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK
     # FIXME: I don't think we need this 'hack' anymore
     # Dirty Hack:
-    baddist=$(echo $DIST | grep -ic -e squeeze -e wheezy || true)
+    baddist=$(echo $DIST | grep -ic -e wheezy || true)
     if [ $baddist -eq 1 ]; then
         sed -i 's/ libbabeltrace-ctf-dev, libbabeltrace-dev,//g' ceph_${vers}-1.dsc || true
         sed -i 's/ liblttng-ust-dev//g' ceph_${vers}-1.dsc || true
