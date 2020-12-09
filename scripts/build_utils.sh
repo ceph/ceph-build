@@ -789,27 +789,8 @@ build_debs() {
     cd release/$vers
 
 
-    # HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK
-    # FIXME: I don't think we need this 'hack' anymore
-    # Dirty Hack:
-    baddist=$(echo $DIST | grep -ic -e wheezy || true)
-    if [ $baddist -eq 1 ]; then
-        sed -i 's/ libbabeltrace-ctf-dev, libbabeltrace-dev,//g' ceph_${vers}-1.dsc || true
-        sed -i 's/ liblttng-ust-dev//g' ceph_${vers}-1.dsc || true
-    fi
-    # HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK
-
     # unpack sources
     dpkg-source -x ceph_${vers}-1.dsc
-
-    # HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK
-    if [ $baddist -eq 1 ]; then
-        rm -vf *.orig.tar.gz || true
-        grep -v babeltrace ceph-${vers}/debian/control  | grep -v liblttng > ceph-${vers}/debian/control.new
-        mv -v ceph-${vers}/debian/control.new ceph-${vers}/debian/control
-    fi
-    # HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK
-
 
     (  cd ceph-${vers}
        DEB_VERSION=$(dpkg-parsechangelog | sed -rne 's,^Version: (.*),\1, p')
