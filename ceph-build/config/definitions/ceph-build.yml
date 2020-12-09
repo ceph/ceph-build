@@ -40,7 +40,6 @@
             - buster
             - precise
             - centos6
-            - wheezy
       - axis:
           type: dynamic
           name: DIST
