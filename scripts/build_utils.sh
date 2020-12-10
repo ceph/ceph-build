@@ -740,6 +740,40 @@ setup_pbuilder_for_ppa() {
     echo "HOOKDIR=$hookdir"
 }
 
+get_bptag() {
+    dist=$1
+
+    [ "$dist" = "sid" ] && dver=""
+    [ "$dist" = "buster" ] && dver="~bpo10+1"
+    [ "$dist" = "stretch" ] && dver="~bpo90+1"
+    [ "$dist" = "jessie" ] && dver="~bpo80+1"
+    [ "$dist" = "wheezy" ] && dver="~bpo70+1"
+    [ "$dist" = "squeeze" ] && dver="~bpo60+1"
+    [ "$dist" = "lenny" ] && dver="~bpo50+1"
+    [ "$dist" = "focal" ] && dver="$dist"
+    [ "$dist" = "bionic" ] && dver="$dist"
+    [ "$dist" = "xenial" ] && dver="$dist"
+    [ "$dist" = "trusty" ] && dver="$dist"
+    [ "$dist" = "saucy" ] && dver="$dist"
+    [ "$dist" = "precise" ] && dver="$dist"
+    [ "$dist" = "oneiric" ] && dver="$dist"
+    [ "$dist" = "natty" ] && dver="$dist"
+    [ "$dist" = "maverick" ] && dver="$dist"
+    [ "$dist" = "lucid" ] && dver="$dist"
+    [ "$dist" = "karmic" ] && dver="$dist"
+
+    echo $dver
+}
+
+gen_debian_version() {
+    local raw=$1
+    local dist=$2
+    local bptag
+
+    bptag=$(get_bptag $dist)
+    echo "${raw}${bptag}"
+}
+
 build_debs() {
     local vers=$1
     shift
@@ -755,27 +789,8 @@ build_debs() {
     cd release/$vers
 
 
-    # HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK
-    # FIXME: I don't think we need this 'hack' anymore
-    # Dirty Hack:
-    baddist=$(echo $DIST | grep -ic -e squeeze -e wheezy || true)
-    if [ $baddist -eq 1 ]; then
-        sed -i 's/ libbabeltrace-ctf-dev, libbabeltrace-dev,//g' ceph_${vers}-1.dsc || true
-        sed -i 's/ liblttng-ust-dev//g' ceph_${vers}-1.dsc || true
-    fi
-    # HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK
-
     # unpack sources
     dpkg-source -x ceph_${vers}-1.dsc
-
-    # HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK
-    if [ $baddist -eq 1 ]; then
-        rm -vf *.orig.tar.gz || true
-        grep -v babeltrace ceph-${vers}/debian/control  | grep -v liblttng > ceph-${vers}/debian/control.new
-        mv -v ceph-${vers}/debian/control.new ceph-${vers}/debian/control
-    fi
-    # HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK
-
 
     (  cd ceph-${vers}
        DEB_VERSION=$(dpkg-parsechangelog | sed -rne 's,^Version: (.*),\1, p')
