@@ -1,0 +1,60 @@
+#!/bin/bash
+
+set -ex
+HOST=$(hostname --short)
+echo "Building on $(hostname)"
+echo "  DIST=${DIST}"
+echo "  BPTAG=${BPTAG}"
+echo "  KEYID=${KEYID}"
+echo "  WS=$WORKSPACE"
+echo "  PWD=$(pwd)"
+echo "  BUILD SOURCE=$COPYARTIFACT_BUILD_NUMBER_CEPH_SETUP"
+echo "*****"
+env
+echo "*****"
+
+if test $(id -u) != 0 ; then
+    SUDO=sudo
+fi
+export LC_ALL=C # the following is vulnerable to i18n
+
+BRANCH=`branch_slash_filter $BRANCH`
+
+cd $WORKSPACE
+
+vers=$(cat ./dist/version)
+raw_version=`echo $vers | cut -d '-' -f 1`
+RELEASE_BRANCH=$(release_from_version $raw_version)
+
+raw_version_major=$(echo $vers | cut -d '.' -f 1)
+if [ 0${raw_version_major} -lt 16 ]; then
+    echo The following Ceph release does not support Windows: $RELEASE_BRANCH
+    exit 1
+fi
+
+# Normalize variables across rpm/deb builds
+NORMAL_DISTRO=$DIST
+NORMAL_DISTRO_VERSION="1809"
+NORMAL_ARCH=$ARCH
+
+# create build status in shaman
+create_build_status "started" "ceph" $NORMAL_DISTRO $NORMAL_DISTRO_VERSION $NORMAL_ARCH
+
+pkgs=( "chacractl>=0.0.21" )
+install_python_packages "pkgs[@]"
+
+chacra_url=https://chacra.ceph.com/
+make_chacractl_config
+
+FLAVOR="default"
+
+chacra_ref="$BRANCH"
+chacra_endpoint="ceph/${chacra_ref}/${SHA1}/${DIST}/${ARCH}"
+chacra_repo_endpoint="${chacra_endpoint}/flavors/${FLAVOR}"
+chacra_check_url="${chacra_endpoint}/ceph.zip"
+
+if [ "$THROWAWAY" = false ] ; then
+    # this exists in scripts/build_utils.sh
+    # TODO if this exits we need to post to shaman a success
+    check_binary_existence $chacra_check_url
+fi

@@ -11,3 +11,7 @@ set -ex
       exit 1
       ;;
   esac) || exit 0
+
+if [ "${DIST}" == "windows" ]; then
+  exit 0
+fi
