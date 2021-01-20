@@ -36,6 +36,7 @@
             - smithfarm
           org-list:
             - ceph
+            - red-hat-storage
           white-list:
             - jcsp
             - GregMeno
