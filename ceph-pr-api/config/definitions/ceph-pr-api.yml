@@ -36,6 +36,7 @@
             - ceph
           white-list-target-branches:
             - master
+            - pacific
             - octopus
             - nautilus
           trigger-phrase: 'jenkins test api'

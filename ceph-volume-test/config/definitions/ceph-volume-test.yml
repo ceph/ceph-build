@@ -33,13 +33,13 @@
           default: "https://github.com/ceph/ceph.git"
 
     builders:
-      # centos8 based jobs for octopus & master
+      # centos8 based jobs for octopus & pacific & master
       - conditional-step:
           condition-kind: shell
           condition-command: |
             #!/bin/bash
             set -x
-            if [[ ! "$CEPH_BRANCH" =~ master|octopus ]]; then
+            if [[ ! "$CEPH_BRANCH" =~ master|octopus|pacific ]]; then
               exit 1
             fi
           on-evaluation-failure: dont-run

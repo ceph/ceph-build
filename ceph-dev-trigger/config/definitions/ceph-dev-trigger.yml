@@ -32,6 +32,7 @@
             - 'origin/mimic*'
             - 'origin/nautilus'
             - 'origin/octopus'
+            - 'origin/pacific'
           skip-tag: true
           timeout: 20
           wipe-workspace: true
