@@ -38,7 +38,7 @@ function release_from_version() {
     0.87.*)
         rel="giant"
         ;;
-    0.87.*)
+    0.80.*)
         rel="firefly"
         ;;
     0.72.*)
