@@ -1,6 +1,9 @@
 #!/bin/bash -ex
 export NPROC=$(nproc)
 export WITH_SEASTAR=true
+if which apt-get > /dev/null ; then
+    export WITH_ZBD=true
+fi
 timeout 3h ./run-make-check.sh
 sleep 5
 ps -ef | grep -v jnlp | grep ceph || true
