@@ -189,7 +189,7 @@
                   predefined-parameters: |
                     BRANCH=${GIT_BRANCH}
                     FORCE=True
-                    DISTROS=focal bionic centos8 leap15
+                    DISTROS=focal bionic centos8
                 - project: 'ceph-dev'
                   predefined-parameters: |
                     BRANCH=${GIT_BRANCH}
