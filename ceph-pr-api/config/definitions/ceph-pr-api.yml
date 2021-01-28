@@ -68,7 +68,7 @@
             - ../../../scripts/build_utils.sh
             - ../../build/build
             - ../../../scripts/dashboard/install-backend-api-test-deps.sh
-      - shell: "cd src/pybind/mgr/dashboard; timeout 7200 ./run-backend-api-tests.sh"
+      - shell: "files=\"$(git diff --name-only origin/${ghprbTargetBranch}...origin/pr/${ghprbPullId}/head)\"; if [ $(echo \"$files\" | grep -v '^doc/' | wc -l) -gt 0 ]; then cd src/pybind/mgr/dashboard; timeout 7200 ./run-backend-api-tests.sh; fi"
 
     # This job seems to get aborted more often than others.  Multiple times in the past week,
     # it's gotten aborted during an apt transaction which leaves a dirty dpkg DB.
