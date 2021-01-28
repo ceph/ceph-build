@@ -1,4 +1,13 @@
 #!/bin/bash -e
+# Same thing here as in the ceph-pr-commits job.  Since ceph-pr-api is a required job,
+# one can't merge a PR until this job passes so excluding the doc/ dir from the ghprb
+# config isn't sufficient since the PR will be waiting for this job indefinitely.
+docs_pr_only
+if [ "$DOCS_ONLY" = true ]; then
+    echo "Only the doc/ dir changed.  No need to run API tests."
+    exit 0
+fi
+
 n_build_jobs=$(get_nr_build_jobs)
 n_test_jobs=$(($(nproc) / 4))
 export CHECK_MAKEOPTS="-j${n_test_jobs} -N -Q"

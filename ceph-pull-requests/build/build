@@ -1,4 +1,13 @@
 #!/bin/bash -ex
+# Same thing here as in the ceph-pr-commits job.  Since this is a required job for PRs,
+# one can't merge a PR until this job passes so excluding the doc/ dir from the ghprb
+# config isn't sufficient since the PR will be waiting for this job indefinitely.
+docs_pr_only
+if [ "$DOCS_ONLY" = true ]; then
+    echo "Only the doc/ dir changed.  No need to run make check."
+    exit 0
+fi
+
 export NPROC=$(nproc)
 export WITH_SEASTAR=true
 if which apt-get > /dev/null ; then
