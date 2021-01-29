@@ -1257,7 +1257,9 @@ setup_rpm_build_deps() {
             $SUDO yum-config-manager --enable centos-sclo-rh-testing
         fi
     elif [ "$RELEASE" = 8 ]; then
-        $SUDO dnf config-manager --set-enabled PowerTools
+        # centos 8.3 changes to lowercase repo names
+        $SUDO dnf config-manager --set-enabled PowerTools || \
+            $SUDO dnf config-manager --set-enabled powertools
         $SUDO dnf -y module enable javapackages-tools
         # before EPEL8 and PowerTools provide all dependencies, we use sepia for the dependencies
         $SUDO dnf config-manager --add-repo http://apt-mirror.front.sepia.ceph.com/lab-extras/8/
