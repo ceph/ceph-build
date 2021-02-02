@@ -72,8 +72,13 @@ rpmbuild \
     --nodeps -bs $WORKSPACE/${PROJECT}.spec
 SRPM=$(readlink -f $WORKSPACE/dist/SRPMS/*.src.rpm)
 
+DISTRO_ARCH=${ARCH}
+if [[ "${ARCH}" = "arm64" ]] ; then
+	DISTRO_ARCH="aarch64"
+fi
+
 # add shaman repo file to mock config
-cat /etc/mock/${MOCK_TARGET}-${RELEASE}-${ARCH}.cfg > tcmu-runner.cfg
+cat /etc/mock/${MOCK_TARGET}-${RELEASE}-${DISTRO_ARCH}.cfg > tcmu-runner.cfg
 echo "" >> tcmu-runner.cfg
 echo "config_opts['yum.conf'] += \"\"\"" >> tcmu-runner.cfg
 cat $WORKSPACE/shaman.repo >> tcmu-runner.cfg
@@ -92,8 +97,8 @@ chacra_endpoint="tcmu-runner/${BRANCH}/${GIT_COMMIT}/${DISTRO}/${RELEASE}"
 [ "$FORCE" = true ] && chacra_flags="--force" || chacra_flags=""
 
 # push binaries to chacra
-find $WORKSPACE/dist/RPMS/ | egrep "\.$ARCH\.rpm" | $VENV/chacractl binary ${chacra_flags} create ${chacra_endpoint}/$ARCH/
-PACKAGE_MANAGER_VERSION=$(rpm --queryformat '%{VERSION}-%{RELEASE}\n' -qp $(find $WORKSPACE/dist/RPMS/ | egrep "\.$ARCH\.rpm" | head -1))
+find $WORKSPACE/dist/RPMS/ | egrep "\.$DISTRO_ARCH\.rpm" | $VENV/chacractl binary ${chacra_flags} create ${chacra_endpoint}/$DISTRO_ARCH/
+PACKAGE_MANAGER_VERSION=$(rpm --queryformat '%{VERSION}-%{RELEASE}\n' -qp $(find $WORKSPACE/dist/RPMS/ | egrep "\.$DISTRO_ARCH\.rpm" | head -1))
 
 # write json file with build info
 cat > $WORKSPACE/repo-extra.json << EOF
