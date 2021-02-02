@@ -37,7 +37,7 @@ def get_all_quay_tags(quaytoken):
             response.raise_for_status()
         except requests.exceptions.RequestException as e:
             print(
-                'quay.io request',
+                'Quay.io request',
                 response.url,
                 'failed:',
                 e,
@@ -86,7 +86,7 @@ def query_shaman(ref, sha1, el):
         response.raise_for_status()
     except requests.exceptions.RequestException as e:
         print(
-            'shaman request',
+            'Shaman request',
             response.url,
             'failed:',
             e,
@@ -100,20 +100,21 @@ def ref_present_in_shaman(tag, verbose):
 
     ref, short_sha1, el = parse_quay_tag(tag['name'])
     if ref is None:
-        print("Can't parse name", tag['name'], file=sys.stderr)
         return False
 
     if short_sha1 in short_sha1_cache:
         if verbose:
-            print('Found %s in in_shaman cache' % short_sha1)
+            print('Found %s in shaman short_sha1_cache' % short_sha1)
         return True
 
     response = query_shaman(ref, None, el)
     if not response.ok:
-        print('shaman request', response.request.url, 'failed:',
+        print('Shaman request', response.request.url, 'failed:',
               response.status_code, response.reason, file=sys.stderr)
         # don't cache, but claim present:
         # avoid deletion in case of transient shaman failure
+        if verbose:
+            print('Found %s (assumed because shaman request failed)' % ref)
         return True
 
     matches = response.json()
@@ -122,7 +123,7 @@ def ref_present_in_shaman(tag, verbose):
     for match in matches:
         if match['sha1'][0:7] == short_sha1:
             if verbose:
-                print('Found match for %s: sha1 %s quayname %s' %
+                print('Found %s in shaman: sha1 %s quayname %s' %
                       (ref, match['sha1'], tag['name']))
             short_sha1_cache.add(short_sha1)
             return True
@@ -133,15 +134,17 @@ def sha1_present_in_shaman(sha1, verbose):
 
     if sha1 in sha1_cache:
         if verbose:
-            print('Found %s in in_shaman cache' % sha1)
+            print('Found %s in shaman sha1_cache' % sha1)
         return True
 
     response = query_shaman(None, sha1, None)
     if not response.ok:
-        print('shaman request', response.request.url, 'failed:',
+        print('Shaman request', response.request.url, 'failed:',
               response.status_code, response.reason, file=sys.stderr)
         # don't cache, but claim present
         # to avoid deleting on transient shaman failure
+        if verbose:
+            print('Found %s (assuming because shaman request failed)' % sha1)
         return True
 
     matches = response.json()
@@ -150,7 +153,7 @@ def sha1_present_in_shaman(sha1, verbose):
     for match in matches:
         if match['sha1'] == sha1:
             if verbose:
-                print('Found sha1 %s in shaman' % sha1)
+                print('Found %s in shaman' % sha1)
             sha1_cache.add(sha1)
             return True
     return False
@@ -158,7 +161,7 @@ def sha1_present_in_shaman(sha1, verbose):
 
 def delete_from_quay(tagname, quaytoken, dryrun):
     if dryrun:
-        print('Would delete from quay: ', tagname)
+        print('Would delete from quay:', tagname)
         return
 
     try:
@@ -171,7 +174,7 @@ def delete_from_quay(tagname, quaytoken, dryrun):
         print('Deleted', tagname)
     except requests.exceptions.RequestException as e:
         print(
-            'Problem on delete of tag %s:',
+            'Problem deleting tag %s:',
             tagname,
             e,
             response.reason,
@@ -207,23 +210,37 @@ def main():
     tags_to_delete = set()
     short_sha1s_to_delete = list()
     for tag in quaytags:
+        name = tag['name']
         if 'expiration' in tag or 'end_ts' in tag:
             if args.verbose:
-                print('Skipping already-deleted tag', tag['name'])
+                print('Skipping deleted-or-overwritten tag %s' % name)
             continue
 
-        ref, short_sha1, el = parse_quay_tag(tag['name'])
+        ref, short_sha1, el = parse_quay_tag(name)
         if ref is None:
+            '''
+            if args.verbose:
+                print(
+                    'Skipping %s, not in ref-shortsha1-el form' % name
+                )
+            '''
             continue
 
         if ref_present_in_shaman(tag, args.verbose):
+            if args.verbose:
+                print('Skipping %s, present in shaman' % name)
             continue
 
         # accumulate full and ref tags to delete; keep list of short_sha1s
-        tags_to_delete.add(tag['name'])
+
+        if args.verbose:
+            print('Marking %s for deletion' % name)
+        tags_to_delete.add(name)
         if ref:
             tags_to_delete.add(ref)
         if short_sha1:
+            if args.verbose:
+                print('Marking %s for 2nd-pass deletion' % short_sha1)
             short_sha1s_to_delete.append(short_sha1)
 
     # now find all the full-sha1 tags to delete by making a second
@@ -232,28 +249,34 @@ def main():
     # shaman
     for tag in quaytags:
 
+        name = tag['name']
         if 'expiration' in tag or 'end_ts' in tag:
             continue
 
-        if tag['name'][0:7] in short_sha1s_to_delete:
+        if name[0:7] in short_sha1s_to_delete:
             if args.verbose:
-                print('Selecting %s: matches %s' %
-                      (tag['name'], tag['name'][0:7]))
-            tags_to_delete.add(tag['name'])
+                print('Marking %s for deletion: matches short_sha1 %s' %
+                      (name, name[0:7]))
+
+            tags_to_delete.add(name)
             # already selected a SHA1 tag; no point in checking for orphaned
             continue
 
-        match = SHA1_RE.match(tag['name'])
+        match = SHA1_RE.match(name)
         if match:
             sha1 = match[1]
             if sha1_present_in_shaman(sha1, args.verbose):
+                if args.verbose:
+                    print('Skipping %s, present in shaman' % name)
                 continue
             if args.verbose:
-                print('Selecting %s: orphaned sha1 tag' % tag['name'])
-            tags_to_delete.add(tag['name'])
+                print(
+                    'Marking %s for deletion: orphaned sha1 tag' % name
+                )
+            tags_to_delete.add(name)
 
     if args.verbose:
-        print('Deleting tags:', sorted(tags_to_delete))
+        print('\nDeleting tags:', sorted(tags_to_delete))
 
     # and now delete all the ones we found
     for tagname in sorted(tags_to_delete):
