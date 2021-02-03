@@ -1,4 +1,11 @@
 #!/bin/bash -e
+
+docs_pr_only
+if [ "$DOCS_ONLY" = true ]; then
+    echo "Only the doc/ dir changed.  No need to run make check or API tests."
+    exit 0
+fi
+
 n_build_jobs=$(get_nr_build_jobs)
 n_test_jobs=$(($(nproc) / 4))
 export CHECK_MAKEOPTS="-j${n_test_jobs} -N -Q"

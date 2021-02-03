@@ -1,0 +1,3 @@
+#!/bin/bash -e
+cd src/pybind/mgr/dashboard
+timeout 7200 ./run-backend-api-tests.sh

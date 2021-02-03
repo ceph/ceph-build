@@ -1468,3 +1468,27 @@ use_internal_container_registry() {
     REGISTRY="docker.io"
   fi
 }
+
+# NOTE: This function will only work on a Pull Request job!
+docs_pr_only() {
+  pushd .
+  # Only try to cd to ceph repo if we need to.
+  # The ceph-pr-commits job checks out ceph.git and ceph-build.git but most
+  # other jobs do not.
+  if ! [[ "$(git config --get remote.origin.url)" =~ "ceph/ceph.git" ]]; then
+    cd "$WORKSPACE/ceph"
+  fi
+  if [ -f $(git rev-parse --git-dir)/shallow ]; then
+    # We can't do a regular `git diff` in a shallow clone.  There is no other way to check files changed.
+    files="$(curl -s -u ${GITHUB_USER}:${GITHUB_PASS} https://api.github.com/repos/${ghprbGhRepository}/pulls/${ghprbPullId}/files | jq '.[].filename' | tr -d '"')"
+  else
+    files="$(git diff --name-only origin/${ghprbTargetBranch}...origin/pr/${ghprbPullId}/head)"
+  fi
+  echo -e "changed files:\n$files"
+  if [ $(echo "$files" | grep -v '^doc/' | wc -l) -gt 0 ]; then
+      DOCS_ONLY=false
+  else
+      DOCS_ONLY=true
+  fi
+  popd
+}
