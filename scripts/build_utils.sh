@@ -1002,7 +1002,7 @@ if [ "$release" = "dev" ]; then
     # dev runs will need to be set to the release
     # that matches what the current ceph master
     # branch is at
-    local release="nautilus"
+    local release="quincy"
 fi
 TOX_RUN_ENV=("timeout 3h")
 if [ -n "$ceph_docker_image_tag" ]; then
