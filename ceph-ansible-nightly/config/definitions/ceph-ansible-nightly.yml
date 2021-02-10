@@ -89,6 +89,37 @@
       - deployment: container
         scenario: switch_to_containers
 
+- project:
+    name: ceph-ansible-nightly-stable6.0
+    release:
+      - pacific
+    distribution:
+      - centos
+    deployment:
+      - container
+      - non_container
+    scenario:
+      - all_daemons
+      - collocation
+      - update
+      - lvm_osds
+      - shrink_mon
+      - shrink_osd_multiple
+      - shrink_osd_single
+      - lvm_batch
+      - add_osds
+      - rgw_multisite
+      - purge
+      - lvm_auto_discovery
+      - switch_to_containers
+    ceph_ansible_branch:
+      - stable-6.0
+    jobs:
+        - 'ceph-ansible-nightly-{release}-{distribution}-{deployment}-{ceph_ansible_branch}-{scenario}'
+    exclude:
+      - deployment: container
+        scenario: switch_to_containers
+
 - job-template:
     name: 'ceph-ansible-nightly-{release}-{distribution}-{deployment}-{ceph_ansible_branch}-{scenario}'
     node: vagrant&&libvirt&&centos7
