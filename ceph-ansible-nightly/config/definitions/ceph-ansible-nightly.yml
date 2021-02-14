@@ -76,7 +76,6 @@
       - shrink_osd_multiple
       - shrink_osd_single
       - lvm_batch
-      - add_osds
       - rgw_multisite
       - purge
       - lvm_auto_discovery
@@ -107,7 +106,6 @@
       - shrink_osd_multiple
       - shrink_osd_single
       - lvm_batch
-      - add_osds
       - rgw_multisite
       - purge
       - lvm_auto_discovery
