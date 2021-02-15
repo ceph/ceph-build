@@ -1,9 +1,9 @@
 - job:
-    disabled: true
-    name: ceph-dev-trigger
+    name: 'ceph-dev-nightly'
     node: master
     project-type: freestyle
     defaults: global
+    concurrent: true
     quiet-period: 5
     block-downstream: false
     block-upstream: false
@@ -18,22 +18,21 @@
     discard-old-builds: true
 
     triggers:
-      - github
+      - pollscm:
+          cron: |
+            TZ=Etc/UTC
+            H 14 * * *
+            H 20 * * *
 
     scm:
       - git:
           url: https://github.com/ceph/ceph
           browser: auto
           branches:
-            - 'origin/master'
-            - 'origin/jewel'
-            - 'origin/kraken'
-            - 'origin/hammer'
-            - 'origin/luminous'
-            - 'origin/mimic*'
-            - 'origin/nautilus'
-            - 'origin/octopus'
-            - 'origin/pacific'
+            - origin/master
+            - origin/pacific
+            - origin/octopus
+            - origin/nautilus
           skip-tag: true
           timeout: 20
           wipe-workspace: true
@@ -64,31 +63,6 @@
                     FORCE=True
                     FLAVOR=notcmalloc
                     DISTROS=centos7
-      # build mimic on:
-      # default: bionic xenial centos7
-      # notcmalloc: centos7
-      - conditional-step:
-          condition-kind: regex-match
-          regex: .*mimic.*
-          label: '${GIT_BRANCH}'
-          on-evaluation-failure: dont-run
-          steps:
-            - shell:
-                !include-raw:
-                - ../../../scripts/build_utils.sh
-                - ../../build/notify
-            - trigger-builds:
-                - project: 'ceph-dev'
-                  predefined-parameters: |
-                    BRANCH=${GIT_BRANCH}
-                    FORCE=True
-                    DISTROS=bionic xenial centos7
-                - project: 'ceph-dev'
-                  predefined-parameters: |
-                    BRANCH=${GIT_BRANCH}
-                    FORCE=True
-                    DISTROS=centos7
-                    FLAVOR=notcmalloc
       # build nautilus on:
       # default: bionic xenial centos7 centos8
       # notcmalloc: centos7
