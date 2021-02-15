@@ -75,6 +75,7 @@
       - 'multiple-scms'
       - 'nested-view'
       - 'pam-auth'
+      - 'parameterized-scheduler'
       - 'parameterized-trigger'
       - 'pipeline-build-step'
       - 'pipeline-github-lib'

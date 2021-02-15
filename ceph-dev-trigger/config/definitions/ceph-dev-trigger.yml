@@ -16,8 +16,23 @@
           url: https://github.com/ceph/ceph
     discard-old-builds: true
 
+    parameters:
+      - string:
+          name: BRANCH
+          description: "The git branch (or tag) to build"
+          default: master
+
     triggers:
-      - github
+      - parameterized-timer:
+          cron: |
+            H 14 * * * % BRANCH=master
+            H 14 * * * % BRANCH=pacific
+            H 14 * * * % BRANCH=octopus
+            H 14 * * * % BRANCH=nautilus
+            H 22 * * * % BRANCH=master
+            H 22 * * * % BRANCH=pacific
+            H 22 * * * % BRANCH=octopus
+            H 22 * * * % BRANCH=nautilus
 
     scm:
       - git:
@@ -44,7 +59,7 @@
       - conditional-step:
           condition-kind: regex-match
           regex: .*luminous.*
-          label: '${GIT_BRANCH}'
+          label: '${BRANCH}'
           on-evaluation-failure: dont-run
           steps:
             - shell:
@@ -54,12 +69,12 @@
             - trigger-builds:
                 - project: 'ceph-dev'
                   predefined-parameters: |
-                    BRANCH=${GIT_BRANCH}
+                    BRANCH=${BRANCH}
                     FORCE=True
                     DISTROS=centos7 bionic xenial trusty
                 - project: 'ceph-dev'
                   predefined-parameters: |
-                    BRANCH=${GIT_BRANCH}
+                    BRANCH=${BRANCH}
                     FORCE=True
                     FLAVOR=notcmalloc
                     DISTROS=centos7
@@ -69,7 +84,7 @@
       - conditional-step:
           condition-kind: regex-match
           regex: .*mimic.*
-          label: '${GIT_BRANCH}'
+          label: '${BRANCH}'
           on-evaluation-failure: dont-run
           steps:
             - shell:
@@ -79,12 +94,12 @@
             - trigger-builds:
                 - project: 'ceph-dev'
                   predefined-parameters: |
-                    BRANCH=${GIT_BRANCH}
+                    BRANCH=${BRANCH}
                     FORCE=True
                     DISTROS=bionic xenial centos7
                 - project: 'ceph-dev'
                   predefined-parameters: |
-                    BRANCH=${GIT_BRANCH}
+                    BRANCH=${BRANCH}
                     FORCE=True
                     DISTROS=centos7
                     FLAVOR=notcmalloc
@@ -94,7 +109,7 @@
       - conditional-step:
           condition-kind: regex-match
           regex: .*nautilus.*
-          label: '${GIT_BRANCH}'
+          label: '${BRANCH}'
           on-evaluation-failure: dont-run
           steps:
             - shell:
@@ -104,12 +119,12 @@
             - trigger-builds:
                 - project: 'ceph-dev'
                   predefined-parameters: |
-                    BRANCH=${GIT_BRANCH}
+                    BRANCH=${BRANCH}
                     FORCE=True
                     DISTROS=bionic xenial centos7 centos8
                 - project: 'ceph-dev'
                   predefined-parameters: |
-                    BRANCH=${GIT_BRANCH}
+                    BRANCH=${BRANCH}
                     FORCE=True
                     DISTROS=centos7
                     FLAVOR=notcmalloc
@@ -119,7 +134,7 @@
       - conditional-step:
           condition-kind: regex-match
           regex: .*octopus.*
-          label: '${GIT_BRANCH}'
+          label: '${BRANCH}'
           on-evaluation-failure: dont-run
           steps:
             - shell:
@@ -129,12 +144,12 @@
             - trigger-builds:
                 - project: 'ceph-dev'
                   predefined-parameters: |
-                    BRANCH=${GIT_BRANCH}
+                    BRANCH=${BRANCH}
                     FORCE=True
                     DISTROS=focal bionic centos7 centos8 leap15
                 - project: 'ceph-dev'
                   predefined-parameters: |
-                    BRANCH=${GIT_BRANCH}
+                    BRANCH=${BRANCH}
                     FORCE=True
                     DISTROS=centos8
                     FLAVOR=notcmalloc
@@ -145,7 +160,7 @@
       - conditional-step:
           condition-kind: regex-match
           regex: .*pacific.*
-          label: '${GIT_BRANCH}'
+          label: '${BRANCH}'
           on-evaluation-failure: dont-run
           steps:
             - shell:
@@ -155,18 +170,18 @@
             - trigger-builds:
                 - project: 'ceph-dev'
                   predefined-parameters: |
-                    BRANCH=${GIT_BRANCH}
+                    BRANCH=${BRANCH}
                     FORCE=True
                     DISTROS=focal bionic centos8 leap15
                 - project: 'ceph-dev'
                   predefined-parameters: |
-                    BRANCH=${GIT_BRANCH}
+                    BRANCH=${BRANCH}
                     FORCE=True
                     DISTROS=centos8
                     FLAVOR=notcmalloc
                 - project: 'ceph-dev'
                   predefined-parameters: |
-                    BRANCH=${GIT_BRANCH}
+                    BRANCH=${BRANCH}
                     FORCE=True
                     DISTROS=centos8
                     FLAVOR=crimson
@@ -177,7 +192,7 @@
       - conditional-step:
           condition-kind: regex-match
           regex: .*master.*
-          label: '${GIT_BRANCH}'
+          label: '${BRANCH}'
           on-evaluation-failure: dont-run
           steps:
             - shell:
@@ -187,18 +202,18 @@
             - trigger-builds:
                 - project: 'ceph-dev'
                   predefined-parameters: |
-                    BRANCH=${GIT_BRANCH}
+                    BRANCH=${BRANCH}
                     FORCE=True
                     DISTROS=focal bionic centos8
                 - project: 'ceph-dev'
                   predefined-parameters: |
-                    BRANCH=${GIT_BRANCH}
+                    BRANCH=${BRANCH}
                     FORCE=True
                     DISTROS=centos8
                     FLAVOR=notcmalloc
                 - project: 'ceph-dev'
                   predefined-parameters: |
-                    BRANCH=${GIT_BRANCH}
+                    BRANCH=${BRANCH}
                     FORCE=True
                     DISTROS=centos8
                     FLAVOR=crimson
