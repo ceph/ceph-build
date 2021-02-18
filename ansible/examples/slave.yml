@@ -55,6 +55,8 @@
           - doxygen
           - ditaa
           - ant
+          - tmpreaper
+        tmp_cleaner_name: tmpreaper
       when: ansible_os_family == "Debian"
 
     # Libvirt DEBs (Bionic and older)
@@ -145,6 +147,8 @@
           - rpmdevtools
           - openssl-devel
           - libffi-devel
+          - tmpwatch
+        tmp_cleaner_name: tmpwatch
       when: ansible_os_family == "RedHat"
 
     # Libvirt RPMs
@@ -626,6 +630,29 @@
             regexp: '^%dist'
             line: '%dist .el{{ ansible_distribution_major_version }}'
       when: ansible_os_family == "RedHat"
+
+    ## tmpwatch/tmpreaper TASKS
+    - name: tmpwatch/tmpreaper Tasks
+      block:
+        # In case we're running 'ansible-playbook --tags tmp'
+        - name: "Make sure {{ tmp_cleaner_name }} is installed"
+          package:
+            name: "{{ tmp_cleaner_name }}"
+            state: present
+
+        - name: Disable tmpreaper cron.daily timer
+          file:
+            path: /etc/cron.daily/tmpreaper
+            state: absent
+          when: ansible_os_family == "Debian"
+
+        - name: Create tmp cleaning cronjob
+          cron:
+            name: "Delete /tmp files that have not been accessed in 30 days"
+            special_time: daily
+            job: "{{ tmp_cleaner_name }} 30d /tmp/"
+      when: permanent|bool
+      tags: tmp
 
     ## GITCONFIG TASKS
     - name: Ensure the gitconfig file exists
