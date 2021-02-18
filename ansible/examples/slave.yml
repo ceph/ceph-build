@@ -58,6 +58,7 @@
           - tmpreaper
         tmp_cleaner_name: tmpreaper
       when: ansible_os_family == "Debian"
+      tags: always
 
     # Libvirt DEBs (Bionic and older)
     - set_fact:
@@ -70,6 +71,7 @@
         - ansible_os_family == "Debian"
         - ansible_distribution_major_version|int <= 18
         - libvirt|bool
+      tags: always
 
     # Libvirt DEBs (Focal and newer)
     - set_fact:
@@ -83,6 +85,7 @@
         - ansible_os_family == "Debian"
         - ansible_distribution_major_version|int >= 20
         - libvirt|bool
+      tags: always
 
     # python2 DEBs
     - set_fact:
@@ -94,6 +97,7 @@
       when:
         - ansible_os_family == "Debian"
         - ansible_distribution_major_version|int <= 18
+      tags: always
 
     # python3 DEBs (We only install python2 *and* python3 on Bionic)
     - set_fact:
@@ -105,6 +109,7 @@
       when:
         - ansible_os_family == "Debian"
         - ansible_distribution_major_version|int >= 18
+      tags: always
 
     # chroot DEBs (Xenial and older)
     - set_fact:
@@ -112,6 +117,7 @@
       when:
         - ansible_os_family == "Debian"
         - ansible_distribution_major_version|int <= 16
+      tags: always
 
     # chroot DEBs (Bionic and newer)
     - set_fact:
@@ -119,6 +125,7 @@
       when:
         - ansible_os_family == "Debian"
         - ansible_distribution_major_version|int >= 18
+      tags: always
 
     # Universal RPMs
     - set_fact:
@@ -150,6 +157,7 @@
           - tmpwatch
         tmp_cleaner_name: tmpwatch
       when: ansible_os_family == "RedHat"
+      tags: always
 
     # Libvirt RPMs
     - set_fact:
@@ -163,6 +171,7 @@
       when:
         - ansible_os_family == "RedHat"
         - libvirt|bool
+      tags: always
 
     # EPEL7 RPMs
     - set_fact:
@@ -178,6 +187,7 @@
       when:
         - ansible_os_family == "RedHat"
         - ansible_distribution_major_version|int <= 7
+      tags: always
 
     # EPEL8 RPMs
     - set_fact:
@@ -193,6 +203,7 @@
       when:
         - ansible_os_family == "RedHat"
         - ansible_distribution_major_version|int >= 8
+      tags: always
 
     # OpenSUSE RPMs
     - set_fact:
@@ -230,6 +241,7 @@
           - osc
           - build
       when: ansible_os_family == "Suse"
+      tags: always
 
     # OpenSUSE Libvirt RPMs (We've never tried this to date so more might be needed)
     - set_fact:
@@ -243,18 +255,21 @@
       when:
         - ansible_os_family == "Suse"
         - libvirt|bool
+      tags: always
 
     ## Let's make sure we don't accidentally set up a permanent slave from Sepia as ephemeral
     - set_fact:
         permanent: true
       with_items: "{{ ansible_all_ipv4_addresses }}"
       when: "item.startswith('172.21.')"
+      tags: always
 
     ## Let's make sure nodename gets set using our Sepia hostnames if the builder's in Sepia
     - set_fact:
         nodename: "{{ ansible_hostname }}"
       with_items: "{{ ansible_all_ipv4_addresses }}"
       when: "item.startswith('172.21.')"
+      tags: always
 
     ## EPHEMERAL SLAVE TASKS
     # We would occasionally have issues with name resolution on the Ephemeral slaves
