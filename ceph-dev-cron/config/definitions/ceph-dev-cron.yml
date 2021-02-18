@@ -1,5 +1,5 @@
 - job:
-    name: 'ceph-dev-nightly'
+    name: 'ceph-dev-cron'
     node: master
     project-type: freestyle
     defaults: global
