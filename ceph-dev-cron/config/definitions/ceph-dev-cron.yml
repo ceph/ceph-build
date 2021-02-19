@@ -63,6 +63,7 @@
                     FORCE=True
                     FLAVOR=notcmalloc
                     DISTROS=centos7
+                    ARCHS=x86_64
       # build nautilus on:
       # default: bionic xenial centos7 centos8
       # notcmalloc: centos7
@@ -88,6 +89,7 @@
                     FORCE=True
                     DISTROS=centos7
                     FLAVOR=notcmalloc
+                    ARCHS=x86_64
       # build octopus on:
       # default: focal bionic centos7 centos8 leap15
       # notcmalloc: centos8
@@ -113,6 +115,7 @@
                     FORCE=True
                     DISTROS=centos8
                     FLAVOR=notcmalloc
+                    ARCHS=x86_64
       # build pacific on:
       # default: focal bionic centos8 leap15
       # notcmalloc: centos8
@@ -139,12 +142,14 @@
                     FORCE=True
                     DISTROS=centos8
                     FLAVOR=notcmalloc
+                    ARCHS=x86_64
                 - project: 'ceph-dev'
                   predefined-parameters: |
                     BRANCH=${GIT_BRANCH}
                     FORCE=True
                     DISTROS=centos8
                     FLAVOR=crimson
+                    ARCHS=x86_64
       # build master on:
       # default: focal bionic centos8 leap15
       # notcmalloc: centos8
@@ -171,12 +176,14 @@
                     FORCE=True
                     DISTROS=centos8
                     FLAVOR=notcmalloc
+                    ARCHS=x86_64
                 - project: 'ceph-dev'
                   predefined-parameters: |
                     BRANCH=${GIT_BRANCH}
                     FORCE=True
                     DISTROS=centos8
                     FLAVOR=crimson
+                    ARCHS=x86_64
 
     wrappers:
       - inject-passwords:
