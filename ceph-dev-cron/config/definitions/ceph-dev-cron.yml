@@ -38,32 +38,6 @@
           wipe-workspace: true
 
     builders:
-      # Build luminous on:
-      # default: centos7 bionic xenial trusty
-      # notcmalloc: centos7
-      - conditional-step:
-          condition-kind: regex-match
-          regex: .*luminous.*
-          label: '${GIT_BRANCH}'
-          on-evaluation-failure: dont-run
-          steps:
-            - shell:
-                !include-raw:
-                - ../../../scripts/build_utils.sh
-                - ../../build/notify
-            - trigger-builds:
-                - project: 'ceph-dev'
-                  predefined-parameters: |
-                    BRANCH=${GIT_BRANCH}
-                    FORCE=True
-                    DISTROS=centos7 bionic xenial trusty
-                - project: 'ceph-dev'
-                  predefined-parameters: |
-                    BRANCH=${GIT_BRANCH}
-                    FORCE=True
-                    FLAVOR=notcmalloc
-                    DISTROS=centos7
-                    ARCHS=x86_64
       # build nautilus on:
       # default: bionic xenial centos7 centos8
       # notcmalloc: centos7

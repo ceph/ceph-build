@@ -26,11 +26,6 @@
           browser: auto
           branches:
             - 'origin/master'
-            - 'origin/jewel'
-            - 'origin/kraken'
-            - 'origin/hammer'
-            - 'origin/luminous'
-            - 'origin/mimic*'
             - 'origin/nautilus'
             - 'origin/octopus'
             - 'origin/pacific'
