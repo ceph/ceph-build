@@ -26,7 +26,7 @@
       - string:
           name: DISTROS
           description: "A list of distros to build for. Available options are: centos7, centos6, focal, bionic, xenial, trusty, precise, wheezy, and jessie"
-          default: "focal bionic xenial trusty centos7"
+          default: "focal bionic centos7 centos8"
 
       - string:
           name: ARCHS
