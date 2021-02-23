@@ -73,12 +73,12 @@ Defaults to un-checked"
       - string:
           name: DISTROS
           description: "A list of distros to build for. Available options are: centos8, centos7, centos6, focal, bionic, xenial, trusty, precise, wheezy, and jessie"
-          default: "focal bionic xenial centos7 centos8"
+          default: "focal bionic centos7 centos8 buster"
 
       - string:
           name: ARCHS
           description: "A list of architectures to build for. Available options are: x86_64, and arm64"
-          default: "x86_64"
+          default: "x86_64 arm64"
 
     builders:
       - multijob:
