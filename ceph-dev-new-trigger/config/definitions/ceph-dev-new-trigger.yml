@@ -30,7 +30,6 @@
     builders:
       # Build luminous on:
       # default: centos7 bionic xenial trusty
-      # notcmalloc: centos7
       - conditional-step:
           condition-kind: regex-match
           regex: .*luminous.*
@@ -47,16 +46,8 @@
                     BRANCH=${GIT_BRANCH}
                     FORCE=True
                     DISTROS=centos7 bionic xenial trusty
-                - project: 'ceph-dev-new'
-                  predefined-parameters: |
-                    BRANCH=${GIT_BRANCH}
-                    FORCE=True
-                    FLAVOR=notcmalloc
-                    DISTROS=centos7
-                    ARCHS=x86_64
       # build mimic on:
       # default: bionic xenial centos7
-      # notcmalloc: centos7
       - conditional-step:
           condition-kind: regex-match
           regex: .*mimic.*
@@ -73,16 +64,8 @@
                     BRANCH=${GIT_BRANCH}
                     FORCE=True
                     DISTROS=bionic xenial centos7
-                - project: 'ceph-dev-new'
-                  predefined-parameters: |
-                    BRANCH=${GIT_BRANCH}
-                    FORCE=True
-                    DISTROS=centos7
-                    FLAVOR=notcmalloc
-                    ARCHS=x86_64
       # build nautilus on:
       # default: bionic xenial centos7 centos8
-      # notcmalloc: centos7
       - conditional-step:
           condition-kind: regex-match
           regex: .*nautilus.*
@@ -99,16 +82,8 @@
                     BRANCH=${GIT_BRANCH}
                     FORCE=True
                     DISTROS=bionic xenial centos7 centos8
-                - project: 'ceph-dev-new'
-                  predefined-parameters: |
-                    BRANCH=${GIT_BRANCH}
-                    FORCE=True
-                    DISTROS=centos7
-                    FLAVOR=notcmalloc
-                    ARCHS=x86_64
       # build octopus on:
       # default: focal bionic centos7 centos8 leap15
-      # notcmalloc: centos8
       - conditional-step:
           condition-kind: regex-match
           regex: .*octopus.*
@@ -125,16 +100,8 @@
                     BRANCH=${GIT_BRANCH}
                     FORCE=True
                     DISTROS=focal bionic centos7 centos8 leap15
-                - project: 'ceph-dev-new'
-                  predefined-parameters: |
-                    BRANCH=${GIT_BRANCH}
-                    FORCE=True
-                    DISTROS=centos8
-                    FLAVOR=notcmalloc
-                    ARCHS=x86_64
       # build pacific on:
       # default: focal bionic centos8 leap15
-      # notcmalloc: centos8
       # crimson: centos8
       - conditional-step:
           condition-kind: regex-match
@@ -152,13 +119,6 @@
                     BRANCH=${GIT_BRANCH}
                     FORCE=True
                     DISTROS=focal bionic centos8
-                - project: 'ceph-dev-new'
-                  predefined-parameters: |
-                    BRANCH=${GIT_BRANCH}
-                    FORCE=True
-                    DISTROS=centos8
-                    FLAVOR=notcmalloc
-                    ARCHS=x86_64
                 - project: 'ceph-dev-new'
                   predefined-parameters: |
                     BRANCH=${GIT_BRANCH}
@@ -184,14 +144,6 @@
                     BRANCH=${GIT_BRANCH}
                     FORCE=True
                     DISTROS=focal bionic centos8
-            - trigger-builds:
-                - project: 'ceph-dev-new'
-                  predefined-parameters: |
-                    BRANCH=${GIT_BRANCH}
-                    FORCE=True
-                    DISTROS=centos8
-                    FLAVOR=notcmalloc
-                    ARCHS=x86_64
             - trigger-builds:
                 - project: 'ceph-dev-new'
                   predefined-parameters: |

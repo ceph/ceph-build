@@ -55,10 +55,9 @@ If this is checked, then the binaries will be built and pushed to chacra even if
           name: FLAVOR
           choices:
             - default
-            - notcmalloc
             - crimson
           default: "default"
-          description: "Type of Ceph build, choices are: crimson, notcmalloc, default (i.e. with tcmalloc). Defaults to: 'default'"
+          description: "Type of Ceph build, choices are: crimson, default. Defaults to: 'default'"
 
       - bool:
           name: CI_CONTAINER
