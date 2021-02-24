@@ -39,11 +39,6 @@ git submodule update --init
 # Flavor Builds support
 
 case "${FLAVOR}" in
-    notcmalloc)
-        echo "Detected notcmalloc flavor: will use flag: -DALLOCATOR=libc"
-        CEPH_EXTRA_RPMBUILD_ARGS="--without tcmalloc"
-        CEPH_EXTRA_CMAKE_ARGS="$CEPH_EXTRA_CMAKE_ARGS -DALLOCATOR=libc -DWITH_CEPH_DEBUG_MUTEX=ON -DWITH_BOOST_VALGRIND=ON"
-        ;;
     default)
         CEPH_EXTRA_RPMBUILD_ARGS="--with tcmalloc"
         CEPH_EXTRA_CMAKE_ARGS="$CEPH_EXTRA_CMAKE_ARGS -DALLOCATOR=tcmalloc"
