@@ -1,0 +1,21 @@
+#!/bin/bash
+set -ex
+
+# At the moment, we only support cross compiling Windows binaries using
+# Ubuntu or SUSE distros.
+( source /etc/os-release
+  case $ID in
+    opensuse*|suse|sles)
+      exit 0
+      ;;
+    ubuntu)
+      exit 0
+      ;;
+    *)
+      exit 1
+      ;;
+  esac) || exit 0
+
+if [ "${DIST}" != "windows" ]; then
+  exit 0
+fi
