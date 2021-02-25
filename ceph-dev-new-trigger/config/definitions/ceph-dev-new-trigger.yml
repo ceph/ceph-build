@@ -118,7 +118,7 @@
                   predefined-parameters: |
                     BRANCH=${GIT_BRANCH}
                     FORCE=True
-                    DISTROS=focal bionic centos8
+                    DISTROS=focal bionic centos8 windows
                 - project: 'ceph-dev-new'
                   predefined-parameters: |
                     BRANCH=${GIT_BRANCH}
@@ -143,7 +143,7 @@
                   predefined-parameters: |
                     BRANCH=${GIT_BRANCH}
                     FORCE=True
-                    DISTROS=focal bionic centos8
+                    DISTROS=focal bionic centos8 windows
             - trigger-builds:
                 - project: 'ceph-dev-new'
                   predefined-parameters: |
