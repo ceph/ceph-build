@@ -10,7 +10,7 @@ if [ "$THROWAWAY" = false ]; then
     [ "$FORCE" = true ] && chacra_binary="$chacra_binary --force"
 
     find build -name "*.zip" |
-        $chacra_create ${chacra_repo_endpoint}
+        $chacra_create ${chacra_binary_endpoint}
 
     # write json file with build info
     cat > $WORKSPACE/repo-extra.json << EOF

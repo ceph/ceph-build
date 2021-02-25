@@ -54,8 +54,9 @@ FLAVOR="default"
 
 chacra_ref="$BRANCH"
 chacra_endpoint="ceph/${chacra_ref}/${SHA1}/${DIST}/${NORMAL_DISTRO_VERSION}"
-chacra_repo_endpoint="${chacra_endpoint}/${ARCH}/flavors/${FLAVOR}"
-chacra_check_url="${chacra_repo_endpoint}/ceph.zip"
+chacra_binary_endpoint="${chacra_endpoint}/${ARCH}/flavors/${FLAVOR}"
+chacra_repo_endpoint="${chacra_endpoint}/flavors/${FLAVOR}"
+chacra_check_url="${chacra_binary_endpoint}/ceph.zip"
 
 if [ "$THROWAWAY" = false ] ; then
     # this exists in scripts/build_utils.sh
