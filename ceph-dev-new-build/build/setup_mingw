@@ -20,11 +20,15 @@ export LC_ALL=C # the following is vulnerable to i18n
 
 BRANCH=`branch_slash_filter $BRANCH`
 
-cd $WORKSPACE
-
-vers=$(cat ./dist/version)
+cd ${WORKSPACE}/dist
+vers=$(cat version)
 raw_version=`echo $vers | cut -d '-' -f 1`
 RELEASE_BRANCH=$(release_from_version $raw_version)
+
+# unpack the tar.gz that contains the source
+tar xzf *.orig.tar.gz
+cd $(basename *.orig.tar.gz .orig.tar.gz | sed s/_/-/)
+pwd
 
 raw_version_major=$(echo $vers | cut -d '.' -f 1)
 if [ 0${raw_version_major} -lt 16 ]; then
@@ -49,9 +53,9 @@ make_chacractl_config
 FLAVOR="default"
 
 chacra_ref="$BRANCH"
-chacra_endpoint="ceph/${chacra_ref}/${SHA1}/${DIST}/${ARCH}"
-chacra_repo_endpoint="${chacra_endpoint}/flavors/${FLAVOR}"
-chacra_check_url="${chacra_endpoint}/ceph.zip"
+chacra_endpoint="ceph/${chacra_ref}/${SHA1}/${DIST}/${NORMAL_DISTRO_VERSION}"
+chacra_repo_endpoint="${chacra_endpoint}/${ARCH}/flavors/${FLAVOR}"
+chacra_check_url="${chacra_repo_endpoint}/ceph.zip"
 
 if [ "$THROWAWAY" = false ] ; then
     # this exists in scripts/build_utils.sh
