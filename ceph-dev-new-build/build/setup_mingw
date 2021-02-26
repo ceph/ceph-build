@@ -47,8 +47,10 @@ create_build_status "started" "ceph" $NORMAL_DISTRO $NORMAL_DISTRO_VERSION $NORM
 pkgs=( "chacractl>=0.0.21" )
 install_python_packages "pkgs[@]"
 
-chacra_url=https://chacra.ceph.com/
-make_chacractl_config
+# ask shaman which chacra instance to use
+chacra_url=`curl -u $SHAMAN_API_USER:$SHAMAN_API_KEY https://shaman.ceph.com/api/nodes/next/`
+# create the .chacractl config file using global variables
+make_chacractl_config $chacra_url
 
 FLAVOR="default"
 
