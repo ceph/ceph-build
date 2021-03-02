@@ -1,7 +1,26 @@
 #!/bin/bash
 set -ex
 
+# We need Ubuntu Focal to cross-compile Ceph for Windows.
+# Previous versions provide broken Mingw packages.
+# "DIST" will be set to "windows", so we're currently overriding it with
+# a hardcoded value.
+tmp_pbuild_script=$(mktemp /tmp/build_mingw_pbuild.XXXXXX)
+cat << EOF > $tmp_pbuild_script
+#!/bin/sh
+# Used by the build script
+apt-get install -y sudo git automake wget
+
+cd /mnt/ceph
 CMAKE_BUILD_TYPE=Release BUILD_ZIP=1 CLEAN_BUILD=1 timeout 3h ./win32_build.sh
+EOF
+chmod a+x $tmp_pbuild_script
+sudo pbuilder execute \
+    --bindmounts "$(pwd):/mnt/ceph" \
+    --distribution "focal" \
+    --basetgz $basedir/focal.tgz \
+    -- $tmp_pbuild_script
+rm $tmp_pbuild_script
 
 if [ "$THROWAWAY" = false ]; then
     # push binaries to chacra
