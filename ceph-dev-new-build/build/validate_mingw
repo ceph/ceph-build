@@ -1,13 +1,9 @@
 #!/bin/bash
 set -ex
 
-# At the moment, we only support cross compiling Windows binaries using
-# Ubuntu or SUSE distros.
+# We're currently using pbuilder.
 ( source /etc/os-release
   case $ID in
-    opensuse*|suse|sles)
-      exit 0
-      ;;
     ubuntu)
       exit 0
       ;;

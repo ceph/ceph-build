@@ -65,3 +65,11 @@ if [ "$THROWAWAY" = false ] ; then
     # TODO if this exits we need to post to shaman a success
     check_binary_existence $chacra_check_url
 fi
+
+# We need Ubuntu Focal to cross-compile Ceph for Windows.
+# Previous versions provide broken Mingw packages.
+# "DIST" will be set to "windows", so we're currently overriding it with
+# a hardcoded value.
+DIST="focal"
+setup_pbuilder use_gcc
+DIST="$NORMAL_DISTRO"
