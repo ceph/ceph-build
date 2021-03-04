@@ -17,8 +17,10 @@ sha1_cache = set()
 start_page = 1
 page_limit = 100000
 
-NAME_RE = re.compile(r'(.*)-([0-9a-f]{7})-centos-([78])-x86_64-devel')
-SHA1_RE = re.compile(r'([0-9a-f]{40})(-crimson)*')
+NAME_RE = re.compile(
+    r'(.*)-([0-9a-f]{7})-centos-([78])-(x86_64|aarch64)-devel'
+)
+SHA1_RE = re.compile(r'([0-9a-f]{40})(-crimson|-aarch64)*')
 
 
 def get_all_quay_tags(quaytoken):
@@ -71,9 +73,12 @@ def query_shaman(ref, sha1, el):
         'status': 'ready',
     }
     if el:
-        params['distros'] = 'centos/{el}/x86_64'.format(el=el)
+        params['distros'] = \
+            'centos/{el}/x86_64,centos/{el}/aarch64'.format(el=el)
     else:
-        params['distros'] = 'centos/7/x86_64,centos/8/x86_64,centos/9/x86_64'
+        params['distros'] = \
+            'centos/7/x86_64,centos/8/x86_64,centos/9/x86_64,' + \
+            'centos/7/aarch64,centos/8/aarch64,centos/9/aarch64'
     if ref:
         params['ref'] = ref
     if sha1:
