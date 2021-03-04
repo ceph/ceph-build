@@ -665,7 +665,7 @@
           cron:
             name: "Delete /tmp files that have not been accessed in 30 days"
             special_time: daily
-            job: "{{ tmp_cleaner_name }} 30d /tmp/"
+            job: "{{ tmp_cleaner_name }} --runtime=0 30d /tmp/"
       when: permanent|bool
       tags: tmp
 
