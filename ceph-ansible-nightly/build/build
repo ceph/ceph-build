@@ -16,7 +16,7 @@ page_size=100
 function find_latest_tag {
   release="$1"
   el="7"
-  if [ "${release}" == "octopus" ]; then
+  if [[ "${release}" =~ octopus|pacific ]]; then
     el="8"
   fi
   page=1
