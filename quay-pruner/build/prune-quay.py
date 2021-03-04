@@ -66,6 +66,7 @@ def parse_quay_tag(tag):
 def query_shaman(ref, sha1, el):
 
     params = {
+        'project': 'ceph',
         'flavor': 'default',
         'status': 'ready',
     }
