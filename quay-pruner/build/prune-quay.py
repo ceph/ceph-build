@@ -223,12 +223,10 @@ def main():
 
         ref, short_sha1, el, arch = parse_quay_tag(name)
         if ref is None:
-            '''
             if args.verbose:
                 print(
                     'Skipping %s, not in ref-shortsha1-el-arch form' % name
                 )
-            '''
             continue
 
         if ref_present_in_shaman(ref, short_sha1, el, arch, args.verbose):
