@@ -243,9 +243,11 @@ def main():
             # the ref tag may already have been overwritten by a new
             # build of the same ref, but a different sha1. Delete it only
             # if it refers to the same image_id as the full tag.
-            names_of_same_image = \
-                [t['name'] for t in quaytags
-                 if t['image_id'] == tag['image_id']]
+            names_of_same_image = [
+                t['name'] for t in quaytags
+                if not t['is_manifest_list']
+                and t['image_id'] == tag['image_id']
+            ]
             if ref in names_of_same_image:
                 if args.verbose:
                     print('Marking %s for deletion' % name)
