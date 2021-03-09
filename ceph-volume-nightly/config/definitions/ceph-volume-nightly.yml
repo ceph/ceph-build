@@ -186,4 +186,4 @@
           latest-only: false
 
       - email:
-          recipients: aschoen@redhat.com jfajerski@suse.com
+          recipients: aschoen@redhat.com dsavinea@redhat.com gabrioux@redhat.com
