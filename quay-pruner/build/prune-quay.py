@@ -17,8 +17,10 @@ sha1_cache = set()
 start_page = 1
 page_limit = 100000
 
-NAME_RE = re.compile(r'(.*)-([0-9a-f]{7})-centos-([78])-x86_64-devel')
-SHA1_RE = re.compile(r'([0-9a-f]{40})(-crimson)*')
+NAME_RE = re.compile(
+    r'(.*)-([0-9a-f]{7})-centos-([78])-(x86_64|aarch64)-devel'
+)
+SHA1_RE = re.compile(r'([0-9a-f]{40})(-crimson|-aarch64)*')
 
 
 def get_all_quay_tags(quaytoken):
@@ -56,23 +58,28 @@ def parse_quay_tag(tag):
 
     mo = NAME_RE.match(tag)
     if mo is None:
-        return None, None, None
+        return None, None, None, None
     ref = mo.group(1)
     short_sha1 = mo.group(2)
     el = mo.group(3)
-    return ref, short_sha1, el
+    arch = mo.group(4)
+    return ref, short_sha1, el, arch
 
 
 def query_shaman(ref, sha1, el):
 
     params = {
+        'project': 'ceph',
         'flavor': 'default',
         'status': 'ready',
     }
     if el:
-        params['distros'] = 'centos/{el}/x86_64'.format(el=el)
+        params['distros'] = \
+            'centos/{el}/x86_64,centos/{el}/aarch64'.format(el=el)
     else:
-        params['distros'] = 'centos/7/x86_64,centos/8/x86_64,centos/9/x86_64'
+        params['distros'] = \
+            'centos/7/x86_64,centos/8/x86_64,centos/9/x86_64,' + \
+            'centos/7/aarch64,centos/8/aarch64,centos/9/aarch64'
     if ref:
         params['ref'] = ref
     if sha1:
@@ -96,9 +103,8 @@ def query_shaman(ref, sha1, el):
     return response
 
 
-def ref_present_in_shaman(tag, verbose):
+def ref_present_in_shaman(ref, short_sha1, el, arch, verbose):
 
-    ref, short_sha1, el = parse_quay_tag(tag['name'])
     if ref is None:
         return False
 
@@ -123,8 +129,7 @@ def ref_present_in_shaman(tag, verbose):
     for match in matches:
         if match['sha1'][0:7] == short_sha1:
             if verbose:
-                print('Found %s in shaman: sha1 %s quayname %s' %
-                      (ref, match['sha1'], tag['name']))
+                print('Found %s in shaman: sha1 %s' % (ref, match['sha1']))
             short_sha1_cache.add(short_sha1)
             return True
     return False
@@ -216,17 +221,15 @@ def main():
                 print('Skipping deleted-or-overwritten tag %s' % name)
             continue
 
-        ref, short_sha1, el = parse_quay_tag(name)
+        ref, short_sha1, el, arch = parse_quay_tag(name)
         if ref is None:
-            '''
             if args.verbose:
                 print(
-                    'Skipping %s, not in ref-shortsha1-el form' % name
+                    'Skipping %s, not in ref-shortsha1-el-arch form' % name
                 )
-            '''
             continue
 
-        if ref_present_in_shaman(tag, args.verbose):
+        if ref_present_in_shaman(ref, short_sha1, el, arch, args.verbose):
             if args.verbose:
                 print('Skipping %s, present in shaman' % name)
             continue
@@ -240,9 +243,11 @@ def main():
             # the ref tag may already have been overwritten by a new
             # build of the same ref, but a different sha1. Delete it only
             # if it refers to the same image_id as the full tag.
-            names_of_same_image = \
-                [t['name'] for t in quaytags
-                 if t['image_id'] == tag['image_id']]
+            names_of_same_image = [
+                t['name'] for t in quaytags
+                if not t['is_manifest_list']
+                and t['image_id'] == tag['image_id']
+            ]
             if ref in names_of_same_image:
                 if args.verbose:
                     print('Marking %s for deletion' % name)
