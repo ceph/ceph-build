@@ -48,6 +48,7 @@
           - default-jre
           - debian-keyring
           - debian-archive-keyring
+          - software-properties-common
           # jenkins-job-builder job:
           - libyaml-dev
           - jq
