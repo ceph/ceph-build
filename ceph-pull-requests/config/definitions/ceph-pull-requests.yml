@@ -82,6 +82,15 @@
                 healthy: 10
                 unhealthy: 20
                 failing: 30
+      - postbuildscript:
+          builders:
+            - role: SLAVE
+              build-on:
+                - ABORTED
+              build-steps:
+                - shell:
+                    !include-raw:
+                      - ../../build/kill-tests
 
     wrappers:
       - ansicolor
