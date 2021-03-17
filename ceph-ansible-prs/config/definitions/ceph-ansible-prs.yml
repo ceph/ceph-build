@@ -1,12 +1,17 @@
 - project:
-    name: ceph-ansible-prs-smithi
-    slave_labels: 'vagrant && libvirt && smithi'
+    name: ceph-ansible-prs
+    slave_labels: 'vagrant && libvirt && (braggi || centos7)'
     distribution:
       - centos
     deployment:
       - container
       - non_container
     scenario:
+      - lvm_osds
+      - collocation
+      - lvm_batch
+      - all_in_one
+      - external_clients
       - all_daemons
       - update
       - purge
@@ -20,25 +25,8 @@
       - 'ceph-ansible-prs-auto'
 
 - project:
-    name: ceph-ansible-prs
-    slave_labels: 'vagrant && libvirt && (smithi || braggi || centos7)'
-    distribution:
-      - centos
-    deployment:
-      - container
-      - non_container
-    scenario:
-      - lvm_osds
-      - collocation
-      - lvm_batch
-      - all_in_one
-      - external_clients
-    jobs:
-      - 'ceph-ansible-prs-auto'
-
-- project:
     name: ceph-ansible-prs-docker2podman
-    slave_labels: 'vagrant && libvirt && (smithi || braggi || centos7)'
+    slave_labels: 'vagrant && libvirt && (braggi || centos7)'
     distribution:
       - centos
     deployment:
@@ -50,7 +38,7 @@
 
 - project:
     name: ceph-ansible-prs-cephadm
-    slave_labels: 'vagrant && libvirt && (smithi || braggi || centos7)'
+    slave_labels: 'vagrant && libvirt && (braggi || centos7)'
     distribution:
       - centos
     deployment:
@@ -62,7 +50,7 @@
 
 - project:
     name: ceph-ansible-prs-common-trigger
-    slave_labels: 'vagrant && libvirt && (smithi || braggi || centos7)'
+    slave_labels: 'vagrant && libvirt && (braggi || centos7)'
     distribution:
       - centos
     deployment:
