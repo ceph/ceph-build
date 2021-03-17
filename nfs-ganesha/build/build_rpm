@@ -28,7 +28,7 @@ sudo yum -y remove librgw-devel librgw2 librados-devel librados3 libcephfs-devel
 sudo yum -y autoremove
 
 # Get .repo file from appropriate shaman build
-REPO_URL="https://shaman.ceph.com/api/repos/ceph/$CEPH_BRANCH/$CEPH_SHA1/$DISTRO/$RELEASE/flavors/default/repo"
+REPO_URL=$(curl -s "https://shaman.ceph.com/api/search/?status=ready&project=ceph&flavor=default&distros=${DISTRO}%2F${RELEASE}%2F${ARCH}&ref=${CEPH_BRANCH}" | jq -a ".[0] | .url" | tr -d '"')
 TIME_LIMIT=1200
 INTERVAL=30
 REPO_FOUND=0
