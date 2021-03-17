@@ -6,7 +6,7 @@ if test "$DISTRO" != "debian" -a "$DISTRO" != "ubuntu"; then
     exit 0
 fi
 
-REPO_URL=$(curl -s "https://shaman.ceph.com/api/search/?status=ready&project=ceph&flavor=default&distros=${DISTRO}%2F${DIST}%2F${ARCH}&ref=${CEPH_BRANCH}" | jq -a ".[0] | .url" | tr -d '"')
+REPO_URL=$(curl -s "https://shaman.ceph.com/api/search/?status=ready&project=ceph&flavor=default&distros=${DISTRO}%2F${DIST}%2F${ARCH}&ref=${CEPH_BRANCH}" | jq -a ".[0] | .chacra_url" | tr -d '"')repo
 TIME_LIMIT=1200
 INTERVAL=30
 REPO_FOUND=0
