@@ -1454,7 +1454,7 @@ maybe_reset_ci_container() {
     if ! "$CI_CONTAINER"; then
         return
     fi
-    if [[ "$BRANCH" =~ octopus && "$DIST" == el7 ]]; then
+    if [[ "$BRANCH" =~ octopus|pacific && "$DIST" == el7 ]]; then
         echo "disabling CI container build for $BRANCH"
         CI_CONTAINER=false
     fi
