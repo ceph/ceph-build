@@ -1466,6 +1466,9 @@ use_internal_container_registry() {
   if curl -s -k "https://docker-mirror.front.sepia.ceph.com:5000"; then
     REGISTRY="docker-mirror.front.sepia.ceph.com:5000/library"
   else
+    if [ -n "${DOCKER_HUB_USERNAME}" ] && [ -n "${DOCKER_HUB_PASSWORD}" ]; then
+      docker login -u "${DOCKER_HUB_USERNAME}" -p "${DOCKER_HUB_PASSWORD}" docker.io
+    fi
     REGISTRY="docker.io"
   fi
 }
