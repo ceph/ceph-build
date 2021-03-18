@@ -5,7 +5,7 @@ set -e
 # the following two methods exist in scripts/build_utils.sh
 # must pin urllib3 to 1.22 because 1.23 is incompatible with requests, which
 # is used by jenkins-job-builder
-pkgs=( "ansible" "jenkins-job-builder==3.0.2" "urllib3==1.22" "pyopenssl" "ndg-httpsclient" "pyasn1" )
+pkgs=( "ansible" "jenkins-job-builder>=3.5.0" "urllib3==1.22" "pyopenssl" "ndg-httpsclient" "pyasn1" )
 install_python_packages "pkgs[@]"
 
 
