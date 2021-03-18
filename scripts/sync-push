@@ -12,7 +12,7 @@ releases=${*:-"nautilus octopus pacific"}
 
 ceph_sync() {
   release=$1
-  for path in /opt/repos/ceph/$release*; do
+  for path in $(ls -d /opt/repos/ceph/* | grep $release | sort -t. -k3 -n); do
 
     # We started using the new /opt/repos/ceph/$release-X.X.X format with Octopus.
     # Older releases have all packages in one big $release dir without a trailing "-X.X.X" so we need to adjust paths accordingly.
