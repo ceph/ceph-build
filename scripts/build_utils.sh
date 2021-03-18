@@ -110,7 +110,7 @@ install_python_packages_no_binary () {
     # the virtualenv exists it will get re-used since this function can be used
     # along with install_python_packages
     #
-    # Usage (with pip 10.0.0 [the default]):
+    # Usage (with pip==20.3.4 [the default]):
     #
     #   to_install=( "ansible" "chacractl>=0.0.21" )
     #   install_python_packages_no_binary "to_install[@]"
@@ -134,6 +134,7 @@ install_python_packages_no_binary () {
     # We started pinning pip to 10.0.0 as the default to prevent mismatching
     # versions on non-ephemeral slaves.  Some jobs require different or latest
     # pip though so these if statements allow for that.
+    # Updated to 20.3.4 in March 2021 because 10.0.0 is just too old.
     if [ "$2" == "latest" ]; then
         echo "Ensuring latest pip is installed"
         $VENV/pip install -U pip
@@ -143,8 +144,8 @@ install_python_packages_no_binary () {
     else
         # This is the default for most jobs.
         # See ff01d2c5 and fea10f52
-        echo "Installing pip 10.0.0"
-        $VENV/pip install "pip==10.0.0"
+        echo "Installing pip 20.3.4"
+        $VENV/pip install "pip==20.3.4"
     fi
 
     echo "Updating setuptools"
@@ -165,7 +166,7 @@ install_python_packages () {
     # Use this function to create a virtualenv and install
     # python packages. Pass a list of package names.
     #
-    # Usage (with pip 10.0.0 [the default]):
+    # Usage (with pip 20.3.4 [the default]):
     #
     #   to_install=( "ansible" "chacractl>=0.0.21" )
     #   install_python_packages "to_install[@]"
@@ -189,6 +190,7 @@ install_python_packages () {
     # We started pinning pip to 10.0.0 as the default to prevent mismatching
     # versions on non-ephemeral slaves.  Some jobs require different or latest
     # pip though so these if statements allow for that.
+    # Updated to 20.3.4 in March 2021 because 10.0.0 is just too old.
     if [ "$2" == "latest" ]; then
         echo "Ensuring latest pip is installed"
         $VENV/pip install -U pip
@@ -198,8 +200,8 @@ install_python_packages () {
     else
         # This is the default for most jobs.
         # See ff01d2c5 and fea10f52
-        echo "Installing pip 10.0.0"
-        $VENV/pip install "pip==10.0.0"
+        echo "Installing pip 20.3.4"
+        $VENV/pip install "pip==20.3.4"
     fi
 
     echo "Updating setuptools"
