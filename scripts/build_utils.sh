@@ -833,6 +833,7 @@ build_debs() {
         --basetgz $pbuilddir/$DIST.tgz \
         --buildresult $releasedir/$cephver \
         --profiles nocheck \
+        --use-network yes \
         $releasedir/$cephver/ceph_$bpvers.dsc
 
     # do lintian checks
