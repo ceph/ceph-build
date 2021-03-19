@@ -14,7 +14,6 @@
       - lvm
     ceph_branch:
       - master
-      - luminous
       - nautilus
     exclude:
       - ceph_branch: master
@@ -25,28 +24,6 @@
         distro: xenial
       - ceph_branch: nautilus
         distro: xenial
-      - ceph_branch: luminous
-        distro: centos8
-
-    jobs:
-      - 'ceph-volume-nightly-{ceph_branch}-{subcommand}-{distro}-{objectstore}-{scenario}'
-
-- project:
-    name: ceph-volume-nightly-simple
-    distro:
-      - xenial
-      - centos7
-    objectstore:
-      - bluestore
-      - filestore
-    scenario:
-      - activate
-      - dmcrypt_luks
-      - dmcrypt_plain
-    subcommand:
-      - simple
-    ceph_branch:
-      - luminous
 
     jobs:
       - 'ceph-volume-nightly-{ceph_branch}-{subcommand}-{distro}-{objectstore}-{scenario}'
@@ -67,7 +44,6 @@
       - batch
     ceph_branch:
       - master
-      - luminous
       - nautilus
     exclude:
       - ceph_branch: master
@@ -78,8 +54,6 @@
         distro: xenial
       - ceph_branch: nautilus
         distro: xenial
-      - ceph_branch: luminous
-        distro: centos8
 
     jobs:
       - 'ceph-volume-nightly-{ceph_branch}-{subcommand}-{distro}-{objectstore}-{scenario}'
@@ -102,7 +76,6 @@
     ceph_branch:
       - master
       - nautilus
-      - luminous
     exclude:
       - ceph_branch: master
         distro: centos7
@@ -112,8 +85,6 @@
         distro: xenial
       - ceph_branch: nautilus
         distro: xenial
-      - ceph_branch: luminous
-        distro: centos8
 
     jobs:
       - 'ceph-volume-nightly-{ceph_branch}-{subcommand}-{distro}-{objectstore}-{scenario}'
