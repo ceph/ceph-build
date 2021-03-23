@@ -29,8 +29,8 @@
 
       - string:
           name: ARCHS
-          description: "A list of architectures to build for. Available options are: x86_64"
-          default: "x86_64"
+          description: "A list of architectures to build for. Available options are: x86_64 arm64"
+          default: "x86_64 arm64"
 
       - bool:
           name: FORCE
