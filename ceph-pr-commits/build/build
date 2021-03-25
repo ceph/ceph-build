@@ -2,7 +2,7 @@
 
 # Don't require signed commits if only docs changed.
 # I tried using the excluded-regions parameter for the ghprb plugin but since
-# this job/check is required, it hung with 'Expected — Waiting for status to be reported'
+# this job/check is required, it hung with 'Expected - Waiting for status to be reported'
 docs_pr_only
 if [ "$DOCS_ONLY" = false ]; then
     echo "Not a docs only change.  Will proceed with signed commit check."
