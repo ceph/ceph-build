@@ -91,7 +91,10 @@
                 - shell:
                     !include-raw:
                       - ../../build/kill-tests
-
+      - xunit:
+          types:
+            - ctest:
+                pattern: "build/Testing/**/Test.xml"
     wrappers:
       - ansicolor
       - credentials-binding:
