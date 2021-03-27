@@ -18,7 +18,7 @@ fi
 # Some  -devel packages are only available in the CentOS 8 PowerTools repo. Enable it:
 if [ $DIST = centos8 ]
 then
-	sudo yum-config-manager --enable PowerTools
+	sudo yum-config-manager --enable PowerTools || sudo yum-config-manager --enable powertools
 fi
 
 # Clean up Jenkins slave before each build

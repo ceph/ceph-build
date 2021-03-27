@@ -84,7 +84,7 @@ If this is checked, then the binaries will be built and pushed to chacra even if
           default: "/tmp/"
 
     execution-strategy:
-       combination-filter: DIST==AVAILABLE_DIST && ARCH==AVAILABLE_ARCH && (ARCH=="x86_64" || (ARCH == "arm64" && (DIST == "xenial" || DIST == "centos7")))
+       combination-filter: DIST==AVAILABLE_DIST && ARCH==AVAILABLE_ARCH && (ARCH=="x86_64" || (ARCH == "arm64" && (DIST == "xenial" || DIST == "centos7" || DIST == "centos8")))
     axes:
       - axis:
           type: label-expression
