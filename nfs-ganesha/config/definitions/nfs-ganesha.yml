@@ -46,11 +46,6 @@
           default: "xenial-nfs-ganesha-shaman"
 
       - string:
-          name: CEPH_SHA1
-          description: "The SHA1 of the ceph branch"
-          default: "latest"
-
-      - string:
           name: CEPH_BRANCH
           description: "The branch of Ceph to get the repo file of for libcephfs"
           default: "master"
