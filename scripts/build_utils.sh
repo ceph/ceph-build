@@ -598,6 +598,8 @@ use_ppa() {
                     use_ppa=true;;
                 xenial)
                     use_ppa=true;;
+                bionic)
+                    use_ppa=true;;
                 *)
                     use_ppa=false;;
             esac
