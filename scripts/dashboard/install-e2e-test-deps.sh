@@ -11,8 +11,8 @@ if grep -q  debian /etc/*-release; then
     curl -fsSL https://dl.google.com/linux/linux_signing_key.pub | sudo apt-key add -
     sudo apt-get update
     sudo apt-get install -y google-chrome-stable
-    sudo apt-get install -y python-requests python3-requests python-openssl python3-openssl python-jinja2 python3-jinja2 \
-	python-jwt python3-jwt python-scipy python3-scipy python-routes python3-routes
+    sudo apt-get install -y python3-requests python3-openssl python3-jinja2 \
+        python3-jwt python3-scipy python3-routes
     sudo apt-get install -y xvfb libxss1
     sudo rm /etc/apt/sources.list.d/google-chrome.list
 elif grep -q rhel /etc/*-release; then
