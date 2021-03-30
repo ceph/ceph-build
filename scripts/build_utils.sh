@@ -570,6 +570,7 @@ setup_pbuilder() {
         echo "USENETWORK=yes" >> ~/.pbuilderrc
         setup_pbuilder_for_ppa >> ~/.pbuilderrc
     fi
+    sudo cp ~/.pbuilderrc /root/.pbuilderrc
     sudo pbuilder clean
 
     if [ -e $basedir/$DIST.tgz ]; then
