@@ -3,6 +3,12 @@
 docs_pr_only
 if [ "$DOCS_ONLY" = true ]; then
     echo "Only the doc/ dir changed.  No need to run make check."
+    mkdir -p build/Testing
+    cat <<EOF > build/Testing/Test.xml
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="ceph-tests" tests="0" errors="0" failures="0" skip="0">
+</testsuite>
+EOF
     exit 0
 fi
 
