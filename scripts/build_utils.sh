@@ -553,6 +553,10 @@ setup_pbuilder() {
         echo "$extrapackages" >> ~/.pbuilderrc
     fi
 
+    local opts
+    opts+=" --basetgz $basedir/$DIST.tgz"
+    opts+=" --distribution $DIST"
+    opts+=" --mirror \"$mirror\""
     if [ -n "$use_gcc" ]; then
         # Newer pbuilder versions set $HOME to /nonexistent which breaks all kinds of
         # things that rely on a proper (writable) path. Setting this to the system user's $HOME is not enough
@@ -570,17 +574,11 @@ setup_pbuilder() {
 
     if [ -e $basedir/$DIST.tgz ]; then
         echo updating $DIST base.tgz
-        sudo pbuilder update \
-        --basetgz $basedir/$DIST.tgz \
-        --distribution $DIST \
-        --mirror "$mirror" \
+        sudo pbuilder update $opts \
         --override-config
     else
         echo building $DIST base.tgz
-        sudo pbuilder create \
-        --basetgz $basedir/$DIST.tgz \
-        --distribution $DIST \
-        --mirror "$mirror"
+        sudo pbuilder create $opts
     fi
 }
 
