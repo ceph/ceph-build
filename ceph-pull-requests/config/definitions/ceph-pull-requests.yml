@@ -95,6 +95,7 @@
           types:
             - ctest:
                 pattern: "build/Testing/**/Test.xml"
+                skip-if-no-test-files: true
     wrappers:
       - ansicolor
       - credentials-binding:
