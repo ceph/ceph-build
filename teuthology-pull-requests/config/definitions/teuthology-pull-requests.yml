@@ -1,6 +1,6 @@
 - job:
     name: teuthology-pull-requests
-    node: sepia && bionic && huge && !xenial && !arm64
+    node: sepia && bionic && huge
     project-type: freestyle
     defaults: global
     concurrent: true

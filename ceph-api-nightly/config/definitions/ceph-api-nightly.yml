@@ -22,7 +22,7 @@
     project-type: freestyle
     defaults: global
     concurrent: true
-    node: huge && bionic && x86_64 && !xenial && !trusty
+    node: huge && bionic && x86_64
     quiet-period: 5
     block-downstream: false
     block-upstream: false

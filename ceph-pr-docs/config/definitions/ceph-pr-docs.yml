@@ -2,7 +2,7 @@
     name: ceph-pr-docs
     display-name: 'ceph: Pull Requests Docs Check'
     concurrent: true
-    node: bionic && x86_64 && !xenial && !trusty
+    node: bionic && x86_64
     project-type: freestyle
     defaults: global
     quiet-period: 5
