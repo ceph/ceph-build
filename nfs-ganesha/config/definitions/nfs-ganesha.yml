@@ -46,11 +46,6 @@
           default: "xenial-nfs-ganesha-shaman"
 
       - string:
-          name: CEPH_SHA1
-          description: "The SHA1 of the ceph branch"
-          default: "latest"
-
-      - string:
           name: CEPH_BRANCH
           description: "The branch of Ceph to get the repo file of for libcephfs"
           default: "master"
@@ -84,7 +79,7 @@ If this is checked, then the binaries will be built and pushed to chacra even if
           default: "/tmp/"
 
     execution-strategy:
-       combination-filter: DIST==AVAILABLE_DIST && ARCH==AVAILABLE_ARCH && (ARCH=="x86_64" || (ARCH == "arm64" && (DIST == "xenial" || DIST == "centos7")))
+       combination-filter: DIST==AVAILABLE_DIST && ARCH==AVAILABLE_ARCH && (ARCH=="x86_64" || (ARCH == "arm64" && (DIST == "xenial" || DIST == "centos7" || DIST == "centos8")))
     axes:
       - axis:
           type: label-expression
