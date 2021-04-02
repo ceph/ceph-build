@@ -556,7 +556,7 @@ setup_pbuilder() {
     local opts
     opts+=" --basetgz $basedir/$DIST.tgz"
     opts+=" --distribution $DIST"
-    opts+=" --mirror \"$mirror\""
+    opts+=" --mirror $mirror"
     if [ -n "$use_gcc" ]; then
         # Newer pbuilder versions set $HOME to /nonexistent which breaks all kinds of
         # things that rely on a proper (writable) path. Setting this to the system user's $HOME is not enough
