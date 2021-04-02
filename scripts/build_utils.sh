@@ -461,6 +461,48 @@ get_distro_and_target() {
     esac
 }
 
+setup_updates_repo() {
+    local hookdir=$1
+
+    if [[ $DISTRO != ubuntu ]]; then
+        return
+    fi
+    if [[ "$ARCH" == "x86_64" ]]; then
+        cat > $hookdir/D04install-updates-repo <<EOF
+echo "deb [arch=amd64] http://us.archive.ubuntu.com/ubuntu/ $DIST-updates main restricted universe multiverse" >>
+    /etc/apt/sources.list
+echo "deb [arch=amd64] http://us.archive.ubuntu.com/ubuntu/ $DIST-backports main restricted universe multiverse" >>
+    /etc/apt/sources.list
+echo "deb [arch=amd64] http://security.ubuntu.com/ubuntu $DIST-security main restricted universe multiverse" >>
+    /etc/apt/sources.list
+env DEBIAN_FRONTEND=noninteractive apt-get update -y -o Acquire::Languages=none -o Acquire::Translation=none || true
+env DEBIAN_FRONTEND=noninteractive apt-get install -y gnupg
+EOF
+    elif [[ "$ARCH" == "arm64" ]]; then
+        cat > $hookdir/D04install-updates-repo <<EOF
+echo "deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports/ $DIST-updates main restricted universe multiverse" >>
+    /etc/apt/sources.list
+echo "deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports/ $DIST-backports main restricted universe multiverse" >>
+    /etc/apt/sources.list
+echo "deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports/ $DIST-security main restricted universe multiverse" >>
+    /etc/apt/sources.list
+env DEBIAN_FRONTEND=noninteractive apt-get update -y -o Acquire::Languages=none -o Acquire::Translation=none || true
+env DEBIAN_FRONTEND=noninteractive apt-get install -y gnupg
+EOF
+    fi
+}
+
+recreate_hookdir() {
+    local hookdir
+    if use_ppa; then
+        hookdir=$HOME/.pbuilder/hook.d
+    else
+        hookdir=$HOME/.pbuilder/hook-old-gcc.d
+    fi
+    rm -rf $hookdir
+    mkdir -p $hookdir
+    echo $hookdir
+}
 
 setup_pbuilder() {
     local use_gcc=$1
@@ -553,10 +595,16 @@ setup_pbuilder() {
         echo "$extrapackages" >> ~/.pbuilderrc
     fi
 
+    local hookdir
+    hookdir=$(recreate_hookdir)
+
     local opts
     opts+=" --basetgz $basedir/$DIST.tgz"
     opts+=" --distribution $DIST"
     opts+=" --mirror $mirror"
+    opts+=" --hookdir $hookdir"
+
+    setup_updates_repo $hookdir
     if [ -n "$use_gcc" ]; then
         # Newer pbuilder versions set $HOME to /nonexistent which breaks all kinds of
         # things that rely on a proper (writable) path. Setting this to the system user's $HOME is not enough
@@ -568,7 +616,7 @@ setup_pbuilder() {
         # in newer versions. This ticket solves the specific issue in 8.1.1 (which vendors urllib3):
         # https://github.com/shazow/urllib3/issues/567
         echo "USENETWORK=yes" >> ~/.pbuilderrc
-        setup_pbuilder_for_ppa >> ~/.pbuilderrc
+        setup_pbuilder_for_ppa $hookdir
     fi
     sudo cp ~/.pbuilderrc /root/.pbuilderrc
     sudo pbuilder clean
@@ -729,23 +777,16 @@ setup_pbuilder_for_old_gcc() {
 }
 
 setup_pbuilder_for_ppa() {
-    local hookdir
+    local hookdir=$1
     if use_ppa; then
-        hookdir=$HOME/.pbuilder/hook.d
-        rm -rf $hookdir
-        mkdir -p $hookdir
         local gcc_ver=7
         if [ "$DIST" = "bionic" ]; then
             gcc_ver=9
         fi
         setup_pbuilder_for_new_gcc $hookdir $gcc_ver
     else
-        hookdir=$HOME/.pbuilder/hook-old-gcc.d
-        rm -rf $hookdir
-        mkdir -p $hookdir
         setup_pbuilder_for_old_gcc $hookdir
     fi
-    echo "HOOKDIR=$hookdir"
 }
 
 get_bptag() {
