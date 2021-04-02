@@ -655,6 +655,10 @@ setup_pbuilder_for_new_gcc() {
     local version=$1
     shift
 
+    cat >> $hookdir/D05install-gcc-7 <<EOF
+env DEBIAN_FRONTEND=noninteractive apt-get install -y gnupg
+EOF
+
     # need to add the test repo and install gcc-7 after
     # `pbuilder create|update` finishes apt-get instead of using "extrapackages".
     # otherwise installing gcc-7 will leave us a half-configured build-essential
@@ -683,8 +687,8 @@ EOF
         echo "unsupported arch: $ARCH"
         exit 1
     fi
-cat >> $hookdir/D05install-gcc-7 <<EOF
-env DEBIAN_FRONTEND=noninteractive apt-get install -y gnupg
+
+    cat >> $hookdir/D05install-gcc-7 <<EOF
 cat << ENDOFKEY | apt-key add -
 -----BEGIN PGP PUBLIC KEY BLOCK-----
 Version: SKS 1.1.6
