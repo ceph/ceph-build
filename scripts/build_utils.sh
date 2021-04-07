@@ -605,7 +605,6 @@ setup_pbuilder() {
     opts+=" --mirror $mirror"
     opts+=" --hookdir $hookdir"
 
-    setup_updates_repo $hookdir
     if [ -n "$use_gcc" ]; then
         # Newer pbuilder versions set $HOME to /nonexistent which breaks all kinds of
         # things that rely on a proper (writable) path. Setting this to the system user's $HOME is not enough
@@ -617,6 +616,7 @@ setup_pbuilder() {
         # in newer versions. This ticket solves the specific issue in 8.1.1 (which vendors urllib3):
         # https://github.com/shazow/urllib3/issues/567
         echo "USENETWORK=yes" >> ~/.pbuilderrc
+        setup_updates_repo $hookdir
         setup_pbuilder_for_ppa $hookdir
     fi
     sudo cp ~/.pbuilderrc /root/.pbuilderrc
