@@ -596,14 +596,11 @@ setup_pbuilder() {
         echo "$extrapackages" >> ~/.pbuilderrc
     fi
 
-    local hookdir
-    hookdir=$(recreate_hookdir)
 
     local opts
     opts+=" --basetgz $basedir/$DIST.tgz"
     opts+=" --distribution $DIST"
     opts+=" --mirror $mirror"
-    opts+=" --hookdir $hookdir"
 
     if [ -n "$use_gcc" ]; then
         # Newer pbuilder versions set $HOME to /nonexistent which breaks all kinds of
@@ -616,8 +613,11 @@ setup_pbuilder() {
         # in newer versions. This ticket solves the specific issue in 8.1.1 (which vendors urllib3):
         # https://github.com/shazow/urllib3/issues/567
         echo "USENETWORK=yes" >> ~/.pbuilderrc
+        local hookdir
+        hookdir=$(recreate_hookdir)
         setup_updates_repo $hookdir
         setup_pbuilder_for_ppa $hookdir
+        echo "HOOKDIR=$hookdir" >> ~/.pbuilderrc
     fi
     sudo cp ~/.pbuilderrc /root/.pbuilderrc
     sudo pbuilder clean
