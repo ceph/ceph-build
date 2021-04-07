@@ -490,6 +490,7 @@ env DEBIAN_FRONTEND=noninteractive apt-get update -y -o Acquire::Languages=none 
 env DEBIAN_FRONTEND=noninteractive apt-get install -y gnupg
 EOF
     fi
+    chmod +x $hookdir/D04install-updates-repo
 }
 
 recreate_hookdir() {
