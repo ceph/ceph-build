@@ -351,13 +351,6 @@
           failed_when: false
           when: ansible_os_family == "Suse"
 
-        # Sometimes, slaves would connect to Jenkins and try to run an apt transaction right away.  Except apt-daily/unattended-upgrades has the dpkg lock so the Jenkins job would fail.
-        - name: Uninstall unattended-upgrades
-          package:
-            name: unattended-upgrades
-            state: absent
-          when: ansible_os_family == "Debian"
-
         - name: Stop and disable daily apt activities
           command: "{{ item }}"
           with_items:
@@ -400,6 +393,13 @@
         name: "{{ universal_debs + libvirt_debs|default([]) + python2_debs|default([]) + python3_debs|default([]) + [ chroot_deb|default('') ] }}"
         state: latest
         update_cache: yes
+      when: ansible_os_family == "Debian"
+
+    # Sometimes, slaves would connect to Jenkins and try to run an apt transaction right away.  Except apt-daily/unattended-upgrades has the dpkg lock so the Jenkins job would fail.
+    - name: Uninstall unattended-upgrades
+      package:
+        name: unattended-upgrades
+        state: absent
       when: ansible_os_family == "Debian"
 
     - name: Install EPEL repo
