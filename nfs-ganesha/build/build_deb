@@ -113,7 +113,8 @@ PBUILDDIR="/srv/debian-base"
 
 sudo pbuilder clean
 
-basetgz=$PBUILDDIR/$DIST.tgz
+basetgz=$(mktemp $PBUILDDIR/$DIST-nfs-ganesha-XXXXXX.tgz)
+cp $PBUILDDIR/$DIST.tgz $basetgz
 
 mkdir -p $WORKSPACE/dist/deb
 
@@ -151,6 +152,8 @@ sudo pbuilder build \
     --buildresult $WORKSPACE/dist/deb/ \
     --debbuildopts "-j`grep -c processor /proc/cpuinfo`" \
     $WORKSPACE/nfs-ganesha_${VERSION}-1${DIST}.dsc
+
+sudo rm -f $basetgz
 
 ## Upload the created debs to chacra
 chacra_endpoint="nfs-ganesha/${NFS_GANESHA_BRANCH}/${GIT_COMMIT}/${DISTRO}/${DIST}"
