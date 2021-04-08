@@ -113,39 +113,41 @@ PBUILDDIR="/srv/debian-base"
 
 sudo pbuilder clean
 
+basetgz=$PBUILDDIR/$DIST.tgz
+
 mkdir -p $WORKSPACE/dist/deb
 
 # add missing packages and components to pbuilder
 sudo pbuilder update \
-    --basetgz $PBUILDDIR/$DIST.tgz \
+    --basetgz $basetgz \
     --distribution $DIST \
     --extrapackages "apt-transport-https apt-utils ca-certificates debhelper python-all liblttng-ust0 liblttng-ust-dev liblttng-ctl-dev pkgconf quilt" \
     --components "main restricted universe multiverse"
 
 # make sure no ceph packages are left over in pbuilder env
 sudo pbuilder update \
-    --basetgz $PBUILDDIR/$DIST.tgz \
+    --basetgz $basetgz \
     --distribution $DIST \
     --removepackages "librados2 libcephfs2 librgw2 librados-dev libcephfs-dev librgw-dev" \
     --override-config
 
 # add other mirror to pbuilder
 sudo pbuilder update \
-    --basetgz $PBUILDDIR/$DIST.tgz \
+    --basetgz $basetgz \
     --distribution $DIST \
     --othermirror "${SHAMAN_MIRROR}" \
     --override-config
 
 # use libcephfs and librgw from shaman
 sudo pbuilder update \
-    --basetgz $PBUILDDIR/$DIST.tgz \
+    --basetgz $basetgz \
     --distribution $DIST \
     --extrapackages "librados-dev libcephfs-dev librgw-dev"
 
 echo "Building debs for $DIST"
 sudo pbuilder build \
     --distribution $DIST \
-    --basetgz $PBUILDDIR/$DIST.tgz \
+    --basetgz $basetgz \
     --buildresult $WORKSPACE/dist/deb/ \
     --debbuildopts "-j`grep -c processor /proc/cpuinfo`" \
     $WORKSPACE/nfs-ganesha_${VERSION}-1${DIST}.dsc

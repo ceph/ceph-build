@@ -41,19 +41,19 @@ echo "Building ntirpc debs"
 
 sudo pbuilder clean \
     --distribution $DIST \
-    --basetgz $PBUILDDIR/$DIST.tgz
+    --basetgz $basetgz
 
 # add missing packages and components to pbuilder
 sudo pbuilder update \
     --distribution $DIST \
-    --basetgz $PBUILDDIR/$DIST.tgz \
+    --basetgz $basetgz \
     --extrapackages "cmake libkrb5-dev libjemalloc-dev debhelper apt-transport-https apt-utils ca-certificates" \
     --components "main restricted universe multiverse" \
     --override-config
 
 sudo pbuilder build \
     --distribution $DIST \
-    --basetgz $PBUILDDIR/$DIST.tgz \
+    --basetgz $basetgz \
     --buildresult $WORKSPACE/dist/ntirpc/deb/ \
     $WORKSPACE/libntirpc_${NTIRPC_VERSION}-1${DIST}.dsc
 
@@ -146,29 +146,31 @@ sudo dpkg-buildpackage -S -us -uc -d
 ## Build with pbuilder
 echo "Building nfs-ganesha debs"
 
+basetgz=$PBUILDDIR/$DIST.tgz
+
 sudo pbuilder clean \
     --distribution $DIST \
-    --basetgz $PBUILDDIR/$DIST.tgz
+    --basetgz $basetgz
 
 mkdir -p $WORKSPACE/dist/deb
 
 # add missing packages and components to pbuilder
 sudo pbuilder update \
     --distribution $DIST \
-    --basetgz $PBUILDDIR/$DIST.tgz \
+    --basetgz $basetgz \
     --extrapackages "apt-transport-https apt-utils ca-certificates debhelper python-all liblttng-ust0 liblttng-ust-dev liblttng-ctl-dev pkgconf quilt" \
     --components "main restricted universe multiverse" \
     --override-config
 
 sudo pbuilder update \
     --distribution $DIST \
-    --basetgz $PBUILDDIR/$DIST.tgz \
+    --basetgz $basetgz \
     --removepackages "librados2 libcephfs2 librgw2 librados-dev libcephfs-dev librgw-dev libntirpc-dev" \
     --override-config
 
 sudo pbuilder update \
     --distribution $DIST \
-    --basetgz $PBUILDDIR/$DIST.tgz \
+    --basetgz $basetgz \
     --extrapackages "libntirpc-dev" \
     --othermirror "deb [trusted=yes] file://$WORKSPACE/dist/ntirpc/deb ./" \
     --bindmounts "$WORKSPACE/dist/ntirpc/deb" \
@@ -177,7 +179,7 @@ sudo pbuilder update \
 # use libcephfs and librgw from shaman
 sudo pbuilder update \
     --distribution $DIST \
-    --basetgz $PBUILDDIR/$DIST.tgz \
+    --basetgz $basetgz \
     --extrapackages "librados2 libcephfs2 librgw2 librados-dev libcephfs-dev librgw-dev" \
     --othermirror "${SHAMAN_MIRROR}" \
     --override-config
@@ -185,7 +187,7 @@ sudo pbuilder update \
 echo "Building debs for $DIST"
 sudo pbuilder build \
     --distribution $DIST \
-    --basetgz $PBUILDDIR/$DIST.tgz \
+    --basetgz $basetgz \
     --buildresult $WORKSPACE/dist/nfs-ganesha/deb/ \
     --debbuildopts "-j`grep -c processor /proc/cpuinfo`" \
     $WORKSPACE/nfs-ganesha_${VERSION}-1${DIST}.dsc
