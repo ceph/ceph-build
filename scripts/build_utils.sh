@@ -464,7 +464,7 @@ get_distro_and_target() {
 setup_updates_repo() {
     local hookdir=$1
 
-    if [[ $DISTRO != ubuntu ]]; then
+    if [[ $NORMAL_DISTRO != ubuntu ]]; then
         return
     fi
     if [[ "$ARCH" == "x86_64" ]]; then
