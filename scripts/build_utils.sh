@@ -469,23 +469,17 @@ setup_updates_repo() {
     fi
     if [[ "$ARCH" == "x86_64" ]]; then
         cat > $hookdir/D04install-updates-repo <<EOF
-echo "deb [arch=amd64] http://us.archive.ubuntu.com/ubuntu/ $DIST-updates main restricted universe multiverse" >>
-    /etc/apt/sources.list
-echo "deb [arch=amd64] http://us.archive.ubuntu.com/ubuntu/ $DIST-backports main restricted universe multiverse" >>
-    /etc/apt/sources.list
-echo "deb [arch=amd64] http://security.ubuntu.com/ubuntu $DIST-security main restricted universe multiverse" >>
-    /etc/apt/sources.list
+echo "deb [arch=amd64] http://us.archive.ubuntu.com/ubuntu/ $DIST-updates main restricted universe multiverse" >> /etc/apt/sources.list
+echo "deb [arch=amd64] http://us.archive.ubuntu.com/ubuntu/ $DIST-backports main restricted universe multiverse" >> /etc/apt/sources.list
+echo "deb [arch=amd64] http://security.ubuntu.com/ubuntu $DIST-security main restricted universe multiverse" >> /etc/apt/sources.list
 env DEBIAN_FRONTEND=noninteractive apt-get update -y -o Acquire::Languages=none -o Acquire::Translation=none || true
 env DEBIAN_FRONTEND=noninteractive apt-get install -y gnupg
 EOF
     elif [[ "$ARCH" == "arm64" ]]; then
         cat > $hookdir/D04install-updates-repo <<EOF
-echo "deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports/ $DIST-updates main restricted universe multiverse" >>
-    /etc/apt/sources.list
-echo "deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports/ $DIST-backports main restricted universe multiverse" >>
-    /etc/apt/sources.list
-echo "deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports/ $DIST-security main restricted universe multiverse" >>
-    /etc/apt/sources.list
+echo "deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports/ $DIST-updates main restricted universe multiverse" >> /etc/apt/sources.list
+echo "deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports/ $DIST-backports main restricted universe multiverse" >> /etc/apt/sources.list
+echo "deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports/ $DIST-security main restricted universe multiverse" >> /etc/apt/sources.list
 env DEBIAN_FRONTEND=noninteractive apt-get update -y -o Acquire::Languages=none -o Acquire::Translation=none || true
 env DEBIAN_FRONTEND=noninteractive apt-get install -y gnupg
 EOF
