@@ -39,7 +39,7 @@ PBUILDDIR="/srv/debian-base"
 ## Build with pbuilder
 echo "Building ntirpc debs"
 
-sudo pbuilder --clean \
+sudo pbuilder clean \
     --distribution $DIST \
     --basetgz $PBUILDDIR/$DIST.tgz
 
@@ -146,7 +146,7 @@ sudo dpkg-buildpackage -S -us -uc -d
 ## Build with pbuilder
 echo "Building nfs-ganesha debs"
 
-sudo pbuilder --clean \
+sudo pbuilder clean \
     --distribution $DIST \
     --basetgz $PBUILDDIR/$DIST.tgz
 

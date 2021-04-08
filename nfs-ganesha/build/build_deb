@@ -111,7 +111,7 @@ echo "Building debs"
 
 PBUILDDIR="/srv/debian-base"
 
-sudo pbuilder --clean
+sudo pbuilder clean
 
 mkdir -p $WORKSPACE/dist/deb
 
