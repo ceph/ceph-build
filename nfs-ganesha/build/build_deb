@@ -85,16 +85,9 @@ cd $WORKSPACE/nfs-ganesha
 # add debian directory next to src
 mv $WORKSPACE/nfs-ganesha-debian/debian $WORKSPACE/nfs-ganesha/
 
-# create and apply a patch to disable LizardFS FSAL see
+# disable LizardFS FSAL see
 # https://review.gerrithub.io/c/ffilz/nfs-ganesha/+/475437
-echo "LS0tIGEvZGViaWFuL3J1bGVzCisrKyBiL2RlYmlhbi9ydWxlcwpAQCAtMjgsNiArMjgsNyBAQCBv
-dmVycmlkZV9kaF9hdXRvX2NvbmZpZ3VyZToKIAkJLURVU0VfRlNBTF9YRlM9T0ZGIFwKIAkJLURV
-U0VfRlNBTF9DRVBIPU9OIFwKIAkJLURVU0VfRlNBTF9SR1c9T04gXAorCQktRFVTRV9GU0FMX0xJ
-WkFSREZTPU9GRiBcCiAJCS1EVVNFX0ZTQUxfR1BGUz1PRkYgXAogCQktRFVTRV9GU0FMX1BBTkZT
-PU9GRiBcCiAJCS1EVVNFX0ZTQUxfR0xVU1RFUj1PRkYgXAo="|base64 -d > disable-lizardfs-fsal.patch
-
-patch -p1 < disable-lizardfs-fsal.patch
-rm -f disable-lizardfs-fsal.patch
+sed -i '/-DUSE_FSAL_RGW=/a\			-DUSE_FSAL_LIZARDFS=NO \\' debian/rules
 
 ## Get some basic information about the system and the repository
 DEB_ARCH=$(dpkg-architecture -qDEB_BUILD_ARCH)
