@@ -131,7 +131,7 @@
       - conditional-step:
           condition-kind: shell
           condition-command: |
-            echo "${GIT_BRANCH}" | grep -v '\(luminous\|mimic\|nautilus\|octopus\|pacific\)'
+            echo "${GIT_BRANCH}" | grep -v '\(luminous\|mimic\|nautilus\|octopus\|pacific\|crimson-only\)'
           on-evaluation-failure: dont-run
           steps:
             - shell:
@@ -144,6 +144,26 @@
                     BRANCH=${GIT_BRANCH}
                     FORCE=True
                     DISTROS=focal bionic centos8 windows
+            - trigger-builds:
+                - project: 'ceph-dev-new'
+                  predefined-parameters: |
+                    BRANCH=${GIT_BRANCH}
+                    FORCE=True
+                    DISTROS=centos8
+                    FLAVOR=crimson
+                    ARCHS=x86_64
+      # Build only the `crimson` flavour, don't waste resources on the default one.
+      # Useful for the crimson's bug-hunt at Sepia
+      - conditional-step:
+          condition-kind: regex-match
+          regex: .*crimson-only.*
+          label: '${GIT_BRANCH}'
+          on-evaluation-failure: dont-run
+          steps:
+            - shell:
+                !include-raw:
+                - ../../../scripts/build_utils.sh
+                - ../../build/notify
             - trigger-builds:
                 - project: 'ceph-dev-new'
                   predefined-parameters: |
