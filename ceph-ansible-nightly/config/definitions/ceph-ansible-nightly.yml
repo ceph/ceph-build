@@ -21,6 +21,7 @@
       - purge
       - lvm_auto_discovery
       - switch_to_containers
+      - filestore_to_bluestore
     ceph_ansible_branch:
       - stable-4.0
     jobs:
@@ -51,6 +52,7 @@
       - purge
       - lvm_auto_discovery
       - switch_to_containers
+      - filestore_to_bluestore
     ceph_ansible_branch:
       - stable-6.0
     jobs:
