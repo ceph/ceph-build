@@ -6,6 +6,7 @@ set -ex
 # are clean this will not be needed.
 sudo rm -f /etc/apt/sources.list.d/shaman*
 sudo rm -f /etc/apt/sources.list.d/ubuntu-toolchain-r*
+sudo rm -f /etc/apt/sources.list.d/ceph-boost*
 
 # Ceph doc build deps, Ubuntu only because ditaa is not packaged for CentOS
 sudo apt-get update -o Acquire::Languages=none -o Acquire::Translation=none
