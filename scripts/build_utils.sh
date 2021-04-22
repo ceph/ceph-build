@@ -645,7 +645,7 @@ use_ppa() {
                 xenial)
                     use_ppa=true;;
                 bionic)
-                    use_ppa=true;;
+                    use_ppa=false;;
                 *)
                     use_ppa=false;;
             esac
