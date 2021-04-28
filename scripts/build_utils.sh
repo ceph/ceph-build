@@ -818,6 +818,29 @@ gen_debian_version() {
     echo "${raw}${bptag}"
 }
 
+# Flavor Builds support
+# - CEPH_EXTRA_RPMBUILD_ARGS is consumed by build_rpms()
+# - CEPH_EXTRA_CMAKE_ARGS is consumed by debian/rules and ceph.spec directly
+ceph_build_args_from_flavor() {
+    local flavor=$1
+    shift
+
+    # shellcheck disable=SC2034
+    case "${flavor}" in
+    default)
+        CEPH_EXTRA_RPMBUILD_ARGS="--with tcmalloc"
+        CEPH_EXTRA_CMAKE_ARGS="$CEPH_EXTRA_CMAKE_ARGS -DALLOCATOR=tcmalloc"
+        ;;
+    crimson)
+        CEPH_EXTRA_RPMBUILD_ARGS="--with seastar"
+        CEPH_EXTRA_CMAKE_ARGS="$CEPH_EXTRA_CMAKE_ARGS -DWITH_SEASTAR=ON"
+        ;;
+    *)
+        echo "unknown FLAVOR: ${FLAVOR}" >&2
+        exit 1
+    esac
+}
+
 build_debs() {
     local vers=$1
     shift
