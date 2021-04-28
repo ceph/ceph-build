@@ -36,21 +36,7 @@ rm -rf release
 echo "Running submodule update ..."
 git submodule update --init
 
-# Flavor Builds support
-
-case "${FLAVOR}" in
-    default)
-        CEPH_EXTRA_RPMBUILD_ARGS="--with tcmalloc"
-        CEPH_EXTRA_CMAKE_ARGS="$CEPH_EXTRA_CMAKE_ARGS -DALLOCATOR=tcmalloc"
-        ;;
-    crimson)
-        CEPH_EXTRA_RPMBUILD_ARGS="--with seastar"
-        CEPH_EXTRA_CMAKE_ARGS="$CEPH_EXTRA_CMAKE_ARGS -DWITH_SEASTAR=ON"
-        ;;
-    *)
-        echo "unknown FLAVOR: ${FLAVOR}" >&2
-        exit 1
-esac
+ceph_build_args_from_flavor ${FLAVOR}
 
 # When using autotools/autoconf it is possible to see output from `git diff`
 # since some macros can be copied over to the ceph source, triggering this
