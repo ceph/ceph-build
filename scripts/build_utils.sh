@@ -829,11 +829,11 @@ ceph_build_args_from_flavor() {
     case "${flavor}" in
     default)
         CEPH_EXTRA_RPMBUILD_ARGS="--with tcmalloc"
-        CEPH_EXTRA_CMAKE_ARGS="$CEPH_EXTRA_CMAKE_ARGS -DALLOCATOR=tcmalloc"
+        CEPH_EXTRA_CMAKE_ARGS+=" -DALLOCATOR=tcmalloc"
         ;;
     crimson)
         CEPH_EXTRA_RPMBUILD_ARGS="--with seastar"
-        CEPH_EXTRA_CMAKE_ARGS="$CEPH_EXTRA_CMAKE_ARGS -DWITH_SEASTAR=ON"
+        CEPH_EXTRA_CMAKE_ARGS+=" -DWITH_SEASTAR=ON"
         ;;
     *)
         echo "unknown FLAVOR: ${FLAVOR}" >&2
