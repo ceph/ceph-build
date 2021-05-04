@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -ex
+set -xo pipefail
 
 # make sure any shaman list file is removed. At some point if all nodes
 # are clean this will not be needed.
@@ -12,4 +12,34 @@ sudo rm -f /etc/apt/sources.list.d/ceph-boost*
 sudo apt-get update -o Acquire::Languages=none -o Acquire::Translation=none
 sudo apt-get install -y gcc python3-dev python3-pip python3-virtualenv libxml2-dev libxslt-dev doxygen graphviz ant ditaa cython3
 
-timeout 3600 ./admin/build-doc
+virtualenv -q --python python3 venv
+. venv/bin/activate
+pip install tox
+pip install git+https://github.com/ceph/githubcheck.git
+sha1=$(git rev-parse refs/remotes/origin/pr/${ghprbPullId}/head)
+
+output=$(mktemp $PWD/build-doc-XXX.out)
+
+if timeout 3600 ./admin/build-doc 2>&1 | tee ${output}; then
+    succeed=true
+else
+    succeed=false
+fi
+
+if ! $succeed; then
+    cat ${output} | github-check      \
+        --sphinx                      \
+        --sphinx-root=.               \
+        --owner "ceph"                \
+        --repo "ceph"                 \
+    --pkey-file $GITHUB_CHECK_PKEY_PEM  \
+    --app-id "62865"                    \
+    --install-id "8465036"              \
+    --name "ceph-pr-docs"               \
+    --sha $sha1                         \
+    --external-id $BUILD_ID             \
+    --details-url $BUILD_URL            \
+    --title sphinx-build
+fi
+
+$succeed
