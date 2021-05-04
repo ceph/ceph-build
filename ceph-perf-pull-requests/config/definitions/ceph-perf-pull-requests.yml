@@ -190,7 +190,7 @@
           esac
           virtualenv -q --python python3 ${{WORKSPACE}}/gh-venv
           . ${{WORKSPACE}}/gh-venv/bin/activate
-          pip install -e ${{WORKSPACE}}/cbt/tools/githubcheck
+          pip install git+https://github.com/ceph/githubcheck.git
           echo "please hold tight..." | github-check     \
             --owner {check-repo-owner}                   \
             --repo {check-repo-name}                     \
