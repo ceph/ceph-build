@@ -1,0 +1,5 @@
+sudo yum install -y buildah
+cd monitoring/grafana/build
+make build
+make push
+make clean
