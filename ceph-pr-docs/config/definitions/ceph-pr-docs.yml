@@ -48,3 +48,9 @@
     builders:
       - shell:
           !include-raw: ../../build/build
+
+    wrappers:
+      - credentials-binding:
+          - file:
+              credential-id: cephacheck.2020-04-29.private-key.pem
+              variable: GITHUB_CHECK_PKEY_PEM
