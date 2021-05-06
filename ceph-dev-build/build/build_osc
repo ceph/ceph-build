@@ -3,10 +3,10 @@ set -ex
 
 case $RELEASE_BRANCH in
 quincy)
-    OBSREPO="openSUSE_Leap_15.2"
+    OBSREPO="openSUSE_Leap_15.3"
     ;;
 pacific)
-    OBSREPO="openSUSE_Leap_15.2"
+    OBSREPO="openSUSE_Leap_15.3"
     ;;
 octopus)
     OBSREPO="openSUSE_Leap_15.2"

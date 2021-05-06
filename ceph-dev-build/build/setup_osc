@@ -40,11 +40,11 @@ RELEASE_BRANCH=$(release_from_version $raw_version)
 case $RELEASE_BRANCH in
 quincy)
     DISTRO=opensuse
-    RELEASE="15.2"
+    RELEASE="15.3"
     ;;
 pacific)
     DISTRO=opensuse
-    RELEASE="15.2"
+    RELEASE="15.3"
     ;;
 octopus)
     DISTRO=opensuse
