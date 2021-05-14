@@ -1,4 +1,19 @@
 #!/bin/bash
 
-# placeholder for now
-/bin/true
+# the following two methods exist in scripts/build_utils.sh
+pkgs=( "tox" )
+install_python_packages "pkgs[@]"
+
+# XXX this might not be needed
+source $VENV/activate
+
+WORKDIR=$(mktemp -td tox.XXXXXXXXXX)
+
+delete_libvirt_vms
+clear_libvirt_networks
+restart_libvirt_services
+update_vagrant_boxes
+
+rm -rf "${HOME}"/ansible/facts/*
+
+"${VENV}"/tox --workdir="${TEMPVENV}" -c tox.ini -r -v -- --provider=libvirt
