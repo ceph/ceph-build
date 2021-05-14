@@ -1,4 +1,9 @@
 #!/bin/bash
 
-# placeholder for now
-/bin/true
+cd "${WORKSPACE}"/tests
+
+# the method exists in scripts/build_utils.sh
+teardown_vagrant_tests
+
+# clean fact cache
+rm -rf "${HOME}"/ansible/facts/*
