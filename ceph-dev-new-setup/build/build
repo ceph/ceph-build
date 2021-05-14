@@ -64,7 +64,7 @@ else
     echo "forcing."
 fi
 
-ceph_build_args_from_flavor ${FLAVOR}
+ceph_build_args_from_flavor_and_dist ${FLAVOR} ${DIST}
 
 mkdir -p release
 

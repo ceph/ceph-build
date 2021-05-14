@@ -821,15 +821,34 @@ gen_debian_version() {
 # Flavor Builds support
 # - CEPH_EXTRA_RPMBUILD_ARGS is consumed by build_rpms()
 # - CEPH_EXTRA_CMAKE_ARGS is consumed by debian/rules and ceph.spec directly
-ceph_build_args_from_flavor() {
+ceph_build_args_from_flavor_and_dist() {
     local flavor=$1
+    shift
+    local dist=$1
     shift
 
     # shellcheck disable=SC2034
     case "${flavor}" in
     default)
         CEPH_EXTRA_RPMBUILD_ARGS="--with tcmalloc"
-        CEPH_EXTRA_CMAKE_ARGS+=" -DALLOCATOR=tcmalloc"
+        # we have to build quincy and up on bionic, because some teuthology tests are
+        # still using ubuntu bionic:
+        # - the perftest depends on cosbench which is not compatible with ubuntu/focal, see
+        #   https://tracker.ceph.com/issues/49139
+        # - we need to test old clients which are built on bionic. for instance, we don't build
+        #   nautilus on focal yet.
+        # - some upgrade tests still include bionic facets.
+        if [ "$dist" == "bionic" ]; then
+            local ver
+            ver=$(git describe --abbrev=8 --match "v*" | sed s/^v// | cut -f1 -d'.')
+            # use libc allocator when building on quincy and up on bionic
+            if [ ${ver} -lt 17 ]; then
+                CEPH_EXTRA_CMAKE_ARGS+=" -DALLOCATOR=tcmalloc"
+            fi
+        else
+            # always use tcmalloc on non-bionic dists
+            CEPH_EXTRA_CMAKE_ARGS+=" -DALLOCATOR=tcmalloc"
+        fi
         ;;
     crimson)
         CEPH_EXTRA_RPMBUILD_ARGS="--with seastar"
