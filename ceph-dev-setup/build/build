@@ -36,7 +36,7 @@ rm -rf release
 echo "Running submodule update ..."
 git submodule update --init
 
-ceph_build_args_from_flavor_and_dist ${FLAVOR} ${DIST}
+ceph_build_args_from_flavor ${FLAVOR}
 
 # When using autotools/autoconf it is possible to see output from `git diff`
 # since some macros can be copied over to the ceph source, triggering this
