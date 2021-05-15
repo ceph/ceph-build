@@ -1047,93 +1047,94 @@ update_vagrant_boxes() {
 }
 
 start_tox() {
-# the $SCENARIO var is injected by the job template. It maps
-# to an actual, defined, tox environment
-while true; do
-  case $1 in
-    CEPH_DOCKER_IMAGE_TAG=?*)
-      local ceph_docker_image_tag=${1#*=}
-      shift
-      ;;
-    RELEASE=?*)
-      local release=${1#*=}
-      shift
-      ;;
-    *)
-      break
-      ;;
-  esac
-done
-if [ "$release" = "dev" ]; then
-    # dev runs will need to be set to the release
-    # that matches what the current ceph master
-    # branch is at
-    local release="quincy"
-fi
-TOX_RUN_ENV=("timeout 3h")
-if [ -n "$ceph_docker_image_tag" ]; then
-  TOX_RUN_ENV=("CEPH_DOCKER_IMAGE_TAG=$ceph_docker_image_tag" "${TOX_RUN_ENV[@]}")
-fi
-if [ -n "$release" ]; then
-  TOX_RUN_ENV=("CEPH_STABLE_RELEASE=$release" "${TOX_RUN_ENV[@]}")
-else
-  TOX_RUN_ENV=("CEPH_STABLE_RELEASE=$RELEASE" "${TOX_RUN_ENV[@]}")
-fi
-
-function build_job_name() {
-  local job_name=$1
-  shift
-  for item in "$@"; do
-    job_name="${job_name}-${item}"
-  done
-  echo "${job_name}"
-}
-
-# shellcheck disable=SC2153
-ENV_NAME="$(build_job_name "$DISTRIBUTION" "$DEPLOYMENT" "$SCENARIO")"
-
-case $SCENARIO in
-  update)
-    TOX_INI_FILE=tox-update.ini
-    ;;
-  podman)
-    TOX_INI_FILE=tox-podman.ini
-    ;;
-  filestore_to_bluestore)
-    TOX_INI_FILE=tox-filestore_to_bluestore.ini
-    ;;
-  docker_to_podman)
-    TOX_INI_FILE=tox-docker2podman.ini
-    ;;
-  external_clients)
-    TOX_INI_FILE=tox-external_clients.ini
-    ;;
-  cephadm)
-    TOX_INI_FILE=tox-cephadm.ini
-    ;;
-  shrink_osd_single)
-    TOX_INI_FILE=tox-shrink_osd.ini
-    ;;
-  shrink_osd_multiple)
-    TOX_INI_FILE=tox-shrink_osd.ini
-    ;;
-  *)
-    TOX_INI_FILE=tox.ini
-    ;;
-esac
-
-for tox_env in $("$VENV"/tox -c "$TOX_INI_FILE" -l)
-do
-  if [[ "$ENV_NAME" == "$tox_env" ]]; then
-# shellcheck disable=SC2116
-    if ! eval "$(echo "${TOX_RUN_ENV[@]}")" "$VENV"/tox -c "$TOX_INI_FILE" --workdir="$TEMPVENV" -v -e="$ENV_NAME" -- --provider=libvirt; then echo "ERROR: Job didn't complete successfully or got stuck for more than 3h."
-      exit 1
+    # the $SCENARIO var is injected by the job template. It maps
+    # to an actual, defined, tox environment
+    while true; do
+        case $1 in
+            CEPH_DOCKER_IMAGE_TAG=?*)
+                local ceph_docker_image_tag=${1#*=}
+                shift
+                ;;
+            RELEASE=?*)
+                local release=${1#*=}
+                shift
+                ;;
+            *)
+                break
+                ;;
+        esac
+    done
+    if [ "$release" = "dev" ]; then
+        # dev runs will need to be set to the release
+        # that matches what the current ceph master
+        # branch is at
+        local release="quincy"
     fi
-    return 0
-  fi
-done
-echo "ERROR: Environment $ENV_NAME is not defined in $TOX_INI_FILE !"
-exit 1
+    TOX_RUN_ENV=("timeout 3h")
+    if [ -n "$ceph_docker_image_tag" ]; then
+        TOX_RUN_ENV=("CEPH_DOCKER_IMAGE_TAG=$ceph_docker_image_tag" "${TOX_RUN_ENV[@]}")
+    fi
+    if [ -n "$release" ]; then
+        TOX_RUN_ENV=("CEPH_STABLE_RELEASE=$release" "${TOX_RUN_ENV[@]}")
+    else
+        TOX_RUN_ENV=("CEPH_STABLE_RELEASE=$RELEASE" "${TOX_RUN_ENV[@]}")
+    fi
+
+    function build_job_name() {
+        local job_name=$1
+        shift
+        for item in "$@"; do
+            job_name="${job_name}-${item}"
+        done
+        echo "${job_name}"
+    }
+
+    # shellcheck disable=SC2153
+    ENV_NAME="$(build_job_name "$DISTRIBUTION" "$DEPLOYMENT" "$SCENARIO")"
+
+    case $SCENARIO in
+        update)
+            TOX_INI_FILE=tox-update.ini
+            ;;
+        podman)
+            TOX_INI_FILE=tox-podman.ini
+            ;;
+        filestore_to_bluestore)
+            TOX_INI_FILE=tox-filestore_to_bluestore.ini
+            ;;
+        docker_to_podman)
+            TOX_INI_FILE=tox-docker2podman.ini
+            ;;
+        external_clients)
+            TOX_INI_FILE=tox-external_clients.ini
+            ;;
+        cephadm)
+            TOX_INI_FILE=tox-cephadm.ini
+            ;;
+        shrink_osd_single)
+            TOX_INI_FILE=tox-shrink_osd.ini
+            ;;
+        shrink_osd_multiple)
+            TOX_INI_FILE=tox-shrink_osd.ini
+            ;;
+        *)
+            TOX_INI_FILE=tox.ini
+            ;;
+    esac
+
+    for tox_env in $("$VENV"/tox -c "$TOX_INI_FILE" -l)
+    do
+        if [[ "$ENV_NAME" == "$tox_env" ]]; then
+            # shellcheck disable=SC2116
+            if ! eval "$(echo "${TOX_RUN_ENV[@]}")" "$VENV"/tox -c "$TOX_INI_FILE" --workdir="$TEMPVENV" -v -e="$ENV_NAME" -- --provider=libvirt; then
+                echo "ERROR: Job didn't complete successfully or got stuck for more than 3h."
+                exit 1
+            fi
+            return 0
+        fi
+    done
+    echo "ERROR: Environment $ENV_NAME is not defined in $TOX_INI_FILE !"
+    exit 1
 }
 
 github_status_setup() {
