@@ -821,10 +821,8 @@ gen_debian_version() {
 # Flavor Builds support
 # - CEPH_EXTRA_RPMBUILD_ARGS is consumed by build_rpms()
 # - CEPH_EXTRA_CMAKE_ARGS is consumed by debian/rules and ceph.spec directly
-ceph_build_args_from_flavor_and_dist() {
+ceph_build_args_from_flavor() {
     local flavor=$1
-    shift
-    local dist=$1
     shift
 
     # shellcheck disable=SC2034
@@ -838,17 +836,16 @@ ceph_build_args_from_flavor_and_dist() {
         # - we need to test old clients which are built on bionic. for instance, we don't build
         #   nautilus on focal yet.
         # - some upgrade tests still include bionic facets.
-        if [ "$dist" == "bionic" ]; then
-            local ver
-            ver=$(git describe --abbrev=8 --match "v*" | sed s/^v// | cut -f1 -d'.')
-            # use libc allocator when building on quincy and up on bionic
-            if [ ${ver} -lt 17 ]; then
-                CEPH_EXTRA_CMAKE_ARGS+=" -DALLOCATOR=tcmalloc"
-            fi
-        else
-            # always use tcmalloc on non-bionic dists
-            CEPH_EXTRA_CMAKE_ARGS+=" -DALLOCATOR=tcmalloc"
-        fi
+        #
+        # do not specify -DALLOCATOR=tcmalloc in CEPH_EXTRA_CMAKE_ARGS, and let
+        # cmake figure it out:
+        # - on quincy and up, gperftools 2.6.2 is required, so we are not
+        #   impacted by https://tracker.ceph.com/issues/39703. and cmake uses
+        #   tcmalloc if gperftools 2.6.2 and up is found. on bionic, cmake
+        #   falls back to libc allocator.
+        # - before quincy, since ALLOCATOR is not specified, cmake uses
+        #   tcmalloc as long as gperftools is found, and the fix of
+        #   https://tracker.ceph.com/issues/39703 is still not removed.
         ;;
     crimson)
         CEPH_EXTRA_RPMBUILD_ARGS="--with seastar"
