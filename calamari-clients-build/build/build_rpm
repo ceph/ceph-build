@@ -62,7 +62,7 @@ chacra_check_url="${chacra_endpoint}/${ARCH}/calamari-clients-${VERSION}-${RPM_R
 
 if [ "$THROWAWAY" = false ] ; then
     # this exists in scripts/build_utils.sh
-    check_binary_existence $chacra_check_url
+    check_binary_existence $VENV $chacra_check_url
 fi
 
 HOST=$(hostname --short)

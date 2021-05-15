@@ -6,7 +6,7 @@ set -e
 # must pin urllib3 to 1.22 because 1.23 is incompatible with requests, which
 # is used by jenkins-job-builder
 pkgs=( "ansible" "jenkins-job-builder>=3.5.0" "urllib3==1.22" "pyopenssl" "ndg-httpsclient" "pyasn1" )
-install_python_packages "pkgs[@]"
+install_python_packages $TEMPVENV "pkgs[@]"
 
 
 # Test every definition if available in the current repository and update the jobs

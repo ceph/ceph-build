@@ -4,7 +4,7 @@ set -ex
 
 # the following two methods exist in scripts/build_utils.sh
 pkgs=( "tox" )
-install_python_packages "pkgs[@]"
+install_python_packages $TEMPVENV "pkgs[@]"
 
 # trims leading slashes
 BRANCH=`branch_slash_filter ${GIT_BRANCH}`

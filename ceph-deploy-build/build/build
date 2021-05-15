@@ -46,7 +46,7 @@ then
 
         # this exists in scripts/build_utils.sh for ceph-deploy, binaries have
         # no architecture so we POST them to 'noarch' for rpms
-        check_binary_existence $chacra_endpoint/noarch
+        check_binary_existence $VENV $chacra_endpoint/noarch
 
         if [ ! -e setup.py ] ; then
             echo "Are we in the right directory"
@@ -103,7 +103,7 @@ then
     chacra_endpoint="ceph-deploy/${chacra_ref}/${GIT_COMMIT}/${DISTRO}/universal/all"
 
     # this exists in scripts/build_utils.sh
-    check_binary_existence $chacra_endpoint
+    check_binary_existence $VENV $chacra_endpoint
 
     if [ ! -d debian ] ; then
         echo "Are we in the right directory"

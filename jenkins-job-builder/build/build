@@ -10,7 +10,7 @@ set -euxo pipefail
 
 # the following two methods exist in scripts/build_utils.sh
 pkgs=( "jenkins-job-builder>=3.5.0" )
-install_python_packages "pkgs[@]" latest
+install_python_packages $TEMPVENV "pkgs[@]" latest
 
 # Wipe out JJB's cache if $FORCE is set.
 [ "$FORCE" = true ] && rm -rf "$HOME/.cache/jenkins_jobs/"

@@ -45,7 +45,7 @@ echo "*****"
 export LC_ALL=C # the following is vulnerable to i18n
 
 pkgs=( "chacractl>=0.0.21" )
-install_python_packages "pkgs[@]"
+install_python_packages $TEMPVENV "pkgs[@]"
 
 NFS_GANESHA_BRANCH=`branch_slash_filter $NFS_GANESHA_BRANCH`
 CEPH_BRANCH=`branch_slash_filter $CEPH_BRANCH`

@@ -2,7 +2,7 @@
 
 # the following two methods exist in scripts/build_utils.sh
 pkgs=( "ansible" "tox" )
-install_python_packages "pkgs[@]"
+install_python_packages $TEMPVENV "pkgs[@]"
 
 # run ansible to get this current host to meet our requirements, specifying
 # a local connection and 'localhost' as the host where to execute

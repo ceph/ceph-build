@@ -3,4 +3,4 @@
 cd $WORKSPACE/tests
 
 # the method exists in scripts/build_utils.sh
-teardown_vagrant_tests
+teardown_vagrant_tests $VENV

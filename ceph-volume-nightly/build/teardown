@@ -8,4 +8,4 @@ cd $WORKSPACE/src/ceph-volume/ceph_volume/tests/functional
 scenarios=$(find . | grep vagrant_ssh_config | xargs -r dirname)
 
 # the method exists in scripts/build_utils.sh
-teardown_vagrant_tests
+teardown_vagrant_tests $VENV
