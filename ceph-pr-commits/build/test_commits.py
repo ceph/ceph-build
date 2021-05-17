@@ -26,7 +26,9 @@ class TestCommits(object):
     @classmethod
     def command(cls, command):
         print("Running command:", command)
-        return check_output(shlex.split(command), cwd=cls.ceph_checkout).decode(encoding='utf-8', errors='ignore')
+        args = shlex.split(command)
+        output = check_output(args, cwd=cls.ceph_checkout)
+        return output.decode(encoding='utf-8', errors='ignore')
 
     @classmethod
     def setup_class(cls):
