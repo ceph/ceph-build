@@ -47,6 +47,7 @@
             - idryomov
             - vasukulkarni
             - ivotron
+            - sunilkumarn417
           trigger-phrase: 'jenkins test.*|jenkins retest.*'
           only-trigger-phrase: false
           github-hooks: true
