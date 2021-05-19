@@ -2,8 +2,12 @@
 
 set -ex
 
-TEMPVENV=$(mktemp -td venv.XXXXXXXXXX)
-VENV="$TEMPVENV/bin"
+function create_venv_dir() {
+    local venv_dir
+    venv_dir=$(mktemp -td venv.XXXXXXXXXX)
+    trap "rm -rf ${venv_dir}" EXIT
+    echo "${venv_dir}"
+}
 
 function release_from_version() {
     local ver=$1

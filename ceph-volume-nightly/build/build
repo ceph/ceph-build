@@ -4,6 +4,8 @@ WORKDIR=$(mktemp -td tox.XXXXXXXXXX)
 
 # the following two methods exist in scripts/build_utils.sh
 pkgs=( "tox" )
+TEMPVENV=$(create_venv_dir)
+VENV=${TEMPVENV}/bin
 install_python_packages $TEMPVENV "pkgs[@]"
 
 prune_stale_vagrant_vms $WORKSPACE/../**/tests
