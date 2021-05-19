@@ -1,4 +1,4 @@
 #!/bin/bash
 set -ex
 
-build_debs ${vers} ${debian_version}
+build_debs ${VENV} ${vers} ${debian_version}

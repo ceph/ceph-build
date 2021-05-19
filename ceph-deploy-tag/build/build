@@ -9,7 +9,7 @@ fi
 
 # the following two methods exist in scripts/build_utils.sh
 pkgs=( "ansible" )
-install_python_packages "pkgs[@]"
+install_python_packages $TEMPVENV "pkgs[@]"
 
 # run ansible to do all the tagging and release specifying
 # a local connection and 'localhost' as the host where to execute

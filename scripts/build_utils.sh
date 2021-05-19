@@ -80,12 +80,14 @@ branch_slash_filter() {
 }
 
 pip_download() {
+    local venv=$1
+    shift
     local package=$1
     shift
     local options=$@
-    if ! $VENV/pip download $options --dest="$PIP_SDIST_INDEX" $package; then
+    if ! $venv/pip download $options --dest="$PIP_SDIST_INDEX" $package; then
         # pip <8.0.0 does not have "download" command
-        $VENV/pip install $options \
+        $venv/pip install $options \
                   --upgrade --exists-action=i --cache-dir="$PIP_SDIST_INDEX" \
                   $package
     fi
@@ -107,6 +109,9 @@ create_virtualenv () {
 }
 
 install_python_packages_no_binary () {
+    local venv_dir=$1
+    shift
+    local venv="$venv_dir/bin"
     # Use this function to create a virtualenv and install python packages
     # without compiling (or using wheels). Pass a list of package names.  If
     # the virtualenv exists it will get re-used since this function can be used
@@ -115,19 +120,19 @@ install_python_packages_no_binary () {
     # Usage (with pip==20.3.4 [the default]):
     #
     #   to_install=( "ansible" "chacractl>=0.0.21" )
-    #   install_python_packages_no_binary "to_install[@]"
+    #   install_python_packages_no_binary $TEMPVENV "to_install[@]"
     #
     # Usage (with pip<X.X.X [can also do ==X.X.X or !=X.X.X]):
     #
     #   to_install=( "ansible" "chacractl>=0.0.21" )
-    #   install_python_packages_no_binary "to_install[@]" "pip<X.X.X"
+    #   install_python_packages_no_binary $TEMPVENV "to_install[@]" "pip<X.X.X"
     #
     # Usage (with latest pip):
     #
     #   to_install=( "ansible" "chacractl>=0.0.21" )
-    #   install_python_packages_no_binary "to_install[@]" latest
+    #   install_python_packages_no_binary $TEMPVENV "to_install[@]" latest
 
-    create_virtualenv $TEMPVENV
+    create_virtualenv $venv_dir
 
     # Define and ensure the PIP cache
     PIP_SDIST_INDEX="$HOME/.cache/pip"
@@ -139,51 +144,54 @@ install_python_packages_no_binary () {
     # Updated to 20.3.4 in March 2021 because 10.0.0 is just too old.
     if [ "$2" == "latest" ]; then
         echo "Ensuring latest pip is installed"
-        $VENV/pip install -U pip
+        $venv/pip install -U pip
     elif [[ -n $2 && "$2" != "latest" ]]; then
         echo "Installing $2"
-        $VENV/pip install "$2"
+        $venv/pip install "$2"
     else
         # This is the default for most jobs.
         # See ff01d2c5 and fea10f52
         echo "Installing pip 20.3.4"
-        $VENV/pip install "pip==20.3.4"
+        $venv/pip install "pip==20.3.4"
     fi
 
     echo "Updating setuptools"
-    pip_download setuptools
+    pip_download $VENV setuptools
 
     pkgs=("${!1}")
     for package in ${pkgs[@]}; do
         echo $package
         # download packages to the local pip cache
-        pip_download $package --no-binary=:all:
+        pip_download $VENV $package --no-binary=:all:
         # install packages from the local pip cache, ignoring pypi
-        $VENV/pip install --no-binary=:all: --upgrade --exists-action=i --find-links="file://$PIP_SDIST_INDEX" --no-index $package
+        $venv/pip install --no-binary=:all: --upgrade --exists-action=i --find-links="file://$PIP_SDIST_INDEX" --no-index $package
     done
 }
 
 
 install_python_packages () {
+    local venv_dir=$1
+    shift
+    local venv="$venv_dir/bin"
     # Use this function to create a virtualenv and install
     # python packages. Pass a list of package names.
     #
     # Usage (with pip 20.3.4 [the default]):
     #
     #   to_install=( "ansible" "chacractl>=0.0.21" )
-    #   install_python_packages "to_install[@]"
+    #   install_python_packages $TEMPVENV "to_install[@]"
     #
     # Usage (with pip<X.X.X [can also do ==X.X.X or !=X.X.X]):
     #
     #   to_install=( "ansible" "chacractl>=0.0.21" )
-    #   install_python_packages_no_binary "to_install[@]" "pip<X.X.X"
+    #   install_python_packages_no_binary $TEMPVENV "to_install[@]" "pip<X.X.X"
     #
     # Usage (with latest pip):
     #
     #   to_install=( "ansible" "chacractl>=0.0.21" )
-    #   install_python_packages "to_install[@]" latest
+    #   install_python_packages $TEMPVENV "to_install[@]" latest
 
-    create_virtualenv $TEMPVENV
+    create_virtualenv $venv_dir
 
     # Define and ensure the PIP cache
     PIP_SDIST_INDEX="$HOME/.cache/pip"
@@ -195,27 +203,27 @@ install_python_packages () {
     # Updated to 20.3.4 in March 2021 because 10.0.0 is just too old.
     if [ "$2" == "latest" ]; then
         echo "Ensuring latest pip is installed"
-        $VENV/pip install -U pip
+        $venv/pip install -U pip
     elif [[ -n $2 && "$2" != "latest" ]]; then
         echo "Installing $2"
-        $VENV/pip install "$2"
+        $venv/pip install "$2"
     else
         # This is the default for most jobs.
         # See ff01d2c5 and fea10f52
         echo "Installing pip 20.3.4"
-        $VENV/pip install "pip==20.3.4"
+        $venv/pip install "pip==20.3.4"
     fi
 
     echo "Updating setuptools"
-    pip_download setuptools
+    pip_download $venv setuptools
 
     pkgs=("${!1}")
     for package in ${pkgs[@]}; do
         echo $package
         # download packages to the local pip cache
-        pip_download $package
+        pip_download $venv $package
         # install packages from the local pip cache, ignoring pypi
-        $VENV/pip install --upgrade --exists-action=i --find-links="file://$PIP_SDIST_INDEX" --no-index $package
+        $venv/pip install --upgrade --exists-action=i --find-links="file://$PIP_SDIST_INDEX" --no-index $package
     done
 }
 
@@ -283,11 +291,14 @@ get_rpm_dist() {
 }
 
 check_binary_existence () {
-    url=$1
+    local venv=$1
+    shift
+    local url=$1
+    shift
 
     # we have to use ! here so thet -e will ignore the error code for the command
     # because of this, the exit code is also reversed
-    ! $VENV/chacractl exists binaries/${url} ; exists=$?
+    ! $venv/chacractl exists binaries/${url} ; exists=$?
 
     # if the binary already exists in chacra, do not rebuild
     if [ $exists -eq 1 ] && [ "$FORCE" = false ] ; then
@@ -859,6 +870,8 @@ ceph_build_args_from_flavor() {
 }
 
 build_debs() {
+    local venv=$1
+    shift
     local vers=$1
     shift
     local debian_version=$1
@@ -928,7 +941,7 @@ build_debs() {
         find release/$vers/ | \
             egrep "*\.(changes|deb|ddeb|dsc|gz)$" | \
             egrep -v "(Packages|Sources|Contents)" | \
-            $VENV/chacractl binary ${chacra_flags} create ${chacra_endpoint}
+            $venv/chacractl binary ${chacra_flags} create ${chacra_endpoint}
         # write json file with build info
         cat > $WORKSPACE/repo-extra.json << EOF
 {
@@ -947,7 +960,7 @@ EOF
              -u $CHACRACTL_USER:$CHACRACTL_KEY \
              ${chacra_url}repos/${chacra_repo_endpoint}/extra/
         # start repo creation
-        $VENV/chacractl repo update ${chacra_repo_endpoint}
+        $venv/chacractl repo update ${chacra_repo_endpoint}
 
         echo Check the status of the repo at: https://shaman.ceph.com/api/repos/${chacra_repo_endpoint}/
     fi
@@ -1063,93 +1076,98 @@ update_vagrant_boxes() {
 }
 
 start_tox() {
-# the $SCENARIO var is injected by the job template. It maps
-# to an actual, defined, tox environment
-while true; do
-  case $1 in
-    CEPH_DOCKER_IMAGE_TAG=?*)
-      local ceph_docker_image_tag=${1#*=}
-      shift
-      ;;
-    RELEASE=?*)
-      local release=${1#*=}
-      shift
-      ;;
-    *)
-      break
-      ;;
-  esac
-done
-if [ "$release" = "dev" ]; then
-    # dev runs will need to be set to the release
-    # that matches what the current ceph master
-    # branch is at
-    local release="quincy"
-fi
-TOX_RUN_ENV=("timeout 3h")
-if [ -n "$ceph_docker_image_tag" ]; then
-  TOX_RUN_ENV=("CEPH_DOCKER_IMAGE_TAG=$ceph_docker_image_tag" "${TOX_RUN_ENV[@]}")
-fi
-if [ -n "$release" ]; then
-  TOX_RUN_ENV=("CEPH_STABLE_RELEASE=$release" "${TOX_RUN_ENV[@]}")
-else
-  TOX_RUN_ENV=("CEPH_STABLE_RELEASE=$RELEASE" "${TOX_RUN_ENV[@]}")
-fi
+    local venv_dir=$1
+    shift
+    local venv="$venv_dir/bin"
 
-function build_job_name() {
-  local job_name=$1
-  shift
-  for item in "$@"; do
-    job_name="${job_name}-${item}"
-  done
-  echo "${job_name}"
-}
-
-# shellcheck disable=SC2153
-ENV_NAME="$(build_job_name "$DISTRIBUTION" "$DEPLOYMENT" "$SCENARIO")"
-
-case $SCENARIO in
-  update)
-    TOX_INI_FILE=tox-update.ini
-    ;;
-  podman)
-    TOX_INI_FILE=tox-podman.ini
-    ;;
-  filestore_to_bluestore)
-    TOX_INI_FILE=tox-filestore_to_bluestore.ini
-    ;;
-  docker_to_podman)
-    TOX_INI_FILE=tox-docker2podman.ini
-    ;;
-  external_clients)
-    TOX_INI_FILE=tox-external_clients.ini
-    ;;
-  cephadm)
-    TOX_INI_FILE=tox-cephadm.ini
-    ;;
-  shrink_osd_single)
-    TOX_INI_FILE=tox-shrink_osd.ini
-    ;;
-  shrink_osd_multiple)
-    TOX_INI_FILE=tox-shrink_osd.ini
-    ;;
-  *)
-    TOX_INI_FILE=tox.ini
-    ;;
-esac
-
-for tox_env in $("$VENV"/tox -c "$TOX_INI_FILE" -l)
-do
-  if [[ "$ENV_NAME" == "$tox_env" ]]; then
-# shellcheck disable=SC2116
-    if ! eval "$(echo "${TOX_RUN_ENV[@]}")" "$VENV"/tox -c "$TOX_INI_FILE" --workdir="$TEMPVENV" -v -e="$ENV_NAME" -- --provider=libvirt; then echo "ERROR: Job didn't complete successfully or got stuck for more than 3h."
-      exit 1
+    # the $SCENARIO var is injected by the job template. It maps
+    # to an actual, defined, tox environment
+    while true; do
+        case $1 in
+            CEPH_DOCKER_IMAGE_TAG=?*)
+                local ceph_docker_image_tag=${1#*=}
+                shift
+                ;;
+            RELEASE=?*)
+                local release=${1#*=}
+                shift
+                ;;
+            *)
+                break
+                ;;
+        esac
+    done
+    if [ "$release" = "dev" ]; then
+        # dev runs will need to be set to the release
+        # that matches what the current ceph master
+        # branch is at
+        local release="quincy"
     fi
-    return 0
-  fi
-done
-echo "ERROR: Environment $ENV_NAME is not defined in $TOX_INI_FILE !"
-exit 1
+    TOX_RUN_ENV=("timeout 3h")
+    if [ -n "$ceph_docker_image_tag" ]; then
+        TOX_RUN_ENV=("CEPH_DOCKER_IMAGE_TAG=$ceph_docker_image_tag" "${TOX_RUN_ENV[@]}")
+    fi
+    if [ -n "$release" ]; then
+        TOX_RUN_ENV=("CEPH_STABLE_RELEASE=$release" "${TOX_RUN_ENV[@]}")
+    else
+        TOX_RUN_ENV=("CEPH_STABLE_RELEASE=$RELEASE" "${TOX_RUN_ENV[@]}")
+    fi
+
+    function build_job_name() {
+        local job_name=$1
+        shift
+        for item in "$@"; do
+            job_name="${job_name}-${item}"
+        done
+        echo "${job_name}"
+    }
+
+    # shellcheck disable=SC2153
+    ENV_NAME="$(build_job_name "$DISTRIBUTION" "$DEPLOYMENT" "$SCENARIO")"
+
+    case $SCENARIO in
+        update)
+            TOX_INI_FILE=tox-update.ini
+            ;;
+        podman)
+            TOX_INI_FILE=tox-podman.ini
+            ;;
+        filestore_to_bluestore)
+            TOX_INI_FILE=tox-filestore_to_bluestore.ini
+            ;;
+        docker_to_podman)
+            TOX_INI_FILE=tox-docker2podman.ini
+            ;;
+        external_clients)
+            TOX_INI_FILE=tox-external_clients.ini
+            ;;
+        cephadm)
+            TOX_INI_FILE=tox-cephadm.ini
+            ;;
+        shrink_osd_single)
+            TOX_INI_FILE=tox-shrink_osd.ini
+            ;;
+        shrink_osd_multiple)
+            TOX_INI_FILE=tox-shrink_osd.ini
+            ;;
+        *)
+            TOX_INI_FILE=tox.ini
+            ;;
+    esac
+
+    for tox_env in $("$venv"/tox -c "$TOX_INI_FILE" -l)
+    do
+        if [[ "$ENV_NAME" == "$tox_env" ]]; then
+            # shellcheck disable=SC2116
+            if ! eval "$(echo "${TOX_RUN_ENV[@]}")" "$venv"/tox -c "$TOX_INI_FILE" --workdir="$venv_dir" -v -e="$ENV_NAME" -- --provider=libvirt; then
+                echo "ERROR: Job didn't complete successfully or got stuck for more than 3h."
+                exit 1
+            fi
+            return 0
+        fi
+    done
+    echo "ERROR: Environment $ENV_NAME is not defined in $TOX_INI_FILE !"
+    exit 1
 }
 
 github_status_setup() {
@@ -1259,6 +1277,8 @@ EOF
 }
 
 collect_ceph_logs() {
+    local venv=$1
+    shift
     # this is meant to be run in a testing scenario directory
     # with running vagrant vms. the ansible playbook will connect
     # to your test nodes and fetch any ceph logs that are present
@@ -1272,15 +1292,18 @@ collect_ceph_logs() {
         write_collect_logs_playbook
 
         pkgs=( "ansible" )
-        install_python_packages "pkgs[@]"
+        install_python_packages $TEMPVENV "pkgs[@]"
 
         export ANSIBLE_SSH_ARGS='-F ./vagrant_ssh_config'
         export ANSIBLE_STDOUT_CALLBACK='debug'
-        $VENV/ansible-playbook -vv -i hosts --limit $limit --extra-vars "archive_path=$WORKSPACE/logs" $WORKSPACE/collect-logs.yml || true
+        $venv/ansible-playbook -vv -i hosts --limit $limit --extra-vars "archive_path=$WORKSPACE/logs" $WORKSPACE/collect-logs.yml || true
     fi
 }
 
 teardown_vagrant_tests() {
+    local venv=$1
+    shift
+
     # collect ceph logs and teardown any running vagrant vms
     # this also cleans up any lingering livirt networks
     scenarios=$(find . | grep vagrant_ssh_config | xargs -r dirname)
@@ -1288,7 +1311,7 @@ teardown_vagrant_tests() {
     for scenario in $scenarios; do
         cd $scenario
         # collect all ceph logs from all test nodes
-        collect_ceph_logs all
+        collect_ceph_logs $venv all
         vagrant destroy -f
         stat ./fetch > /dev/null 2>&1 && rm -rf ./fetch
         cd -

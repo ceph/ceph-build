@@ -4,7 +4,7 @@ WORKDIR=$(mktemp -td tox.XXXXXXXXXX)
 
 # the following two methods exist in scripts/build_utils.sh
 pkgs=( "tox" )
-install_python_packages "pkgs[@]"
+install_python_packages $TEMPVENV "pkgs[@]"
 
 
 delete_libvirt_vms

@@ -36,7 +36,7 @@ echo "*****"
 export LC_ALL=C # the following is vulnerable to i18n
 
 pkgs=( "chacractl>=0.0.21" )
-install_python_packages "pkgs[@]"
+install_python_packages $TEMPVENV "pkgs[@]"
 
 # create the .chacractl config file using global variables
 make_chacractl_config

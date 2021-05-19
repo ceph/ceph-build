@@ -13,7 +13,7 @@ rm -rf dist
 rm -rf RPMBUILD
 
 pkgs=( "chacractl>=0.0.21" )
-install_python_packages "pkgs[@]"
+install_python_packages $TEMPVENV "pkgs[@]"
 
 # create the .chacractl config file using global variables
 make_chacractl_config
@@ -37,7 +37,7 @@ if [ "$target" = "sles11sp2" ] ; then
 fi
 echo "Target directory is: $target"
 
-check_binary_existence $chacra_baseurl/noarch
+check_binary_existence $VENV $chacra_baseurl/noarch
 
 # setup rpm build area
 mkdir -p RPMBUILD/{BUILD,RPMS,SOURCES,SPECS,SRPMS}

@@ -59,7 +59,7 @@ NORMAL_ARCH=$ARCH
 create_build_status "started" "ceph" $NORMAL_DISTRO $NORMAL_DISTRO_VERSION $NORMAL_ARCH
 
 pkgs=( "chacractl>=0.0.21" )
-install_python_packages "pkgs[@]"
+install_python_packages $TEMPVENV "pkgs[@]"
 
 chacra_url=https://chacra.ceph.com/
 make_chacractl_config
@@ -75,5 +75,5 @@ chacra_check_url="${chacra_endpoint}/librados2_${bpvers}_${DEB_ARCH}.deb"
 if [ "$THROWAWAY" = false ] ; then
     # this exists in scripts/build_utils.sh
     # TODO if this exits we need to post to shaman a success
-    check_binary_existence $chacra_check_url
+    check_binary_existence $VENV $chacra_check_url
 fi

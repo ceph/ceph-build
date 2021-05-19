@@ -68,7 +68,7 @@ CentOS|Fedora|SUSE*|RedHatEnterpriseServer)
 esac
 
 pkgs=( "chacractl>=0.0.21" )
-install_python_packages "pkgs[@]"
+install_python_packages $TEMPVENV "pkgs[@]"
 
 # ask shaman which chacra instance to use
 chacra_url=`curl -u $SHAMAN_API_USER:$SHAMAN_API_KEY https://shaman.ceph.com/api/nodes/next/`

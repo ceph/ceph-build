@@ -17,7 +17,7 @@ fi
 
 # the following two methods exist in scripts/build_utils.sh
 pkgs=( "pytest" )
-install_python_packages "pkgs[@]"
+install_python_packages $TEMPVENV "pkgs[@]"
 
 cd "$WORKSPACE"
 timeout 600 $VENV/py.test -m "${pytest_mark}" -vs --junitxml="$WORKSPACE/report.xml" "$WORKSPACE/ceph-build/ceph-pr-commits/build/test_commits.py"

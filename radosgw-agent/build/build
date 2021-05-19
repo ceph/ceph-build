@@ -15,7 +15,7 @@ ls -l
 
 # the following two methods exist in scripts/build_utils.sh
 pkgs=( "chacractl>=0.0.21" )
-install_python_packages "pkgs[@]"
+install_python_packages $TEMPVENV "pkgs[@]"
 
 # create the .chacractl config file using global variables
 make_chacractl_config
@@ -37,7 +37,7 @@ if [[ -f /etc/redhat-release || -f /usr/bin/zypper ]] ; then
 
         chacra_endpoint="radosgw-agent/${chacra_ref}/${GIT_COMMIT}/${DISTRO}/${DISTRO_VERSION}"
 
-        check_binary_existence $chacra_endpoint/noarch
+        check_binary_existence $VENV $chacra_endpoint/noarch
 
         suse=$(uname -n | grep -ic -e suse -e sles || true)
         if [ $suse -gt 0 ]
@@ -75,7 +75,7 @@ else
 
         chacra_endpoint="radosgw-agent/${chacra_ref}/${GIT_COMMIT}/${DISTRO}/${DEB_BUILD}/noarch"
 
-        check_binary_existence $chacra_endpoint
+        check_binary_existence $VENV $chacra_endpoint
 
         dpkg-source -b .
         # we no longer sign the .dsc or .changes files (done by default with

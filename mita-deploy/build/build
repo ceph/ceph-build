@@ -4,7 +4,7 @@ set -ex
 
 # the following two methods exist in scripts/build_utils.sh
 pkgs=( "ansible" )
-install_python_packages "pkgs[@]"
+install_python_packages $TEMPVENV "pkgs[@]"
 
 cd "$WORKSPACE/deploy/playbooks/"
 $VENV/ansible-playbook -i "localhost," -c local local_deploy.yml --extra-vars="branch=$BRANCH jenkins_prado_token=$JENKINS_PRADO_TOKEN prado_token=$PRADO_TOKEN"
