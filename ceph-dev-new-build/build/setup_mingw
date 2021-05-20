@@ -45,6 +45,8 @@ NORMAL_ARCH=$ARCH
 create_build_status "started" "ceph" $NORMAL_DISTRO $NORMAL_DISTRO_VERSION $NORMAL_ARCH
 
 pkgs=( "chacractl>=0.0.21" )
+TEMPVENV=$(create_venv_dir)
+VENV=${TEMPVENV}/bin
 install_python_packages $TEMPVENV "pkgs[@]"
 
 # ask shaman which chacra instance to use

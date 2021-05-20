@@ -8,6 +8,8 @@ github_status_setup
 
 # the following two methods exist in scripts/build_utils.sh
 pkgs=( "tox" "github-status>0.0.3")
+TEMPVENV=$(create_venv_dir)
+VENV=${TEMPVENV}/bin
 install_python_packages $TEMPVENV "pkgs[@]"
 
 cd src/ceph-volume

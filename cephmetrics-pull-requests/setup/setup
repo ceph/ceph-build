@@ -13,4 +13,6 @@ elif test -f /etc/debian_version ; then
 fi
 
 pkgs=( "tox" )
+TEMPVENV=$(create_venv_dir)
+VENV=${TEMPVENV}/bin
 install_python_packages $TEMPVENV "pkgs[@]"

@@ -9,6 +9,8 @@ fi
 
 # the following two methods exist in scripts/build_utils.sh
 pkgs=( "ansible" )
+TEMPVENV=$(create_venv_dir)
+VENV=${TEMPVENV}/bin
 install_python_packages $TEMPVENV "pkgs[@]"
 
 # run ansible to do all the tagging and release specifying

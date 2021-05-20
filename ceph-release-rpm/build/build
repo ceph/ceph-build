@@ -13,6 +13,8 @@ rm -rf dist
 rm -rf RPMBUILD
 
 pkgs=( "chacractl>=0.0.21" )
+TEMPVENV=$(create_venv_dir)
+VENV=${TEMPVENV}/bin
 install_python_packages $TEMPVENV "pkgs[@]"
 
 # create the .chacractl config file using global variables

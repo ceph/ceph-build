@@ -2,6 +2,8 @@
 
 # the following two methods exist in scripts/build_utils.sh
 pkgs=( "ansible" "tox" )
+TEMPVENV=$(create_venv_dir)
+VENV=${TEMPVENV}/bin
 install_python_packages $TEMPVENV "pkgs[@]"
 
 # run ansible to get this current host to meet our requirements, specifying

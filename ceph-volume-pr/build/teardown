@@ -4,6 +4,8 @@
 
 # the following two methods exist in scripts/build_utils.sh
 pkgs=( "github-status>0.0.3" )
+TEMPVENV=$(create_venv_dir)
+VENV=${TEMPVENV}/bin
 install_python_packages $TEMPVENV "pkgs[@]"
 
 GITHUB_STATUS_STATE="failure" $VENV/github-status create
