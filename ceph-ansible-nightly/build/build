@@ -46,7 +46,7 @@ function run_tox {
       ;;
   esac
 
-  [ -n "$CEPH_DOCKER_IMAGE_TAG" ] && start_tox CEPH_DOCKER_IMAGE_TAG="$CEPH_DOCKER_IMAGE_TAG"
+  [ -n "$CEPH_DOCKER_IMAGE_TAG" ] && start_tox $TEMPVENV  CEPH_DOCKER_IMAGE_TAG="$CEPH_DOCKER_IMAGE_TAG"
 }
 
 ########
