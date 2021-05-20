@@ -19,4 +19,4 @@ update_vagrant_boxes
 # In the same logic, clean fact cache
 rm -rf $HOME/ansible/facts/*
 
-start_tox
+start_tox $TEMPVENV
