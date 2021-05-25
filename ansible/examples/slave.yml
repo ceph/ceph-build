@@ -57,6 +57,7 @@
           - ditaa
           - ant
           - tmpreaper
+          - ccache
         tmp_cleaner_name: tmpreaper
       when: ansible_os_family == "Debian"
       tags: always
@@ -183,6 +184,7 @@
           - python-virtualenv
           - mock
           - docker
+          - ccache
         container_service_name: docker
         container_certs_path: "/etc/docker/certs.d/{{ container_mirror }}"
       when:
@@ -199,6 +201,7 @@
           - python3-virtualenv
           - mock
           - podman
+          - ccache
         container_service_name: podman
         container_certs_path: "/etc/containers/certs.d/{{ container_mirror }}"
       when:
@@ -550,6 +553,26 @@
         path: "/home/{{ jenkins_user }}/.config/osc/oscrc"
       become_user: "{{ jenkins_user }}"
       when: ansible_os_family == "Suse"
+
+    # On older permanent builders, ccache got configured to allow 100G of cache.  That's too much.
+    - name: Clean up ccache
+      shell: "find /home/{{ jenkins_user }}/.ccache/ -type d -maxdepth 1 -exec rm -rf {} \\;"
+      become_user: "{{ jenkins_user }}"
+      ignore_errors: true
+
+    - name: Make sure ~/.ccache exists
+      file:
+        path: "/home/{{ jenkins_user }}/.ccache"
+        state: directory
+      become_user: "{{ jenkins_user }}"
+
+    - name: Configure max ccache
+      lineinfile:
+        path: "/home/{{ jenkins_user }}/.ccache/ccache.conf"
+        regexp: '^max_size'
+        line: 'max_size = 20G'
+        create: yes
+      become_user: "{{ jenkins_user }}"
 
     - name: Ensure the home dir has the right owner permissions
       file:
