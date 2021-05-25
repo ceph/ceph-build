@@ -84,5 +84,9 @@ cd "$WORKSPACE"
 # Clean the git repo
 git clean -fxd
 
+# Export the SHA1 so links work here: https://shaman.ceph.com/builds/kernel/
+# This gets sent to update_build_status which calls submit_build_status in build_utils.sh.
+export SHA1="${GIT_COMMIT}"
+
 # create build status in shaman
 create_build_status "started" "kernel" $NORMAL_DISTRO $NORMAL_DISTRO_VERSION $ARCH
