@@ -1,0 +1,54 @@
+- job:
+    name: ceph-grafana
+    description: 'Builds the ceph-grafana container.'
+    project-type: freestyle
+    concurrent: true
+    display-name: 'ceph-grafana'
+    properties:
+      - groovy-label:
+          script: return ARCH + '&&centos8'
+      - build-discarder:
+          days-to-keep: -1
+          num-to-keep: 25
+          artifact-days-to-keep: 25
+          artifact-num-to-keep: 25
+      - github:
+          url: https://github.com/ceph/ceph
+
+    scm:
+        - git:
+            url: https://github.com/ceph/ceph
+            branches:
+                - $BRANCH
+            wipe-workspace: true
+
+    parameters:
+      - string:
+          name: BRANCH
+          description: "The git branch (or tag) to build"
+          default: master
+      - string:
+          name: ARCH
+          description: "Architecture to build for. Available options are: x86_64, arm64"
+          default: "x86_64"
+
+    builders:
+        - shell:
+            !include-raw:
+                ../../build/build
+
+    wrappers:
+      - inject-passwords:
+          global: true
+          mask-password-params: true
+      - credentials-binding:
+          - username-password-separated:
+              credential-id: dmick-quay
+              username: CONTAINER_REPO_USERNAME
+              password: CONTAINER_REPO_PASSWORD
+          - username-password-separated:
+              credential-id: docker-hub-leseb
+              username: DOCKER_HUB_USERNAME
+              password: DOCKER_HUB_PASSWORD
+      - build-name:
+          name: "#${BUILD_NUMBER} ${BRANCH}, ${ARCH}"
