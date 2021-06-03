@@ -2,5 +2,7 @@
 
 cd $WORKSPACE/tests
 
+TEMPVENV=$(create_venv_dir)
+VENV=${TEMPVENV}/bin
 # the method exists in scripts/build_utils.sh
 teardown_vagrant_tests $VENV
