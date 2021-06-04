@@ -1326,7 +1326,7 @@ get_nr_build_jobs() {
     local nproc=$(nproc)
     local max_build_jobs=$(vmstat --stats --unit m | \
                                grep 'total memory' | \
-                               awk '{print int($1/2200)}')
+                               awk '{print int($1/3000)}')
     if [[ $max_build_jobs -eq 0 ]]; then
         # probably the system is under high load, use a safe number
         max_build_jobs=16
