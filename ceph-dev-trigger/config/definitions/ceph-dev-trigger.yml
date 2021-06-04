@@ -101,7 +101,7 @@
                     DISTROS=centos8
                     FLAVOR=crimson
       # build master on:
-      # default: focal centos8 leap15
+      # default: focal centos8
       # crimson: centos8
       - conditional-step:
           condition-kind: regex-match
