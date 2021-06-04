@@ -844,23 +844,7 @@ ceph_build_args_from_flavor() {
     case "${flavor}" in
     default)
         CEPH_EXTRA_RPMBUILD_ARGS="--with tcmalloc"
-        # we have to build quincy and up on bionic, because some teuthology tests are
-        # still using ubuntu bionic:
-        # - the perftest depends on cosbench which is not compatible with ubuntu/focal, see
-        #   https://tracker.ceph.com/issues/49139
-        # - we need to test old clients which are built on bionic. for instance, we don't build
-        #   nautilus on focal yet.
-        # - some upgrade tests still include bionic facets.
-        #
-        # do not specify -DALLOCATOR=tcmalloc in CEPH_EXTRA_CMAKE_ARGS, and let
-        # cmake figure it out:
-        # - on quincy and up, gperftools 2.6.2 is required, so we are not
-        #   impacted by https://tracker.ceph.com/issues/39703. and cmake uses
-        #   tcmalloc if gperftools 2.6.2 and up is found. on bionic, cmake
-        #   falls back to libc allocator.
-        # - before quincy, since ALLOCATOR is not specified, cmake uses
-        #   tcmalloc as long as gperftools is found, and the fix of
-        #   https://tracker.ceph.com/issues/39703 is still not removed.
+        CEPH_EXTRA_CMAKE_ARGS+=" -DALLOCATOR=tcmalloc"
         ;;
     crimson)
         CEPH_EXTRA_RPMBUILD_ARGS="--with seastar"
