@@ -126,7 +126,7 @@
                     DISTROS=centos8
                     FLAVOR=crimson
                     ARCHS=x86_64
-      # If no release name is found in branch, build on all possible distro/flavor combos (except xenial).
+      # If no release name is found in branch, build on all possible distro/flavor combos (except xenial and bionic).
       # regex matching and 'on-evaluation-failure: run' doesn't work here so triple negative it is.
       - conditional-step:
           condition-kind: shell
@@ -143,7 +143,7 @@
                   predefined-parameters: |
                     BRANCH=${GIT_BRANCH}
                     FORCE=True
-                    DISTROS=focal bionic centos8 windows
+                    DISTROS=focal centos8 windows
             - trigger-builds:
                 - project: 'ceph-dev-new'
                   predefined-parameters: |
