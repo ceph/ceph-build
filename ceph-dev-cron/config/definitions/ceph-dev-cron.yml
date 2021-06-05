@@ -119,7 +119,7 @@
                     FLAVOR=crimson
                     ARCHS=x86_64
       # build master on:
-      # default: focal bionic centos8 leap15
+      # default: focal centos8 leap15
       # crimson: centos8
       - conditional-step:
           condition-kind: regex-match
@@ -136,7 +136,7 @@
                   predefined-parameters: |
                     BRANCH=${GIT_BRANCH}
                     FORCE=True
-                    DISTROS=focal bionic centos8
+                    DISTROS=focal centos8
                 - project: 'ceph-dev'
                   predefined-parameters: |
                     BRANCH=${GIT_BRANCH}
