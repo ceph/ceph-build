@@ -52,6 +52,7 @@ function run_tox {
 ########
 # MAIN #
 ########
+prune_stale_vagrant_running_vms
 delete_libvirt_vms
 clear_libvirt_networks
 restart_libvirt_services
