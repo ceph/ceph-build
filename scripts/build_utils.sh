@@ -1018,6 +1018,29 @@ prune_stale_vagrant_vms() {
     vagrant global-status --prune || true
 }
 
+prune_stale_vagrant_running_vms() {
+    # The method of cleaning up VMs in the function above isn't aggressive enough.
+    cd $HOME
+    running_vagrant_vms=$(vagrant global-status | grep "running" | awk '{ print $1 }')
+    for uuid in $running_vagrant_vms; do
+        if ! vagrant destroy -f $uuid; then
+            echo "Destroying $uuid failed.  Deleting its directory."
+            failed_path=$(vagrant global-status | grep $uuid | awk '{ print $5 }')
+            if [ -z ${failed_path+x} ]; then
+                echo "Didn't get a path for $uuid.  Skipping."
+            else
+                if [[ $failed_path =~ $WORKSPACE ]]; then
+                    echo "Skipping $failed_path.  That's the current job."
+                else
+                    rm -rf $failed_path
+                fi
+            fi
+            vagrant global-status --prune
+        fi
+    done
+    cd $WORKSPACE
+}
+
 delete_libvirt_vms() {
     # Delete any VMs leftover from previous builds.
     # Primarily used for Vagrant VMs leftover from docker builds.
