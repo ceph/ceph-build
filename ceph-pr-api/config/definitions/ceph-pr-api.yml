@@ -39,6 +39,7 @@
             - pacific
             - octopus
             - nautilus
+            - "feature-.*"
           trigger-phrase: 'jenkins test api'
           skip-build-phrase: '^jenkins do not test.*'
           only-trigger-phrase: false
