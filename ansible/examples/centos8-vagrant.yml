@@ -36,7 +36,7 @@
     - name: Wipe out vagrant stuff
       shell: |
         rvm implode
-        gem uninstall --all
+        sudo gem uninstall --all
       become_user: "{{ jenkins_user }}"
       ignore_errors: true
 
@@ -57,17 +57,27 @@
       dnf:
         name: "{{ hackery_packages + [ latest_vagrant_url ] }}"
         state: present
+        disable_gpg_check: yes
 
     # https://github.com/vagrant-libvirt/vagrant-libvirt/issues/1127#issuecomment-713651332
+    # https://github.com/hashicorp/vagrant/issues/11020#issuecomment-633802295
     - name: Library hackery
       shell: |
-        cd /tmp
-        wget http://vault.centos.org/8.2.2004/BaseOS/Source/SPackages/krb5-1.17-18.el8.src.rpm
-        rpm2cpio krb5-1.17-18.el8.src.rpm | cpio -imdV
-        tar xf krb5-1.17.tar.gz; cd krb5-1.17/src
+        cd $(mktemp -d)
+        wget https://vault.centos.org/8.4.2105/BaseOS/Source/SPackages/krb5-1.18.2-8.el8.src.rpm
+        rpm2cpio krb5-1.18.2-8.el8.src.rpm | cpio -imdV
+        tar xf krb5-1.18.2.tar.gz; cd krb5-1.18.2/src
         LDFLAGS='-L/opt/vagrant/embedded/' ./configure
         make
-        sudo cp lib/libk5crypto.so.3 /opt/vagrant/embedded/lib64/
+        sudo cp lib/libk5crypto.* /opt/vagrant/embedded/lib/
+        wget https://vault.centos.org/8.4.2105/BaseOS/Source/SPackages/libssh-0.9.4-2.el8.src.rpm
+        rpm2cpio libssh-0.9.4-2.el8.src.rpm | cpio -imdV
+        tar xf libssh-0.9.4.tar.xz
+        mkdir build
+        cd build
+        cmake ../libssh-0.9.4 -DOPENSSL_ROOT_DIR=/opt/vagrant/embedded/
+        make
+        cp lib/libssh* /opt/vagrant/embedded/lib64
 
     # https://github.com/vagrant-libvirt/vagrant-libvirt/issues/943#issuecomment-479360033
     - name: Install the vagrant-libvirt plugin (EL)
