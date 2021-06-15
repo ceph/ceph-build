@@ -1048,6 +1048,7 @@ delete_libvirt_vms() {
     for vm in $libvirt_vms; do
         # Destroy returns a non-zero rc if the VM's not running
         sudo virsh destroy $vm || true
+        sudo virsh managedsave-remove $vm || true
         sudo virsh undefine $vm || true
     done
     # Clean up any leftover disk images
