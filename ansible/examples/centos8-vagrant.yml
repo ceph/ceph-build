@@ -29,7 +29,9 @@
 
     - name: Set the latest vagrant version URL
       set_fact:
-        latest_vagrant_url: "https://releases.hashicorp.com/vagrant/{{ latest_vagrant_version.stdout }}/vagrant_{{ latest_vagrant_version.stdout }}_x86_64.rpm"
+        latest_vagrant_url: "https://releases.hashicorp.com/vagrant/2.2.10/vagrant_2.2.10_x86_64.rpm"
+        # Latest vagrant version sometimes has issue.  Pinning to 2.2.10 for now.
+        # latest_vagrant_url: "https://releases.hashicorp.com/vagrant/{{ latest_vagrant_version.stdout }}/vagrant_{{ latest_vagrant_version.stdout }}_x86_64.rpm"
 
     ## Wipe out vagrant stuff
     # From https://github.com/vagrant-libvirt/vagrant-libvirt/issues/943#issuecomment-463678158
