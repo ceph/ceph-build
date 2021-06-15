@@ -1,6 +1,6 @@
 - project:
-    name: ceph-ansible-prs-smithi
-    slave_labels: 'vagrant && libvirt && smithi'
+    name: ceph-ansible-prs-braggi-adami
+    slave_labels: 'vagrant && libvirt && (braggi||adami)'
     distribution:
       - centos
     deployment:
