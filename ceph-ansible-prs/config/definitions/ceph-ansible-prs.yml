@@ -8,6 +8,7 @@
       - non_container
     scenario:
       - all_daemons
+      - all_in_one
       - update
       - purge
       - switch_to_containers
@@ -31,7 +32,6 @@
       - lvm_osds
       - collocation
       - lvm_batch
-      - all_in_one
       - external_clients
     jobs:
       - 'ceph-ansible-prs-auto'
