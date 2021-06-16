@@ -619,7 +619,7 @@
     - name: Install vagrant-libvirt plugin
       block:
         - name: Install the vagrant-libvirt plugin (without args)
-          shell: vagrant plugin install vagrant-libvirt
+          shell: vagrant plugin install vagrant-libvirt --plugin-version 0.3.0
           become_user: "{{ jenkins_user }}"
           when: (ansible_os_family == "RedHat" and ansible_distribution_major_version|int <= 7) or
                 (ansible_os_family == "Debian" and ansible_distribution_major_version|int <= 18)
