@@ -489,6 +489,8 @@ echo "deb [arch=amd64] http://us.archive.ubuntu.com/ubuntu/ $DIST-backports main
 echo "deb [arch=amd64] http://security.ubuntu.com/ubuntu $DIST-security main restricted universe multiverse" >> /etc/apt/sources.list
 env DEBIAN_FRONTEND=noninteractive apt-get update -y -o Acquire::Languages=none -o Acquire::Translation=none || true
 env DEBIAN_FRONTEND=noninteractive apt-get install -y gnupg
+curl -L https://dist.apache.org/repos/dist/dev/arrow/KEYS | sudo apt-key add -
+sudo add-apt-repository "deb [arch=amd64] http://dl.bintray.com/apache/arrow/ubuntu $DISTRO main"
 EOF
     elif [[ "$ARCH" == "arm64" ]]; then
         cat > $hookdir/D04install-updates-repo <<EOF
@@ -1381,6 +1383,8 @@ setup_rpm_build_deps() {
         # before EPEL8 and PowerTools provide all dependencies, we use sepia for the dependencies
         $SUDO dnf config-manager --add-repo http://apt-mirror.front.sepia.ceph.com/lab-extras/8/
         $SUDO dnf config-manager --setopt=apt-mirror.front.sepia.ceph.com_lab-extras_8_.gpgcheck=0 --save
+
+	$SUDO dnf config-manager --add-repo="https://apache.jfrog.io/artifactory/arrow/centos/${RELEASE}/${ARCH}"
     fi
 
     sed -e 's/@//g' < ceph.spec.in > $DIR/ceph.spec
