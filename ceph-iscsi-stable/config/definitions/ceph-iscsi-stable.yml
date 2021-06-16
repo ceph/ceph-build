@@ -22,29 +22,29 @@
 
 - job:
     name: ceph-iscsi-stable
-    node: 'centos7 && x86_64 && huge'
-    project-type: freestyle
+    project-type: matrix
     defaults: global
     display-name: 'ceph-iscsi-stable'
     concurrent: true
+
     parameters:
       - string:
           name: CEPH_ISCSI_BRANCH
           description: "The git branch (or tag) to build"
-          default: "3.2"
+          default: "3.5"
 
       - string:
           name: CEPH_ISCSI_TOOLS_BRANCH
           description: "The git branch (or tag) to build"
-          default: "2.1"
+          default: "2.2"
 
       - string:
-          name: DISTRO
-          description: "A list of distros to build for. Available options are: centos7"
-          default: "centos7"
+          name: DISTROS
+          description: "A list of distros to build for. Available options are: centos7 centos8"
+          default: "centos7 centos8"
 
       - string:
-          name: ARCH
+          name: ARCHS
           description: "A list of architectures to build for. Available options are: x86_64"
           default: "x86_64"
 
@@ -66,6 +66,38 @@ If this is checked, then the binaries will be built and pushed to chacra even if
           name: BUILD_VIRTUALENV
           description: "Base parent path for virtualenv locations, set to avoid issues with extremely long paths that are incompatible with tools like pip. Defaults to '/tmp/' (note the trailing slash, which is required)."
           default: "/tmp/"
+
+    execution-strategy:
+       combination-filter: |
+         DIST == AVAILABLE_DIST && ARCH == AVAILABLE_ARCH &&
+         (ARCH == "x86_64" || (ARCH == "arm64" && ["centos7", "centos8"].contains(DIST)))
+    axes:
+      - axis:
+          type: label-expression
+          name: MACHINE_SIZE
+          values:
+            - huge
+      - axis:
+          type: label-expression
+          name: AVAILABLE_ARCH
+          values:
+            - x86_64
+      - axis:
+          type: label-expression
+          name: AVAILABLE_DIST
+          values:
+            - centos7
+            - centos8
+      - axis:
+          type: dynamic
+          name: DIST
+          values:
+            - DISTROS
+      - axis:
+          type: dynamic
+          name: ARCH
+          values:
+            - ARCHS
 
     scm:
       - ceph-iscsi

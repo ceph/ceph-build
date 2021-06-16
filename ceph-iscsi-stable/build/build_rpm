@@ -55,7 +55,7 @@ for project in $(ls -h | grep -v dist); do
   # Build the binaries with mock
   echo "Building RPMs"
   sudo mock --verbose -r ${MOCK_TARGET}-${RELEASE}-${ARCH} --scrub=all
-  sudo mock --verbose -r ${MOCK_TARGET}-${RELEASE}-${ARCH} --define "dist .el7" --resultdir=$WORKSPACE/dist/RPMS/ ${SRPM} || ( tail -n +1 $WORKSPACE/dist/RPMS/{root,build}.log && exit 1 )
+  sudo mock --verbose -r ${MOCK_TARGET}-${RELEASE}-${ARCH} --resultdir=$WORKSPACE/dist/RPMS/ ${SRPM} || ( tail -n +1 $WORKSPACE/dist/RPMS/{root,build}.log && exit 1 )
 done
 
 cd $WORKSPACE
