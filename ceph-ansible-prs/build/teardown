@@ -4,6 +4,13 @@ cd $WORKSPACE/tests
 
 TEMPVENV=$(create_venv_dir)
 VENV=${TEMPVENV}/bin
+
+echo "========= VAGRANT DEBUGGING ========="
+sudo virsh list --all
+for net in $(sudo virsh net-list --name); do sudo virsh net-dhcp-leases ${net}; done
+sudo journalctl -u libvirtd --pager-end --no-pager
+echo "======= END VAGRANT DEBUGGING ======="
+
 # the method exists in scripts/build_utils.sh
 teardown_vagrant_tests $VENV
 
