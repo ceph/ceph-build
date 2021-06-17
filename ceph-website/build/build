@@ -11,7 +11,15 @@ BRANCH=$(echo $GIT_BRANCH | sed 's:.*/::')
 
 npm install
 
-npm run build
+if [ "$BRANCH" == "master" ]; then
+  npm run build:production
+elif [ "$BRANCH" == "main" ]; then
+  npm run build:production
+elif [ "$BRANCH" == "develop" ]; then
+  npm run build:production
+else
+  npm run build:development
+fi
 
 if [ ! -d /opt/www/${BRANCH} ]; then
   mkdir -p /opt/www/${BRANCH}
