@@ -250,6 +250,7 @@
           # obs requirements
           - osc
           - build
+        tmp_cleaner_name: tmpwatch
       when: ansible_os_family == "Suse"
       tags: always
 
