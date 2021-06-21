@@ -857,6 +857,7 @@
         executors: '{{ executors|default(1) }}'
         exclusive: true
       when: not permanent|bool
+      tags: register
 
     - name: Register Permanent Slave
       block:
@@ -910,3 +911,4 @@
             enabled: yes
           when: jar_changed is changed or unit_files_changed is changed
       when: permanent|bool
+      tags: register
