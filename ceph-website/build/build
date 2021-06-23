@@ -6,16 +6,9 @@ env
 
 BRANCH=$(echo $GIT_BRANCH | sed 's:.*/::')
 
-# Don't think this is even necessary
-#git checkout ${BRANCH}
-
 npm install
 
-if [ "$BRANCH" == "master" ]; then
-  npm run build:production
-elif [ "$BRANCH" == "main" ]; then
-  npm run build:production
-elif [ "$BRANCH" == "develop" ]; then
+if [ "$BRANCH" == "main" ]; then
   npm run build:production
 else
   npm run build:development
