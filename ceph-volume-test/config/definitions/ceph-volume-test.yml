@@ -343,6 +343,7 @@
                   current-parameters: true
                   predefined-parameters: |
                     SCENARIO=xenial-bluestore-mixed_type
+                    SUBCOMMAND=batch
                 - name: ceph-volume-scenario
                   current-parameters: true
                   predefined-parameters: |
