@@ -283,6 +283,7 @@
                   current-parameters: true
                   predefined-parameters: |
                     SCENARIO=centos7-bluestore-mixed_type
+                    SUBCOMMAND=batch
                 - name: ceph-volume-scenario
                   current-parameters: true
                   predefined-parameters: |
