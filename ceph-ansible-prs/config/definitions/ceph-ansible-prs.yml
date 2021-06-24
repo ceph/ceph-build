@@ -293,7 +293,9 @@
                     !include-raw-escape:
                       - ../../../scripts/build_utils.sh
                       - ../../build/teardown
-
+      - naginator:
+          max-failed-builds: 3
+          regular-expression: "not yet ready for SSH"
       - archive:
           artifacts: 'logs/**'
           allow-empty: true
