@@ -224,7 +224,6 @@
                  predefined-parameters: |
                    SCENARIO=centos7-filestore-dmcrypt_plain
                    SUBCOMMAND=simple
-
                - name: ceph-volume-scenario
                  current-parameters: true
                  predefined-parameters: |
@@ -319,7 +318,6 @@
                   predefined-parameters: |
                     SCENARIO=centos7-filestore-mixed_type_dmcrypt_explicit
                     SUBCOMMAND=batch
-
                 - name: ceph-volume-scenario
                   current-parameters: true
                   predefined-parameters: |
@@ -339,44 +337,4 @@
                   current-parameters: true
                   predefined-parameters: |
                     SCENARIO=xenial-filestore-single_type_dmcrypt
-                    SUBCOMMAND=batch
-                - name: ceph-volume-scenario
-                  current-parameters: true
-                  predefined-parameters: |
-                    SCENARIO=xenial-bluestore-mixed_type
-                    SUBCOMMAND=batch
-                - name: ceph-volume-scenario
-                  current-parameters: true
-                  predefined-parameters: |
-                    SCENARIO=xenial-filestore-mixed_type
-                    SUBCOMMAND=batch
-                - name: ceph-volume-scenario
-                  current-parameters: true
-                  predefined-parameters: |
-                    SCENARIO=xenial-bluestore-mixed_type_dmcrypt
-                    SUBCOMMAND=batch
-                - name: ceph-volume-scenario
-                  current-parameters: true
-                  predefined-parameters: |
-                    SCENARIO=xenial-filestore-mixed_type_dmcrypt
-                    SUBCOMMAND=batch
-                - name: ceph-volume-scenario
-                  current-parameters: true
-                  predefined-parameters: |
-                    SCENARIO=xenial-bluestore-mixed_type_explicit
-                    SUBCOMMAND=batch
-                - name: ceph-volume-scenario
-                  current-parameters: true
-                  predefined-parameters: |
-                    SCENARIO=xenial-filestore-mixed_type_explicit
-                    SUBCOMMAND=batch
-                - name: ceph-volume-scenario
-                  current-parameters: true
-                  predefined-parameters: |
-                    SCENARIO=xenial-bluestore-mixed_type_dmcrypt_explicit
-                    SUBCOMMAND=batch
-                - name: ceph-volume-scenario
-                  current-parameters: true
-                  predefined-parameters: |
-                    SCENARIO=xenial-filestore-mixed_type_dmcrypt_explicit
                     SUBCOMMAND=batch
