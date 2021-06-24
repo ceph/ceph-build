@@ -73,6 +73,7 @@
       - 'maven-plugin'
       - 'momentjs'
       - 'multiple-scms'
+      - 'naginator'
       - 'nested-view'
       - 'pam-auth'
       - 'parameterized-trigger'
