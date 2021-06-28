@@ -1,6 +1,6 @@
 - job:
     name: ceph-pr-submodules
-    node: centos || trusty
+    node: small
     project-type: freestyle
     defaults: global
     display-name: 'ceph: Pull Request modified submodules'
