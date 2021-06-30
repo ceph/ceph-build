@@ -489,6 +489,9 @@ echo "deb [arch=amd64] http://us.archive.ubuntu.com/ubuntu/ $DIST-backports main
 echo "deb [arch=amd64] http://security.ubuntu.com/ubuntu $DIST-security main restricted universe multiverse" >> /etc/apt/sources.list
 env DEBIAN_FRONTEND=noninteractive apt-get update -y -o Acquire::Languages=none -o Acquire::Translation=none || true
 env DEBIAN_FRONTEND=noninteractive apt-get install -y gnupg
+
+curl -L https://dist.apache.org/repos/dist/dev/arrow/KEYS | apt-key add -
+add-apt-repository "deb [arch=amd64] http://dl.bintray.com/apache/arrow/ubuntu $DISTRO main"
 EOF
     elif [[ "$ARCH" == "arm64" ]]; then
         cat > $hookdir/D04install-updates-repo <<EOF
@@ -600,11 +603,12 @@ setup_pbuilder() {
         echo "$other_mirror" >> ~/.pbuilderrc
     fi
 
+    #in case it needs to update/add repo, the following packages should installed.
+    extrapackages="software-properties-common curl"
     if [ $FLAVOR = "crimson" ]; then
-        extrapackages='EXTRAPACKAGES="libc-ares-dev libcrypto++-dev libgnutls28-dev libhwloc-dev libnuma-dev libpciaccess-dev libprotobuf-dev libsctp-dev libyaml-cpp-dev protobuf-compiler ragel systemtap-sdt-dev"'
-        echo "$extrapackages" >> ~/.pbuilderrc
+	extrapackages += " libc-ares-dev libcrypto++-dev libgnutls28-dev libhwloc-dev libnuma-dev libpciaccess-dev libprotobuf-dev libsctp-dev libyaml-cpp-dev protobuf-compiler ragel systemtap-sdt-dev"
     fi
-
+    echo "EXTRAPACKAGES=\"${extrapackages}\"" >> ~/.pbuilderrc
 
     local opts
     opts+=" --basetgz $basedir/$DIST.tgz"
@@ -1381,6 +1385,9 @@ setup_rpm_build_deps() {
         # before EPEL8 and PowerTools provide all dependencies, we use sepia for the dependencies
         $SUDO dnf config-manager --add-repo http://apt-mirror.front.sepia.ceph.com/lab-extras/8/
         $SUDO dnf config-manager --setopt=apt-mirror.front.sepia.ceph.com_lab-extras_8_.gpgcheck=0 --save
+
+	$SUDO rpm -import https://dist.apache.org/repos/dist/dev/arrow/KEYS
+	$SUDO dnf config-manager --add-repo="https://apache.jfrog.io/artifactory/arrow/centos/${RELEASE}/x86_64"
     fi
 
     sed -e 's/@//g' < ceph.spec.in > $DIR/ceph.spec
