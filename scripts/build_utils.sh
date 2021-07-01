@@ -837,6 +837,16 @@ gen_debian_version() {
     echo "${raw}${bptag}"
 }
 
+setup_cmakeoptions_from_ci() {
+  if [-z BRANCH ];then
+    curl "https://raw.githubusercontent.com/ceph/ceph-ci/$BRANCH/CMakeLists.txt" --output CMakeLists.txt.$BRANCH
+    if ! grep -q "^WITH_JAEGER.*ON" CMakeLists.txt.$BRANCH; then
+      export WITH_JAEGER=true
+      rm CMakeLists.txt.$BRANCH
+    fi
+  fi
+}
+
 # Flavor Builds support
 # - CEPH_EXTRA_RPMBUILD_ARGS is consumed by build_rpms()
 # - CEPH_EXTRA_CMAKE_ARGS is consumed by debian/rules and ceph.spec directly
@@ -859,6 +869,12 @@ ceph_build_args_from_flavor() {
         echo "unknown FLAVOR: ${FLAVOR}" >&2
         exit 1
     esac
+
+    if [ -z "$WITH_JAEGER" ]; then
+      CEPH_EXTRA_RPMBUILD_ARGS="--with jaeger"
+      CEPH_EXTRA_CMAKE_ARGS+=" -DWITH_JAEGER=ON"
+    fi
+
 }
 
 build_debs() {
@@ -1395,6 +1411,10 @@ setup_rpm_build_deps() {
     if [ "$FLAVOR" = "crimson" ]; then
         # enable more build depends required by crimson
         sed -i -e 's/%bcond_with seastar/%bcond_without seastar/g' $DIR/ceph.spec
+    fi
+
+    if [ -z "$WITH_JAEGER" ]; then
+      sed -i -e 's/%bcond_with jaeger/%bcond_without jaeger/g' $DIR/ceph.spec
     fi
 
     # Make sure we have all the rpm macros installed and at the latest version
