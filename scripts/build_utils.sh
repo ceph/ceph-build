@@ -840,6 +840,7 @@ gen_debian_version() {
 # Flavor Builds support
 # - CEPH_EXTRA_RPMBUILD_ARGS is consumed by build_rpms()
 # - CEPH_EXTRA_CMAKE_ARGS is consumed by debian/rules and ceph.spec directly
+# - PROFILES is consumed by pbuilder
 ceph_build_args_from_flavor() {
     local flavor=$1
     shift
@@ -854,6 +855,10 @@ ceph_build_args_from_flavor() {
         CEPH_EXTRA_RPMBUILD_ARGS="--with seastar"
         CEPH_EXTRA_CMAKE_ARGS+=" -DCMAKE_BUILD_TYPE=Debug"
         CEPH_EXTRA_CMAKE_ARGS+=" -DWITH_SEASTAR=ON"
+        ;;
+    jaeger)
+        CEPH_EXTRA_RPMBUILD_ARGS="--with jaeger"
+        PROFILES="pkg.ceph.jaeger"
         ;;
     *)
         echo "unknown FLAVOR: ${FLAVOR}" >&2
@@ -909,6 +914,7 @@ build_debs() {
 
     CEPH_EXTRA_CMAKE_ARGS="$CEPH_EXTRA_CMAKE_ARGS $(extra_cmake_args)"
     DEB_BUILD_OPTIONS="parallel=$(get_nr_build_jobs)"
+    PROFILES="nocheck,$PROFILES"
 
     # pass only those env vars specifically noted
     sudo \
@@ -918,7 +924,7 @@ build_debs() {
         --distribution $DIST \
         --basetgz $pbuilddir/$DIST.tgz \
         --buildresult $releasedir/$cephver \
-        --profiles nocheck \
+        --profiles $PROFILES \
         --use-network yes \
         $releasedir/$cephver/ceph_$bpvers.dsc
 
@@ -1392,10 +1398,15 @@ setup_rpm_build_deps() {
 
     sed -e 's/@//g' < ceph.spec.in > $DIR/ceph.spec
 
-    if [ "$FLAVOR" = "crimson" ]; then
-        # enable more build depends required by crimson
-        sed -i -e 's/%bcond_with seastar/%bcond_without seastar/g' $DIR/ceph.spec
-    fi
+    # enable more build depends required by build flavor(jaeger, crimson)
+    case "${FLAVOR}" in
+    crimson)
+      sed -i -e 's/%bcond_with seastar/%bcond_without seastar/g' $DIR/ceph.spec
+        ;;
+    jaeger)
+      sed -i -e 's/%bcond_with jaeger/%bcond_without jaeger/g' $DIR/ceph.spec
+        ;;
+    esac
 
     # Make sure we have all the rpm macros installed and at the latest version
     # before installing the dependencies, python3-devel requires the
