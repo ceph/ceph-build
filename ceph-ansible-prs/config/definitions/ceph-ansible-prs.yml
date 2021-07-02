@@ -50,13 +50,14 @@
 
 - project:
     name: ceph-ansible-prs-cephadm
-    slave_labels: 'vagrant && libvirt && (smithi || braggi || centos7)'
+    slave_labels: 'vagrant && libvirt && (adami || braggi)'
     distribution:
       - centos
     deployment:
       - container
     scenario:
       - cephadm
+      - cephadm_adopt
     jobs:
       - 'ceph-ansible-prs-common-trigger'
 
@@ -86,10 +87,6 @@
       - shrink_rbdmirror
       - lvm_auto_discovery
       - filestore_to_bluestore
-      - cephadm_adopt
-    exclude:
-      - deployment: non_container
-        scenario: cephadm_adopt
     jobs:
       - 'ceph-ansible-prs-common-trigger'
 
