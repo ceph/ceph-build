@@ -50,7 +50,7 @@
 
 - project:
     name: ceph-ansible-prs-cephadm
-    slave_labels: 'vagrant && libvirt && (smithi || braggi || centos7)'
+    slave_labels: 'vagrant && libvirt && (braggi || adami)'
     distribution:
       - centos
     deployment:
