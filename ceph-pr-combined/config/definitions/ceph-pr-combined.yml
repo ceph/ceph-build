@@ -1,0 +1,135 @@
+- job:
+    name: ceph-pr-combined
+    description: 'make check and ceph API tests combined'
+    project-type: freestyle
+    defaults: global
+    concurrent: true
+    node: huge && bionic && x86_64 && !xenial && !trusty
+    display-name: 'ceph PRs: make check and API tests'
+    quiet-period: 5
+    block-downstream: false
+    block-upstream: false
+    retry-count: 3
+    properties:
+      - build-discarder:
+          days-to-keep: 15
+          num-to-keep: 300
+          artifact-days-to-keep: -1
+          artifact-num-to-keep: -1
+      - github:
+          url: https://github.com/ceph/ceph/
+      - rebuild:
+          auto-rebuild: true
+      - inject:
+          properties-content: |
+            TERM=xterm
+
+    parameters:
+      - string:
+          name: ghprbPullId
+          description: "the GitHub pull id, like '72' in 'ceph/pull/72'"
+
+    triggers:
+      - github-pull-request:
+          cancel-builds-on-update: true
+          allow-whitelist-orgs-as-admins: true
+          org-list:
+            - ceph
+          white-list-target-branches:
+            - master
+            - octopus
+            - nautilus
+          trigger-phrase: '^jenkins test make check|^jenkins test pr.*|^jenkins retest.*|^jenkins test api'
+          skip-build-phrase: '^jenkins do not test.*'
+          only-trigger-phrase: false
+          github-hooks: true
+          permit-all: true
+          auto-close-on-fail: false
+          # The option below requires jenkins-job-builder>=3.5.0
+          no-commit-status: true
+          # I had hoped to get these working by running 'make check' and the API tests in the same job
+          # and somehow changing {stage} throughout the job but that doesn't appear to be possible.
+          # So I'm using github.com/alfredodeza/github-status
+#          status-context: "ceph PR: {stage}"
+#          started-status: "ceph PR: {stage} running"
+#          success-status: "ceph PR: {stage} succeeded"
+#          failure-status: "ceph PR: {stage} failed"
+
+    scm:
+      - git:
+          url: https://github.com/ceph/ceph.git
+          branches:
+            - ${sha1}
+          refspec: +refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*
+          browser: auto
+          timeout: 20
+          skip-tag: true
+          shallow-clone: true
+          wipe-workspace: true
+
+    ## TODO: (maybe) I'm sure there's a cleaner/prettier way to do this.  Maybe doing an actual Jenkins pipeline.
+    builders:
+      - inject:
+          properties-content: |
+            GITHUB_REPOSITORY="ceph/ceph"
+            GITHUB_STATUS_CONTEXT="ceph PR - make check"
+            GITHUB_STATUS_STARTED="running"
+            GITHUB_STATUS_SUCCESS="OK"
+            GITHUB_STATUS_FAILURE="failed"
+            GITHUB_STATUS_ERROR="completed with errors"
+            GITHUB_SHA=${ghprbActualCommit}
+      - shell:
+          !include-raw:
+            - ../../../scripts/build_utils.sh
+            - ../../build/setup
+            - ../../build/make-check/build
+      - inject:
+          properties-content: |
+            GITHUB_REPOSITORY="ceph/ceph"
+            GITHUB_STATUS_CONTEXT="ceph PR - API tests"
+            GITHUB_STATUS_STARTED="running"
+            GITHUB_STATUS_SUCCESS="OK"
+            GITHUB_STATUS_FAILURE="failed"
+            GITHUB_STATUS_ERROR="completed with errors"
+            GITHUB_SHA=${ghprbActualCommit}
+      - shell:
+          !include-raw:
+            - ../../../scripts/build_utils.sh
+            - ../../build/setup
+            - ../../build/api/start
+            - ../../../scripts/dashboard/install-backend-api-test-deps.sh
+      - shell: "cd src/pybind/mgr/dashboard; timeout 7200 ./run-backend-api-tests.sh"
+      - shell:
+          !include-raw:
+            - ../../../scripts/build_utils.sh
+            - ../../build/setup
+            - ../../build/api/success
+
+    publishers:
+      - postbuildscript:
+          builders:
+            - role: SLAVE
+              build-on:
+                  - FAILURE
+                  - ABORTED
+              build-steps:
+                - inject:
+                    properties-content: |
+                      GITHUB_REPOSITORY="ceph/ceph"
+                      GITHUB_STATUS_STARTED="running"
+                      GITHUB_STATUS_SUCCESS="OK"
+                      GITHUB_STATUS_FAILURE="failed"
+                      GITHUB_STATUS_ERROR="completed with errors"
+                      GITHUB_SHA=${ghprbActualCommit}
+                - shell:
+                    !include-raw:
+                      - ../../../scripts/build_utils.sh
+                      - ../../build/setup
+                      - ../../build/failure
+
+    wrappers:
+      - ansicolor
+      - credentials-binding:
+          - text:
+              credential-id: 8dff73ff-506c-4397-969d-023f15aedea9
+              variable: GITHUB_OAUTH_TOKEN
