@@ -191,3 +191,5 @@ SHA1=${GIT_COMMIT}
 update_build_status "completed" "nfs-ganesha-stable" $NORMAL_DISTRO $NORMAL_DISTRO_VERSION $NORMAL_ARCH
 
 sudo rm -rf $WORKSPACE/dist
+sudo rm -f /etc/yum.repos.d/shaman*
+sudo rm -f /etc/apt/sources.list.d/shaman*
