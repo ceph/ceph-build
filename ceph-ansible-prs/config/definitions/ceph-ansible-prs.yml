@@ -62,6 +62,19 @@
       - 'ceph-ansible-prs-common-trigger'
 
 - project:
+    name: ceph-ansible-prs-purge-dashboard
+    slave_labels: 'vagrant && libvirt && (adami || braggi)'
+    distribution:
+      - centos
+    deployment:
+      - container
+      - non_container
+    scenario:
+      - purge_dashboard
+    jobs:
+      - 'ceph-ansible-prs-common-trigger'
+
+- project:
     name: ceph-ansible-prs-common-trigger
     slave_labels: 'vagrant && libvirt && (smithi || braggi || centos7)'
     distribution:
