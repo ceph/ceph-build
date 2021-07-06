@@ -491,7 +491,7 @@ env DEBIAN_FRONTEND=noninteractive apt-get update -y -o Acquire::Languages=none 
 env DEBIAN_FRONTEND=noninteractive apt-get install -y gnupg
 
 curl -L https://dist.apache.org/repos/dist/dev/arrow/KEYS | apt-key add -
-add-apt-repository "deb [arch=amd64] http://dl.bintray.com/apache/arrow/ubuntu $DIST main"
+add-apt-repository "deb [arch=amd64] https://apache.jfrog.io/artifactory/arrow/ubuntu $DIST main"
 EOF
     elif [[ "$ARCH" == "arm64" ]]; then
         cat > $hookdir/D04install-updates-repo <<EOF
