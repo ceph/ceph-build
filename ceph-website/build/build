@@ -25,4 +25,11 @@ rsync -av --delete-after dist/ /opt/www/${BRANCH}/
 
 echo "Success!  This site is available at https://${BRANCH}.ceph.io."
 
-## TODO: Prune deleted branches from /opt/www/
+# Prune old built branches from /opt/www/
+# echo "main $BRANCH" to make absolutely sure we don't wipe out the live site or the $BRANCH we just built in case `git branch` comes back empty somehow.
+CURRENT_BRANCHES=$(echo "main $BRANCH" && git branch -r | sed 's:.*/::')
+for DIR in $(find /opt/www/ -maxdepth 1 -type d -print | sed 's:.*/::'); do
+  if ! echo $CURRENT_BRANCHES | grep -q $DIR; then
+    rm -rf /opt/www/$DIR
+  fi
+done
