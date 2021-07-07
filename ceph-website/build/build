@@ -4,25 +4,12 @@ set -ex
 ## TODO: Check if only the src/ dir changed and `exit 0` if only the ceph.io.git README or something else inconsequential changed.
 env
 
-BRANCH=$(echo $GIT_BRANCH | sed 's:.*/::')
-
 npm install
 
-if [ "$BRANCH" == "main" ]; then
-  npm run build:production
-else
-  npm run build:development
+npm run build:production
+
+if [ ! -d /opt/www/main ]; then
+  mkdir -p /opt/www/main
 fi
 
-if [ ! -d /opt/www/${BRANCH} ]; then
-  mkdir -p /opt/www/${BRANCH}
-fi
-
-rsync -av --delete-after dist/ /opt/www/${BRANCH}/
-
-# This just makes the last `echo` line not repeat
-{ set +x; } 2>/dev/null
-
-echo "Success!  This site is available at https://${BRANCH}.ceph.io."
-
-## TODO: Prune deleted branches from /opt/www/
+rsync -av --delete-after dist/ /opt/www/main/
