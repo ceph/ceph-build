@@ -1,0 +1,79 @@
+- scm:
+    name: ceph-build
+    scm:
+      - git:
+          url: https://github.com/ceph/ceph-build.git
+          browser-url: https://github.com/ceph/ceph-build
+          timeout: 20
+          skip-tag: true
+          wipe-workspace: false
+          basedir: "ceph-build"
+- scm:
+    name: edeploy
+    scm:
+      - git:
+          url: https://github.com/ErwanAliasr1/edeploy.git
+          branches:
+            - ceph-builders
+          refspec: +refs/pull/*:refs/remotes/origin/pr/*
+          browser: auto
+          timeout: 20
+          skip-tag: true
+          wipe-workspace: true
+          basedir: "edeploy"
+
+- job:
+    name: ceph-build-os
+    project-type: freestyle
+    defaults: global
+    concurrent: true
+    node: huge && (ceph_build_xenial) && rebootable
+    display-name: 'ceph: Build OS'
+    quiet-period: 5
+    block-downstream: false
+    block-upstream: false
+    retry-count: 3
+    properties:
+      - github:
+          url: https://github.com/ceph/ceph/
+    logrotate:
+      daysToKeep: 15
+      numToKeep: 300
+      artifactDaysToKeep: -1
+      artifactNumToKeep: -1
+
+    parameters:
+        - string:
+            name: DIST
+            description: "The distribution codename like xenial,centos,jessie"
+
+        - string:
+            name: DISTRO_RELEASE
+            description: "The distribution codename like C7.2, U16.04, D8"
+
+        - string:
+            name: VERSION
+            description: "The release of that particular build : 1.0.0, 1.1.0, ..."
+
+        - string:
+            name: REPO_URL
+            description: "Optional URL of a package repository to override the default one like (http://debian.mirrors.ovh.net/debian/ or http://centos.mirrors.ovh.net/ftp.centos.org/7/os/x86_64/Packages/centos-release-7-2.1511.el7.centos.2.10.x86_64.rpm"
+
+    scm:
+      - ceph-build
+      - edeploy
+
+    builders:
+      - shell: "cd edeploy/build; DIST=${DIST} DISTRO_RELEASE=${DISTRO_RELEASE} VERSION=${VERSION} REPO_URL=${REPO_URL} ../../ceph-build/ceph-build-os/build/build"
+
+    publishers:
+      - postbuildscript:
+          script-only-if-succeeded: False
+          script-only-if-failed: True
+          builders:
+            - shell: "sudo reboot"
+
+    wrappers:
+      - inject-passwords:
+          global: true
+          mask-password-params: true
