@@ -17,9 +17,17 @@ fi
 
 rsync -av --delete-after dist/ /opt/www/${BRANCH}/
 
+echo "===== Begin pruning old builds ====="
+old_builds=$(find /opt/www/ -maxdepth 1 -not -path "/opt/www/main" -type d -mtime +90 | sed 's:.*/::')
+for old_build in $old_builds; do
+  echo $old_build
+  if [ ! -z "$old_build" ]; then # So we don't accidentally wipe out /opt/www somehow
+    rm -rf "/opt/www/$old_build"
+  fi
+done
+echo "===== Done pruning old builds ====="
+
 # This just makes the last `echo` line not repeat
 { set +x; } 2>/dev/null
 
 echo "Success!  This site is available at https://${BRANCH}.ceph.io."
-
-## TODO: Prune deleted branches from /opt/www/
