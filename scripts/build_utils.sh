@@ -840,7 +840,7 @@ gen_debian_version() {
 # Flavor Builds support
 # - CEPH_EXTRA_RPMBUILD_ARGS is consumed by build_rpms()
 # - CEPH_EXTRA_CMAKE_ARGS is consumed by debian/rules and ceph.spec directly
-# - PROFILES is consumed by pbuilder
+# - PROFILES is consumed by build_debs()
 ceph_build_args_from_flavor() {
     local flavor=$1
     shift
@@ -914,7 +914,12 @@ build_debs() {
 
     CEPH_EXTRA_CMAKE_ARGS="$CEPH_EXTRA_CMAKE_ARGS $(extra_cmake_args)"
     DEB_BUILD_OPTIONS="parallel=$(get_nr_build_jobs)"
-    PROFILES="nocheck,$PROFILES"
+
+    if [ -z "$PROFILES" ]; then
+      PROFILES="nocheck,$PROFILES"
+    else
+      PROFILES="nocheck"
+    fi
 
     # pass only those env vars specifically noted
     sudo \
