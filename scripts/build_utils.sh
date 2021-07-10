@@ -605,9 +605,6 @@ setup_pbuilder() {
 
     #in case it needs to update/add repo, the following packages should installed.
     extrapackages="software-properties-common curl"
-    if [ $FLAVOR = "crimson" ]; then
-	extrapackages += " libc-ares-dev libcrypto++-dev libgnutls28-dev libhwloc-dev libnuma-dev libpciaccess-dev libprotobuf-dev libsctp-dev libyaml-cpp-dev protobuf-compiler ragel systemtap-sdt-dev"
-    fi
     echo "EXTRAPACKAGES=\"${extrapackages}\"" >> ~/.pbuilderrc
 
     local opts
@@ -855,6 +852,7 @@ ceph_build_args_from_flavor() {
         CEPH_EXTRA_RPMBUILD_ARGS="--with seastar"
         CEPH_EXTRA_CMAKE_ARGS+=" -DCMAKE_BUILD_TYPE=Debug"
         CEPH_EXTRA_CMAKE_ARGS+=" -DWITH_SEASTAR=ON"
+        PROFILES="pkg.ceph.crimson"
         ;;
     jaeger)
         CEPH_EXTRA_RPMBUILD_ARGS="--with jaeger"
@@ -914,6 +912,7 @@ build_debs() {
 
     CEPH_EXTRA_CMAKE_ARGS="$CEPH_EXTRA_CMAKE_ARGS $(extra_cmake_args)"
     DEB_BUILD_OPTIONS="parallel=$(get_nr_build_jobs)"
+    PROFILES="nocheck,$PROFILES"
 
     if [ -z "$PROFILES" ]; then
       PROFILES="nocheck,$PROFILES"

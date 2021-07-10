@@ -101,7 +101,7 @@
                     FORCE=True
                     DISTROS=focal bionic centos7 centos8 leap15
       # build pacific on:
-      # default: focal bionic centos8 leap15
+      # default: focal bionic centos8
       # crimson: centos8
       - conditional-step:
           condition-kind: regex-match
@@ -154,6 +154,7 @@
                     ARCHS=x86_64
       # Build only the `crimson` flavour, don't waste resources on the default one.
       # Useful for the crimson's bug-hunt at Sepia
+      # crimson: centos8
       - conditional-step:
           condition-kind: regex-match
           regex: .*crimson-only.*
