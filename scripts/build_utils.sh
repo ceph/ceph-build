@@ -922,7 +922,7 @@ build_debs() {
         --distribution $DIST \
         --basetgz $pbuilddir/$DIST.tgz \
         --buildresult $releasedir/$cephver \
-        --profiles $PROFILES \
+        --profiles "$PROFILES" \
         --use-network yes \
         $releasedir/$cephver/ceph_$bpvers.dsc
 
