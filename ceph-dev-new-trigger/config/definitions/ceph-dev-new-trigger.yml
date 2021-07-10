@@ -131,7 +131,7 @@
       - conditional-step:
           condition-kind: shell
           condition-command: |
-            echo "${GIT_BRANCH}" | grep -v '\(luminous\|mimic\|nautilus\|octopus\|pacific\|crimson-only\|jaeger)'
+            echo "${GIT_BRANCH}" | grep -v '\(luminous\|mimic\|nautilus\|octopus\|pacific\|crimson-only\|jaeger\)'
           on-evaluation-failure: dont-run
           steps:
             - shell:
