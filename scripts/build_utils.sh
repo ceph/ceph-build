@@ -847,6 +847,7 @@ ceph_build_args_from_flavor() {
     default)
         CEPH_EXTRA_RPMBUILD_ARGS="--with tcmalloc"
         CEPH_EXTRA_CMAKE_ARGS+=" -DALLOCATOR=tcmalloc"
+        PROFILES=""
         ;;
     crimson)
         CEPH_EXTRA_RPMBUILD_ARGS="--with seastar"
@@ -912,13 +913,6 @@ build_debs() {
 
     CEPH_EXTRA_CMAKE_ARGS="$CEPH_EXTRA_CMAKE_ARGS $(extra_cmake_args)"
     DEB_BUILD_OPTIONS="parallel=$(get_nr_build_jobs)"
-    PROFILES="nocheck,$PROFILES"
-
-    if [ -z "$PROFILES" ]; then
-      PROFILES="nocheck,$PROFILES"
-    else
-      PROFILES="nocheck"
-    fi
 
     # pass only those env vars specifically noted
     sudo \
