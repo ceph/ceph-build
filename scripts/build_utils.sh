@@ -865,6 +865,27 @@ ceph_build_args_from_flavor() {
     esac
 }
 
+write_dist_files()
+{
+    cat > dist/sha1 << EOF
+SHA1=${GIT_COMMIT}
+EOF
+
+    cat > dist/branch << EOF
+BRANCH=${BRANCH}
+EOF
+
+    # - CEPH_EXTRA_RPMBUILD_ARGS are consumed by build_rpm before
+    #   the switch to cmake;
+    # - CEPH_EXTRA_CMAKE_ARGS is for after cmake
+    # - DEB_BUILD_PROFILES is consumed by build_debs()
+    cat > dist/other_envvars << EOF
+CEPH_EXTRA_RPMBUILD_ARGS=${CEPH_EXTRA_RPMBUILD_ARGS}
+CEPH_EXTRA_CMAKE_ARGS=${CEPH_EXTRA_CMAKE_ARGS}
+DEB_BUILD_PROFILES=${DEB_BUILD_PROFILES}
+EOF
+}
+
 build_debs() {
     local venv=$1
     shift

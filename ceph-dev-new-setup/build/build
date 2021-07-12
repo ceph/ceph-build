@@ -150,18 +150,4 @@ mv release/$vers/*.tar.* dist/.
 # Parameters
 mv release/version dist/.
 
-cat > dist/sha1 << EOF
-SHA1=${GIT_COMMIT}
-EOF
-
-cat > dist/branch << EOF
-BRANCH=${BRANCH}
-EOF
-
-# CEPH_EXTRA_{CONFIGURE,RPMBUILD}_ARGS are consumed by ceph-build before
-# the switch to cmake; CEPH_EXTRA_CMAKE_ARGS is for after cmake
-cat > dist/other_envvars << EOF
-CEPH_EXTRA_RPMBUILD_ARGS=${CEPH_EXTRA_RPMBUILD_ARGS}
-CEPH_EXTRA_CMAKE_ARGS=${CEPH_EXTRA_CMAKE_ARGS}
-DEB_BUILD_PROFILES=${DEB_BUILD_PROFILES}
-EOF
+write_dist_files
