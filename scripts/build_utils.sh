@@ -847,17 +847,17 @@ ceph_build_args_from_flavor() {
     default)
         CEPH_EXTRA_RPMBUILD_ARGS="--with tcmalloc"
         CEPH_EXTRA_CMAKE_ARGS+=" -DALLOCATOR=tcmalloc"
-        PROFILES=""
+        export PROFILES=""
         ;;
     crimson)
         CEPH_EXTRA_RPMBUILD_ARGS="--with seastar"
         CEPH_EXTRA_CMAKE_ARGS+=" -DCMAKE_BUILD_TYPE=Debug"
         CEPH_EXTRA_CMAKE_ARGS+=" -DWITH_SEASTAR=ON"
-        PROFILES="pkg.ceph.crimson"
+        export PROFILES="pkg.ceph.crimson"
         ;;
     jaeger)
         CEPH_EXTRA_RPMBUILD_ARGS="--with jaeger"
-        PROFILES="pkg.ceph.jaeger"
+        export PROFILES="pkg.ceph.jaeger"
         ;;
     *)
         echo "unknown FLAVOR: ${FLAVOR}" >&2
