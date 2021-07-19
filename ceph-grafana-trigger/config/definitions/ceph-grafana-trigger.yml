@@ -1,0 +1,62 @@
+- job:
+    name: ceph-grafana-trigger
+    description: 'Build a combined container image "manifest list" for ceph-grafana that includes both architectures'
+    node: centos8
+    project-type: freestyle
+    defaults: global
+    concurrent: true
+    display-name: 'ceph-grafana-trigger'
+    block-downstream: true
+    properties:
+      - build-discarder:
+          days-to-keep: -1
+          num-to-keep: 10
+          artifact-num-to-keep: 10
+      - github:
+          url: https://github.com/ceph/ceph
+
+    parameters:
+      - string:
+          name: BRANCH
+          description: "The git branch (or tag) to build"
+          default: master
+      - string:
+          name: CONTAINER_VERSION
+          description: "The version tag for the containers; will have -ARCH added to it.  By convention, the version of Grafana"
+          default: "6.7.4"
+    axes:
+        - axis:
+            type: label-expression
+            name: ARCH
+            values:
+                - x86_64
+                - arm64
+    builders:
+        - trigger-builds:
+            - project: ceph-grafana
+              predefined-parameters: ARCH=x86_64
+              current-parameters: true
+              block: true
+        - trigger-builds:
+            - project: ceph-grafana
+              predefined-parameters: ARCH=arm64
+              current-parameters: true
+              block: true
+        - shell:
+            !include-raw: ../../build/build
+
+    wrappers:
+      - inject-passwords:
+          global: true
+          mask-password-params: true
+      - credentials-binding:
+          - username-password-separated:
+              credential-id: docker-hub-leseb
+              username: DOCKER_HUB_USERNAME
+              password: DOCKER_HUB_PASSWORD
+          - username-password-separated:
+              credential-id: dmick-quay
+              username: CONTAINER_REPO_USERNAME
+              password: CONTAINER_REPO_PASSWORD
+      - build-name:
+          name: "#${BUILD_NUMBER} ${BRANCH}"
