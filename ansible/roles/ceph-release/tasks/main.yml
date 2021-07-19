@@ -47,8 +47,8 @@
 
 - name: replace the version in CMakeLists.txt
   lineinfile: dest=ceph/CMakeLists.txt
-              regexp='^set\(VERSION '
-              line='set(VERSION {{ version }})'
+              regexp='^  VERSION \d+\.\d+\.\d+$'
+              line='  VERSION {{ version }}'
   when: cmake_lists.stat.exists
 
 - include: release/candidate.yml
