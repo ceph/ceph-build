@@ -78,4 +78,7 @@
           - text:
               credential-id: cd-cypress-record-key
               variable: CYPRESS_RECORD_KEY
+          - text:
+              credential-id: cd-applitools-api-key
+              variable: APPLITOOLS_API_KEY
       - ansicolor
