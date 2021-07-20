@@ -33,7 +33,6 @@
         universal_debs:
           - git
           - fakeroot
-          - fakeroot-ng
           - debhelper
           - reprepro
           - devscripts
