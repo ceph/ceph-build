@@ -15,7 +15,7 @@ for repohost in quay.io docker.io; do
         sudo podman manifest add grafana:${CONTAINER_VERSION}-combined ${repohost}/${CONTAINER}-x86_64
         sudo podman manifest add grafana:${CONTAINER_VERSION}-combined ${repohost}/${CONTAINER}-aarch64
 
-        sudo podman manifest push grafana:${CONTAINER_VERSION}-combined ${repohost}/${CONTAINER}-combined
+        sudo podman manifest push grafana:${CONTAINER_VERSION}-combined ${repohost}/${CONTAINER}
 
         sudo podman rmi -f grafana:${CONTAINER_VERSION}-combined ${repohost}/${CONTAINER}-x86_64 ${repohost}/${CONTAINER}-aarch64  || true
 done
