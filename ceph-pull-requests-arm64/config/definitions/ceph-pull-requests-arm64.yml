@@ -68,6 +68,4 @@
         failure-status: "make check failed"
         white-list-target-branches:
         - master
-        white-list-labels:
-          - arm64
     wrappers: []
