@@ -434,15 +434,6 @@
         enablerepo: epel
       when: ansible_os_family == "RedHat"
 
-    # This repo has the python-asyncssh EL8 package that cephadm depends on, which is not yet present in EPEL8
-    - name: Enable EL8 python3-asyncssh copr repo
-      command: "dnf -y copr enable ceph/python3-asyncssh"
-      when:
-        - ansible_os_family == "RedHat"
-        - ansible_distribution_major_version|int == 8
-      tags: 
-        - copr
-
     - name: Install Suse RPMs
       zypper:
         name: "{{ zypper_rpms + zypper_libvirt_rpms|default([]) }}"
