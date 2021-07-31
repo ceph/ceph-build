@@ -99,7 +99,7 @@ pip_download() {
 
 create_virtualenv () {
     local path=$1
-    if [ "$(ls -A $path)" ]; then
+    if [ -d $path ]; then
         echo "Will reuse existing virtual env: $path"
     else
         if [ $(command -v python3) ]; then
