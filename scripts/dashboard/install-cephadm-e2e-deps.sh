@@ -51,7 +51,9 @@ if [[ ! -f "${KCLI_CONFIG_DIR}/id_rsa" ]]; then
     ssh-keygen -t rsa -q -f "${KCLI_CONFIG_DIR}/id_rsa" -N ""
 fi
 
-: ${KCLI_CONTAINER_IMAGE:='quay.io/karmab/kcli'}
+: ${KCLI_CONTAINER_IMAGE:='quay.io/karmab/kcli:2543a61'}
+
+docker pull ${KCLI_CONTAINER_IMAGE}
 
 echo "#!/usr/bin/env bash
 
