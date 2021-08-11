@@ -67,6 +67,7 @@
     builders:
       - shell:
           !include-raw:
+            - ../../../scripts/dashboard/install-e2e-test-deps.sh
             - ../../../scripts/dashboard/install-cephadm-e2e-deps.sh
       - shell: |
           export CYPRESS_ARGS="--record --key $CYPRESS_RECORD_KEY --tag $ghprbTargetBranch" COMMIT_INFO_MESSAGE="$ghprbPullTitle"
