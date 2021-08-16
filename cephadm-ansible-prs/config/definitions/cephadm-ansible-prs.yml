@@ -1,8 +1,8 @@
 - project:
     name: cephadm-ansible-prs-smithi
-    worker_labels: 'vagrant && libvirt && smithi'
+    worker_labels: 'vagrant && libvirt && (braggi || adami)'
     scenario:
-      - all_daemons
+      - deploy_and_purge
     jobs:
       - 'cephadm-ansible-prs-auto'
 
