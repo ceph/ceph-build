@@ -1,0 +1,49 @@
+#!/bin/bash
+# This script will the rpm files pulled from the chacra machines.
+
+
+keyid=460F3994
+GPG_PASSPHRASE=''
+
+path="/opt/new-repos/"
+echo $path
+update_repo=0
+cd $path
+
+for rpm in `find -name "*.rpm"`
+do
+    signature=$(rpm -qi  -p $rpm 2>/dev/null | grep ^Signature)
+    if ! grep -iq $keyid <<< "$signature" ; then
+        rpm_path=`readlink -f $rpm`
+        echo "signing:  $rpm_path"
+        update_repo=1
+
+        echo "yes" | setsid rpm \
+                --define "_gpg_name '$keyid'" \
+                --define '_signature gpg' \
+                --define '__gpg_check_password_cmd /bin/true' \
+                --define "__gpg_sign_cmd %{__gpg} gpg --no-tty --yes --batch --no-armor --passphrase '$GPG_PASSPHRASE' --no-secmem-warning -u "%{_gpg_name}" --sign --detach-sign --output %{__signature_filename} %{__plaintext_filename}" \
+                --resign "$rpm_path"
+
+    fi
+done
+
+# now sign the repomd.xml files
+if [[ $update_repo -eq 1 ]]; then
+  for repomd in `find -name repomd.xml`
+    do
+        echo "signing repomd: $repomd"
+        gpg --batch --yes --passphrase "$GPG_PASSPHRASE" --detach-sign --armor -u $keyid $repomd
+    done
+fi
+
+# finally, update the repo metadata
+repodirs=$( find /opt/new-repos/ -type d -name x86_64 | cut -d/ -f 13 --complement )
+if [ -n "$repodirs" ]; then
+  for directory in $repodirs
+  do
+    cd $directory
+    createrepo .
+    cd -
+  done
+fi
