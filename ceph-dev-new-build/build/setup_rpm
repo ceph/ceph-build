@@ -21,24 +21,15 @@ if test $(id -u) != 0 ; then
 fi
 export LC_ALL=C # the following is vulnerable to i18n
 
-$SUDO yum install -y redhat-lsb-core
-
-# unpack the tar.gz that contains the debian dir
-cd dist
-tar xzf *.orig.tar.gz
-cd $(basename *.orig.tar.gz .orig.tar.gz | sed s/_/-/)
-pwd
+$SUDO yum install -y redhat-lsb-core yum-utils
 
 get_rpm_dist
-setup_rpm_build_deps
 
 BRANCH=`branch_slash_filter $BRANCH`
 
 if [[ ! -f /etc/redhat-release && ! -f /usr/bin/zypper ]] ; then
     exit 0
 fi
-
-cd $WORKSPACE
 
 # Normalize variables across rpm/deb builds
 NORMAL_DISTRO=$DISTRO
@@ -47,6 +38,16 @@ NORMAL_ARCH=$ARCH
 
 # create build status in shaman
 create_build_status "started" "ceph" $NORMAL_DISTRO $NORMAL_DISTRO_VERSION $NORMAL_ARCH
+
+# unpack the tar.gz that contains the debian dir
+cd dist
+tar xzf *.orig.tar.gz
+cd $(basename *.orig.tar.gz .orig.tar.gz | sed s/_/-/)
+pwd
+
+setup_rpm_build_deps
+
+cd $WORKSPACE
 
 pkgs=( "chacractl>=0.0.21" )
 TEMPVENV=$(create_venv_dir)
