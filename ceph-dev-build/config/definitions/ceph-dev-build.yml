@@ -114,12 +114,9 @@
                   - FAILURE
                   - ABORTED
               build-steps:
-                - inject:
-                    properties-file: ${WORKSPACE}/build_info
-                - shell:
-                    !include-raw:
-                      - ../../../scripts/build_utils.sh
-                      - ../../build/failure
+                - trigger-builds:
+                    - project: 'build-failure'
+                      current-parameters: true
 
     wrappers:
       - inject-passwords:

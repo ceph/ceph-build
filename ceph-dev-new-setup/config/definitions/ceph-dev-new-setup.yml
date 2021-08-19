@@ -51,10 +51,9 @@
                   - FAILURE
                   - ABORTED
               build-steps:
-                - shell:
-                    !include-raw:
-                      - ../../../scripts/build_utils.sh
-                      - ../../build/failure
+                - trigger-builds:
+                    - project: 'build-failure'
+                      current-parameters: true
 
     wrappers:
       - inject-passwords:

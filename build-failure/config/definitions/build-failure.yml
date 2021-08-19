@@ -1,0 +1,25 @@
+- job:
+    name: build-failure
+    description: "This job gets triggered by ceph-dev-*-{setup,build} when the job fails.\r\nThis is useful for when a Jenkins builder crashes and can't run the failure script itself."
+    project-type: freestyle
+    defaults: global
+    quiet-period: 5
+    block-downstream: false
+    block-upstream: false
+    properties:
+      - build-discarder:
+          days-to-keep: 14
+    discard-old-builds: true
+
+    builders:
+      - shell:
+          !include-raw:
+            - ../../../scripts/build_utils.sh
+            - ../../build/failure
+
+    wrappers:
+      - credentials-binding:
+          - text:
+              credential-id: shaman-api-key
+              variable: SHAMAN_API_KEY
+

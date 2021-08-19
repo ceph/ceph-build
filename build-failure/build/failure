@@ -1,0 +1,42 @@
+#!/bin/bash -ex
+
+# note: the failed_build_status call relies on normalized variable names that
+# are infered by the builds themselves. If the build fails before these are
+# set, they will be posted with empty values
+BRANCH=`branch_slash_filter $BRANCH`
+
+# This build-failure job will only have one word for the $DISTROS parameter
+# because all the failed job's paramters are passed to this job when it's triggered.
+case $DISTROS in
+    focal)
+        NORMAL_DISTRO="ubuntu"
+        NORMAL_DISTRO_VERSION="focal"
+        ;;
+    bionic)
+        NORMAL_DISTRO="ubuntu"
+        NORMAL_DISTRO_VERSION="bionic"
+        ;;
+    centos8)
+        NORMAL_DISTRO="centos"
+        NORMAL_DISTRO_VERSION="8"
+        ;;
+    centos7)
+        NORMAL_DISTRO="centos"
+        NORMAL_DISTRO_VERSION="7"
+        ;;
+    leap15)
+        NORMAL_DISTRO="opensuse"
+        NORMAL_DISTRO_VERSION="15.2"
+        ;;
+    windows)
+        NORMAL_DISTRO="windows"
+        NORMAL_DISTRO_VERSION="1809"
+        ;;
+    *)
+        echo "Unable to determine distro.\nThis job will be unable to notify shaman of a build failure and it will remain in \"building\" indefinitely."
+        exit 1
+        ;;
+esac
+
+# update shaman with the failed build status
+failed_build_status "ceph" $NORMAL_DISTRO $NORMAL_DISTRO_VERSION $ARCHS
