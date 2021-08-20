@@ -1,0 +1,92 @@
+- job:
+    name: build-make-check-container
+    node: master
+    project-type: matrix
+    defaults: global
+    display-name: 'Builds the ceph-make-check container and pushes to quay.ceph.io'
+    quiet-period: 5
+    block-downstream: false
+    block-upstream: false
+    retry-count: 3
+    execution-strategy:
+      combination-filter: |
+        !(BRANCH=="master" && DISTRO=="centos:7") &&
+        !(BRANCH=="pacific" && DISTRO=="centos:7") &&
+        !(BRANCH=="master" && DISTRO=="ubuntu:18.04") &&
+        !(BRANCH=="pacific" && DISTRO=="ubuntu:18.04")
+    properties:
+      - build-discarder:
+          days-to-keep: 14
+
+#    parameters:
+#      - string:
+#          name: BRANCH
+#          description: "Base branch you want to the container to have install-deps run for"
+#          default: master
+#
+#      - string:
+#          name: DISTRO
+#          description: "Distro you want install-deps run on"
+#          default: 'ubuntu:20.04'
+
+    axes:
+      - axis:
+          type: label-expression
+          name: MACHINE_SIZE
+          values:
+            - huge
+      - axis:
+          type: label-expression
+          name: MACHINE_TYPE
+          values:
+            - focal
+      - axis:
+          type: label-expression
+          name: MACHINE_ARCH
+          values:
+            - x86_64
+
+      - axis:
+          type: user-defined
+          name: BRANCH
+          values:
+            - master
+            - octopus
+            - pacific
+
+      - axis:
+          type: user-defined
+          name: DISTRO
+          values:
+            - 'centos:7'
+            - 'centos:8'
+            - 'ubuntu:18.04'
+            - 'ubuntu:20.04'
+
+    triggers:
+      - timed: '@daily'
+
+    scm:
+      - git:
+          url: https://github.com/ceph/ceph-build.git
+          branches:
+            - build-make-check-container
+          browser: auto
+          timeout: 20
+
+    builders:
+      - shell:
+          !include-raw:
+#            - ../../../scripts/build_utils.sh
+            - ../../build/setup
+            - ../../build/build
+
+    wrappers:
+      - inject-passwords:
+          global: true
+          mask-password-params: true
+      - credentials-binding:
+          - username-password-separated:
+              credential-id: quay-ceph-io-make-check-bot
+              username: REGISTRY_USERNAME
+              password: REGISTRY_PASSWORD
