@@ -5,7 +5,7 @@
 keyid=460F3994
 GPG_PASSPHRASE=''
 
-path="/opt/new-repos/"
+path="/opt/nfs-ganesha/new-repos/"
 echo $path
 update_repo=0
 cd $path
@@ -38,7 +38,7 @@ if [[ $update_repo -eq 1 ]]; then
 fi
 
 # finally, update the repo metadata
-repodirs=$( find /opt/new-repos/ -type d -name x86_64 | cut -d/ -f 13 --complement )
+repodirs=$( find /opt/nfs-ganesha/new-repos/ -type d -name x86_64 | cut -d/ -f 13 --complement )
 if [ -n "$repodirs" ]; then
   for directory in $repodirs
   do
