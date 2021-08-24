@@ -59,9 +59,9 @@
           mask-password-params: true
       - credentials-binding:
           - username-password-separated:
-              credential-id: docker-hub-leseb
-              username: DOCKER_HUB_USERNAME
-              password: DOCKER_HUB_PASSWORD
+              credential-id: ceph-container-quay-io
+              username: REGISTRY_USERNAME
+              password: REGISTRY_PASSWORD
 
     publishers:
       - postbuildscript:
