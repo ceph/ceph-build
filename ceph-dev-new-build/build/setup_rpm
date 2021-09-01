@@ -13,9 +13,6 @@ echo "*****"
 env
 echo "*****"
 
-DIR=/tmp/install-deps.$$
-trap "rm -fr $DIR" EXIT
-mkdir -p $DIR
 if test $(id -u) != 0 ; then
     SUDO=sudo
 fi

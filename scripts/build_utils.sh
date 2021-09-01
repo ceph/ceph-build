@@ -1415,6 +1415,10 @@ setup_rpm_build_deps() {
 	$SUDO dnf config-manager --add-repo="https://apache.jfrog.io/artifactory/arrow/centos/${RELEASE}/x86_64"
     fi
 
+    DIR=/tmp/install-deps.$$
+    trap "rm -fr $DIR" EXIT
+    mkdir -p $DIR
+
     sed -e 's/@//g' < ceph.spec.in > $DIR/ceph.spec
 
     # enable more build depends required by build flavor(jaeger, crimson)
