@@ -38,7 +38,7 @@ NORMAL_DISTRO_VERSION=$DIST
 NORMAL_ARCH=$ARCH
 
 # create build status in shaman
-create_build_status "started" "nfs-ganesha" $NORMAL_DISTRO $NORMAL_DISTRO_VERSION $NORMAL_ARCH
+update_build_status "started" "nfs-ganesha" $NORMAL_DISTRO $NORMAL_DISTRO_VERSION $NORMAL_ARCH
 
 ## Setup the pbuilder
 setup_pbuilder use_gcc

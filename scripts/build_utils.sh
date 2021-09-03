@@ -363,26 +363,8 @@ EOF
 
 
 update_build_status() {
-    # A proxy script to PUT (update) the status of a build in shaman
-    # 'state' can be either of: 'started', 'completed', or 'failed'
-    # 'project' is used to post to the right url in shaman
-
-    # required
-    state=$1
-    project=$2
-
-    # optional
-    distro=$3
-    distro_version=$4
-    distro_arch=$5
-
-    submit_build_status "POST" $state $project $distro $distro_version $distro_arch
-}
-
-
-create_build_status() {
-    # A proxy script to POST (create) the status of a build in shaman for
-    # a normal/initial build
+    # A proxy script to PUT (create or update) the status of a build
+    # in shaman for a normal/initial build
     # 'state' can be either of: 'started', 'completed', or 'failed'
     # 'project' is used to post to the right url in shaman
 

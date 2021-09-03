@@ -42,7 +42,7 @@ NORMAL_DISTRO_VERSION="1809"
 NORMAL_ARCH=$ARCH
 
 # create build status in shaman
-create_build_status "started" "ceph" $NORMAL_DISTRO $NORMAL_DISTRO_VERSION $NORMAL_ARCH
+update_build_status "started" "ceph" $NORMAL_DISTRO $NORMAL_DISTRO_VERSION $NORMAL_ARCH
 
 pkgs=( "chacractl>=0.0.21" )
 TEMPVENV=$(create_venv_dir)

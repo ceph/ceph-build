@@ -6,4 +6,4 @@
 BRANCH=`branch_slash_filter ${GIT_BRANCH}`
 SHA1=${GIT_COMMIT}
 
-create_build_status "queued" "ceph"
+update_build_status "queued" "ceph"

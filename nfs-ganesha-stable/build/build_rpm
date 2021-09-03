@@ -77,7 +77,7 @@ NORMAL_DISTRO_VERSION=$RELEASE
 NORMAL_ARCH=$ARCH
 
 # create build status in shaman
-create_build_status "started" "nfs-ganesha-stable" $NORMAL_DISTRO $NORMAL_DISTRO_VERSION $NORMAL_ARCH
+update_build_status "started" "nfs-ganesha-stable" $NORMAL_DISTRO $NORMAL_DISTRO_VERSION $NORMAL_ARCH
 
 cd $WORKSPACE/nfs-ganesha
 
