@@ -89,4 +89,4 @@ git clean -fxd
 export SHA1="${GIT_COMMIT}"
 
 # create build status in shaman
-create_build_status "started" "kernel" $NORMAL_DISTRO $NORMAL_DISTRO_VERSION $ARCH
+update_build_status "started" "kernel" $NORMAL_DISTRO $NORMAL_DISTRO_VERSION $ARCH
