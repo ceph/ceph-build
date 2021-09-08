@@ -14,6 +14,16 @@
       postgresql_version: "9.5"
   when: ansible_distribution_release == "xenial"
 
+- name: set postgresql version on bionic
+  set_fact:
+      postgresql_version: "10"
+  when: ansible_distribution_release == "bionic"
+
+- name: set postgresql version on focal
+  set_fact:
+      postgresql_version: "12"
+  when: ansible_distribution_release == "focal"
+
 - name: install postgresql requirements
   become: yes
   apt:
