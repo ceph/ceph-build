@@ -38,6 +38,7 @@
             - jessie
             - stretch
             - buster
+            - bullseye
             - precise
             - centos6
       - axis:
