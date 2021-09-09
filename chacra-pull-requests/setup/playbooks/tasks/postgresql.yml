@@ -17,11 +17,13 @@
 - name: set postgresql version on bionic
   set_fact:
       postgresql_version: "10"
+      python_version: "3"
   when: ansible_distribution_release == "bionic"
 
 - name: set postgresql version on focal
   set_fact:
       postgresql_version: "12"
+      python_version: "3"
   when: ansible_distribution_release == "focal"
 
 - name: install postgresql requirements
@@ -34,7 +36,7 @@
     - postgresql-common
     - postgresql-contrib
     - "postgresql-server-dev-{{ postgresql_version }}"
-    - python-psycopg2
+    - "python{{ python_version|default('') }}-psycopg2"
   tags:
     - packages
 
