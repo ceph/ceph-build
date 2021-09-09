@@ -55,6 +55,13 @@
      line: 'host    all             all             0.0.0.0/0            trust'
   register: pg_hba_conf
 
+# This is the only task that actually cares about the python interpreter so we set it here
+- set_fact:
+    ansible_python_interpreter: "/usr/bin/python3"
+  when:
+    - python_version is defined
+    - python_version == "3"
+
 - name: make jenkins-build user
   postgresql_user:
     name: "jenkins-build"
