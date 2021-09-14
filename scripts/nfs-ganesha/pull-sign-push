@@ -1,0 +1,26 @@
+#!/bin/bash
+# The script runnings on the signer box will pull nfs-ganesha packags that wore created in the last 24 hours on chacra.ceph.com to /opt/new-repos
+# After this the sign-rpms-auto script will run and sign the nfs-ganesha packages
+# And finally the sync-push-auto script will run and will push the signed packages to download.ceph.com
+
+today_items=$(ssh ubuntu@chacra.ceph.com 'find /opt/repos/nfs-ganesha-stable -newermt "-24 hours" -ls' | awk '{ print $11 }' )
+if [ -n "$today_items" ]; then
+echo "pulling nfs-ganesha packages from chacra"
+echo "********************************************"
+[[ -d /opt/nfs-ganesha/new-repos/ ]] | mkdir -p /opt/nfs-ganesha/new-repos/
+  for item in $today_items; do
+   sync_cmd="ubuntu@chacra.ceph.com:$item /opt/nfs-ganesha/new-repos/"
+   rsync -Lavh --progress --relative $sync_cmd
+  done
+
+  # sign the rpm's that wore pulled today
+
+echo "signing rpms"
+bash /home/ubuntu/ceph-build/scripts/nfs-ganesha/sign-rpms-auto
+
+  # syncing the singed rpm's to download.ceph.com
+
+echo "pushing rpms to download.ceph.com"
+bash /home/ubuntu/ceph-build/scripts/nfs-ganesha/sync-push-auto
+
+fi

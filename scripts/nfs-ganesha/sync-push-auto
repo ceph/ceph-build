@@ -1,0 +1,22 @@
+#!/bin/bash
+# This script will push repository files from the signer box to the upstream repositories.
+# By default it will push all releases and ceph_versions defined in the releases and ceph_version varibles to download.ceph.com
+
+releases=( V3.5 V2.7 )
+ceph_version=( octopus ceph_pacific )
+
+repodirs=$( find /opt/nfs-ganesha/new-repos/ -type d -name x86_64 | cut -d/ -f 13 --complement )
+for dir in "$repodirs"; do
+   for i in "${releases[@]}"; do
+      for v in "${ceph_version[@]}"; do
+       find_release=$( ls -ld "$dir" | grep "$i" | wc -l )
+       find_version=$( ls -ld "$dir" | grep "$v" | wc -l )
+       if [ $find_release == '1' ] && [ $find_version == '1' ]; then
+           release=$i
+           version=$v
+           ssh signer@download.ceph.com "mkdir -p /data/download.ceph.com/www/nfs-ganesha/rpm-$release-stable/$version/el8" && el8_cmd="$dir/* signer@download.ceph.com:/data/download.ceph.com/www/nfs-ganesha/rpm-$release-stable/$version/el8" &&  rsync --progress -avr $el8_cmd
+           rm -rf /opt/nfs-ganesha/new-repos/*
+       fi
+      done
+   done
+done
