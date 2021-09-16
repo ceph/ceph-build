@@ -35,7 +35,7 @@ vers=`cat ./dist/version`
 # like project/ref/ubuntu/jessie/.
 distro=""
 case $DIST in
-    buster|stretch|jessie|wheezy)
+    bullseye|buster|stretch|jessie|wheezy)
         distro="debian"
         ;;
     *)
