@@ -81,4 +81,11 @@
           - text:
               credential-id: cd-applitools-api-key
               variable: APPLITOOLS_API_KEY
+      - raw:
+          xml: |
+            <com.applitools.jenkins.ApplitoolsBuildWrapper plugin="applitools-eyes@1.13">
+              <serverURL>https://eyes.applitools.com</serverURL>
+              <notifyByCompletion>true</notifyByCompletion>
+              <applitoolsApiKey/>
+            </com.applitools.jenkins.ApplitoolsBuildWrapper>
       - ansicolor
