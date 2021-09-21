@@ -138,7 +138,6 @@
           - libtool
           #- rpm-sign
           - autoconf
-          - redhat-lsb-core
           - automake
           - cmake
           - binutils
@@ -176,7 +175,7 @@
         - libvirt|bool
       tags: always
 
-    # EPEL7 RPMs
+    # EL7 RPMs
     - set_fact:
         epel_rpms:
           - jq
@@ -214,7 +213,40 @@
           - ruby-devel
       when:
         - ansible_os_family == "RedHat"
-        - ansible_distribution_major_version|int >= 8
+        - ansible_distribution_major_version|int == 8
+      tags: always
+
+    # EL9 RPMs
+    - set_fact:
+        epel_rpms:
+          - jq
+          - python3-pip
+          - python3-devel
+          - podman
+        container_service_name: podman
+        container_certs_path: "/etc/containers/certs.d/{{ container_mirror }}"
+        hackery_packages:
+          - gcc
+          - libguestfs-tools-c
+          - libvirt
+          - libvirt-devel
+          - libxml2-devel
+          - libxslt-devel
+          - make
+          - ruby-devel
+      when:
+        - ansible_os_family == "RedHat"
+        - ansible_distribution_major_version|int == 9
+      tags: always
+
+    # This package removed in EL9
+    # This has to be a "list" otherwise it gets rendered as an empty string and the yum ansible module doesn't like that.
+    - set_fact:
+        lsb_package:
+          - redhat-lsb-core
+      when:
+        - ansible_os_family == "RedHat"
+        - ansible_distribution_major_version|int <= 8
       tags: always
 
     # OpenSUSE RPMs
@@ -419,11 +451,13 @@
       yum:
         name: epel-release
         state: latest
-      when: ansible_os_family == "RedHat"
+      when:
+        - ansible_os_family == "RedHat"
+        - ansible_distribution_major_version|int <= 8
 
     - name: Install RPMs without EPEL
       yum:
-        name: "{{ universal_rpms + libvirt_rpms|default([]) }}"
+        name: "{{ universal_rpms + libvirt_rpms|default([]) + lsb_package|default([]) }}"
         state: present
         disablerepo: epel
       when: ansible_os_family == "RedHat"
@@ -480,7 +514,9 @@
         name: "{{ jenkins_user }}"
         groups: mock
         append: yes
-      when: ansible_os_family == "RedHat"
+      when:
+        - ansible_os_family == "RedHat"
+        - ansible_distribution_major_version|int <= 8
 
     - name: "Create a {{ jenkins_user }} home directory"
       file:
