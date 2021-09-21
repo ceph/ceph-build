@@ -256,40 +256,27 @@ get_rpm_dist() {
     # creates a DISTRO_VERSION and DISTRO global variable for
     # use in constructing chacra urls for rpm distros
 
-    LSB_RELEASE=/usr/bin/lsb_release
-    [ ! -x $LSB_RELEASE ] && echo unknown && exit
+    source /etc/os-release
 
-    ID=`$LSB_RELEASE --short --id`
+    RELEASE=$VERSION_ID
+    DISTRO=$ID
 
     case $ID in
-    RedHatEnterpriseServer)
-        RELEASE=`$LSB_RELEASE --short --release | cut -d. -f1`
+    rhel)
         DIST=rhel$RELEASE
-        DISTRO=rhel
         ;;
-    CentOS|CentOSStream)
-        RELEASE=`$LSB_RELEASE --short --release | cut -d. -f1`
+    centos)
         DIST=el$RELEASE
-        DISTRO=centos
         ;;
-    Fedora)
-        RELEASE=`$LSB_RELEASE --short --release`
+    fedora)
         DIST=fc$RELEASE
-        DISTRO=fedora
         ;;
-    SUSE\ LINUX|openSUSE)
-        DESC=`$LSB_RELEASE --short --description`
-        RELEASE=`$LSB_RELEASE --short --release`
-        case $DESC in
-        *openSUSE*)
-                DIST=opensuse$RELEASE
-                DISTRO=opensuse
-            ;;
-        *Enterprise*)
-                DIST=sles$RELEASE
-                DISTRO=sles
-                ;;
-            esac
+    sles)
+        DIST=sles$RELEASE
+        ;;
+    opensuse)
+        DIST=opensuse$RELEASE
+        DISTRO=opensuse
         ;;
     *)
         DIST=unknown
@@ -1356,6 +1343,13 @@ setup_rpm_build_deps() {
         $SUDO dnf config-manager --add-repo http://apt-mirror.front.sepia.ceph.com/lab-extras/8/
         $SUDO dnf config-manager --setopt=apt-mirror.front.sepia.ceph.com_lab-extras_8_.gpgcheck=0 --save
 
+    elif [ "$RELEASE" = 9 ]; then
+        $SUDO dnf -y copr enable ceph/el9
+        $SUDO dnf -y install epel-next-release
+
+        $SUDO dnf config-manager --add-repo http://mirror.stream.centos.org/9-stream/CRB/x86_64/os/
+
+        $SUDO dnf -y install javapackages-tools
     fi
 
     DIR=/tmp/install-deps.$$

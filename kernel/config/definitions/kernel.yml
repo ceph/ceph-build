@@ -16,7 +16,7 @@
 
       - string:
           name: DISTROS
-          description: "A list of distros to build for. Available options are: centos8, focal, bionic, xenial, and trusty"
+          description: "A list of distros to build for. Available options are: centos9, centos8, focal, bionic, xenial, and trusty"
           default: "centos8 trusty xenial bionic focal"
 
       - string:
@@ -59,6 +59,7 @@ If this is checked, then the binaries will be built and pushed to chacra even if
           type: label-expression
           name: AVAILABLE_DIST
           values:
+            - centos9
             - centos8
             - trusty
             - xenial

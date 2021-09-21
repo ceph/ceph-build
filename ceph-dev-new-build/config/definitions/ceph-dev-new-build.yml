@@ -53,6 +53,7 @@
             - centos6
             - centos7
             - centos8
+            - centos9
             - leap15
             - windows
       - axis:
