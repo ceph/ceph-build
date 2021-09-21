@@ -66,6 +66,11 @@
             -  ../../../scripts/dashboard/{test_deps_script}
       - shell: |
           export CYPRESS_ARGS="--record --key $CYPRESS_RECORD_KEY --tag $JOB_NAME" COMMIT_INFO_MESSAGE="$JOB_NAME"
+          export APPLITOOLS_BATCH_ID="${{JOB_NAME}}_${{BUILD_TAG}}"
+          export APPLITOOLS_BRANCH_NAME="$ghprbSourceBranch"
+          export APPLITOOLS_PARENT_BRANCH_NAME="$ghprbTargetBranch"
+          mkdir -p .applitools
+          echo "$APPLITOOLS_BATCH_ID" > .applitools/BATCH_ID
           cd src/pybind/mgr/dashboard; timeout 2h ./{test_suite_script}
 
     wrappers:
