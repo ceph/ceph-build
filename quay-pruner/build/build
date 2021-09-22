@@ -1,5 +1,5 @@
 #!/bin/bash -ex
-virtualenv -p python3 ./v
+python3 -m venv ./v
 ./v/bin/pip install requests
 ./v/bin/python3 ./ceph-build/quay-pruner/build/prune-quay.py -v
 rm -rf ./v
