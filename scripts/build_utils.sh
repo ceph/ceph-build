@@ -103,7 +103,7 @@ create_virtualenv () {
         echo "Will reuse existing virtual env: $path"
     else
         if command -v python3 > /dev/null; then
-            virtualenv -p python3 $path
+            python3 -m venv $path
         elif command -v python2.7 > /dev/null; then
             virtualenv -p python2.7 $path
         else
