@@ -782,27 +782,14 @@
         executable: "{{ pip_version }}"
 
     ## LIBVIRT SERVICE TASKS
-    - name: start DEB libvirt services
-      service:
-        name: "{{ item }}"
-        state: restarted
-      with_items:
-        - libvirt-bin
-        - libvirt-guests
-      when:
-        - libvirt|bool
-        - ansible_os_family == "Debian"
-
-    - name: start RPM libvirt services
+    - name: start libvirt services
       service:
         name: "{{ item }}"
         state: restarted
       with_items:
         - libvirtd
         - libvirt-guests
-      when:
-        - libvirt|bool
-        - ansible_os_family == "RedHat"
+      when: libvirt|bool
 
     ## CONTAINER SERVICE TASKS
     - name: Container Tasks
