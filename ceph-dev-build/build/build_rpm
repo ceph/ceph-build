@@ -54,6 +54,9 @@ if [ "$THROWAWAY" = false ] ; then
     # push binaries to chacra
     find release/${vers}/rpm/*/SRPMS | grep rpm | $VENV/chacractl binary ${chacra_flags} create ${chacra_endpoint}/source/flavors/${FLAVOR}
     find release/${vers}/rpm/*/RPMS/* | grep rpm | $VENV/chacractl binary ${chacra_flags} create ${chacra_endpoint}/${ARCH}/flavors/${FLAVOR}
+    # extract cephadm
+    rpm2cpio ${BUILDAREA}/RPMS/noarch/cephadm-*.rpm  | cpio -i --to-stdout *sbin/cephadm > cephadm
+    echo cephadm | $VENV/chacractl binary ${chacra_flags} create ${chacra_endpoint}/${ARCH}/flavors/${FLAVOR}
     # write json file with build info
     cat > $WORKSPACE/repo-extra.json << EOF
 {
