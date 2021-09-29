@@ -759,6 +759,8 @@
         ansible_python_interpreter: /usr/bin/python
       when: (ansible_os_family == "RedHat" and ansible_distribution_major_version|int <= 7) or
             (ansible_os_family == "Debian" and ansible_distribution_major_version|int <= 16)
+      tags:
+        - register
 
     - set_fact:
         pip_version: pip3
@@ -766,6 +768,8 @@
       when: (ansible_os_family == "RedHat" and ansible_distribution_major_version|int >= 8) or
             (ansible_os_family == "Debian" and ansible_distribution_major_version|int >= 18) or
             ansible_os_family == "Suse"
+      tags:
+        - register
 
     - name: Install six, latest one
       pip:
@@ -773,6 +777,8 @@
         state: latest
         executable: "{{ pip_version }}"
       when: ansible_os_family != "Suse"
+      tags:
+        - register
 
     - name: Install python-jenkins
       # https://review.openstack.org/460363
@@ -780,6 +786,8 @@
         name: python-jenkins
         version: 0.4.15
         executable: "{{ pip_version }}"
+      tags:
+        - register
 
     ## LIBVIRT SERVICE TASKS
     - name: start libvirt services
