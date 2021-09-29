@@ -1245,65 +1245,6 @@ github_status_setup() {
 
 }
 
-write_collect_logs_playbook() {
-    cat > $WORKSPACE/collect-logs.yml << EOF
-- hosts: all
-  become: yes
-  tasks:
-    - name: import_role ceph-defaults
-      import_role:
-        name: ceph-defaults
-
-    - name: import_role ceph-facts
-      import_role:
-        name: ceph-facts
-        tasks_from: container_binary.yml
-
-    - name: set_fact ceph_cmd
-      set_fact:
-        ceph_cmd: "{{ container_binary + ' run --rm --net=host -v /etc/ceph:/etc/ceph:z -v /var/lib/ceph:/var/lib/ceph:z -v /var/run/ceph:/var/run/ceph:z --entrypoint=ceph ' + ceph_docker_registry + '/' + ceph_docker_image + ':' + ceph_docker_image_tag if containerized_deployment | bool else 'ceph' }}"
-
-    - name: get some ceph status outputs
-      command: "{{ ceph_cmd }} --connect-timeout 10 --cluster {{ cluster }} {{ item }}"
-      register: ceph_status
-      run_once: True
-      delegate_to: mon0
-      failed_when: false
-      changed_when: false
-      with_items:
-        - "-s -f json"
-        - "osd tree"
-        - "osd dump"
-        - "pg dump"
-        - "versions"
-
-    - name: save ceph status to file
-      copy:
-        content: "{{ item.stdout }}"
-        dest: "{{ archive_path }}/{{ item.item | regex_replace(' ', '_') }}.log"
-      delegate_to: localhost
-      run_once: True
-      with_items: "{{ ceph_status.results }}"
-
-    - name: find ceph config file and logs
-      find:
-        paths:
-          - /etc/ceph
-          - /var/log/ceph
-        patterns:
-          - "*.conf"
-          - "*.log"
-      register: results
-
-    - name: collect ceph config file and logs
-      fetch:
-        src: "{{ item.path }}"
-        dest: "{{ archive_path }}/{{ inventory_hostname }}/"
-        flat: yes
-      with_items: "{{ results.files }}"
-EOF
-}
-
 collect_ceph_logs() {
     local venv=$1
     shift
@@ -1317,14 +1258,13 @@ collect_ceph_logs() {
     if [ -f "./vagrant_ssh_config" ]; then
         mkdir -p $WORKSPACE/logs
 
-        write_collect_logs_playbook
-
         pkgs=( "ansible" )
         install_python_packages $TEMPVENV "pkgs[@]"
 
         export ANSIBLE_SSH_ARGS='-F ./vagrant_ssh_config'
         export ANSIBLE_STDOUT_CALLBACK='debug'
-        $venv/ansible-playbook -vv -i hosts --limit $limit --extra-vars "archive_path=$WORKSPACE/logs" $WORKSPACE/collect-logs.yml || true
+        export ANSIBLE_ROLES_PATH=$WORKSPACE/roles
+        $venv/ansible-playbook -vv -i hosts --limit $limit --extra-vars "archive_path=$WORKSPACE/logs" "$WORKSPACE/tests/functional/collect-logs.yml" || true
     fi
 }
 
