@@ -1,4 +1,5 @@
 #!/bin/bash
+# vim: ts=4 sw=4 expandtab
 
 set -ex
 
@@ -946,6 +947,11 @@ build_debs() {
             egrep "*\.(changes|deb|ddeb|dsc|gz)$" | \
             egrep -v "(Packages|Sources|Contents)" | \
             $venv/chacractl binary ${chacra_flags} create ${chacra_endpoint}
+
+        # extract cephadm binary and push
+        dpkg-deb --fsys-tarfile release/${vers}/cephadm_${vers}*.deb | tar -x -f - --strip-components=3 ./usr/sbin/cephadm
+        echo cephadm | $venv/chacractl binary ${chacra_flags} create ${chacra_endpoint}
+
         # write json file with build info
         cat > $WORKSPACE/repo-extra.json << EOF
 {
@@ -1338,8 +1344,8 @@ setup_rpm_build_deps() {
         $SUDO dnf config-manager --add-repo http://apt-mirror.front.sepia.ceph.com/lab-extras/8/
         $SUDO dnf config-manager --setopt=apt-mirror.front.sepia.ceph.com_lab-extras_8_.gpgcheck=0 --save
 
-	$SUDO rpm -import https://dist.apache.org/repos/dist/dev/arrow/KEYS
-	$SUDO dnf config-manager --add-repo="https://apache.jfrog.io/artifactory/arrow/centos/${RELEASE}/x86_64"
+        $SUDO rpm -import https://dist.apache.org/repos/dist/dev/arrow/KEYS
+        $SUDO dnf config-manager --add-repo="https://apache.jfrog.io/artifactory/arrow/centos/${RELEASE}/x86_64"
     fi
 
     DIR=/tmp/install-deps.$$
@@ -1431,7 +1437,7 @@ Source0:        ceph.repo
 #Source0:        RPM-GPG-KEY-CEPH
 #Source1:        ceph.repo
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
-BuildArch:	noarch
+BuildArch:      noarch
 
 %description
 This package contains the Ceph repository GPG key as well as configuration
