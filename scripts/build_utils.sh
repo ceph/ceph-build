@@ -948,9 +948,11 @@ build_debs() {
             egrep -v "(Packages|Sources|Contents)" | \
             $venv/chacractl binary ${chacra_flags} create ${chacra_endpoint}
 
-        # extract cephadm binary and push
-        dpkg-deb --fsys-tarfile release/${vers}/cephadm_${vers}*.deb | tar -x -f - --strip-components=3 ./usr/sbin/cephadm
-        echo cephadm | $venv/chacractl binary ${chacra_flags} create ${chacra_endpoint}
+        # extract cephadm if it exists
+        if [[ -f release/${vers}/cephadm_${vers}*.deb ]] ; then
+            dpkg-deb --fsys-tarfile release/${vers}/cephadm_${vers}*.deb | tar -x -f - --strip-components=3 ./usr/sbin/cephadm
+            echo cephadm | $venv/chacractl binary ${chacra_flags} create ${chacra_endpoint}
+        fi
 
         # write json file with build info
         cat > $WORKSPACE/repo-extra.json << EOF
