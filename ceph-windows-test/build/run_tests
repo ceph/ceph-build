@@ -1,0 +1,236 @@
+#!/usr/bin/env bash
+set -o errexit
+set -o pipefail
+
+CEPH_WINDOWS_VERSION=${CEPH_WINDOWS_VERSION:-"1809"}
+CEPH_WINDOWS_SHA1=${CEPH_WINDOWS_SHA1:-"latest"}
+
+VM_IMAGE_URL=${VM_IMAGE_URL:-"https://filedump.ceph.com/windows/ceph-win-ltsc2019-ci-image.qcow2"}
+VM_IMAGES_DIR=${VM_IMAGES_DIR:-"$WORKSPACE/vm_images"}
+
+CEPHADM_RELEASE=${CEPHADM_RELEASE:-"pacific"}
+
+VM_NAME="ceph-win-ltsc2019-${BUILD_ID}"
+SSH_KNOWN_HOSTS="/tmp/ssh_known_hosts_${BUILD_ID}"
+SSH_TIMEOUT="30s"
+
+
+function run_ssh_command() {
+    local VM_IP="$1"
+    shift
+    timeout $SSH_TIMEOUT ssh -i $CEPH_WIN_CI_KEY -o UserKnownHostsFile=${SSH_KNOWN_HOSTS} administrator@${VM_IP} ${@}
+}
+
+function run_scp_upload_command() {
+    local VM_IP="$1"
+    local LOCAL_FILE="$2"
+    local REMOTE_FILE="$3"
+    timeout $SSH_TIMEOUT scp -i $CEPH_WIN_CI_KEY -o UserKnownHostsFile=${SSH_KNOWN_HOSTS} -r $LOCAL_FILE administrator@${VM_IP}:${REMOTE_FILE}
+}
+
+function run_scp_download_command() {
+    local VM_IP="$1"
+    local REMOTE_FILE="$2"
+    local LOCAL_FILE="$3"
+    timeout $SSH_TIMEOUT scp -i $CEPH_WIN_CI_KEY -o UserKnownHostsFile=${SSH_KNOWN_HOSTS} -r administrator@${VM_IP}:${REMOTE_FILE} $LOCAL_FILE
+}
+
+function cleanup() {
+    # Cleanup virsh VM
+    if sudo virsh list | grep -q $VM_NAME; then
+        echo "Shutting down VM $VM_NAME"
+        sudo virsh destroy $VM_NAME
+    fi
+    if sudo virsh list --all | grep -q $VM_NAME; then
+        echo "Deleting VM $VM_NAME"
+        sudo virsh undefine $VM_NAME --remove-all-storage
+    fi
+    # Cleanup Ceph clusters spawned via cephadm
+    if [[ -x $WORKSPACE/cephadm ]] && [[ -d /var/lib/ceph ]]; then
+        for FSID in $(sudo ls /var/lib/ceph); do
+            echo "Removing Ceph cluster $FSID"
+            sudo $WORKSPACE/cephadm rm-cluster --fsid $FSID --force
+        done
+    fi
+    # Cleanup remaning files / directories
+    sudo rm -rf \
+        $WORKSPACE/ceph.conf $WORKSPACE/keyring $WORKSPACE/cephadm \
+        $WORKSPACE/ceph.zip $SSH_KNOWN_HOSTS /etc/ceph /var/log/ceph \
+        /var/lib/ceph /var/run/ceph
+}
+
+
+#
+# Cleanup before the script exits
+#
+trap cleanup EXIT
+
+#
+# Download the Chacra Ceph Windows build
+#
+timeout 10m $WORKSPACE/ceph-win32-tests/get-bin.py \
+    --distrover $CEPH_WINDOWS_VERSION \
+    --sha1 $CEPH_WINDOWS_SHA1
+
+#
+# Install requirements (if needed)
+#
+if ! sudo docker version &>/dev/null; then
+    sudo apt-get update
+    sudo apt-get install -y apt-transport-https ca-certificates curl gnupg lsb-release
+
+    curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+    sudo apt-get update
+    sudo apt-get install -y docker-ce docker-ce-cli containerd.io
+
+    sudo usermod -aG docker $USER
+fi
+if ! which virt-install >/dev/null; then
+    sudo apt-get update
+    sudo apt-get install -y virtinst
+fi
+if ! sudo virsh net-info default &>/dev/null; then
+    cat << EOF > $WORKSPACE/default-net.xml
+<network>
+  <name>default</name>
+  <bridge name="virbr0"/>
+  <forward mode="nat"/>
+  <ip address="192.168.122.1" netmask="255.255.255.0">
+    <dhcp>
+      <range start="192.168.122.2" end="192.168.122.254"/>
+    </dhcp>
+  </ip>
+</network>
+EOF
+    sudo virsh net-define $WORKSPACE/default-net.xml
+    sudo virsh net-start default
+    sudo virsh net-autostart default
+    rm $WORKSPACE/default-net.xml
+fi
+if ! which xmllint >/dev/null; then
+    sudo apt-get update
+    sudo apt-get install -y libxml2-utils
+fi
+
+#
+# Start minimal Ceph development cluster via cephadm
+#
+curl -L "https://github.com/ceph/ceph/raw/${CEPHADM_RELEASE}/src/cephadm/cephadm" -o $WORKSPACE/cephadm
+chmod +x $WORKSPACE/cephadm
+sudo virsh net-dumpxml default > $WORKSPACE/default-net.xml
+MON_IP=`xmllint --xpath 'string(/network/ip/@address)' $WORKSPACE/default-net.xml`
+sudo rm $WORKSPACE/default-net.xml
+sudo $WORKSPACE/cephadm bootstrap --allow-fqdn-hostname --single-host-defaults --mon-ip $MON_IP
+sudo $WORKSPACE/cephadm add-repo --release $CEPHADM_RELEASE
+sudo $WORKSPACE/cephadm install ceph-common
+
+sudo cp /etc/ceph/ceph.conf $WORKSPACE/ceph.conf
+sudo cp /etc/ceph/ceph.client.admin.keyring $WORKSPACE/keyring
+sudo chown $USER $WORKSPACE/ceph.conf $WORKSPACE/keyring
+
+sudo ceph osd pool create rbd
+
+#
+# Download the Windows qcow2 image (if necessary)
+#
+IMAGE_FILE="$(basename $VM_IMAGE_URL)"
+mkdir -p $VM_IMAGES_DIR
+
+echo "Decide if the VM image is up to date"
+DOWNLOAD_IMAGE=false
+if [[ -e "${VM_IMAGES_DIR}/${IMAGE_FILE}" ]]; then
+    SHA256="$(curl -L -s ${VM_IMAGE_URL}.sha256)"
+    if [[ ! -e "${VM_IMAGES_DIR}/${IMAGE_FILE}.sha256" ]]; then
+        sha256sum ${VM_IMAGES_DIR}/${IMAGE_FILE} | awk '{print $1}' > "${VM_IMAGES_DIR}/${IMAGE_FILE}.sha256"
+    fi
+    if [[ "$SHA256" != "$(cat ${VM_IMAGES_DIR}/${IMAGE_FILE}.sha256)" ]]; then
+        DOWNLOAD_IMAGE=true
+    fi
+else
+    DOWNLOAD_IMAGE=true
+fi
+if [[ $DOWNLOAD_IMAGE == true ]]; then
+    echo "The VM image is outdated. Downloading it from $VM_IMAGE_URL"
+    curl -L -o ${VM_IMAGES_DIR}/${IMAGE_FILE} $VM_IMAGE_URL
+    curl -L -o ${VM_IMAGES_DIR}/${IMAGE_FILE}.sha256 ${VM_IMAGE_URL}.sha256
+else
+    echo "The VM image is up to date"
+fi
+echo "Copying VM image to be used for VM ${VM_NAME}"
+cp ${VM_IMAGES_DIR}/${IMAGE_FILE} ${WORKSPACE}/${IMAGE_FILE}
+
+#
+# Start the Windows testing VM
+#
+sudo virt-install \
+    --name $VM_NAME \
+    --os-variant win2k19 \
+    --boot hd \
+    --virt-type kvm \
+    --graphics spice \
+    --cpu host \
+    --vcpus 4 \
+    --memory 4096 \
+    --disk ${WORKSPACE}/${IMAGE_FILE},bus=virtio \
+    --network network=default,model=virtio \
+    --controller type=virtio-serial \
+    --channel unix,target_type=virtio,name=org.qemu.guest_agent.0 \
+    --noautoconsol
+
+#
+# Wait until the QEMU agent reports the VM IP, and it's reachable via SSH
+#
+SECONDS=0
+TIMEOUT=600
+SLEEP_SECS=10
+while true; do
+    if [[ $SECONDS -gt $TIMEOUT ]]; then
+        echo "Timeout waiting for the VM to start"
+        exit 1
+    fi
+    VM_IP=$(sudo virsh domifaddr --source agent --interface Ethernet --full $VM_NAME | grep ipv4 | awk '{print $4}' | cut -d '/' -f1) || {
+        echo "Retrying in $SLEEP_SECS seconds"
+        sleep $SLEEP_SECS
+        continue
+    }
+    ssh-keyscan -H $VM_IP &> $SSH_KNOWN_HOSTS || {
+        echo "SSH is not reachable yet"
+        sleep $SLEEP_SECS
+        continue
+    }
+    run_ssh_command $VM_IP hostname || {
+        echo "Cannot execute SSH commands yet"
+        sleep $SLEEP_SECS
+        continue
+    }
+    break
+done
+
+#
+# Copy the ceph.conf and keyring to the Windows VM
+#
+run_ssh_command $VM_IP powershell.exe mkdir -force /ProgramData/ceph/out
+run_scp_upload_command $VM_IP $WORKSPACE/ceph.conf /ProgramData/ceph/ceph.conf
+run_scp_upload_command $VM_IP $WORKSPACE/keyring /ProgramData/ceph/keyring
+
+#
+# Setup the Ceph Windows build in the Windows VM
+#
+SSH_TIMEOUT=5m run_scp_upload_command $VM_IP $WORKSPACE/ceph.zip /ceph.zip
+SSH_TIMEOUT=10m run_ssh_command $VM_IP powershell.exe "\$ProgressPreference='SilentlyContinue'; Expand-Archive -Path /ceph.zip -DestinationPath / -Force"
+run_ssh_command $VM_IP powershell.exe "New-Service -Name ceph-rbd -BinaryPathName 'c:\ceph\rbd-wnbd.exe service'"
+run_ssh_command $VM_IP powershell.exe Start-Service -Name ceph-rbd
+
+#
+# Run the Windows tests
+#
+SSH_TIMEOUT=5m run_scp_upload_command $VM_IP $WORKSPACE/ceph-win32-tests /workspace/repos/ceph-win32-tests
+SSH_TIMEOUT=1h run_ssh_command $VM_IP powershell.exe /workspace/repos/ceph-win32-tests/test_host/run_tests.ps1 -workerCount 4
+
+#
+# Collect logs
+#
+mkdir -p $WORKSPACE/logs
+run_scp_download_command $VM_IP /workspace/test_results $WORKSPACE/logs/test_results

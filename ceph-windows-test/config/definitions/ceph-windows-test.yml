@@ -1,0 +1,48 @@
+- job:
+    name: ceph-windows-test
+    description: 'Runs the unit tests from a Windows build uploaded to Chacra.'
+    node: amd64&&focal&&libvirt
+    project-type: freestyle
+    defaults: global
+    concurrent: true
+    display-name: 'ceph-windows-test'
+    properties:
+      - build-discarder:
+          days-to-keep: 30
+          num-to-keep: 30
+          artifact-days-to-keep: 30
+          artifact-num-to-keep: 30
+
+    parameters:
+      - string:
+          name: CEPH_WINDOWS_VERSION
+          description: "The Windows version for the Ceph build."
+          default: 1809
+      - string:
+          name: CEPH_WINDOWS_SHA1
+          description: "The SHA1 for the Ceph build."
+          default: latest
+
+    scm:
+      - git:
+          url: https://github.com/ceph/ceph-win32-tests.git
+          branches:
+            - master
+          basedir: ceph-win32-tests
+
+    builders:
+      - shell:
+          !include-raw:
+            ../../build/run_tests
+
+    wrappers:
+      - credentials-binding:
+          - file:
+              credential-id: ceph_win_ci_private_key
+              variable: CEPH_WIN_CI_KEY
+
+    publishers:
+      - archive:
+          artifacts: 'logs/**'
+          allow-empty: true
+          latest-only: false
