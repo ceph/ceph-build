@@ -202,6 +202,10 @@ install_python_packages () {
     PIP_SDIST_INDEX="$HOME/.cache/pip"
     mkdir -p $PIP_SDIST_INDEX
 
+    # Avoid UnicodeErrors when installing packages.
+    # See https://github.com/ceph/ceph/pull/42811
+    export LC_ALL=en_US.UTF-8
+
     # We started pinning pip to 10.0.0 as the default to prevent mismatching
     # versions on non-ephemeral slaves.  Some jobs require different or latest
     # pip though so these if statements allow for that.
