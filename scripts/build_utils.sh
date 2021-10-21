@@ -1190,6 +1190,9 @@ start_tox() {
         shrink_osd_multiple)
             TOX_INI_FILE=tox-shrink_osd.ini
             ;;
+        subset_update)
+            TOX_INI_FILE=tox-subset_update.ini
+            ;;
         *)
             TOX_INI_FILE=tox.ini
             ;;
