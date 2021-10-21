@@ -10,6 +10,7 @@
       - all_daemons
       - all_in_one
       - update
+      - subset_update
       - purge
       - switch_to_containers
     exclude:
