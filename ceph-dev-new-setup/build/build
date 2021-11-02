@@ -5,7 +5,7 @@
 # Since this job is now pulling from ceph-ci.git, there aren't any tags as they
 # exist in ceph.git and the Ceph's versioning scheme wants to have them to
 # construct the actual version. This doesn't happen when building from ceph.git
-git fetch --tags git://github.com/ceph/ceph.git
+git fetch --tags https://github.com/ceph/ceph.git
 
 BRANCH=`branch_slash_filter $BRANCH`
 SHA1=${GIT_COMMIT}
