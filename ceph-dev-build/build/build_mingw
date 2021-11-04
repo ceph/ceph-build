@@ -1,0 +1,61 @@
+#!/bin/bash
+set -ex
+
+# We need Ubuntu Focal to cross-compile Ceph for Windows.
+# Previous versions provide broken Mingw packages.
+# "DIST" will be set to "windows", so we're currently overriding it with
+# a hardcoded value.
+tmp_pbuild_script=$(mktemp /tmp/build_mingw_pbuild.XXXXXX)
+cat << EOF > $tmp_pbuild_script
+#!/bin/sh
+# Used by the build script
+apt-get install -y sudo git automake wget
+
+cd /mnt/ceph
+CMAKE_BUILD_TYPE=Release BUILD_ZIP=1 CLEAN_BUILD=1 timeout 3h ./win32_build.sh
+EOF
+chmod a+x $tmp_pbuild_script
+sudo pbuilder execute \
+    --bindmounts "$(pwd):/mnt/ceph" \
+    --distribution "focal" \
+    --basetgz $basedir/focal.tgz \
+    -- $tmp_pbuild_script
+rm $tmp_pbuild_script
+
+if [ "$THROWAWAY" = false ]; then
+    # push binaries to chacra
+    chacra_binary="$VENV/chacractl binary"
+    chacra_create="$chacra_binary create"
+    [ "$FORCE" = true ] && chacra_binary="$chacra_binary --force"
+
+    find build -name "*.zip" |
+        $chacra_create ${chacra_binary_endpoint}
+
+    # write json file with build info
+    cat > $WORKSPACE/repo-extra.json << EOF
+{
+    "version":"$vers",
+    "package_manager_version":"",
+    "build_url":"$BUILD_URL",
+    "root_build_cause":"$ROOT_BUILD_CAUSE",
+    "node_name":"$NODE_NAME",
+    "job_name":"$JOB_NAME"
+}
+EOF
+    # post the json to repo-extra json to chacra
+    curl -X POST \
+         -H "Content-Type:application/json" \
+         --data "@$WORKSPACE/repo-extra.json" \
+         -u $CHACRACTL_USER:$CHACRACTL_KEY \
+         ${chacra_url}repos/${chacra_repo_endpoint}/extra/
+    # start repo creation
+    $VENV/chacractl repo update ${chacra_repo_endpoint}
+
+    echo Check the status of the repo at: https://shaman.ceph.com/api/repos/${chacra_repo_endpoint}/
+fi
+
+# pbuilder will leave root-owned files in shared workspaces
+sudo chown -R jenkins-build ${WORKSPACE}/dist
+
+# update shaman with the completed build status
+update_build_status "completed" "ceph" $NORMAL_DISTRO $NORMAL_DISTRO_VERSION $NORMAL_ARCH
