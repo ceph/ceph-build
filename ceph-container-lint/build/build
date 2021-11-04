@@ -12,8 +12,7 @@ function generate_filelist(){
        find . -name '*.sh' | grep -vE "$IGNORE_THESE_FILES"
    else
        curl -XGET "https://api.github.com/repos/ceph/ceph-container/pulls/$pull_request_id/files" |
-       jq '.[].filename' |  # just the files please
-       tr -d '"' |  # remove the quoting from JSON
+       jq -r '.[] | select(.status != "removed") | .filename'  # just the files please (not removed)
        grep ".sh$" | # just the bash
        grep -vE "$IGNORE_THESE_FILES"
    fi
