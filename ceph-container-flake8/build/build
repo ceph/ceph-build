@@ -47,6 +47,7 @@ function main() {
     fi
 
 
+    sudo docker pull eeacms/flake8
     pushd "$workspace/ceph-container"
     generate_filelist | check
     popd

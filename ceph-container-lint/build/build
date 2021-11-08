@@ -50,6 +50,7 @@ function main() {
     fi
 
 
+    sudo docker pull koalaman/shellcheck
     pushd "$workspace/ceph-container"
     generate_filelist | check
     popd
