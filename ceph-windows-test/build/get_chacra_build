@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+set -o errexit
+set -o pipefail
+
+CEPH_WINDOWS_VERSION=${CEPH_WINDOWS_VERSION:-"1809"}
+CEPH_WINDOWS_SHA1=${CEPH_WINDOWS_SHA1:-"latest"}
+
+GET_BIN_SCRIPT_URL="https://raw.githubusercontent.com/ceph/ceph-win32-tests/master/get-bin.py"
+
+#
+# Download the Chacra Ceph Windows build
+#
+cd $WORKSPACE
+timeout 1m curl -L -o ./get-chacra-bin.py $GET_BIN_SCRIPT_URL
+chmod +x ./get-chacra-bin.py
+timeout 10m ./get-chacra-bin.py --distrover $CEPH_WINDOWS_VERSION --sha1 $CEPH_WINDOWS_SHA1
