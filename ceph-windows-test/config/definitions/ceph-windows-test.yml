@@ -19,6 +19,10 @@
           description: "The Windows version for the Ceph build."
           default: 1809
       - string:
+          name: CEPH_WINDOWS_BRANCH
+          description: "The branch name for the Ceph build."
+          default: master
+      - string:
           name: CEPH_WINDOWS_SHA1
           description: "The SHA1 for the Ceph build."
           default: latest
