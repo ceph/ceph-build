@@ -34,6 +34,8 @@
           allow-whitelist-orgs-as-admins: true
           org-list:
             - ceph
+          white-list-target-branches:
+            - master
           trigger-phrase: 'jenkins test windows'
           skip-build-phrase: '^jenkins do not test.*'
           only-trigger-phrase: false
