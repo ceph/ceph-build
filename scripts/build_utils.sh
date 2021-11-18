@@ -1621,3 +1621,55 @@ function cleanup_windows_tests_env() {
         $WORKSPACE/ceph.zip $WORKSPACE/known_hosts \
         /etc/ceph /var/log/ceph /var/lib/ceph /var/run/ceph
 }
+
+function ssh_exec() {
+    if [[ -z $SSH_ADDRESS ]]; then
+        echo "ERROR: Env variable SSH_ADDRESS is not set"
+        exit 1
+    fi
+    if [[ -z $SSH_USER ]]; then
+        echo "ERROR: Env variable SSH_USER is not set"
+        exit 1
+    fi
+    local SSH_OPTS=""
+    if [[ ! -z $SSH_KNOWN_HOSTS_FILE ]]; then
+        SSH_OPTS="$SSH_OPTS -o UserKnownHostsFile=$SSH_KNOWN_HOSTS_FILE"
+    fi
+    timeout ${SSH_TIMEOUT:-"30s"} ssh -i ${SSH_KEY:-"$HOME/.ssh/id_rsa"} $SSH_OPTS ${SSH_USER}@${SSH_ADDRESS} ${@}
+}
+
+function scp_upload() {
+    local LOCAL_FILE="$1"
+    local REMOTE_FILE="$2"
+    if [[ -z $SSH_ADDRESS ]]; then
+        echo "ERROR: Env variable SSH_ADDRESS is not set"
+        exit 1
+    fi
+    if [[ -z $SSH_USER ]]; then
+        echo "ERROR: Env variable SSH_USER is not set"
+        exit 1
+    fi
+    local SSH_OPTS=""
+    if [[ ! -z $SSH_KNOWN_HOSTS_FILE ]]; then
+        SSH_OPTS="$SSH_OPTS -o UserKnownHostsFile=$SSH_KNOWN_HOSTS_FILE"
+    fi
+    timeout ${SSH_TIMEOUT:-"30s"} scp -i ${SSH_KEY:-"$HOME/.ssh/id_rsa"} $SSH_OPTS -r $LOCAL_FILE ${SSH_USER}@${SSH_ADDRESS}:${REMOTE_FILE}
+}
+
+function scp_download() {
+    local REMOTE_FILE="$1"
+    local LOCAL_FILE="$2"
+    if [[ -z $SSH_ADDRESS ]]; then
+        echo "ERROR: Env variable SSH_ADDRESS is not set"
+        exit 1
+    fi
+    if [[ -z $SSH_USER ]]; then
+        echo "ERROR: Env variable SSH_USER is not set"
+        exit 1
+    fi
+    local SSH_OPTS=""
+    if [[ ! -z $SSH_KNOWN_HOSTS_FILE ]]; then
+        SSH_OPTS="$SSH_OPTS -o UserKnownHostsFile=$SSH_KNOWN_HOSTS_FILE"
+    fi
+    timeout ${SSH_TIMEOUT:-"30s"} scp -i ${SSH_KEY:-"$HOME/.ssh/id_rsa"} $SSH_OPTS -r ${SSH_USER}@${SSH_ADDRESS}:${REMOTE_FILE} $LOCAL_FILE
+}

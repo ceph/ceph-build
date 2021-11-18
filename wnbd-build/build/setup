@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+set -o errexit
+set -o pipefail
+
+DISTRO="windows"
+DISTRO_VERSION="1809"
+ARCH="x86_64"
+FLAVOR="default"
+
+BRANCH=`branch_slash_filter $BRANCH`
+SHA1="$GIT_COMMIT"
+
+pkgs=( "chacractl>=0.0.21" )
+TEMPVENV=$(create_venv_dir)
+VENV=${TEMPVENV}/bin
+install_python_packages $TEMPVENV "pkgs[@]"
+
+# ask shaman which chacra instance to use
+chacra_url=`curl -u $SHAMAN_API_USER:$SHAMAN_API_KEY https://shaman.ceph.com/api/nodes/next/`
+# create the .chacractl config file using global variables
+make_chacractl_config $chacra_url
+
+chacra_endpoint="wnbd/${BRANCH}/${SHA1}/${DISTRO}/${DISTRO_VERSION}"
+chacra_binary_endpoint="${chacra_endpoint}/${ARCH}/flavors/${FLAVOR}"
+chacra_repo_endpoint="${chacra_endpoint}/flavors/${FLAVOR}"
+chacra_check_url="${chacra_binary_endpoint}/wnbd.zip"
+
+if [ "$THROWAWAY" = false ] ; then
+    # this exists in scripts/build_utils.sh
+    check_binary_existence $VENV $chacra_check_url
+fi
+
+# create build status in shaman
+update_build_status "started" "wnbd" $DISTRO $DISTRO_VERSION $ARCH
