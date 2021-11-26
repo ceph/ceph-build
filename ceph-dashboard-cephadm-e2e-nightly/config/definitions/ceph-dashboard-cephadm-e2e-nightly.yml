@@ -1,0 +1,72 @@
+- project:
+    name: ceph-dashboard-cephadm-e2e-nightly
+    ceph_branch:
+      - master
+      - pacific
+      - octopus
+    jobs:
+      - '{name}-{ceph_branch}'
+
+- job-template:
+    name: '{name}-{ceph_branch}'
+    display-name: '{name}-{ceph_branch}'
+    project-type: freestyle
+    defaults: global
+    concurrent: true
+    node: huge && focal && x86_64
+    quiet-period: 5
+    block-downstream: false
+    block-upstream: false
+    retry-count: 3
+    properties:
+      - build-discarder:
+          days-to-keep: 15
+          num-to-keep: 300
+          artifact-days-to-keep: -1
+          artifact-num-to-keep: -1
+      - github:
+          url: https://github.com/ceph/ceph/
+      - rebuild:
+          auto-rebuild: true
+      - inject:
+          properties-content: |
+            TERM=xterm
+
+    triggers:
+      - timed: '@midnight'
+
+    scm:
+      - git:
+          url: https://github.com/ceph/ceph.git
+          branches:
+            - '{ceph_branch}'
+          browser: auto
+          basedir: "ceph"
+          timeout: 20
+          skip-tag: true
+          shallow-clone: true
+          wipe-workspace: true
+
+    builders:
+      - shell:
+          !include-raw-escape:
+            - ../../../scripts/dashboard/install-e2e-test-deps.sh
+            - ../../../scripts/dashboard/install-cephadm-e2e-deps.sh
+      - shell: |
+          cd ceph
+          export CYPRESS_ARGS="--record --key $CYPRESS_RECORD_KEY --tag $JOB_NAME" COMMIT_INFO_MESSAGE="$JOB_NAME"
+          timeout 7200 ./src/pybind/mgr/dashboard/ci/cephadm/run-cephadm-e2e-tests.sh
+
+    wrappers:
+      - inject-passwords:
+          global: true
+          mask-password-params: true
+      - credentials-binding:
+          - text:
+              credential-id: cd-cypress-record-key
+              variable: CYPRESS_RECORD_KEY
+      - ansicolor
+
+    publishers:
+      - email:
+          recipients: ceph-qa@ceph.io
