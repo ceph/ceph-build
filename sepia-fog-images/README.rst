@@ -30,7 +30,7 @@ How it works
 
 This job:
 
-#. Locks a number of testnodes via ``teuthology-lock`` depending on the number of machine types and distros you specify.
+#. Locks a number of testnodes via ``teuthology-lock`` depending on the number of machine types and distros you specify (unless you specify your own using the ``DEFINEDHOSTS`` job parameter).
 
 #. SSHes and configures the DHCP server to make the testnodes boot to the Cobbler PXE server (instead of the default FOG).
 

@@ -62,12 +62,25 @@ else
   git checkout $TEUTHOLOGYBRANCH
 fi
 
-# Bootstrap teuthology
-./bootstrap
+# Should we use teuthology-lock to lock systems?
+if [ "$DEFINEDHOSTS" == "" ]; then
+  use_teuthologylock=true
+else
+  use_teuthologylock=false
+fi
 
-cd $WORKSPACE
+if [ "$use_teuthologylock" = true ]; then
+  # Bootstrap teuthology
+  ./bootstrap
 
-source $WORKSPACE/teuthology/virtualenv/bin/activate
+  cd $WORKSPACE
+
+  source $WORKSPACE/teuthology/virtualenv/bin/activate
+else
+  virtualenv $WORKSPACE/venv
+  source $WORKSPACE/venv/bin/activate
+  pip install $(grep -E 'ansible==' requirements.txt | awk '{ print $1 }')
+fi
 
 # Clone or update ceph-cm-ansible
 if [ ! -d ceph-cm-ansible ]; then
@@ -83,33 +96,39 @@ fi
 
 cd $WORKSPACE
 
-# Don't bail if we fail to lock machines
-set +e
+if [ "$use_teuthologylock" = true ]; then
+  # Don't bail if we fail to lock machines
+  set +e
 
-numdistros=$(echo $DISTROS | wc -w)
-# Keep trying to lock machines
-for type in $MACHINETYPES; do
-  numlocked=$(teuthology-lock --brief --machine-type $type | grep "Locked to capture FOG image for Jenkins build $BUILD_NUMBER" | wc -l)
-  currentretries=0
-  while [ $numlocked -lt $numdistros ]; do
-    # Lock one at a time since we have a better shot of getting one instead of all at once.
-    # Setting the BUILD_NUMBER in the description makes sure each Jenkins job uses the right machines.
-    # This is useful for when a job is aborted and another is started while the previous job's machines are debugged/cleaned up.
-    teuthology-lock --lock-many 1 --machine-type $type --desc "Locked to capture FOG image for Jenkins build $BUILD_NUMBER"
-    # Sleep for a bit so we don't hammer the lock server
-    if [ $? -ne 0 ]; then
-      sleep 5
-    fi
+  numdistros=$(echo $DISTROS | wc -w)
+  # Keep trying to lock machines
+  for type in $MACHINETYPES; do
     numlocked=$(teuthology-lock --brief --machine-type $type | grep "Locked to capture FOG image for Jenkins build $BUILD_NUMBER" | wc -l)
-    ((++currentretries))
-    # Retry for 1hr
-    funRetry $currentretries 720
+    currentretries=0
+    while [ $numlocked -lt $numdistros ]; do
+      # Lock one at a time since we have a better shot of getting one instead of all at once.
+      # Setting the BUILD_NUMBER in the description makes sure each Jenkins job uses the right machines.
+      # This is useful for when a job is aborted and another is started while the previous job's machines are debugged/cleaned up.
+      teuthology-lock --lock-many 1 --machine-type $type --desc "Locked to capture FOG image for Jenkins build $BUILD_NUMBER"
+      # Sleep for a bit so we don't hammer the lock server
+      if [ $? -ne 0 ]; then
+        sleep 5
+      fi
+      numlocked=$(teuthology-lock --brief --machine-type $type | grep "Locked to capture FOG image for Jenkins build $BUILD_NUMBER" | wc -l)
+      ((++currentretries))
+      # Retry for 1hr
+      funRetry $currentretries 720
+    done
   done
-done
 
-set -e
+  set -e
 
-allhosts=$(teuthology-lock --brief | grep "Locked to capture FOG image for Jenkins build $BUILD_NUMBER" | cut -d '.' -f1 | tr "\n" " ")
+  allhosts=$(teuthology-lock --brief | grep "Locked to capture FOG image for Jenkins build $BUILD_NUMBER" | cut -d '.' -f1 | tr "\n" " ")
+else
+  allhosts="$DEFINEDHOSTS"
+  set -e
+fi
+
 # Configure DHCP to use cobbler as the PXE server for each machine to reimage and ansiblize
 for machine in $allhosts; do
   ssh ubuntu@store01.front.sepia.ceph.com "sudo /usr/local/sbin/set-next-server.sh $machine cobbler"
@@ -123,7 +142,11 @@ fogcaptureid=$(curl -f -s -k -H "fog-api-token: ${FOG_API_TOKEN}" -H "fog-user-t
 
 # Set cobbler profile and FOG image ID for each locked machine
 for type in $MACHINETYPES; do
-  lockedhosts=$(teuthology-lock --brief --machine-type $type | grep "Locked to capture FOG image for Jenkins build $BUILD_NUMBER" | cut -d '.' -f1 | sort)
+  if [ "$use_teuthologylock" = true ]; then
+    lockedhosts=$(teuthology-lock --brief --machine-type $type | grep "Locked to capture FOG image for Jenkins build $BUILD_NUMBER" | cut -d '.' -f1 | sort)
+  else
+    lockedhosts=$(echo $DEFINEDHOSTS | grep -o "\w*${type}\w*")
+  fi
   # Create arrays using our lists so we can iterate through them
   array1=($lockedhosts)
   array2=($DISTROS)
@@ -239,7 +262,12 @@ if [ "$pausedqueue" = true ]; then
   done
 fi
 
-# Unlock all machines after all capture images are finished
-for host in $allhosts; do
-  teuthology-lock --unlock $host
-done
+if [ "$use_teuthologylock" = true ]; then
+  # Unlock all machines after all capture images are finished
+  for host in $allhosts; do
+    teuthology-lock --unlock $host
+  done
+else
+  deactivate
+  rm -rf $WORKSPACE/venv
+fi
