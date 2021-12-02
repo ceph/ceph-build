@@ -57,7 +57,7 @@
           - ant
           - tmpreaper
         tmp_cleaner_name: tmpreaper
-        tmp_cleaner_args: "--runtime=0 30d /tmp/"
+        tmp_cleaner_args: "--runtime=0 14d /tmp/"
       when: ansible_os_family == "Debian"
       tags: always
 
@@ -157,7 +157,7 @@
           - libffi-devel
           - tmpwatch
         tmp_cleaner_name: tmpwatch
-        tmp_cleaner_args: "30d /tmp/"
+        tmp_cleaner_args: "14d /tmp/"
       when: ansible_os_family == "RedHat"
       tags: always
 
@@ -285,7 +285,7 @@
           - osc
           - build
         tmp_cleaner_name: tmpwatch
-        tmp_cleaner_args: "30d /tmp/"
+        tmp_cleaner_args: "14d /tmp/"
       when: ansible_os_family == "Suse"
       tags: always
 
@@ -718,7 +718,7 @@
 
         - name: Create tmp cleaning cronjob
           cron:
-            name: "Delete /tmp files that have not been accessed in 30 days"
+            name: "Delete /tmp files that have not been accessed in 14 days"
             special_time: daily
             job: "{{ tmp_cleaner_name }} {{ tmp_cleaner_args }}"
       when: permanent|bool
