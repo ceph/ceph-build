@@ -40,6 +40,10 @@
           name: PAUSEQUEUE
           default: "true"
           description: "Should the teuthology queue be paused?  Recapturing an existing OS image will cause running reimages to fail without pausing the queue.  The queue can remain unpaused when a new distro/version is being captured.  Queue is paused by default."
+      - string:
+          name: DEFINEDHOSTS
+          default: ""
+          description: "Define a list of systems to use instead of using teuthology-lock to lock unused systems."
 
     builders:
       - shell:
