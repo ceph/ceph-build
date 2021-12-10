@@ -4,8 +4,7 @@
       - master
       - pacific
       - octopus
-      - nautilus:
-          ceph_build: "export CHECK_MAKEOPTS='-N -Q'; timeout 2h ./run-make-check.sh"
+      - nautilus
     test_suite:
       - backend:
           test_suite_script: run-backend-api-tests.sh
