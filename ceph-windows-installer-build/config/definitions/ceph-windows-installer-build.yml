@@ -1,0 +1,115 @@
+- job:
+    name: ceph-windows-installer-build
+    description: 'Builds the Ceph Windows MSI installer.'
+    node: amd64 && focal && libvirt
+    project-type: freestyle
+    defaults: global
+    concurrent: true
+    display-name: 'ceph-windows-installer-build'
+    properties:
+      - build-discarder:
+          days-to-keep: 30
+          num-to-keep: 30
+          artifact-days-to-keep: 30
+          artifact-num-to-keep: 30
+
+    parameters:
+      - string:
+          name: BRANCH
+          description: "The git branch (or tag) to build"
+          default: "master"
+
+      - string:
+          name: CEPH_WINDOWS_BRANCH
+          description: "The branch name for the Ceph build."
+          default: master
+
+      - string:
+          name: CEPH_WINDOWS_SHA1
+          description: "The SHA1 for the Ceph build."
+          default: latest
+
+      - string:
+          name: WNBD_BRANCH
+          description: "The branch name for the WNBD build."
+          default: master
+
+      - string:
+          name: WNBD_SHA1
+          description: "The SHA1 for the WNBD build."
+          default: latest
+
+      - bool:
+          name: THROWAWAY
+          description: |
+            Default: False. When True it will not POST binaries to chacra. Artifacts will not be around for long. Useful to test builds.
+          default: false
+
+      - bool:
+          name: FORCE
+          description: |
+            If this is unchecked, then nothing is built or pushed if they already exist in chacra. This is the default.
+
+            If this is checked, then the binaries will be built and pushed to chacra even if they already exist in chacra.
+
+    scm:
+      - git:
+          url: https://github.com/cloudbase/ceph-windows-installer.git
+          branches:
+            - $BRANCH
+          timeout: 20
+          wipe-workspace: true
+          basedir: ceph-windows-installer
+
+    builders:
+      - shell:
+          !include-raw:
+            - ../../../scripts/build_utils.sh
+            - ../../build/setup
+            - ../../../scripts/ceph-windows/setup_libvirt_vm
+            - ../../build/build
+
+    wrappers:
+      - inject-passwords:
+          global: true
+          mask-password-params: true
+      - credentials-binding:
+          - file:
+              credential-id: ceph_win_ci_private_key
+              variable: CEPH_WIN_CI_KEY
+          - text:
+              credential-id: chacractl-key
+              variable: CHACRACTL_KEY
+          - text:
+              credential-id: shaman-api-key
+              variable: SHAMAN_API_KEY
+
+    publishers:
+      - postbuildscript:
+          builders:
+            - role: SLAVE
+              build-on:
+                - SUCCESS
+                - UNSTABLE
+                - FAILURE
+                - ABORTED
+              build-steps:
+                - shell:
+                    !include-raw:
+                      - ../../../scripts/build_utils.sh
+                      - ../../../scripts/ceph-windows/cleanup
+
+      - postbuildscript:
+          builders:
+            - role: SLAVE
+              build-on:
+                  - FAILURE
+                  - ABORTED
+              build-steps:
+                - inject:
+                    properties-file: ${WORKSPACE}/build_info
+
+                - shell:
+                    !include-raw:
+                      - ../../../scripts/build_utils.sh
+                      - ../../build/failure
