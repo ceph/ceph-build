@@ -39,7 +39,7 @@ class TestCommits(object):
 
     @pytest.mark.doc_test
     def test_doc_title(self):
-        doc_regex = '\nDate:[^\n]+\n\n    doc'
+        doc_regex = '\nDate:[^\n]+\n\n    (doc|Revert "doc)'
         all_commits = 'git log -z --no-merges origin/%s..%s' % (
             self.target_branch, self.source_branch)
         wrong_commits = list(filterfalse(
