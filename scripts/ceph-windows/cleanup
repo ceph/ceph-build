@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+set -o errexit
+set -o pipefail
+
+
+# Cleanup libvirt VMs / networks
+delete_libvirt_vms
+clear_libvirt_networks
+
+# Cleanup Ceph clusters spawned via cephadm
+if [[ -x $WORKSPACE/cephadm ]] && [[ -d /var/lib/ceph ]]; then
+    for FSID in $(sudo ls /var/lib/ceph); do
+        echo "Removing Ceph cluster $FSID"
+        sudo $WORKSPACE/cephadm rm-cluster --fsid $FSID --force
+    done
+fi
+
+# Cleanup remaning files / directories
+sudo rm -rf \
+    $WORKSPACE/ceph.conf $WORKSPACE/keyring $WORKSPACE/cephadm \
+    $WORKSPACE/ceph.zip $WORKSPACE/known_hosts \
+    /etc/ceph /var/log/ceph /var/lib/ceph /var/run/ceph
