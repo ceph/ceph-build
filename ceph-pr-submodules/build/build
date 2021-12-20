@@ -30,9 +30,30 @@ function has_modified_submodules() {
     fi
 }
 
+function is_planned() {
+    local target_branch=$1
+    shift
+    local magic_word=$1
+    shift
+
+    IFS=$'\n'
+    for line in $(git log -z --no-merges origin/${target_branch}..HEAD); do
+        echo "${line}" | grep -q "${magic_word}" && return 0
+    done
+    # no lines match the magic word
+    return 1
+}
+
 if has_modified_submodules "${ghprbTargetBranch}" "${ghprbActualCommit}"; then
     echo "Project has modified submodules: $modified_submodules !"
-    exit 1
+    magic_word="$(basename $modified_submodules) submodule"
+    if is_planned "${ghprbTargetBranch}" "${magic_word}"; then
+        # ahh, it's planned
+        exit 0
+    else
+        echo "please include '${magic_word}' in your commit message, if this change is intentional."
+        exit 1
+    fi
 fi
 
 exit 0
