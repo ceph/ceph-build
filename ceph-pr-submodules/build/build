@@ -22,12 +22,16 @@ function has_modified_submodules() {
     # diff from common ancestor of the target branch and this branch with the
     # tip of this branch".  With --submodule, also show detail of diff in submodules.
     modified_submodules="$(git diff --submodule=log origin/${target_branch}...${actual_commit} | grep ^Submodule || true)"
-    test -n "${modified_submodules}"
+    if test -n "${modified_submodules}"; then
+        modified_submodules=$(echo $modified_submodules | awk '{print $2}')
+        return 0
+    else
+        return 1
+    fi
 }
 
 if has_modified_submodules "${ghprbTargetBranch}" "${ghprbActualCommit}"; then
-    echo "Project has modified submodules!"
-    echo $modified_submodules
+    echo "Project has modified submodules: $modified_submodules !"
     exit 1
 fi
 
