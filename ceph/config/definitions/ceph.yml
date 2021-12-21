@@ -34,6 +34,11 @@ If this is checked, then the builds will be pushed to chacra under the 'test' re
 Defaults to checked."
           default: true
 
+      - string:
+          name: HOTFIX
+          description: "When this is checked, the $BRANCH-release branch will *not* rebase on its parent $BRANCH branch like a regular release would.  This is useful for hotfixes because we can just merge a hotfix into $BRANCH-release then build that branch.  (This is a string because we pass it to `ansible-playbook` as a variable.)"
+          default: 'False'
+
       - bool:
           name: THROWAWAY
           description: "

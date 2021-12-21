@@ -12,34 +12,33 @@
     accept_hostkey: yes
   when: ceph_repo.stat.exists is defined and ceph_repo.stat.exists == false
 
-- name: add origin
-  command: git remote add origin git@github.com:ceph/ceph-releases.git chdir=ceph
-  # because if the repo exists then it probably has the origin already in there
-  ignore_errors: yes
-
-- name: reset --hard to upstream
-  command: git reset --hard origin/{{ branch }} chdir=ceph
-  ignore_errors: yes
-  when: clean
-
-- name: force git checkout {{ branch }} branch
-  command: git checkout -f {{ branch }} chdir=ceph
-
 - name: fetch upstream
   command: git fetch upstream -v chdir=ceph
 
+- name: "check if {{ branch }}-release branch exists"
+  command: git ls-remote --heads upstream {{ branch }}-release chdir=ceph
+  register: release_branch_exists
+
+- name: "create {{ branch }}-release branch"
+  command: git checkout -b {{ branch }}-release {{ branch }} chdir=ceph
+  when: '"{{ branch }}" not in release_branch_exists.stdout'
+
+- name: "push new {{ branch }}-release branch"
+  command: git push -f origin {{ branch }}-release chdir=ceph
+  when: '"{{ branch }}" not in release_branch_exists.stdout'
+
+- name: "force git checkout {{ branch }}-release branch"
+  command: git checkout -f {{ branch }}-release chdir=ceph
+
+- name: reset --hard to upstream
+  command: git reset --hard upstream/{{ branch }} chdir=ceph
+  ignore_errors: yes
+  when:
+    - clean
+    - not hotfix|bool
+
 - name: git submodule update
   command: git submodule update --init chdir=ceph
-
-- name: check if configure.ac exists (pre-kraken)
-  stat: path=ceph/configure.ac
-  register: configure_ac
-
-- name: replace the version in configure.ac (pre-kraken)
-  lineinfile: dest=ceph/configure.ac
-              regexp='^AC_INIT\(\[ceph\],'
-              line='AC_INIT([ceph], [{{ version }}], [ceph-devel@vger.kernel.org])'
-  when: configure_ac.stat.exists
 
 - name: check if CMakeLists.txt exists
   stat: path=ceph/CMakeLists.txt
@@ -69,7 +68,7 @@
   when: clean
 
 - name: clear the previous remote tag
-  command: git push origin :v{{ version }} chdir=ceph
+  command: git push upstream :v{{ version }} chdir=ceph
   ignore_errors: yes
   when: clean
 
@@ -84,8 +83,11 @@
   # official ceph repo it is ok to forcefully push "losing" changes. This may
   # come up if we need to re-do a release which means doing a fresh commit to
   # the debian changelog and rpm files and tagging.
-- name: force push changes to ceph-releases git repo
-  command: git push -f origin {{ branch }} chdir=ceph
+- name: "force push version commit to working and release {{ branch }} branch"
+  command: git push -f upstream {{ branch }}-release chdir=ceph
+
+- name: "force push the version commit to the {{ branch }} branch"
+  command: git push -f upstream {{ branch }}-release:{{ branch }} chdir=ceph
 
 - name: push the newly created tag
-  command: git push origin v{{ version }} chdir=ceph
+  command: git push upstream v{{ version }} chdir=ceph

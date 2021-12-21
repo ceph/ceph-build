@@ -24,7 +24,7 @@
 
     scm:
       - git:
-          url: git@github.com:ceph/ceph-releases.git
+          url: git@github.com:ceph/ceph.git
           # Use the SSH key attached to the ceph-jenkins GitHub account.
           credentials-id: 'jenkins-build'
           # not really a branch, this builds the TAG that was previously
