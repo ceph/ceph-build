@@ -4,24 +4,56 @@ set -ex
 
 cd "$WORKSPACE"
 
-# Ensure that our clone has the very latest target branch.
-# The Jenkins Git plugin may have not updated this particular ref.
-git fetch origin ${ghprbTargetBranch}:refs/remotes/origin/${ghprbTargetBranch}
+function has_modified_submodules() {
+    local target_branch=$1
+    shift
+    local actual_commit=$1
+    shift
+    # Ensure that our clone has the very latest target branch.
+    # The Jenkins Git plugin may have not updated this particular ref.
+    git fetch origin ${target_branch}:refs/remotes/origin/${target_branch}
 
-echo "Comparing the following target branch:"
-git rev-parse origin/${ghprbTargetBranch}
+    echo "Comparing the following target branch:"
+    git rev-parse origin/${target_branch}
 
-# show diffs between $ghprbTargetBranch (where the merge is going) and
-# $ghprbActualCommit (the tip of the branch that's merging) with '...',
-# which is equivalent to diff $(git merge-base TB AC) AC, or "show
-# diff from common ancestor of the target branch and this branch with the
-# tip of this branch".  With --submodule, also show detail of diff in submodules.
-modified_submodules="$(git diff --submodule=log origin/$ghprbTargetBranch...$ghprbActualCommit | grep ^Submodule || true)"
+    # show diffs between $ghprbTargetBranch (where the merge is going) and
+    # $ghprbActualCommit (the tip of the branch that's merging) with '...',
+    # which is equivalent to diff $(git merge-base TB AC) AC, or "show
+    # diff from common ancestor of the target branch and this branch with the
+    # tip of this branch".  With --submodule, also show detail of diff in submodules.
+    modified_submodules="$(git diff --submodule=log origin/${target_branch}...${actual_commit} | grep ^Submodule || true)"
+    if test -n "${modified_submodules}"; then
+        modified_submodules=$(echo $modified_submodules | awk '{print $2}')
+        return 0
+    else
+        return 1
+    fi
+}
 
-if [[ -n "$modified_submodules" ]]; then
-    echo "Project has modified submodules!"
-    echo $modified_submodules
-    exit 1
+function is_planned() {
+    local target_branch=$1
+    shift
+    local magic_word=$1
+    shift
+
+    IFS=$'\n'
+    for line in $(git log -z --no-merges origin/${target_branch}..HEAD); do
+        echo "${line}" | grep -q "${magic_word}" && return 0
+    done
+    # no lines match the magic word
+    return 1
+}
+
+if has_modified_submodules "${ghprbTargetBranch}" "${ghprbActualCommit}"; then
+    echo "Project has modified submodules: $modified_submodules !"
+    magic_word="$(basename $modified_submodules) submodule"
+    if is_planned "${ghprbTargetBranch}" "${magic_word}"; then
+        # ahh, it's planned
+        exit 0
+    else
+        echo "please include '${magic_word}' in your commit message, if this change is intentional."
+        exit 1
+    fi
 fi
 
 exit 0
