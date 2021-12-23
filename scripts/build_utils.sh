@@ -1596,32 +1596,6 @@ docs_pr_only() {
   popd
 }
 
-function cleanup_windows_tests_env() {
-    local VM_NAME=${VM_NAME:-"ceph-win-ltsc2019-${JOB_NAME}-${BUILD_ID}"}
-
-    # Cleanup virsh VM
-    if sudo virsh list | grep -q $VM_NAME; then
-        echo "Shutting down VM $VM_NAME"
-        sudo virsh destroy $VM_NAME
-    fi
-    if sudo virsh list --all | grep -q $VM_NAME; then
-        echo "Deleting VM $VM_NAME"
-        sudo virsh undefine $VM_NAME --remove-all-storage
-    fi
-    # Cleanup Ceph clusters spawned via cephadm
-    if [[ -x $WORKSPACE/cephadm ]] && [[ -d /var/lib/ceph ]]; then
-        for FSID in $(sudo ls /var/lib/ceph); do
-            echo "Removing Ceph cluster $FSID"
-            sudo $WORKSPACE/cephadm rm-cluster --fsid $FSID --force
-        done
-    fi
-    # Cleanup remaning files / directories
-    sudo rm -rf \
-        $WORKSPACE/ceph.conf $WORKSPACE/keyring $WORKSPACE/cephadm \
-        $WORKSPACE/ceph.zip $WORKSPACE/known_hosts \
-        /etc/ceph /var/log/ceph /var/lib/ceph /var/run/ceph
-}
-
 function ssh_exec() {
     if [[ -z $SSH_ADDRESS ]]; then
         echo "ERROR: Env variable SSH_ADDRESS is not set"
