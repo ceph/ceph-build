@@ -66,6 +66,7 @@
         !include-raw:
           - ../../../scripts/build_utils.sh
           - ../../build/build
+          - ../../../scripts/ceph-windows/setup_libvirt_vm
           - ../../../scripts/ceph-windows/run_tests
 
     publishers:
@@ -73,12 +74,15 @@
           builders:
             - role: SLAVE
               build-on:
+                - SUCCESS
+                - UNSTABLE
+                - FAILURE
                 - ABORTED
               build-steps:
                 - shell:
                     !include-raw:
                       - ../../../scripts/build_utils.sh
-                      - ../../../scripts/ceph-windows/cleanup_tests
+                      - ../../../scripts/ceph-windows/cleanup
 
     wrappers:
       - ansicolor
