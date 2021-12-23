@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+set -o errexit
+set -o pipefail
+
+FLAVOR="default"
+
+BRANCH=`branch_slash_filter $BRANCH`
+
+# update shaman with the failed build status
+failed_build_status "ceph-windows-installer" $NORMAL_DISTRO $NORMAL_DISTRO_VERSION $NORMAL_ARCH

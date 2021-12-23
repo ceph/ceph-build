@@ -1,0 +1,78 @@
+#!/usr/bin/env bash
+set -o errexit
+set -o pipefail
+
+BUILD_CONFIGURATION=${BUILD_CONFIGURATION:-"Release"}
+
+
+#
+# Setup the installer requirements
+#
+mkdir -p $WORKSPACE/ceph-windows-installer/Driver
+mkdir -p $WORKSPACE/ceph-windows-installer/Binaries
+mkdir -p $WORKSPACE/ceph-windows-installer/Symbols
+
+mv $WORKSPACE/build/wnbd/driver/* $WORKSPACE/ceph-windows-installer/Driver/
+mv $WORKSPACE/build/wnbd/binaries/* $WORKSPACE/ceph-windows-installer/Binaries/
+mv $WORKSPACE/build/wnbd/symbols/* $WORKSPACE/ceph-windows-installer/Symbols/
+
+pushd $WORKSPACE/build/ceph
+mkdir -p $WORKSPACE/ceph-windows-installer/Binaries/.debug
+for FILE in $(ls *.dll ceph-conf.exe rados.exe rbd.exe rbd-wnbd.exe ceph-dokan.exe); do
+    cp $FILE $WORKSPACE/ceph-windows-installer/Binaries/
+    cp .debug/${FILE}.debug $WORKSPACE/ceph-windows-installer/Binaries/.debug/
+done
+popd
+
+#
+# Upload ceph-windows-installer repo to the Windows VM
+#
+SSH_TIMEOUT=5m scp_upload $WORKSPACE/ceph-windows-installer /workspace/ceph-windows-installer
+
+#
+# Build the Visual Studio project
+#
+BUILD_CMD="MSBuild.exe %SystemDrive%\\workspace\\ceph-windows-installer\\ceph-windows-installer.sln /p:Platform=x64 /p:Configuration=${BUILD_CONFIGURATION}"
+SSH_TIMEOUT=30m ssh_exec "\"%ProgramFiles(x86)%\\Microsoft Visual Studio\\2019\\BuildTools\\VC\\Auxiliary\\Build\\vcvarsall.bat\" x86_amd64 & ${BUILD_CMD}"
+
+#
+# Download the installer
+#
+scp_download /workspace/ceph-windows-installer/bin/${BUILD_CONFIGURATION}/Ceph.msi $WORKSPACE/
+cp $WORKSPACE/ceph-windows-installer/Driver/wnbd.cer $WORKSPACE/wnbd_code_signing.cer
+
+#
+# Upload the installer to Chacra
+#
+if [ "$THROWAWAY" = false ]; then
+    # push binaries to chacra
+    chacra_binary="$VENV/chacractl binary"
+    [ "$FORCE" = true ] && chacra_binary="$chacra_binary --force"
+
+    ls $WORKSPACE/Ceph.msi $WORKSPACE/wnbd_code_signing.cer | $chacra_binary create ${chacra_binary_endpoint}
+
+    ceph_version=$(ssh_exec /workspace/ceph-windows-installer/Binaries/rbd.exe -v | awk '{print $3}' | tr -d '[:space:]')
+    wnbd_version=$(ssh_exec /workspace/ceph-windows-installer/Binaries/wnbd-client.exe -v | grep wnbd-client.exe | cut -d ':' -f2 | tr -d '[:space:]')
+    vers="ceph-${ceph_version}|wnbd-${wnbd_version}"
+
+    # write json file with build info
+    cat > $WORKSPACE/repo-extra.json << EOF
+{
+    "version":"$vers",
+    "package_manager_version":"",
+    "build_url":"$BUILD_URL",
+    "root_build_cause":"$ROOT_BUILD_CAUSE",
+    "node_name":"$NODE_NAME",
+    "job_name":"$JOB_NAME"
+}
+EOF
+    # post the json to repo-extra json to chacra
+    curl --fail -X POST -H "Content-Type:application/json" --data "@$WORKSPACE/repo-extra.json" -u $CHACRACTL_USER:$CHACRACTL_KEY ${chacra_url}repos/${chacra_repo_endpoint}/extra/
+    # start repo creation
+    $VENV/chacractl repo update ${chacra_repo_endpoint}
+
+    echo "Check the status of the repo at: https://shaman.ceph.com/api/repos/${chacra_repo_endpoint}/"
+fi
+
+# update shaman with the completed build status
+update_build_status "completed" "ceph-windows-installer" $DISTRO $DISTRO_VERSION $ARCH
