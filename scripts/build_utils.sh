@@ -1647,3 +1647,24 @@ function scp_download() {
     fi
     timeout ${SSH_TIMEOUT:-"30s"} scp -i ${SSH_KEY:-"$HOME/.ssh/id_rsa"} $SSH_OPTS -r ${SSH_USER}@${SSH_ADDRESS}:${REMOTE_FILE} $LOCAL_FILE
 }
+
+function retrycmd_if_failure() {
+    set +o errexit
+    retries=$1
+    wait_sleep=$2
+    timeout=$3
+    shift && shift && shift
+    for i in $(seq 1 "$retries"); do
+        if timeout "$timeout" "${@}"; then
+            break
+        fi
+        if [[ $i -eq $retries ]]; then
+            echo "Error: Failed to execute '$*' after $i attempts"
+            set -o errexit
+            return 1
+        fi
+        sleep "$wait_sleep"
+    done
+    echo "Executed '$*' $i times"
+    set -o errexit
+}
