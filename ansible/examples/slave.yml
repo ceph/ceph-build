@@ -431,6 +431,58 @@
           when: ansible_os_family == "RedHat"
       when: libvirt|bool
 
+    ## DEB GPG KEY TASKS
+    - name: Install Debian GPG Keys on Ubuntu
+      block:
+        - name: Add the Debian Buster Key
+          apt_key:
+           id: 3CBBABEE
+           url: https://ftp-master.debian.org/keys/archive-key-10.asc
+           keyring: /etc/apt/trusted.gpg
+           state: present
+
+        - name: Add the Debian Security Buster Key
+          apt_key:
+            id: CAA96DFA
+            url: https://ftp-master.debian.org/keys/archive-key-10-security.asc
+            keyring: /etc/apt/trusted.gpg
+            state: present
+
+        - name: Add the Debian Buster Stable Key
+          apt_key:
+            id: 77E11517
+            url: https://ftp-master.debian.org/keys/release-10.asc
+            keyring: /etc/apt/trusted.gpg
+            state: present
+
+        - name: Add Apache Arrow GPG Keys
+          apt_key:
+           url: https://dist.apache.org/repos/dist/dev/arrow/KEYS
+           keyring: /etc/apt/trusted.gpg.d/apache-arrow.gpg
+           state: present
+          tags: arrow
+      when: ansible_os_family == "Debian"
+
+    ## UBUNTU REPO TASKS
+    - name: Ubuntu Repo Tasks
+      block:
+        - set_fact:
+            apt_arch: arm64
+          when: ansible_architecture == "aarch64"
+          tags: arrow
+
+        - set_fact:
+            apt_arch: amd64
+          when: ansible_architecture == "x86_64"
+          tags: arrow
+
+        - name: Add Apache Arrow repo
+          copy:
+            content: "deb [signed-by=/etc/apt/trusted.gpg.d/apache-arrow.gpg arch={{ apt_arch }}] https://apache.jfrog.io/artifactory/arrow/ubuntu {{ ansible_distribution_release }} main"
+            dest: /etc/apt/sources.list.d/apache-arrow.list
+          tags: arrow
+      when: ansible_os_family == "Debian"
+
     ## PACKAGE INSTALLATION TASKS
     # We do this in one big task to save time and avoid using `with` loops.  If a variable isn't defined, it's fine because of the |defaults.
     - name: Install DEBs
@@ -608,31 +660,6 @@
         group: "{{ jenkins_user }}"
         recurse: yes
         follow: no
-
-    ## DEBIAN GPG KEY TASKS
-    - name: Install Debian GPG Keys on Ubuntu
-      block:
-        - name: Add the Debian Buster Key
-          apt_key:
-           id: 3CBBABEE
-           url: https://ftp-master.debian.org/keys/archive-key-10.asc
-           keyring: /etc/apt/trusted.gpg
-           state: present
-      
-        - name: Add the Debian Security Buster Key
-          apt_key:
-            id: CAA96DFA
-            url: https://ftp-master.debian.org/keys/archive-key-10-security.asc
-            keyring: /etc/apt/trusted.gpg
-            state: present
-      
-        - name: Add the Debian Buster Stable Key
-          apt_key:
-            id: 77E11517
-            url: https://ftp-master.debian.org/keys/release-10.asc
-            keyring: /etc/apt/trusted.gpg
-            state: present
-      when: ansible_os_family == "Debian"
 
     ## VAGRANT PLUGIN TASKS
     - name: Install vagrant-libvirt plugin
