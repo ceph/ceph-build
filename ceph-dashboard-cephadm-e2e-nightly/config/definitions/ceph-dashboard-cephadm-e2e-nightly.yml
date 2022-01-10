@@ -18,6 +18,7 @@
     block-downstream: false
     block-upstream: false
     retry-count: 3
+    workspace: /home/jenkins-build/build/workspace/{name}/ceph
     properties:
       - build-discarder:
           days-to-keep: 15
@@ -41,7 +42,6 @@
           branches:
             - '{ceph_branch}'
           browser: auto
-          basedir: "ceph"
           timeout: 20
           skip-tag: true
           shallow-clone: true
@@ -53,7 +53,6 @@
             - ../../../scripts/dashboard/install-e2e-test-deps.sh
             - ../../../scripts/dashboard/install-cephadm-e2e-deps.sh
       - shell: |
-          cd ceph
           export CYPRESS_ARGS="--record --key $CYPRESS_RECORD_KEY --tag $JOB_NAME" COMMIT_INFO_MESSAGE="$JOB_NAME"
           timeout 7200 ./src/pybind/mgr/dashboard/ci/cephadm/run-cephadm-e2e-tests.sh
 
