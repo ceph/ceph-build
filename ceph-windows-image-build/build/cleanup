@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+set -o errexit
+set -o pipefail
+
+BUILD_DIR="$(cd $(dirname "${BASH_SOURCE[0]}") && pwd)"
+
+source ${BUILD_DIR}/../../scripts/build_utils.sh
+
+if mountpoint -q -- "${BUILD_DIR}/floppy"; then
+    sudo umount ${BUILD_DIR}/floppy
+fi
+
+delete_libvirt_vms
+clear_libvirt_networks
+
+sudo rm -rf "${BUILD_DIR}/virtio-win.iso" "${BUILD_DIR}/windows-server-2019.iso" \
+    "${BUILD_DIR}/floppy" "${BUILD_DIR}/floppy.img" "${BUILD_DIR}/ceph-win-ltsc2019-ci-image.qcow2" \
+    "${BUILD_DIR}/known_hosts" "${BUILD_DIR}/id_rsa.pub"

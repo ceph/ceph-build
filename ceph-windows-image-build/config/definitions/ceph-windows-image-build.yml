@@ -1,0 +1,56 @@
+- job:
+    name: ceph-windows-image-build
+    description: 'Builds the Ceph Windows VM image used in the CI.'
+    node: amd64 && focal && libvirt
+    project-type: freestyle
+    defaults: global
+    concurrent: false
+    display-name: 'ceph-windows-image-build'
+    properties:
+      - build-discarder:
+          days-to-keep: 30
+          num-to-keep: 30
+          artifact-days-to-keep: 30
+          artifact-num-to-keep: 30
+
+    parameters:
+      - string:
+          name: WINDOWS_SERVER_2019_ISO_URL
+          description: "The Windows Server 2019 ISO URL."
+          default: https://software-download.microsoft.com/download/pr/17763.737.190906-2324.rs5_release_svc_refresh_SERVER_EVAL_x64FRE_en-us_1.iso
+
+      - string:
+          name: VIRTIO_WIN_ISO_URL
+          description: "The virtio-win guest tools ISO URL."
+          default: https://fedorapeople.org/groups/virt/virtio-win/direct-downloads/stable-virtio/virtio-win.iso
+
+    scm:
+      - git:
+          url: https://github.com/ceph/ceph-build.git
+          branches:
+            - master
+          basedir: ceph-build
+
+    builders:
+      - shell: "${WORKSPACE}/ceph-build/ceph-windows-image-build/build/build"
+
+    wrappers:
+      - credentials-binding:
+          - file:
+              credential-id: ceph_win_ci_private_key
+              variable: SSH_PRIVATE_KEY
+          - ssh-user-private-key:
+              credential-id: CEPH_WINDOWS_FILEDUMP_SSH_KEY
+              key-file-variable: FILEDUMP_SSH_KEY
+              username-variable: FILEDUMP_USER
+
+    publishers:
+      - postbuildscript:
+          builders:
+            - role: SLAVE
+              build-on:
+                - UNSTABLE
+                - FAILURE
+                - ABORTED
+              build-steps:
+                - shell: "${WORKSPACE}/ceph-build/ceph-windows-image-build/build/cleanup"
