@@ -52,6 +52,9 @@
 
             If this is checked, then the binaries will be built and pushed to chacra even if they already exist in chacra.
 
+    triggers:
+      - timed: "H 1 * * *"
+
     scm:
       - git:
           url: https://github.com/cloudbase/ceph-windows-installer.git
