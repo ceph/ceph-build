@@ -56,7 +56,7 @@ if [ "$THROWAWAY" = false ] ; then
     find release/${vers}/rpm/*/SRPMS | grep rpm | $VENV/chacractl binary ${chacra_flags} create ${chacra_endpoint}/source/flavors/${FLAVOR}
     find release/${vers}/rpm/*/RPMS/* | grep rpm | $VENV/chacractl binary ${chacra_flags} create ${chacra_endpoint}/${ARCH}/flavors/${FLAVOR}
     # extract cephadm if it exists
-    if [[ -f ${BUILDAREA}/RPMS/noarch/cephadm-*.rpm ]] ; then
+    if [ -f ${BUILDAREA}/RPMS/noarch/cephadm-*.rpm ] ; then
         rpm2cpio ${BUILDAREA}/RPMS/noarch/cephadm-*.rpm  | cpio -i --to-stdout *sbin/cephadm > cephadm
         echo cephadm | $VENV/chacractl binary ${chacra_flags} create ${chacra_endpoint}/${ARCH}/flavors/${FLAVOR}
         rpm2cpio ${BUILDAREA}/RPMS/noarch/cephadm-*.rpm  | cpio -i --to-stdout *sbin/cephadm > cephadm
