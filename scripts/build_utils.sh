@@ -953,7 +953,7 @@ build_debs() {
             $venv/chacractl binary ${chacra_flags} create ${chacra_endpoint}
 
         # extract cephadm if it exists
-        if [[ -f release/${vers}/cephadm_${vers}*.deb ]] ; then
+        if [ -f release/${vers}/cephadm_${vers}*.deb ] ; then
             dpkg-deb --fsys-tarfile release/${vers}/cephadm_${vers}*.deb | tar -x -f - --strip-components=3 ./usr/sbin/cephadm
             echo cephadm | $venv/chacractl binary ${chacra_flags} create ${chacra_endpoint}
         fi
