@@ -172,6 +172,7 @@
               sudo dnf module disable -y llvm-toolset
               sudo dnf copr enable -y tchaikov/llvm-toolset-10 centos-stream-8-x86_64
               sudo yum install -y python3-pyyaml python3-lxml python3-prettytable clang
+              sudo yum update -y libarchive
               gcc_toolset_ver=9
               # so clang is able to find gcc-toolset-${{gcc_toolset_ver}} which is listed as a
               # BuildRequires in ceph.spec.in, and it is installed by `run-make.sh`.
