@@ -36,6 +36,7 @@
             - ceph
           white-list-target-branches:
             - master
+            - quincy
             - pacific
             - octopus
             - nautilus
