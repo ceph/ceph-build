@@ -267,7 +267,7 @@ get_rpm_dist() {
         DIST=rhel$RELEASE
         DISTRO=rhel
         ;;
-    CentOS)
+    CentOS|CentOSStream)
         RELEASE=`$LSB_RELEASE --short --release | cut -d. -f1`
         DIST=el$RELEASE
         DISTRO=centos
