@@ -3,51 +3,6 @@ set -ex
 
 cd $WORKSPACE
 
-get_rpm_dist() {
-    LSB_RELEASE=/usr/bin/lsb_release
-    [ ! -x $LSB_RELEASE ] && echo unknown && exit
-
-    ID=`$LSB_RELEASE --short --id`
-
-    case $ID in
-    RedHatEnterpriseServer)
-        RELEASE=`$LSB_RELEASE --short --release | cut -d. -f1`
-        DIST=rhel$RELEASE
-        DISTRO=rhel
-        ;;
-    CentOS)
-        RELEASE=`$LSB_RELEASE --short --release | cut -d. -f1`
-        DIST=el$RELEASE
-        DISTRO=centos
-        ;;
-    Fedora)
-        RELEASE=`$LSB_RELEASE --short --release`
-        DIST=fc$RELEASE
-        DISTRO=fedora
-        ;;
-    SUSE\ LINUX)
-        DESC=`$LSB_RELEASE --short --description`
-        RELEASE=`$LSB_RELEASE --short --release`
-        case $DESC in
-        *openSUSE*)
-                DIST=opensuse$RELEASE
-                DISTRO=opensuse
-            ;;
-        *Enterprise*)
-                DIST=sles$RELEASE
-                DISTRO=sles
-                ;;
-            esac
-        ;;
-    *)
-        DIST=unknown
-        DISTRO=unknown
-        ;;
-    esac
-
-    echo $DIST
-}
-
 get_rpm_dist
 
 chacra_endpoint="kernel/${BRANCH}/${GIT_COMMIT}/${DISTRO}/${RELEASE}"
