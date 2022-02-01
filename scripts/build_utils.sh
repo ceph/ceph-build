@@ -257,9 +257,11 @@ get_rpm_dist() {
     # use in constructing chacra urls for rpm distros
 
     LSB_RELEASE=/usr/bin/lsb_release
-    [ ! -x $LSB_RELEASE ] && echo unknown && exit
-
-    ID=`$LSB_RELEASE --short --id`
+    if [ ! -x $LSB_RELEASE ]; then
+        source /etc/os-release
+    else
+        ID=`$LSB_RELEASE --short --id`
+    fi
 
     case $ID in
     RedHatEnterpriseServer)
@@ -267,8 +269,12 @@ get_rpm_dist() {
         DIST=rhel$RELEASE
         DISTRO=rhel
         ;;
-    CentOS|CentOSStream)
-        RELEASE=`$LSB_RELEASE --short --release | cut -d. -f1`
+    CentOS|CentOSStream|centos)
+        if [ "$VERSION_ID" == "9" ]; then
+            RELEASE="9"
+        else
+            RELEASE=`$LSB_RELEASE --short --release | cut -d. -f1`
+        fi
         DIST=el$RELEASE
         DISTRO=centos
         ;;
@@ -293,6 +299,8 @@ get_rpm_dist() {
     *)
         DIST=unknown
         DISTRO=unknown
+        echo "Unknown distro.  Exiting."
+        exit 1
         ;;
     esac
     DISTRO_VERSION=$RELEASE
