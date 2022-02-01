@@ -100,10 +100,8 @@ if [[ "$CI_CONTAINER" == true && $DISTRO == "centos" ]] ; then
       # exit 1
     fi
 
-    use_internal_container_registry
-
     cd $WORKSPACE/ceph-container
-    sudo -E CI_CONTAINER=${CI_CONTAINER} SHA1=${SHA1} OSD_FLAVOR=${FLAVOR} CONTAINER_FLAVOR=${BRANCH},${DISTRO},${RELEASE} BASEOS_REGISTRY=${REGISTRY} \
+    sudo -E CI_CONTAINER=${CI_CONTAINER} SHA1=${SHA1} OSD_FLAVOR=${FLAVOR} CONTAINER_FLAVOR=${BRANCH},${DISTRO},${RELEASE} \
       /bin/bash ./contrib/build-push-ceph-container-imgs.sh
     cd $WORKSPACE
     sudo rm -rf ceph-container
