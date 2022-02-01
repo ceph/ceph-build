@@ -274,6 +274,7 @@ get_rpm_dist() {
         ;;
     Fedora)
         RELEASE=`$LSB_RELEASE --short --release`
+        DIST=fc$RELEASE
         DISTRO=fedora
         ;;
     SUSE\ LINUX|openSUSE)
