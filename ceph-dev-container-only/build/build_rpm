@@ -1,0 +1,57 @@
+#!/bin/bash
+# vim: ts=4 sw=4 expandtab
+set -ex
+HOST=$(hostname --short)
+echo "Building on $(hostname)"
+echo "  DIST=${DIST}"
+echo "  BPTAG=${BPTAG}"
+echo "  KEYID=${KEYID}"
+echo "  WS=$WORKSPACE"
+echo "  PWD=$(pwd)"
+echo "*****"
+env
+echo "*****"
+
+if test $(id -u) != 0 ; then
+    SUDO=sudo
+fi
+
+get_rpm_dist
+
+BRANCH=`branch_slash_filter $BRANCH`
+
+# Normalize variables across rpm/deb builds
+NORMAL_DISTRO=$DISTRO
+NORMAL_DISTRO_VERSION=$RELEASE
+NORMAL_ARCH=$ARCH
+
+chacra_endpoint="ceph/${BRANCH}/${SHA1}/${DISTRO}/${RELEASE}"
+
+SHAMAN_URL="https://shaman.ceph.com/api/search/?project=ceph&distros=centos/${RELEASE}/${ARCH}&sha1=${SHA1}&ref=${BRANCH}&flavor=${FLAVOR}"
+
+loop=0
+ready=false
+while ((loop < 15)); do
+  if [[ $(curl -s "$SHAMAN_URL" | jq -r '.[0].status') == 'ready' ]] ; then ready=true; break; fi
+  ((loop = loop + 1))
+  sleep 60
+done
+
+if [[ "$ready" == "false" ]] ; then
+  echo "FAIL: timed out waiting for shaman repo to be built:  https://shaman.ceph.com/api/repos/${chacra_endpoint}/flavors/${FLAVOR}/"
+  echo
+  echo "NOTE: You should only use this job if there was already a successful ceph-dev*build job!"
+fi
+
+SHA1=$(curl -s "$SHAMAN_URL" | jq -r '.[0].sha1')
+
+pushd $WORKSPACE/ceph-container
+$SUDO -E CI_CONTAINER=true BASEOS_REGISTRY="quay.io/centos" SHA1=${SHA1} OSD_FLAVOR=${FLAVOR} CONTAINER_FLAVOR=${BRANCH},${DISTRO},${RELEASE} \
+  /bin/bash ./contrib/build-push-ceph-container-imgs.sh
+popd
+$SUDO rm -rf $WORKSPACE/ceph-container
+
+# update shaman with the completed build status
+if $NOTIFY_SHAMAN; then
+  update_build_status "completed" "ceph" $NORMAL_DISTRO $NORMAL_DISTRO_VERSION $NORMAL_ARCH
+fi

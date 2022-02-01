@@ -1,0 +1,22 @@
+#!/bin/bash -ex
+
+# The ceph-container dir is supposed to get deleted in the build_rpm script.
+# We used to add '|| true' to the container build so the dir would still get
+# deleted even if it failed.  This changed in https://github.com/ceph/ceph-build/pull/1603
+# So now we need to delete the directory or the Wipe Workspace plugin will fail on the next build.
+cd $WORKSPACE
+sudo rm -rf ceph-container
+
+get_rpm_dist
+# note: the failed_build_status call relies on normalized variable names that
+# are infered by the builds themselves. If the build fails before these are
+# set, they will be posted with empty values
+BRANCH=`branch_slash_filter $BRANCH`
+
+# Normalize variables across rpm/deb builds
+NORMAL_DISTRO=$DISTRO
+NORMAL_DISTRO_VERSION=$RELEASE
+NORMAL_ARCH=$ARCH
+
+# update shaman with the failed build status
+failed_build_status "ceph" $NORMAL_DISTRO $NORMAL_DISTRO_VERSION $NORMAL_ARCH

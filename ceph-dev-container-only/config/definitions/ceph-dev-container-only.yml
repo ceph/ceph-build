@@ -1,0 +1,141 @@
+- job:
+    name: ceph-dev-container-only
+    node: 'gigantic && centos8'
+    project-type: matrix
+    defaults: global
+    display-name: 'ceph-dev-container-only: Builds a quay.ceph.io/ceph-ci container given a BRANCH'
+    block-downstream: false
+    block-upstream: false
+    concurrent: true
+    properties:
+      - build-discarder:
+          days-to-keep: 30
+          artifact-days-to-keep: 30
+
+    scm:
+      - git:
+          url: git@github.com:ceph/ceph-container.git
+          basedir: ceph-container
+          credentials-id: 'jenkins-build'
+          branches:
+            - $CONTAINER_BRANCH
+          skip-tag: true
+          wipe-workspace: true
+
+    execution-strategy:
+       combination-filter: |
+         DIST == AVAILABLE_DIST && ARCH == AVAILABLE_ARCH &&
+         (ARCH == "x86_64" || (ARCH == "arm64" && ["xenial", "bionic", "centos7", "centos8"].contains(DIST)))
+    axes:
+      - axis:
+          type: label-expression
+          name: MACHINE_SIZE
+          values:
+            - gigantic
+      - axis:
+          type: label-expression
+          name: AVAILABLE_ARCH
+          values:
+            - x86_64
+            - arm64
+      - axis:
+          type: label-expression
+          name: AVAILABLE_DIST
+          values:
+            - centos8
+            - centos9
+      - axis:
+          type: dynamic
+          name: DIST
+          values:
+            - DISTROS
+      - axis:
+          type: dynamic
+          name: ARCH
+          values:
+            - ARCHS
+
+    parameters:
+      - string:
+          name: BRANCH
+          description: "The git branch (or tag) to build.  NOTE: This branch must already be built and packages pushed to a chacra node!"
+          default: master
+
+      - string:
+          name: SHA1
+          description: "Change to a specific SHA1 if desired."
+          default: "latest"
+
+      - string:
+          name: DISTROS
+          description: "A list of distros to build for. Available options are: centos8 or centos9"
+          default: "centos8"
+
+      - string:
+          name: ARCHS
+          description: "A list of architectures to build for. Available options are: x86_64, and arm64"
+          default: "x86_64 arm64"
+
+      - choice:
+          name: FLAVOR
+          choices:
+            - default
+            - crimson
+            - jaeger
+          default: "default"
+          description: "Type of Ceph build, choices are: crimson, jaeger, default. Defaults to: 'default'"
+
+      - string:
+          name: CONTAINER_BRANCH
+          description: "For CI_CONTAINER: Branch of ceph-container to use"
+          default: master
+
+      - string:
+          name: CONTAINER_REPO_HOSTNAME
+          description: "For CI_CONTAINER: Name of container repo server (i.e. 'quay.io')"
+          default: "quay.ceph.io"
+
+      - string:
+          name: CONTAINER_REPO_ORGANIZATION
+          description: "For CI_CONTAINER: Name of container repo organization (i.e. 'ceph-ci')"
+          default: "ceph-ci"
+
+      - bool:
+          name: NOTIFY_SHAMAN
+          description: "Should we tell shaman this container built and change the corresponding build to READY?"
+          default: true
+
+
+    builders:
+      - shell:
+          !include-raw:
+            - ../../../scripts/build_utils.sh
+            - ../../build/build_rpm
+
+    publishers:
+      - postbuildscript:
+          builders:
+            - role: SLAVE
+              build-on:
+                  - FAILURE
+                  - ABORTED
+              build-steps:
+                - shell:
+                    !include-raw:
+                      - ../../../scripts/build_utils.sh
+                      - ../../build/failure
+
+    wrappers:
+      - inject-passwords:
+          global: true
+          mask-password-params: true
+      - credentials-binding:
+          - text:
+              credential-id: shaman-api-key
+              variable: SHAMAN_API_KEY
+          - username-password-separated:
+              credential-id: dmick-quay
+              username: CONTAINER_REPO_USERNAME
+              password: CONTAINER_REPO_PASSWORD
+      - build-name:
+          name: "#${BUILD_NUMBER} ${BRANCH}, ${DISTROS}, ${ARCH}, ${FLAVOR}"
