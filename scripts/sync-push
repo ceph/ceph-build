@@ -8,7 +8,7 @@
 # Since the binaries are created with a different repository layout, this
 # script maps directories like "centos/6" to "rpm-$release/el6"
 
-releases=${*:-"nautilus octopus pacific"}
+releases=${*:-"nautilus octopus pacific quincy"}
 
 ceph_sync() {
   release=$1
