@@ -1,5 +1,6 @@
 - job:
     name: ceph-pr-render-docs
+    disabled: true
     display-name: 'ceph: Pull Requests Render Docs'
     node: docs
     project-type: freestyle

@@ -1,5 +1,6 @@
 - job:
     name: teuthology-docs
+    disabled: true
     node: docs
     project-type: freestyle
     defaults: global
