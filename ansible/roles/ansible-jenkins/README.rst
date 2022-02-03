@@ -1,7 +1,7 @@
 ansible-jenkins
 ===============
 
-This role will allow you to install a new Jenkins master from scratch or manage an existing instance.
+This role will allow you to install a new Jenkins server from scratch or manage an existing instance.
 
 It assumes the following:
 
@@ -15,9 +15,9 @@ The role is idempotent but it should be noted that the Jenkins service will be r
 Initial Installation
 --------------------
 
-To set up a new Jenkins master from scratch:
+To set up a new Jenkins server from scratch:
 
 1. ``cd ceph-build/ansible``
-2. ``cp examples/master.yml .``
-3. ``ansible-playbook master.yml --limit="new.jenkins.example.com" --extra-vars="{github_oauth_client: 'foo',github_oauth_secret: 'bar'}"``
-4. Continue with https://github.com/ceph/ceph-sepia-secrets/blob/master/jenkins-master.rst
+2. ``cp examples/controller.yml .``
+3. ``ansible-playbook controller.yml --limit="new.jenkins.example.com" --extra-vars="{github_oauth_client: 'foo',github_oauth_secret: 'bar'}"``
+4. Continue with https://github.com/ceph/ceph-sepia-secrets/blob/main/jenkins-controller.rst

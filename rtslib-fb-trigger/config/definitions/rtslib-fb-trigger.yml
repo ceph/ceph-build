@@ -1,6 +1,6 @@
 - job:
     name: rtslib-fb-trigger
-    node: master
+    node: controller
     project-type: freestyle
     defaults: global
     quiet-period: 5

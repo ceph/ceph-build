@@ -1,7 +1,7 @@
 - job:
     name: ceph-dev-new
     description: 'This job builds branches from https://github.com/ceph/ceph-ci for testing purposes.'
-    node: master
+    node: controller
     project-type: multijob
     defaults: global
     concurrent: true

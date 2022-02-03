@@ -1,6 +1,6 @@
 - job:
     name: 'ceph-dev-cron'
-    node: master
+    node: controller
     project-type: freestyle
     defaults: global
     concurrent: true
