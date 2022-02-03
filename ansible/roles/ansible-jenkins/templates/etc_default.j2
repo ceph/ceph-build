@@ -7,7 +7,7 @@ NAME=jenkins
 JAVA=/usr/bin/java
 
 # From https://jenkins.io/blog/2016/11/21/gc-tuning/
-JAVA_ARGS="-Xmx20g -Xms20g -Djava.awt.headless=true -Dhudson.model.User.SECURITY_243_FULL_DEFENSE=false -Dhudson.model.ParametersAction.keepUndefinedParameters=true -server -XX:+AlwaysPreTouch -Xloggc:/var/log/jenkins/gc-%t.log -XX:NumberOfGCLogFiles=5 -XX:+UseGCLogFileRotation -XX:GCLogFileSize=20m -XX:+PrintGC -XX:+PrintGCDateStamps -XX:+PrintGCDetails -XX:+PrintHeapAtGC -XX:+PrintGCCause -XX:+PrintTenuringDistribution -XX:+PrintReferenceGC -XX:+PrintAdaptiveSizePolicy -XX:+UseG1GC -XX:+ExplicitGCInvokesConcurrent -XX:+ParallelRefProcEnabled -XX:+UseStringDeduplication -XX:+UnlockExperimentalVMOptions -XX:G1NewSizePercent=20 -XX:+UnlockDiagnosticVMOptions -XX:G1SummarizeRSetStatsPeriod=1" 
+JAVA_ARGS="-Xmx20g -Xms20g -Djava.awt.headless=true -Dhudson.model.User.SECURITY_243_FULL_DEFENSE=false -Dhudson.model.ParametersAction.keepUndefinedParameters=true -server -XX:+AlwaysPreTouch -Xloggc:/var/log/jenkins/gc-%t.log -XX:+PrintGC -XX:+PrintGCDetails -XX:+UseG1GC -XX:+ExplicitGCInvokesConcurrent -XX:+ParallelRefProcEnabled -XX:+UseStringDeduplication -XX:+UnlockExperimentalVMOptions -XX:G1NewSizePercent=20 -XX:+UnlockDiagnosticVMOptions -XX:G1SummarizeRSetStatsPeriod=1"
 
 PIDFILE=/var/run/$NAME/$NAME.pid
 
