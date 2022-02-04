@@ -86,5 +86,7 @@ sudo chmod +x /usr/local/bin/kcli
 
 # KCLI cleanup function can be found here: https://github.com/ceph/ceph/blob/master/src/pybind/mgr/dashboard/ci/cephadm/start-cluster.sh
 sudo mkdir -p /var/lib/libvirt/images/ceph-dashboard
+kcli delete plan ceph -y || true
+kcli delete network ceph-dashboard -y
 kcli create pool -p /var/lib/libvirt/images/ceph-dashboard ceph-dashboard
 kcli create network -c 192.168.100.0/24 ceph-dashboard
