@@ -24,7 +24,7 @@
       - git:
           url: https://github.com/ceph/ceph-ansible.git
           branches:
-            - master
+            - main
           browser: auto
           basedir: "ceph-ansible"
           timeout: 20

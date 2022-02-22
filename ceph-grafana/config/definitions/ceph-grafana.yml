@@ -26,7 +26,7 @@
       - string:
           name: BRANCH
           description: "The git branch (or tag) to build"
-          default: master
+          default: main
       - string:
           name: ARCH
           description: "Architecture to build for. Available options are: x86_64, arm64"

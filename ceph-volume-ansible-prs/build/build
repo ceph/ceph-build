@@ -35,7 +35,7 @@ elif [[ "$ghprbTargetBranch" == "octopus" ]]; then
 elif [[ "$ghprbTargetBranch" == "pacific" ]]; then
     CEPH_ANSIBLE_BRANCH="stable-6.0"
 else
-    CEPH_ANSIBLE_BRANCH="master"
+    CEPH_ANSIBLE_BRANCH="main"
 fi
 
 if [[ "$ghprbTargetBranch" == "nautilus" ]]; then

@@ -19,8 +19,8 @@
     parameters:
       - string:
           name: BRANCH
-          description: "The git BRANCH to build (e.g., pacific)"
-          default: master
+          description: "The git branch (or tag) to build (e.g., pacific)"
+          default: main
 
       - bool:
           name: TEST

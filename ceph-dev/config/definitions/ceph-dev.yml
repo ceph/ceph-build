@@ -21,7 +21,7 @@
       - string:
           name: BRANCH
           description: "The git branch (or tag) to build"
-          default: master
+          default: main
 
       - string:
           name: DISTROS
@@ -67,7 +67,7 @@ If this is checked, then the binaries will be built and pushed to chacra even if
       - string:
           name: CONTAINER_BRANCH
           description: "For CI_CONTAINER: Branch of ceph-container to use"
-          default: master
+          default: main
 
       - string:
           name: CONTAINER_REPO_HOSTNAME

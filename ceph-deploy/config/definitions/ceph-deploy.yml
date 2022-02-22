@@ -12,8 +12,8 @@
     parameters:
       - string:
           name: BRANCH
-          description: "The git branch or tag to build. Defaults to master"
-          default: "master"
+          description: "The git branch or tag to build. Defaults to main"
+          default: "main"
 
       - bool:
           name: TEST

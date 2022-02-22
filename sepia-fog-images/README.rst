@@ -56,10 +56,10 @@ Usage
 See https://wiki.sepia.ceph.com/doku.php?id=services:fog
 
 .. _FOG: https://fogproject.org/
-.. _jenkins-build.pub: https://github.com/ceph/keys/blob/master/ssh/jenkins-build.pub
+.. _jenkins-build.pub: https://github.com/ceph/keys/blob/main/ssh/jenkins-build.pub
 .. _teuthology.yaml: http://docs.ceph.com/teuthology/docs/siteconfig.html
 .. _ceph-sepia-secrets: https://github.com/ceph/ceph-sepia-secrets/
-.. _tools: https://github.com/ceph/ceph-cm-ansible/tree/master/tools
+.. _tools: https://github.com/ceph/ceph-cm-ansible/tree/main/tools
 .. _Jenkins: https://jenkins.ceph.com/job/sepia-fog-images
-.. _task: https://github.com/ceph/ceph-cm-ansible/blob/master/roles/cobbler/templates/snippets/cephlab_rc_local
+.. _task: https://github.com/ceph/ceph-cm-ansible/blob/main/roles/cobbler/templates/snippets/cephlab_rc_local
 .. _ceph-cm-ansible: https://github.com/ceph/ceph-cm-ansible

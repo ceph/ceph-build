@@ -30,7 +30,7 @@
       - string:
           name: BRANCH
           description: "A ceph-container branch to test"
-          default: master
+          default: main
 
     triggers:
       - timed: '@daily'

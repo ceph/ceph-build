@@ -19,7 +19,7 @@ cd src/ceph-volume/ceph_volume/tests/functional/$SUBCOMMAND
 if [ "$CEPH_BRANCH" = "nautilus" ]; then
     CEPH_ANSIBLE_BRANCH="stable-4.0"
 else
-    CEPH_ANSIBLE_BRANCH="master"
+    CEPH_ANSIBLE_BRANCH="main"
 fi
 
 

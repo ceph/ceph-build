@@ -23,7 +23,7 @@
       - git:
           url: https://github.com/ceph/tcmu-runner.git
           branches:
-            - 'origin/master*'
+            - 'origin/main*'
             - 'origin/testing*'
             - 'origin/wip*'
           skip-tag: true

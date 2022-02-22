@@ -18,7 +18,7 @@
       - string:
           name: CEPH_BRANCH
           description: "The ceph branch to test against"
-          default: "master"
+          default: "main"
       - string:
           name: CEPH_SHA1
           description: "The ceph sha1 to test against"
@@ -26,20 +26,20 @@
       - string:
           name: CEPH_ANSIBLE_BRANCH
           description: "The ceph-ansible branch to test against"
-          default: "master"
+          default: "main"
       - string:
           name: CEPH_REPO_URL
           description: "The full https url to clone from"
           default: "https://github.com/ceph/ceph.git"
 
     builders:
-      # centos8 based jobs for octopus & pacific & quincy & master
+      # centos8 based jobs for octopus & pacific & quincy & main
       - conditional-step:
           condition-kind: shell
           condition-command: |
             #!/bin/bash
             set -x
-            if [[ ! "$CEPH_BRANCH" =~ master|octopus|pacific|quincy ]]; then
+            if [[ ! "$CEPH_BRANCH" =~ main|octopus|pacific|quincy ]]; then
               exit 1
             fi
           on-evaluation-failure: dont-run

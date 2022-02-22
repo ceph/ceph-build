@@ -1137,7 +1137,7 @@ start_tox() {
     done
     if [ "$release" = "dev" ]; then
         # dev runs will need to be set to the release
-        # that matches what the current ceph master
+        # that matches what the current ceph main
         # branch is at
         local release="quincy"
     fi

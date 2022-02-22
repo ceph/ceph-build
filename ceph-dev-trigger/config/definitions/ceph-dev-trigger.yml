@@ -25,7 +25,7 @@
           url: https://github.com/ceph/ceph
           browser: auto
           branches:
-            - 'origin/master'
+            - 'origin/main'
             - 'origin/jewel'
             - 'origin/kraken'
             - 'origin/hammer'
@@ -126,12 +126,12 @@
                     FORCE=True
                     DISTROS=centos8
                     FLAVOR=crimson
-      # build master on:
+      # build main on:
       # default: focal centos8
       # crimson: centos8
       - conditional-step:
           condition-kind: regex-match
-          regex: .*master.*
+          regex: .*main.*
           label: '${GIT_BRANCH}'
           on-evaluation-failure: dont-run
           steps:

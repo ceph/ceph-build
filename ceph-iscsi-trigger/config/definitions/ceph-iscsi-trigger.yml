@@ -23,7 +23,7 @@
       - git:
           url: https://github.com/ceph/ceph-iscsi.git
           branches:
-            - 'origin/master*'
+            - 'origin/main*'
             - 'origin/wip*'
           skip-tag: true
           timeout: 20

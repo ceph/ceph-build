@@ -24,7 +24,7 @@
       - git:
           url: https://github.com/ceph/ceph-ansible
           branches:
-            - master
+            - main
             - stable-2.1
             - stable-2.2
             - stable-3.0

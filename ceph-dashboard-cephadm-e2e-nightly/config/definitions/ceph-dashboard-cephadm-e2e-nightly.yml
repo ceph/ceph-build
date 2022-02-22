@@ -1,7 +1,7 @@
 - project:
     name: ceph-dashboard-cephadm-e2e-nightly
     ceph_branch:
-      - master
+      - main
       - quincy
       - pacific
       - octopus

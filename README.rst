@@ -204,8 +204,8 @@ See the "jenkins-job-builder" job as an example.
    - ``Secret`` should be blank
    - Select ``Just send the push event``.
 
-Testing JJB changes by hand, before merging to master
------------------------------------------------------
+Testing JJB changes by hand, before merging to main
+---------------------------------------------------
 
 Sometimes it's useful to test a JJB change by hand prior to merging a pull
 request.
@@ -237,28 +237,43 @@ Let's say this git branch makes a change in the ``my-cool-job`` job.
    If everything goes ok, this will cause JJB to output the XML of your job(s).
    If there is a problem, JJB will print an error/backtrace instead.
 
-5. Run JJB to push your changes live to job on the master::
+5. Run JJB to push your changes live to job on the main::
 
     jenkins-jobs --conf ~/.jenkins_jobs.ini update my-cool-job/config/definitions/my-cool-job.yml
 
 6. Run a throwaway build with your change, and verify that your change didn't
    break anything and does what you want it to do.
 
-(Note: if anyone merges anything to master during this time, Jenkins will reset
-all jobs to the state of what is in master, and your customizations will be
+(Note: if anyone merges anything to main during this time, Jenkins will reset
+all jobs to the state of what is in main, and your customizations will be
 wiped out. This "by-hand" testing procedure is only intended for short-lived
 tests.)
 
 Assigning a job to a different Jenkins Master
 ---------------------------------------------
 
-We found one Jenkins master wasn't enough to handle all the jobs we were
-demanding of it.  The CI now supports multiple Jenkins masters.  If you wish to
-run your job on a different Jenkins master:
+We found one Jenkins controller wasn't enough to handle all the jobs we were
+demanding of it.  The CI now supports multiple Jenkins controllers.  If you wish to
+run your job on a different Jenkins controller:
 
 1. Create a ``config/JENKINS_URL`` file in your job directory containing only
-   the FQDN of the target Jenkins master::
+   the FQDN of the target Jenkins controller::
 
     # Example
     $ cat my-cool-job/config/JENKINS_URL
     2.jenkins.ceph.com
+
+A note on inclusive language
+----------------------------
+
+Like many software projects, the Ceph project has undertaken the task of
+migrating to more inclusive language. In the Ceph CI,
+
+``master`` branches are now ``main``
+
+``slave`` is now ``builder``
+
+When referring to the main Jenkins server, ``master`` is now ``controller``
+
+Remaining references (like the Jenkins ``ssh-slaves`` plugin) are hardcoded
+and could not be changed.
