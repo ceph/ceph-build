@@ -1,0 +1,63 @@
+---
+# Note: None of this will get run when "release == 'SECURITY'"
+# We want to make sure packages get pulled, signed, and pushed before publicly
+# pushing the security fix. Pushing tags will be done manually by a human.
+
+# the colon appended to the v{{ version }} tag removes the previous tag
+# https://git-scm.com/docs/git-push#Documentation/git-push.txt--d
+- name: clear the previous remote tag
+  command: git push origin :v{{ version }}
+  args:
+    chdir: ceph
+  ignore_errors: yes
+  when: tag|bool is true
+
+- name: clone the ceph repository
+  git:
+    repo: https://github.com/ceph/ceph
+    dest: ceph
+    remote: upstream
+    accept_hostkey: yes
+    recursive: no
+
+- name: add releases repo
+  command: git remote add -f releases git@github.com:ceph/ceph-releases.git
+  args:
+    chdir: ceph
+  ignore_errors: yes
+
+- name: git fetch --all
+  command: git fetch --all
+  args:
+    chdir: ceph
+
+- name: "git checkout the version commit from ceph-releases"
+  command: git checkout -f -B {{ branch }}-release releases/{{ branch }}-release
+  args:
+    chdir: ceph
+
+- name: push version commit to BRANCH-release branch
+  command: git push upstream {{ branch }}-release
+  args:
+    chdir: ceph
+
+- name: "git checkout {{ branch }}"
+  command: git checkout {{ branch }}
+  args:
+    chdir: ceph
+
+# In case any commits got pushed to {{ branch }} while we were building
+- name: "merge {{ branch }}-release changes back into {{ branch }}"
+  command: git merge {{ branch }}-release
+  args:
+    chdir: ceph
+  
+- name: "push version commit to {{ branch }}"
+  command: git push upstream {{ branch }}
+  args:
+    chdir: ceph
+
+- name: push the newly created tag
+  command: git push upstream v{{ version }}
+  args:
+    chdir: ceph

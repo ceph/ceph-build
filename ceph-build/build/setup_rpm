@@ -20,6 +20,9 @@ export LC_ALL=C # the following is vulnerable to i18n
 
 $SUDO yum install -y redhat-lsb-core
 
+mv ceph-build/ansible/ceph/dist .
+rm -rf ceph-build
+
 # unpack the tar.gz that contains the debian dir
 cd dist
 tar xzf *.orig.tar.gz

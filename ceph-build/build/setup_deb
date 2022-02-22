@@ -24,6 +24,9 @@ BRANCH=`branch_slash_filter $BRANCH`
 
 cd $WORKSPACE
 
+mv ceph-build/ansible/ceph/dist .
+rm -rf ceph-build
+
 BPTAG=`get_bptag $DIST`
 
 chacra_ref="$BRANCH"

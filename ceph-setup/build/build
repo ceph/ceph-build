@@ -1,5 +1,7 @@
 #!/bin/bash -ex
 
+cd $WORKSPACE/ceph-build/ansible/ceph
+
 HOST=$(hostname --short)
 echo "Building on ${HOST}"
 echo "  DIST=${DIST}"
@@ -7,7 +9,7 @@ echo "  BPTAG=${BPTAG}"
 echo "  WS=$WORKSPACE"
 echo "  PWD=$(pwd)"
 echo "  BRANCH=$BRANCH"
-echo "  SHA1=$GIT_COMMIT"
+echo "  SHA1=$(git rev-parse HEAD)"
 
 if [ -x "$BRANCH" ] ; then
     echo "No git branch was supplied"
@@ -41,7 +43,7 @@ CEPH_EXTRA_CMAKE_ARGS="$CEPH_EXTRA_CMAKE_ARGS -DALLOCATOR=tcmalloc"
 # which calls `aclocal -I m4 --install` that copies a system version of
 # ltsugar.m4 that can be different from the one included in the ceph source
 # tree.
-if git diff --quiet ; then
+if git diff --quiet; then
     echo repository is clean
 else
     echo
@@ -136,7 +138,7 @@ mv release/$vers/*.tar.* dist/.
 mv release/version dist/.
 
 cat > dist/sha1 << EOF
-SHA1=${GIT_COMMIT}
+SHA1=$(git rev-parse HEAD)
 EOF
 
 # CEPH_EXTRA_{CONFIGURE,RPMBUILD}_ARGS are consumed by ceph-build before
