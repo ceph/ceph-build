@@ -30,50 +30,14 @@
           browser: auto
           branches:
             - origin/master
+            - origin/quincy
             - origin/pacific
             - origin/octopus
-            - origin/nautilus
           skip-tag: true
           timeout: 20
           wipe-workspace: true
 
     builders:
-      # Build luminous on:
-      # default: centos7 bionic xenial trusty
-      - conditional-step:
-          condition-kind: regex-match
-          regex: .*luminous.*
-          label: '${GIT_BRANCH}'
-          on-evaluation-failure: dont-run
-          steps:
-            - shell:
-                !include-raw:
-                - ../../../scripts/build_utils.sh
-                - ../../build/notify
-            - trigger-builds:
-                - project: 'ceph-dev'
-                  predefined-parameters: |
-                    BRANCH=${GIT_BRANCH}
-                    FORCE=True
-                    DISTROS=centos7 bionic xenial trusty
-      # build nautilus on:
-      # default: bionic xenial centos7 centos8
-      - conditional-step:
-          condition-kind: regex-match
-          regex: .*nautilus.*
-          label: '${GIT_BRANCH}'
-          on-evaluation-failure: dont-run
-          steps:
-            - shell:
-                !include-raw:
-                - ../../../scripts/build_utils.sh
-                - ../../build/notify
-            - trigger-builds:
-                - project: 'ceph-dev'
-                  predefined-parameters: |
-                    BRANCH=${GIT_BRANCH}
-                    FORCE=True
-                    DISTROS=bionic xenial centos7 centos8
       # build octopus on:
       # default: focal bionic centos7 centos8 leap15
       - conditional-step:
@@ -111,6 +75,32 @@
                     BRANCH=${GIT_BRANCH}
                     FORCE=True
                     DISTROS=focal bionic centos8 leap15
+                - project: 'ceph-dev'
+                  predefined-parameters: |
+                    BRANCH=${GIT_BRANCH}
+                    FORCE=True
+                    DISTROS=centos8
+                    FLAVOR=crimson
+                    ARCHS=x86_64
+      # build quincy on:
+      # default: focal centos8 leap15
+      # crimson: centos8
+      - conditional-step:
+          condition-kind: regex-match
+          regex: .*quincy.*
+          label: '${GIT_BRANCH}'
+          on-evaluation-failure: dont-run
+          steps:
+            - shell:
+                !include-raw:
+                - ../../../scripts/build_utils.sh
+                - ../../build/notify
+            - trigger-builds:
+                - project: 'ceph-dev'
+                  predefined-parameters: |
+                    BRANCH=${GIT_BRANCH}
+                    FORCE=True
+                    DISTROS=focal centos8 leap15
                 - project: 'ceph-dev'
                   predefined-parameters: |
                     BRANCH=${GIT_BRANCH}
