@@ -703,21 +703,21 @@ setup_pbuilder_for_new_gcc() {
     local version=$1
     shift
 
-    # need to add the test repo and install gcc-7 after
+    # need to add the test repo and install new gcc after
     # `pbuilder create|update` finishes apt-get instead of using "extrapackages".
-    # otherwise installing gcc-7 will leave us a half-configured build-essential
-    # and gcc-7, and `pbuilder` command will fail. because the `build-essential`
+    # otherwise installing gcc will leave us a half-configured build-essential
+    # and gcc, and `pbuilder` command will fail. because the `build-essential`
     # depends on a certain version of gcc which is upgraded already by the one
     # in test repo.
     if [ "$ARCH" = "arm64" ]; then
-        cat > $hookdir/D05install-gcc-7 <<EOF
+        cat > $hookdir/D05install-new-gcc <<EOF
 echo "deb [lang=none] http://ppa.launchpad.net/ubuntu-toolchain-r/test/ubuntu $DIST main" >> \
   /etc/apt/sources.list.d/ubuntu-toolchain-r.list
 echo "deb [lang=none] http://ports.ubuntu.com/ubuntu-ports $DIST-updates main" >> \
   /etc/apt/sources.list.d/ubuntu-toolchain-r.list
 EOF
     elif [ "$ARCH" = "x86_64" ]; then
-        cat > $hookdir/D05install-gcc-7 <<EOF
+        cat > $hookdir/D05install-new-gcc <<EOF
 echo "deb [lang=none] http://security.ubuntu.com/ubuntu $DIST-security main" >> \
   /etc/apt/sources.list.d/ubuntu-toolchain-r.list
 echo "deb [lang=none] http://ppa.launchpad.net/ubuntu-toolchain-r/test/ubuntu $DIST main" >> \
@@ -731,7 +731,7 @@ EOF
         echo "unsupported arch: $ARCH"
         exit 1
     fi
-cat >> $hookdir/D05install-gcc-7 <<EOF
+cat >> $hookdir/D05install-new-gcc <<EOF
 env DEBIAN_FRONTEND=noninteractive apt-get install -y gnupg
 cat << ENDOFKEY | apt-key add -
 -----BEGIN PGP PUBLIC KEY BLOCK-----
@@ -753,7 +753,7 @@ env DEBIAN_FRONTEND=noninteractive apt-get update -y -o Acquire::Languages=none 
 env DEBIAN_FRONTEND=noninteractive apt-get install -y g++-$version
 EOF
 
-    chmod +x $hookdir/D05install-gcc-7
+    chmod +x $hookdir/D05install-new-gcc
 
     setup_gcc_hook $version > $hookdir/D10update-gcc-alternatives
     chmod +x $hookdir/D10update-gcc-alternatives
