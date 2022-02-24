@@ -632,25 +632,18 @@ setup_pbuilder() {
 }
 
 use_ppa() {
+    # only use ppa on focal for reef+
     case $vers in
-        10.*)
-            # jewel
+        15.*) # o
             use_ppa=false;;
-        11.*)
-            # kraken
+        16.*) # p
             use_ppa=false;;
-        12.*)
-            # luminous
+        17.2*) # q
             use_ppa=false;;
         *)
-            # mimic, nautilus, *
             case $DIST in
-                trusty)
+                focal)
                     use_ppa=true;;
-                xenial)
-                    use_ppa=true;;
-                bionic)
-                    use_ppa=false;;
                 *)
                     use_ppa=false;;
             esac
