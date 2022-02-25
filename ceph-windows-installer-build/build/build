@@ -46,8 +46,7 @@ cp $WORKSPACE/ceph-windows-installer/Driver/wnbd.cer $WORKSPACE/wnbd_code_signin
 #
 if [ "$THROWAWAY" = false ]; then
     # push binaries to chacra
-    chacra_binary="$VENV/chacractl binary"
-    [ "$FORCE" = true ] && chacra_binary="$chacra_binary --force"
+    chacra_binary="$VENV/chacractl binary --force"
 
     ls $WORKSPACE/Ceph.msi $WORKSPACE/wnbd_code_signing.cer | $chacra_binary create ${chacra_binary_endpoint}
 
