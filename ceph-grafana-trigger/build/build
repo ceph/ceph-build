@@ -1,6 +1,6 @@
 #!/bin/bash -ex
 
-CONTAINER_VERSION=${CONTAINER_VERSION:-6.7.4}
+CONTAINER_VERSION=${CONTAINER_VERSION:-8.2.6}
 CONTAINER=ceph/ceph-grafana:${CONTAINER_VERSION}
 sudo dnf install -y podman
 sudo podman login docker.io -u ${DOCKER_HUB_USERNAME} -p ${DOCKER_HUB_PASSWORD}
