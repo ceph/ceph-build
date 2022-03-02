@@ -94,3 +94,9 @@
               <applitoolsApiKey/>
             </com.applitools.jenkins.ApplitoolsBuildWrapper>
       - ansicolor
+
+    publishers:
+      - archive:
+          artifacts: 'build/out/mgr.*.log'
+          allow-empty: true
+          latest-only: false

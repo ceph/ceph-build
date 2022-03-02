@@ -28,6 +28,7 @@
       - 'cobertura'
       - 'code-coverage-api'
       - 'command-launcher'
+      - 'compress-artifacts'
       - 'conditional-buildstep'
       - 'configuration-as-code'
       - 'copyartifact'

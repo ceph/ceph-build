@@ -89,3 +89,8 @@
     publishers:
       - email:
           recipients: ceph-qa@ceph.io
+
+      - archive:
+          artifacts: 'build/out/mgr.*.log'
+          allow-empty: true
+          latest-only: false
