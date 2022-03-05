@@ -166,7 +166,7 @@
           . /etc/os-release || ID=ubuntu
           case $ID in
           debian|ubuntu)
-              sudo env DEBIAN_FRONTEND=noninteractive apt-get install -y python3-yaml python3-lxml python3-prettytable clang-10
+              sudo env DEBIAN_FRONTEND=noninteractive apt-get install -y python3-yaml python3-lxml python3-prettytable clang-12
               ;;
           centos|rhel)
               sudo dnf copr remove tchaikov/llvm-toolset-10 || true
