@@ -16,7 +16,7 @@
     name: ceph-iscsi-tox
     description: Runs tox tests for ceph-iscsi on each GitHub PR
     project-type: freestyle
-    node: python3
+    node: focal && x86_64
     block-downstream: false
     block-upstream: false
     defaults: global
