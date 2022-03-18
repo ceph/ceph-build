@@ -84,6 +84,11 @@
               build-steps:
                 - shell: "sudo dpkg --configure -a"
 
+      - archive:
+          artifacts: 'build/out/mgr.*.log'
+          allow-empty: true
+          latest-only: false
+
     wrappers:
       - ansicolor
       - credentials-binding:
