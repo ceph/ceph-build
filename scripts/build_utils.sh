@@ -564,7 +564,7 @@ setup_pbuilder() {
     # ensure that the tgz is valid, otherwise remove it so that it can be recreated
     # again
     pbuild_tar="$basedir/$DIST.tgz"
-    is_not_tar=`python3 -c "exec 'try: import tarfile;print int(not int(tarfile.is_tarfile(\"$pbuild_tar\")))\nexcept IOError: print 1'"`
+    is_not_tar=`python3 -c $'try: import tarfile;print(int(not int(tarfile.is_tarfile(\"$pbuild_tar\"))))\nexcept IOError: print(1)'`
     file_size_kb=`test -f $pbuild_tar && du -k "$pbuild_tar" | cut -f1 || echo 0`
 
     if [ "$is_not_tar" = "1" ]; then
