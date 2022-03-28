@@ -67,8 +67,8 @@
       - shell: |
           export CYPRESS_ARGS="--record --key $CYPRESS_RECORD_KEY --tag $JOB_NAME" COMMIT_INFO_MESSAGE="$JOB_NAME"
           export APPLITOOLS_BATCH_ID="${{JOB_NAME}}_${{BUILD_TAG}}"
-          export APPLITOOLS_BRANCH_NAME="$ghprbSourceBranch"
-          export APPLITOOLS_PARENT_BRANCH_NAME="$ghprbTargetBranch"
+          export APPLITOOLS_BATCH_NAME="Nightly-${{GIT_BRANCH#*/}}"
+          export APPLITOOLS_BRANCH_NAME="${{GIT_BRANCH#*/}}"
           mkdir -p .applitools
           echo "$APPLITOOLS_BATCH_ID" > .applitools/BATCH_ID
           cd src/pybind/mgr/dashboard; timeout 2h ./{test_suite_script}
@@ -84,6 +84,14 @@
           - text:
               credential-id: cd-applitools-api-key
               variable: APPLITOOLS_API_KEY
+      - raw:
+          xml: |
+            <com.applitools.jenkins.ApplitoolsBuildWrapper plugin="applitools-eyes@1.13">
+              <serverURL>https://eyes.applitools.com</serverURL>
+              <notifyByCompletion>true</notifyByCompletion>
+              <applitoolsApiKey/>
+            </com.applitools.jenkins.ApplitoolsBuildWrapper>
+ 
       - ansicolor
 
     publishers:
