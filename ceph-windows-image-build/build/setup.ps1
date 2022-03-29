@@ -4,6 +4,8 @@ $ProgressPreference = "SilentlyContinue"
 $VS_2019_BUILD_TOOLS_URL = "https://aka.ms/vs/16/release/vs_buildtools.exe"
 $WDK_URL = "https://download.microsoft.com/download/7/d/6/7d602355-8ae9-414c-ae36-109ece2aade6/wdk/wdksetup.exe"  # Windows 11 WDK (22000.1). It can be used to develop drivers for previous OS releases.
 $PYTHON3_URL = "https://www.python.org/ftp/python/3.10.1/python-3.10.1-amd64.exe"
+$CLOUDBASE_INIT_URL = "https://cloudbase.it/downloads/CloudbaseInitSetup_Stable_x64.msi"
+$FIO_URL = "https://bsdio.com/fio/releases/fio-3.27-x64.msi"
 
 $WNBD_GIT_REPO = "https://github.com/ceph/wnbd.git"
 $WNBD_GIT_BRANCH = "master"
@@ -125,7 +127,18 @@ function Install-Tool {
             Start-FileDownload -URL $URL -Destination $installerPath
         }
         Write-Output "Installing ${installerPath}"
-        $p = Start-Process -FilePath $installerPath -ArgumentList $Params -NoNewWindow -PassThru -Wait
+        $kwargs = @{
+            "FilePath" = $installerPath
+            "ArgumentList" = $Params
+            "NoNewWindow" = $true
+            "PassThru" = $true
+            "Wait" = $true
+        }
+        if((Get-ChildItem $installerPath).Extension -eq '.msi') {
+            $kwargs["FilePath"] = "msiexec.exe"
+            $kwargs["ArgumentList"] = @("/i", $installerPath) + $Params
+        }
+        $p = Start-Process @kwargs
         if($p.ExitCode -notin $AllowedExitCodes) {
             Throw "Installation failed. Exit code: $($p.ExitCode)"
         }
@@ -319,6 +332,18 @@ function Install-Wix3Toolset {
     Write-Output "Successfully installed Wix3 toolset"
 }
 
+function Install-CloudbaseInit {
+    Write-Output "Installing Cloudbase-Init"
+    Install-Tool -URL $CLOUDBASE_INIT_URL -Params @("/qn", "/l*v", "$env:TEMP\cloudbase-init-install.log", "/norestart")
+    Write-Output "Successfully installed Cloudbase-Init"
+}
+
+function Install-FIO {
+    Write-Output "Installing FIO"
+    Install-Tool -URL $FIO_URL -Params @("/qn", "/l*v", "$env:TEMP\fio-install.log", "/norestart")
+    Add-ToPathEnvVar -Path @("${env:ProgramFiles}\fio")
+    Write-Output "Successfully installed FIO"
+}
 
 Get-WindowsBuildInfo
 Install-Requirements
@@ -328,5 +353,7 @@ Install-Git
 Install-WnbdDriver
 Install-Python3
 Install-Wix3Toolset
+Install-CloudbaseInit
+Install-FIO
 
 Write-Output "Successfully installed the CI environment. Please reboot the system before sysprep."
