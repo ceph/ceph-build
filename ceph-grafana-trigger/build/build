@@ -1,12 +1,11 @@
 #!/bin/bash -ex
 
-CONTAINER_VERSION=${CONTAINER_VERSION:-8.2.6}
+CONTAINER_VERSION=${CONTAINER_VERSION:-8.3.5}
 CONTAINER=ceph/ceph-grafana:${CONTAINER_VERSION}
 sudo dnf install -y podman
-sudo podman login docker.io -u ${DOCKER_HUB_USERNAME} -p ${DOCKER_HUB_PASSWORD}
 sudo podman login quay.io -u ${CONTAINER_REPO_USERNAME} -p ${CONTAINER_REPO_PASSWORD}
 
-for repohost in quay.io docker.io; do
+for repohost in quay.io; do
         sudo podman rmi -f grafana:${CONTAINER_VERSION}-combined ${repohost}/${CONTAINER}-x86_64 ${repohost}/${CONTAINER}-aarch64  || true
 
         sudo podman pull ${repohost}/${CONTAINER}-x86_64
