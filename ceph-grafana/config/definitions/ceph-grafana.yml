@@ -43,12 +43,8 @@
           mask-password-params: true
       - credentials-binding:
           - username-password-separated:
-              credential-id: dmick-quay
+              credential-id: ceph-container-quay-io
               username: CONTAINER_REPO_USERNAME
               password: CONTAINER_REPO_PASSWORD
-          - username-password-separated:
-              credential-id: docker-hub-leseb
-              username: DOCKER_HUB_USERNAME
-              password: DOCKER_HUB_PASSWORD
       - build-name:
           name: "#${BUILD_NUMBER} ${BRANCH}, ${ARCH}"
