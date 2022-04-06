@@ -51,7 +51,7 @@
           mask-password-params: true
       - credentials-binding:
           - username-password-separated:
-              credential-id: dmick-quay
+              credential-id: ceph-container-quay-io
               username: CONTAINER_REPO_USERNAME
               password: CONTAINER_REPO_PASSWORD
       - build-name:
