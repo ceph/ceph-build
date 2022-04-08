@@ -70,3 +70,7 @@
     publishers:
       - email:
           recipients: ceph-qa@ceph.io
+      - archive:
+          artifacts: 'logs/*.log'
+          allow-empty: true
+          latest-only: false

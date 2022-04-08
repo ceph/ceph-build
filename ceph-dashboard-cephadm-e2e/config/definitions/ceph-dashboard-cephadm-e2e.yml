@@ -82,3 +82,9 @@
               credential-id: cd-cypress-record-key
               variable: CYPRESS_RECORD_KEY
       - ansicolor
+
+    publishers:
+      - archive:
+          artifacts: 'logs/*.log'
+          allow-empty: true
+          latest-only: false
