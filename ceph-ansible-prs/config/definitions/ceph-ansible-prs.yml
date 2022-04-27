@@ -23,7 +23,7 @@
 
 - project:
     name: ceph-ansible-prs
-    slave_labels: 'vagrant && libvirt && (smithi || braggi || centos7)'
+    slave_labels: 'vagrant && libvirt && (smithi || braggi || centos8)'
     distribution:
       - centos
     deployment:
@@ -39,7 +39,7 @@
 
 - project:
     name: ceph-ansible-prs-docker2podman
-    slave_labels: 'vagrant && libvirt && (smithi || braggi || centos7)'
+    slave_labels: 'vagrant && libvirt && (smithi || braggi || centos8)'
     distribution:
       - centos
     deployment:
@@ -77,7 +77,7 @@
 
 - project:
     name: ceph-ansible-prs-common-trigger
-    slave_labels: 'vagrant && libvirt && (smithi || braggi || centos7)'
+    slave_labels: 'vagrant && libvirt && (smithi || braggi || centos8)'
     distribution:
       - centos
     deployment:

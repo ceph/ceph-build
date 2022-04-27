@@ -9,7 +9,7 @@
 
 - job-template:
     name: 'ceph-container-nightly-ceph_ansible-{test}'
-    node: vagrant&&libvirt&&centos7
+    node: vagrant&&libvirt&&centos8
     concurrent: true
     defaults: global
     display-name: 'ceph-container: Nightly tests [ceph_ansible-{test}]'

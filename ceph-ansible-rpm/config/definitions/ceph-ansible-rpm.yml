@@ -1,6 +1,6 @@
 - job:
     name: ceph-ansible-rpm
-    node: 'centos7 && x86_64 && small && !sepia'
+    node: 'centos8 && x86_64 && small && !sepia'
     project-type: freestyle
     defaults: global
     disabled: false
