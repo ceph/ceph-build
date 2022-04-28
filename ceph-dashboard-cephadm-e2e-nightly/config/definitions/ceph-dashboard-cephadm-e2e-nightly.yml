@@ -71,6 +71,6 @@
       - email:
           recipients: ceph-qa@ceph.io
       - archive:
-          artifacts: 'logs/*.log'
+          artifacts: 'logs/**'
           allow-empty: true
           latest-only: false
