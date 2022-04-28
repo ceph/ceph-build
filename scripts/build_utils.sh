@@ -1652,3 +1652,15 @@ function retrycmd_if_failure() {
     echo "Executed '$*' $i times"
     set -o errexit
 }
+
+function set_centos_python3_version() {
+    # This function expects $1 to be a string like "python3.9"
+    local CURRENT_PYTHON3_VERSION=$(sudo alternatives --list | grep -e '^python3' | awk '{ print $3 }')
+    local EXPECTED_PYTHON3_VERSION=$1
+    if ! [[ "$CURRENT_PYTHON3_VERSION" =~ .*"$EXPECTED_PYTHON3_VERSION" ]]; then
+        sudo dnf install -y $EXPECTED_PYTHON3_VERSION
+        sudo alternatives --set python3 /usr/bin/$EXPECTED_PYTHON3_VERSION
+    else
+        echo "python3 symlink already points to $CURRENT_PYTHON3_VERSION"
+    fi
+}
