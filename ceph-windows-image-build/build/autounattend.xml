@@ -84,8 +84,11 @@
         <PathAndCredentials wcm:action="add" wcm:keyValue="1">
           <Path>E:\NetKVM\2k19\amd64\</Path>
         </PathAndCredentials>
-        <PathAndCredentials wcm:action="add" wcm:keyValue="3">
+        <PathAndCredentials wcm:action="add" wcm:keyValue="2">
           <Path>E:\viostor\2k19\amd64\</Path>
+        </PathAndCredentials>
+        <PathAndCredentials wcm:action="add" wcm:keyValue="3">
+          <Path>E:\vioserial\2k19\amd64\</Path>
         </PathAndCredentials>
       </DriverPaths>
     </component>
@@ -132,13 +135,8 @@
       <FirstLogonCommands>
 
         <SynchronousCommand wcm:action="add">
-          <CommandLine>%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell -NoLogo -NonInteractive -ExecutionPolicy RemoteSigned -File A:\install-virtio-guest-tools.ps1</CommandLine>
+          <CommandLine>%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe -NoLogo -NonInteractive -ExecutionPolicy RemoteSigned -File A:\first-logon.ps1</CommandLine>
           <Order>1</Order>
-        </SynchronousCommand>
-
-        <SynchronousCommand wcm:action="add">
-          <CommandLine>%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell -NoLogo -NonInteractive -ExecutionPolicy RemoteSigned -File A:\install-openssh-server.ps1</CommandLine>
-          <Order>2</Order>
         </SynchronousCommand>
 
       </FirstLogonCommands>

@@ -74,8 +74,8 @@ sudo mount ${BUILD_DIR}/floppy.img ${BUILD_DIR}/floppy
 ssh-keygen -y -f $SSH_PRIVATE_KEY > ${BUILD_DIR}/id_rsa.pub
 sudo cp \
     ${BUILD_DIR}/autounattend.xml \
-    ${BUILD_DIR}/install-virtio-guest-tools.ps1 \
-    ${BUILD_DIR}/install-openssh-server.ps1 \
+    ${BUILD_DIR}/first-logon.ps1 \
+    ${BUILD_DIR}/utils.ps1 \
     ${BUILD_DIR}/id_rsa.pub \
     ${BUILD_DIR}/floppy/
 sudo umount ${BUILD_DIR}/floppy
@@ -139,9 +139,10 @@ ssh_exec powershell.exe Remove-Item -Force /install-windows-updates.ps1
 
 restart_windows_vm 1800
 
+scp_upload ${BUILD_DIR}/utils.ps1 /utils.ps1
 scp_upload ${BUILD_DIR}/setup.ps1 /setup.ps1
 SSH_TIMEOUT=1h ssh_exec powershell.exe -File /setup.ps1
-ssh_exec powershell.exe Remove-Item -Force /setup.ps1
+ssh_exec powershell.exe Remove-Item -Force /setup.ps1, /utils.ps1
 
 restart_windows_vm
 
