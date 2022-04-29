@@ -60,8 +60,7 @@ zip -r $WORKSPACE/wnbd.zip wnbd
 #
 if [ "$THROWAWAY" = false ]; then
     # push binaries to chacra
-    chacra_binary="$VENV/chacractl binary"
-    [ "$FORCE" = true ] && chacra_binary="$chacra_binary --force"
+    chacra_binary="$VENV/chacractl binary --force"
 
     ls $WORKSPACE/wnbd.zip | $chacra_binary create ${chacra_binary_endpoint}
 
