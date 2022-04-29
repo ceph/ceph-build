@@ -173,8 +173,20 @@ ${BUILD_DIR}/cleanup
 
 echo "Image successfully built at: ${WORKSPACE}/ceph-win-ltsc2019-ci-image.qcow2"
 
+ssh-keyscan -H drop.front.sepia.ceph.com &>> $SSH_KNOWN_HOSTS_FILE
+
+export SSH_USER="${FILEDUMP_USER}"
+export SSH_KEY="${FILEDUMP_SSH_KEY}"
+export SSH_ADDRESS="drop.front.sepia.ceph.com"
+for FILE in ceph-win-ltsc2019-ci-image.qcow2 ceph-win-ltsc2019-ci-image.qcow2.sha256; do
+    FILE_PATH="/ceph/filedump.ceph.com/windows/${FILE}"
+    if ssh_exec test -f ${FILE_PATH}; then
+        echo "Backup existing image file https://filedump.ceph.com/windows/${FILE}"
+        ssh_exec sudo mv ${FILE_PATH} ${FILE_PATH}.old
+    fi
+done
+
 echo "Uploading the image to https://filedump.ceph.com/windows/"
 cd ${WORKSPACE}
 sha256sum ceph-win-ltsc2019-ci-image.qcow2 > ceph-win-ltsc2019-ci-image.qcow2.sha256
-ssh-keyscan -H drop.front.sepia.ceph.com &>> $SSH_KNOWN_HOSTS_FILE
 rsync -azvP ceph-win-ltsc2019-ci-image.qcow2 ceph-win-ltsc2019-ci-image.qcow2.sha256 --rsync-path="sudo rsync" -e "ssh -i ${FILEDUMP_SSH_KEY} -o UserKnownHostsFile=${SSH_KNOWN_HOSTS_FILE}" ${FILEDUMP_USER}@drop.front.sepia.ceph.com:/ceph/filedump.ceph.com/windows/
