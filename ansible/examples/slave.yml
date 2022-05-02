@@ -658,6 +658,14 @@
             LDFLAGS='-L/opt/vagrant/embedded/' ./configure
             make
             sudo cp lib/libk5crypto.* /opt/vagrant/embedded/lib/
+            wget https://vault.centos.org/8.4.2105/BaseOS/Source/SPackages/libssh-0.9.4-2.el8.src.rpm
+            rpm2cpio libssh-0.9.4-2.el8.src.rpm | cpio -imdV
+            tar xf libssh-0.9.4.tar.xz
+            mkdir build
+            cd build
+            cmake ../libssh-0.9.4 -DOPENSSL_ROOT_DIR=/opt/vagrant/embedded/
+            make
+            cp lib/libssh* /opt/vagrant/embedded/lib64
           when: ansible_os_family == "RedHat" and ansible_distribution_major_version|int >= 8
 
         # https://github.com/vagrant-libvirt/vagrant-libvirt/issues/1127#issuecomment-713651332
