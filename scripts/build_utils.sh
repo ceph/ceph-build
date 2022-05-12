@@ -1660,5 +1660,6 @@ function set_centos_python3_version() {
     for package in $(rpm -qa | grep -E '^python3[1-9]{1,3}' | grep -v $EXPECTED_PYTHON3_VERSION_MASHED); do
         sudo dnf remove -y $package
     done
-    sudo dnf install -y $EXPECTED_PYTHON3_VERSION || sudo dnf reinstall -y $EXPECTED_PYTHON3_VERSION
+    sudo dnf reinstall -y $EXPECTED_PYTHON3_VERSION || sudo dnf install -y $EXPECTED_PYTHON3_VERSION
+    sudo alternatives --auto python3
 }
