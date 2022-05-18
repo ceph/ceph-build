@@ -5,7 +5,7 @@
     # should be passed in the CLI like `--extra-vars "version=1.23.45 branch=master"`
     version: 0-dev # e.g. 0.78
     branch: master # any existing branch on Github
-    release: stable # stable, development, or rc are valid options
+    release: STABLE # STABLE, RELEASE_CANDIDATE, HOTFIX, and SECURITY are valid options
     tag_name: "v{{ version}}"
     project: "ceph"
     clean: true # if re-doing a deployment this deletes the remote branch in Jenkin's git repo

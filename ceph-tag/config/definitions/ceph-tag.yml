@@ -1,20 +1,7 @@
-- scm:
-    name: ceph-build
-    scm:
-      - git:
-          url: https://github.com/ceph/ceph-build.git
-          browser: auto
-          timeout: 20
-          skip-tag: true
-          wipe-workspace: true
-          basedir: "ceph-build"
-          branches:
-            - origin/master
-
 - job:
     name: ceph-tag
-    node: trusty
-    description: "This job clones from upstream Ceph, sets the right version from the tag and pushes changes to ceph-releases"
+    node: bionic
+    description: "This job checks out the version commit previously pushed to ceph-releases.git and pushes it to ceph.git."
     display-name: 'ceph-tag'
     block-downstream: false
     block-upstream: false
@@ -30,12 +17,48 @@
     parameters:
       - string:
           name: BRANCH
-          description: "The git branch (or tag) to build"
+          description: "The git BRANCH to build (e.g., pacific)"
+          default: master
+
+      - bool:
+          name: TAG
+          description: "When this is checked, Jenkins will remove the previous private tag and recreate it again, changing the control files and committing again. When this is unchecked, Jenkins will not do any commit or tag operations. If you've already created the private tag separately, then leave this unchecked.
+Defaults to checked."
+          default: true
+
+      - bool:
+          name: THROWAWAY
+          description: "
+Default: False. When True it will not POST binaries to chacra. Artifacts will not be around for long. Useful to test builds."
+          default: false
+
       - string:
           name: VERSION
           description: "The version for release, e.g. 0.94.4"
+
+      - choice:
+          name: RELEASE_TYPE
+          description: "
+STABLE: A normal release. Builds from BRANCH branch and pushed to BRANCH-release branch.
+RELEASE_CANDIDATE: A normal release except the binaries will be pushed to chacra using the $BRANCH-rc name
+HOTFIX: Builds from BRANCH-release branch.  BRANCH-release will be git merged back into BRANCH.
+SECURITY: Builds from BRANCH-release branch in ceph-private.git (private repo)."
+          choices:
+            - STABLE
+            - RELEASE_CANDIDATE
+            - HOTFIX
+            - SECURITY
     scm:
-      - ceph-build
+      - git:
+          url: https://github.com/ceph/ceph-build.git
+          browser: auto
+          timeout: 20
+          skip-tag: true
+          wipe-workspace: true
+          basedir: "ceph-build"
+          branches:
+            - origin/master
+
 
     builders:
       - shell:
@@ -48,6 +71,10 @@
           global: true
           mask-password-params: true
       - ssh-agent-credentials:
-          # "jenkins-build" SSH key, needed so we can push to
-          # ceph-deploy.git
+          # "jenkins-build" SSH key, needed so we can push/pull to/from private repos
           user: 'jenkins-build'
+      - credentials-binding:
+          - username-password-separated:
+              credential-id: 8cffdeb4-283c-4d96-a190-05d5645bcc2f
+              username: GITHUB_USER
+              password: GITHUB_TOKEN

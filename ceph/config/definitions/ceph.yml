@@ -19,7 +19,7 @@
     parameters:
       - string:
           name: BRANCH
-          description: "The git branch (or tag) to build"
+          description: "The git BRANCH to build (e.g., pacific)"
           default: master
 
       - bool:
@@ -53,17 +53,23 @@ Mostly useful for DEBs to append the `-b` flag for dhc."
 If this is unchecked, then then nothing is built or pushed if they already exist in chacra. This is the default.
 
 If this is checked, then the binaries will be built and pushed to chacra even if they already exist in chacra."
+
       - string:
           name: VERSION
           description: "The version for release, e.g. 0.94.4"
 
-      - bool:
-          name: RC
+      - choice:
+          name: RELEASE_TYPE
           description: "
-If this is checked, binaries will be pushed to chacra using the $BRANCH-rc name, for release candidate binaries.
-
-Defaults to un-checked"
-          default: false
+STABLE: A normal release. Builds from BRANCH branch and pushed to BRANCH-release branch.
+RELEASE_CANDIDATE: A normal release except the binaries will be pushed to chacra using the $BRANCH-rc name
+HOTFIX: Builds from BRANCH-release branch.  BRANCH-release will be git merged back into BRANCH.
+SECURITY: Builds from BRANCH-release branch in ceph-private.git (private repo)."
+          choices:
+            - STABLE
+            - RELEASE_CANDIDATE
+            - HOTFIX
+            - SECURITY
 
       - string:
           name: CEPH_BUILD_VIRTUALENV
@@ -82,19 +88,18 @@ Defaults to un-checked"
 
     builders:
       - multijob:
-          name: 'ceph tag phase'
-          condition: SUCCESSFUL
-          projects:
-            - name: ceph-tag
-              current-parameters: true
-              exposed-scm: false
-      - multijob:
           name: 'ceph setup phase'
           condition: SUCCESSFUL
           projects:
             - name: ceph-setup
               current-parameters: true
               exposed-scm: false
+      - copyartifact:
+          project: ceph-setup
+          filter: ceph-build/ansible/ceph/dist/sha1
+          which-build: multijob-build
+      - inject:
+          properties-file: ${WORKSPACE}/ceph-build/ansible/ceph/dist/sha1
       - multijob:
           name: 'ceph build phase'
           condition: SUCCESSFUL
@@ -102,8 +107,17 @@ Defaults to un-checked"
             - name: ceph-build
               current-parameters: true
               exposed-scm: false
+      - multijob:
+          name: 'ceph tag phase'
+          condition: SUCCESSFUL
+          projects:
+            - name: ceph-tag
+              current-parameters: true
+              exposed-scm: false
 
     wrappers:
       - inject-passwords:
           global: true
           mask-password-params: true
+      - build-name:
+          name: "#${BUILD_NUMBER} ${BRANCH}, ${SHA1}"

@@ -1,6 +1,6 @@
 - job:
     name: ceph-setup
-    description: "This job step checks out the branch and builds the tarballs, diffs, and dsc that are passed to the ceph-build step.\r\n\r\nNotes:\r\nJob needs to run on a releatively recent debian system.  The Restrict where run feature is used to specifiy an appropriate label.\r\nThe clear workspace before checkout box for the git plugin is used."
+    description: "This job:\r\n- Creates the version commit\r\n- Checks out the branch and builds the tarballs, diffs, and dsc that are passed to the ceph-build step.\r\n\r\nNotes:\r\nJob needs to run on a releatively recent debian system.  The Restrict where run feature is used to specifiy an appropriate label.\r\nThe clear workspace before checkout box for the git plugin is used."
     node: huge && bionic && x86_64
     display-name: 'ceph-setup'
     block-downstream: false
@@ -15,7 +15,7 @@
       - github:
           url: https://github.com/ceph/ceph
       - copyartifact:
-          projects: ceph-build
+          projects: ceph-build,ceph-tag,ceph
 
     parameters:
       - string:
@@ -24,23 +24,25 @@
 
     scm:
       - git:
-          url: git@github.com:ceph/ceph-releases.git
-          # Use the SSH key attached to the ceph-jenkins GitHub account.
+          url: https://github.com/ceph/ceph-build.git
           credentials-id: 'jenkins-build'
-          # not really a branch, this builds the TAG that was previously
-          # created by the ceph-tag job which concatenates 'v' + $VERSION
-          branches:
-            - v$VERSION
+          browser: auto
+          timeout: 20
           skip-tag: true
           wipe-workspace: true
+          basedir: "ceph-build"
+          branches:
+            - origin/master
 
     builders:
       - shell:
-          !include-raw: ../../build/build
-
+          !include-raw:
+            - ../../../scripts/build_utils.sh
+            - ../../build/create_tag
+            - ../../build/build
     publishers:
       - archive:
-          artifacts: 'dist/**'
+          artifacts: 'ceph-build/ansible/ceph/dist/**'
           allow-empty: false
           latest-only: false
 
@@ -64,3 +66,6 @@
           - text:
               credential-id: shaman-api-key
               variable: SHAMAN_API_KEY
+      - ssh-agent-credentials:
+          # "jenkins-build" SSH key, needed so we can push/pull to/from private repos
+          user: 'jenkins-build'

@@ -76,12 +76,12 @@
                 rm -rf release
             - copyartifact:
                 project: ceph-setup
-                filter: 'dist/**'
+                filter: 'ceph-build/ansible/ceph/dist/**'
                 which-build: multijob-build
             - inject:
-                properties-file: ${WORKSPACE}/dist/sha1
+                properties-file: ${WORKSPACE}/ceph-build/ansible/ceph/dist/sha1
             - inject:
-                properties-file: ${WORKSPACE}/dist/other_envvars
+                properties-file: ${WORKSPACE}/ceph-build/ansible/ceph/dist/other_envvars
             # debian build scripts
             - shell:
                 !include-raw:
