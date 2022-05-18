@@ -111,7 +111,7 @@
   when: tag|bool is true
 
 - name: push the version commit to ceph-releases.git
-  command: git push -f releases {{ branch }}
+  command: git push -f releases {{ branch }}-release
   args:
     chdir: ceph
   when: tag|bool is true
