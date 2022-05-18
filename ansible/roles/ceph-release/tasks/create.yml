@@ -30,9 +30,9 @@
   args:
     chdir: ceph
 
-# REGULAR / RC
+# REGULAR / RC / HOTFIX
 # This assumes {{ branch }} is at the point where release is desired
-- name: "git checkout and reset {{ branch }}-release to {{ branch }} for REGULAR or RC release"
+- name: "git checkout and reset {{ branch }}-release to {{ branch }} for REGULAR/RC/HOTFIX release"
   command: git checkout -f -B {{ branch }}-release upstream/{{ branch }}
   args:
     chdir: ceph
