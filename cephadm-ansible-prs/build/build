@@ -1,14 +1,16 @@
 #!/bin/bash
 
 # the following two methods exist in scripts/build_utils.sh
+# shellcheck disable=SC2034
 pkgs=( "tox" )
 TEMPVENV=$(create_venv_dir)
 VENV=${TEMPVENV}/bin
 set_centos_python3_version "python3.9"
-install_python_packages $TEMPVENV "pkgs[@]" "pip==22.0.4"
+install_python_packages "$TEMPVENV" "pkgs[@]" "pip==22.0.4"
 
 # XXX this might not be needed
-source $VENV/activate
+# shellcheck source=/dev/null
+source "${VENV}"/activate
 
 WORKDIR=$(mktemp -td tox.XXXXXXXXXX)
 
@@ -19,4 +21,9 @@ update_vagrant_boxes
 
 rm -rf "${HOME}"/ansible/facts/*
 
-"${VENV}"/tox --workdir="${TEMPVENV}" -c tox.ini -r -v -- --provider=libvirt
+tox_envs="$("$VENV"/tox -l)"
+
+for tox_env in "${tox_envs[@]}"
+do
+  "${VENV}"/tox --workdir="${TEMPVENV}" -c tox.ini -r -v -e "${tox_env}" -- --provider=libvirt
+done
