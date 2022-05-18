@@ -32,12 +32,13 @@
 
 # REGULAR / RC
 # This assumes {{ branch }} is at the point where release is desired
+# Human push to {{ branch }}-release is not necessary but won't break anything
 - name: "git checkout and reset {{ branch }}-release to {{ branch }} for REGULAR or RC release"
   command: git checkout -f -B {{ branch }}-release upstream/{{ branch }}
   args:
     chdir: ceph
   when:
-    - "release != 'SECURITY'"
+    - "release == 'STABLE' or release == 'RELEASE_CANDIDATE'"
     - tag|bool is true
 
 - name: "git checkout previously existing tag for re-build"
@@ -45,9 +46,17 @@
   args:
     chdir: ceph
   when:
-    - "release != 'SECURITY'"
+    - "release == 'STABLE' or release == 'RELEASE_CANDIDATE'"
     - tag|bool is false
     - throwaway|bool is false
+
+# HOTFIX
+# This assumes hotfix has already been pushed to {{ branch }}-release branch on github
+- name: "git checkout {{ branch }}-release for HOTFIX release"
+  command: git checkout -f -B {{ branch }}-release upstream/{{ branch }}-release
+  args:
+    chdir: ceph
+  when: "release == 'HOTFIX'"
 
 # SECURITY
 - name: "git checkout security {{ branch }}-release branch"
