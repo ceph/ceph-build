@@ -2,7 +2,7 @@
     name: cephadm-ansible-prs-smithi
     worker_labels: 'vagrant && libvirt && (braggi || adami)'
     scenario:
-      - deploy_and_purge
+      - tox
     jobs:
       - 'cephadm-ansible-prs-auto'
 
