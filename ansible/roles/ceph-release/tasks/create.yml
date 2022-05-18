@@ -87,7 +87,7 @@
 
 - set_fact:
     dch_release_type: rc
-  when: "release == 'RELEASE_CANDIDATE"
+  when: "release == 'RELEASE_CANDIDATE'"
 
 - name: set the debian version
   command: dch -v {{ version }}-1 -D {{ dch_release_type|default('stable') }} "New upstream release"
