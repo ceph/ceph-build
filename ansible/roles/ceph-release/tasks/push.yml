@@ -48,7 +48,7 @@
 
 # In case any commits got pushed to {{ branch }} while we were building
 - name: "merge {{ branch }}-release changes back into {{ branch }}"
-  command: git merge {{ branch }}-release
+  command: git merge -m "Merging {{ branch }}-release {{ version }} commit into {{ branch }}" {{ branch }}-release
   args:
     chdir: ceph
   
