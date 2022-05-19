@@ -1,14 +1,26 @@
 - project:
-    name: cephadm-ansible-prs-smithi
+    name: cephadm-ansible-prs-syntax
     worker_labels: 'vagrant && libvirt && (braggi || adami)'
     scenario:
-      - tox
+      - flake8
+      - mypy
     jobs:
-      - 'cephadm-ansible-prs-auto'
+      - 'cephadm-ansible-prs-syntax'
+
+- project:
+    name: cephadm-ansible-prs-functional
+    worker_labels: 'vagrant && libvirt && (braggi || adami)'
+    distribution:
+      - el8
+      - el9
+    scenario:
+      - functional
+    jobs:
+      - 'cephadm-ansible-prs-functional'
 
 - job-template:
     name: 'cephadm-ansible-prs-{scenario}'
-    id: 'cephadm-ansible-prs-auto'
+    id: 'cephadm-ansible-prs-syntax'
     node: '{worker_labels}'
     concurrent: true
     defaults: global
@@ -106,6 +118,108 @@
       - inject-passwords:
           global: true
           mask-password-params: true
+
+- job-template:
+    name: 'cephadm-ansible-prs-{distribution}-{scenario}'
+    id: 'cephadm-ansible-prs-functional'
+    node: '{worker_labels}'
+    concurrent: true
+    defaults: global
+    display-name: 'cephadm-ansible: Pull Requests [{distribution}-{scenario}]'
+    quiet-period: 5
+    block-downstream: false
+    block-upstream: false
+    retry-count: 3
+    properties:
+      - github:
+          url: https://github.com/ceph/cephadm-ansible
+      - build-discarder:
+          days-to-keep: 90
+          num-to-keep: -1
+          artifact-days-to-keep: -1
+          artifact-num-to-keep: -1
+
+    parameters:
+      - string:
+          name: sha1
+          description: "A pull request ID, like 'origin/pr/72/head'"
+
+    triggers:
+      - github-pull-request:
+          cancel-builds-on-update: true
+          allow-whitelist-orgs-as-admins: true
+          org-list:
+            - ceph
+          skip-build-phrase: '^jenkins do not test.*|.*\[skip ci\].*'
+          trigger-phrase: '^jenkins test {distribution}-{scenario}|jenkins test all.*'
+          only-trigger-phrase: false
+          github-hooks: true
+          permit-all: true
+          auto-close-on-fail: false
+          status-context: "Testing: {distribution}-{scenario}"
+          started-status: "Running: {distribution}-{scenario}"
+          success-status: "OK - {distribution}-{scenario}"
+          failure-status: "FAIL - {distribution}-{scenario}"
+
+    scm:
+      - git:
+          url: https://github.com/ceph/cephadm-ansible.git
+          branches:
+            - ${{sha1}}
+          refspec: +refs/pull/*:refs/remotes/origin/pr/*
+          browser: auto
+          timeout: 20
+          skip-tag: true
+          wipe-workspace: false
+
+    builders:
+      - inject:
+          properties-content: |
+            DISTRIBUTION={distribution}
+            SCENARIO={scenario}
+      - conditional-step:
+          condition-kind: shell
+          condition-command: |
+            #!/bin/bash
+            # Returns 1 if only .rst and README files were modified
+            echo "Checking if only rst and READMEs were modified"
+            git show HEAD | grep -qo ^Merge:
+            if [ $? -eq 0 ]; then
+              git diff --name-only $(git show HEAD | grep ^Merge: | cut -d ':' -f2) | grep -v '\.rst\|README'
+              if [ $? -eq 1 ]; then
+                echo "Only docs were modified.  Skipping the rest of the job."
+                exit 1
+              fi
+            fi
+          on-evaluation-failure: dont-run
+          steps:
+            - shell:
+                !include-raw-escape:
+                  - ../../../scripts/build_utils.sh
+                  - ../../build/build
+
+    publishers:
+      - postbuildscript:
+          builders:
+            - role: SLAVE
+              build-on:
+                  - FAILURE
+                  - ABORTED
+              build-steps:
+                - shell:
+                    !include-raw-escape:
+                      - ../../../scripts/build_utils.sh
+                      - ../../build/teardown
+
+      - archive:
+          artifacts: 'logs/**'
+          allow-empty: true
+          latest-only: false
+
+    wrappers:
+      - inject-passwords:
+          global: true
+          mask-password-params: true
       - credentials-binding:
           - username-password-separated:
               credential-id: cephadm-ansible-quay-io
@@ -115,4 +229,3 @@
               credential-id: cephadm-ansible-quay-ceph-io
               username: QUAY_CEPH_IO_USERNAME
               password: QUAY_CEPH_IO_PASSWORD
-

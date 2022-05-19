@@ -19,4 +19,10 @@ update_vagrant_boxes
 
 rm -rf "${HOME}"/ansible/facts/*
 
-"${VENV}"/tox --workdir="${TEMPVENV}" -c tox.ini -r -v -- --provider=libvirt
+if [[ -n "$DISTRIBUTION" ]]; then
+  ENVIRONMENT="${DISTRIBUTION}"-"${SCENARIO}"
+else
+  ENVIRONMENT="${SCENARIO}"
+fi
+
+"${VENV}"/tox --workdir="${TEMPVENV}" -c tox.ini -e "${ENVIRONMENT}" -r -v -- --provider=libvirt
