@@ -51,11 +51,21 @@
   command: git merge -m "Merging {{ branch }}-release {{ version }} commit into {{ branch }}" {{ branch }}-release
   args:
     chdir: ceph
+
+- name: "disable branch protection for {{ branch }}"
+  shell: $WORKSPACE/ceph-build/scripts/github-branch-protection.sh disable {{ branch }}
+  args:
+    chdir: 
   
 - name: "push version commit to {{ branch }}"
   command: git push upstream {{ branch }}
   args:
     chdir: ceph
+
+- name: "re-enable branch protection for {{ branch }}"
+  shell: $WORKSPACE/ceph-build/scripts/github-branch-protection.sh enable {{ branch }}
+  args:
+    chdir: ../scripts
 
 - name: push the newly created tag
   command: git push upstream v{{ version }}
