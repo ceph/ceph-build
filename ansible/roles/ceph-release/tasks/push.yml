@@ -3,22 +3,22 @@
 # We want to make sure packages get pulled, signed, and pushed before publicly
 # pushing the security fix. Pushing tags will be done manually by a human.
 
-# the colon appended to the v{{ version }} tag removes the previous tag
-# https://git-scm.com/docs/git-push#Documentation/git-push.txt--d
-- name: clear the previous remote tag
-  command: git push origin :v{{ version }}
-  args:
-    chdir: ceph
-  ignore_errors: yes
-  when: tag|bool is true
-
 - name: clone the ceph repository
   git:
-    repo: https://github.com/ceph/ceph
+    repo: git@github.com:ceph/ceph.git
     dest: ceph
     remote: upstream
     accept_hostkey: yes
     recursive: no
+
+# the colon appended to the v{{ version }} tag removes the previous tag
+# https://git-scm.com/docs/git-push#Documentation/git-push.txt--d
+- name: clear the previous remote tag
+  command: git push upstream :v{{ version }}
+  args:
+    chdir: ceph
+  ignore_errors: yes
+  when: tag|bool is true
 
 - name: add releases repo
   command: git remote add -f releases git@github.com:ceph/ceph-releases.git
@@ -42,13 +42,13 @@
     chdir: ceph
 
 - name: "git checkout {{ branch }}"
-  command: git checkout {{ branch }}
+  command: git checkout upstream/{{ branch }}
   args:
     chdir: ceph
 
 # In case any commits got pushed to {{ branch }} while we were building
 - name: "merge {{ branch }}-release changes back into {{ branch }}"
-  command: git merge {{ branch }}-release
+  command: git merge -m "Merging {{ branch }}-release {{ version }} commit into {{ branch }}" {{ branch }}-release
   args:
     chdir: ceph
   
