@@ -9,6 +9,7 @@ fi
 export NPROC=$(nproc)
 export WITH_SEASTAR=true
 export WITH_RBD_RWL=true
+export WITH_PMEM=true
 if which apt-get > /dev/null ; then
     export WITH_ZBD=true
 fi
