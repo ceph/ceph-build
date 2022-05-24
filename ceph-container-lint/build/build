@@ -31,7 +31,7 @@ function check(){
 }
 
 function main() {
-    # install some of our dependencies if running on a jenkins slave
+    # install some of our dependencies if running on a jenkins builder
     if [[ -n "$HUDSON_URL" ]]
     then
         sudo yum -y install epel-release

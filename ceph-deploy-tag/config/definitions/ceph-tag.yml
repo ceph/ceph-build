@@ -9,7 +9,7 @@
           wipe-workspace: true
           basedir: "ceph-build"
           branches:
-            - origin/master
+            - origin/main
 
 - job:
     name: ceph-deploy-tag
@@ -31,7 +31,7 @@
       - string:
           name: BRANCH
           description: "The git branch (or tag) to build"
-          default: "master"
+          default: "main"
       - string:
           name: VERSION
           description: "The version for release, e.g. 1.5.30"

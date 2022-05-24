@@ -1,6 +1,6 @@
 - job:
     name: ceph-pr-arm-trigger
-    node: master
+    node: controller
     # disabled for now because this is not passing the right BRANCH to
     # `ceph-dev` which causes failures there
     disabled: true

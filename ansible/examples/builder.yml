@@ -1,17 +1,17 @@
 ---
 ## Instead of trying to keep 4 separate playbooks up to date, let's do it all here.
-## The only difference from using multiple playbooks is we need to specify `-e libvirt=true` and/or `-e permanent=true` if the slave will be permanent/static.
+## The only difference from using multiple playbooks is we need to specify `-e libvirt=true` and/or `-e permanent=true` if the builder will be permanent/static.
 ## Tested on: CentOS 7, CentOS 8, Xenial, Bionic, Focal, Leap 15.1 using ansible 2.8.5
 ##
 ## Example:
-## ansible-playbook -vvv -M ./library/ slave.yml -e '{"labels": "x86_64 xenial etc", "token": "XXXXX", "jenkins_credentials_uuid": "jenkins-build", "api_uri": "https://jenkins.ceph.com"}' -e permanent=true -e ansible_ssh_user=ubuntu --limit braggi01*
+## ansible-playbook -vvv -M ./library/ builder.yml -e '{"labels": "x86_64 xenial etc", "token": "XXXXX", "jenkins_credentials_uuid": "jenkins-build", "api_uri": "https://jenkins.ceph.com"}' -e permanent=true -e ansible_ssh_user=ubuntu --limit braggi01*
 
 - hosts: all
   become: true
-  user: ubuntu # This should be overridden on the CLI (e.g., -e user=centos).  It doesn't matter on a mita/prado slave because the playbook is run locally by root.
+  user: ubuntu # This should be overridden on the CLI (e.g., -e user=centos).  It doesn't matter on a mita/prado builder because the playbook is run locally by root.
   vars:
     - libvirt: false # Should vagrant be installed?
-    - permanent: false # Is this a permanent slave?  Since the ephemeral (non-permanent) tasks get run more often, we'll default to false.
+    - permanent: false # Is this a permanent builder?  Since the ephemeral (non-permanent) tasks get run more often, we'll default to false.
     - jenkins_user: 'jenkins-build'
     #- jenkins_key: This gets defined below now.
     # jenkins API credentials:
@@ -303,7 +303,7 @@
         - libvirt|bool
       tags: always
 
-    ## Let's make sure we don't accidentally set up a permanent slave from Sepia as ephemeral
+    ## Let's make sure we don't accidentally set up a permanent builder from Sepia as ephemeral
     - set_fact:
         permanent: true
       with_items: "{{ ansible_all_ipv4_addresses }}"
@@ -318,7 +318,7 @@
       tags: always
 
     ## EPHEMERAL SLAVE TASKS
-    # We would occasionally have issues with name resolution on the Ephemeral slaves
+    # We would occasionally have issues with name resolution on the Ephemeral builder
     # so we force them to use Google's DNS servers. This has to be done before
     # package-related tasks to avoid communication errors with various repos.
     - name: Ephemeral Slave Tasks
@@ -408,7 +408,7 @@
           ignore_errors: true
       when: not permanent|bool
 
-    ## VAGRANT REPO TASKS (for libvirt slaves)
+    ## VAGRANT REPO TASKS (for libvirt builders)
     # vagrant doesn't have repositories, this chacra repo will be better to have
     # around and can get updates as soon as a new vagrant version is published via
     # chacractl
@@ -440,7 +440,7 @@
         update_cache: yes
       when: ansible_os_family == "Debian"
 
-    # Sometimes, slaves would connect to Jenkins and try to run an apt transaction right away.  Except apt-daily/unattended-upgrades has the dpkg lock so the Jenkins job would fail.
+    # Sometimes, builders would connect to Jenkins and try to run an apt transaction right away.  Except apt-daily/unattended-upgrades has the dpkg lock so the Jenkins job would fail.
     - name: Uninstall unattended-upgrades
       package:
         name: unattended-upgrades
@@ -530,7 +530,7 @@
         state: directory
         owner: "{{ jenkins_user }}"
 
-    # On a mita/prado provisioned slave, everything gets put into a 'playbook' dir.
+    # On a mita/prado provisioned builder, everything gets put into a 'playbook' dir.
     # Otherwise it can be found in files/ssh/...
     - set_fact:
         jenkins_key: "{{ lookup('first_found', key_locations) }}"
@@ -543,7 +543,7 @@
     - name: Set the authorized keys
       authorized_key:
         user: "{{ jenkins_user }}"
-        key: "{{ lookup('file', '{{ jenkins_key }}')|default('https://raw.githubusercontent.com/ceph/ceph-build/master/ansible/files/ssh/keys/jenkins_build.pub') }}"
+        key: "{{ lookup('file', '{{ jenkins_key }}')|default('https://raw.githubusercontent.com/ceph/ceph-build/main/ansible/files/ssh/keys/jenkins_build.pub') }}"
 
     - name: "Ensure {{ jenkins_user }} can sudo without a prompt"
       lineinfile:
@@ -743,7 +743,7 @@
         owner: "{{ jenkins_user }}"
       tags: github
 
-    # On a mita/prado provisioned slave, everything gets put into a 'playbook' dir.
+    # On a mita/prado provisioned builder, everything gets put into a 'playbook' dir.
     # If all else fails, get it from github (using the |default)
     - set_fact:
         github_key: "{{ lookup('first_found', key_locations) }}"
@@ -758,7 +758,7 @@
       known_hosts:
         name: github.com
         path: '/etc/ssh/ssh_known_hosts'
-        key: "{{ lookup('file', '{{ github_key }}')|default('https://raw.githubusercontent.com/ceph/ceph-build/master/ansible/files/ssh/hostkeys/github.com.pub') }}"
+        key: "{{ lookup('file', '{{ github_key }}')|default('https://raw.githubusercontent.com/ceph/ceph-build/main/ansible/files/ssh/hostkeys/github.com.pub') }}"
       tags: github
 
     ## PIP TASKS
@@ -857,9 +857,9 @@
               -----END CERTIFICATE-----
       when: ansible_os_family == "RedHat"
 
-    ## JENKINS SLAVE AGENT TASKS
-    # We use SSH for ephemeral slaves
-    - name: Register ephemeral slave using SSH
+    ## JENKINS BUILDER AGENT TASKS
+    # We use SSH for ephemeral builders
+    - name: Register ephemeral builder using SSH
       jenkins_node:
         username: "{{ api_user }}"
         uri: "{{ api_uri }}"
@@ -877,9 +877,9 @@
       when: not permanent|bool
       tags: register
 
-    - name: Register Permanent Slave
+    - name: Register Permanent Builder
       block:
-        - name: Register permenant slave using JNLP
+        - name: Register permenant builder using JNLP
           jenkins_node:
             username: "{{ api_user }}"
             uri: "{{ api_uri }}"
@@ -896,10 +896,10 @@
             executors: '{{ executors|default(1) }}'
             exclusive: true
 
-        - name: Download slave.jar
+        - name: Download agent.jar
           get_url:
-            url: "{{ api_uri }}/jnlpJars/slave.jar"
-            dest: "/home/{{ jenkins_user }}/slave.jar"
+            url: "{{ api_uri }}/jnlpJars/agent.jar"
+            dest: "/home/{{ jenkins_user }}/agent.jar"
             force: yes
           register: jar_changed
 

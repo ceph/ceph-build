@@ -1,6 +1,6 @@
 - job:
     name: 'ceph-dev-cron'
-    node: master
+    node: controller
     project-type: freestyle
     defaults: global
     concurrent: true
@@ -29,7 +29,7 @@
           url: https://github.com/ceph/ceph
           browser: auto
           branches:
-            - origin/master
+            - origin/main
             - origin/quincy
             - origin/pacific
             - origin/octopus
@@ -108,12 +108,12 @@
                     DISTROS=centos8
                     FLAVOR=crimson
                     ARCHS=x86_64
-      # build master on:
+      # build main on:
       # default: focal centos8 windows
       # crimson: centos8
       - conditional-step:
           condition-kind: regex-match
-          regex: .*master.*
+          regex: .*main.*
           label: '${GIT_BRANCH}'
           on-evaluation-failure: dont-run
           steps:

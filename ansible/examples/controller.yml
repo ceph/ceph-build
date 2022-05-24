@@ -1,6 +1,6 @@
 ---
 
-- hosts: jenkins_master
+- hosts: jenkins_controller
   user: cm
   become: true
   roles:

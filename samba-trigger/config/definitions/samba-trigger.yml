@@ -1,6 +1,6 @@
 - job:
     name: samba-trigger
-    node: master
+    node: controller
     project-type: freestyle
     defaults: global
     quiet-period: 5
@@ -24,7 +24,7 @@
           url: https://github.com/ceph/samba.git
           branches:
             - 'origin/ceph*'
-            - 'origin/master*'
+            - 'origin/main*'
             - 'origin/wip-*'
           skip-tag: true
           timeout: 20

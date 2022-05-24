@@ -2,12 +2,12 @@
 set -o errexit
 set -o pipefail
 
-CEPH_WINDOWS_BRANCH=${CEPH_WINDOWS_BRANCH:-"master"}
+CEPH_WINDOWS_BRANCH=${CEPH_WINDOWS_BRANCH:-"main"}
 CEPH_WINDOWS_SHA1=${CEPH_WINDOWS_SHA1:-"latest"}
-WNBD_BRANCH=${WNBD_BRANCH:-"master"}
+WNBD_BRANCH=${WNBD_BRANCH:-"main"}
 WNBD_SHA1=${WNBD_SHA1:-"latest"}
 
-GET_BIN_SCRIPT_URL="https://raw.githubusercontent.com/ceph/ceph-win32-tests/master/get-bin.py"
+GET_BIN_SCRIPT_URL="https://raw.githubusercontent.com/ceph/ceph-win32-tests/main/get-bin.py"
 
 DISTRO="windows"
 DISTRO_VERSION="1809"

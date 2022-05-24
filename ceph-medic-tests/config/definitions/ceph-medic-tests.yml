@@ -1,6 +1,6 @@
 - project:
     name: ceph-medic-tests
-    # disabled because it is broken with current ceph-ansible master and there
+    # disabled because it is broken with current ceph-ansible main and there
     # is no active development going on
     disabled: true
     scenario:
@@ -32,12 +32,12 @@
       - string:
           name: CEPH_MEDIC_BRANCH
           description: "The ceph-medic branch to test"
-          default: master
+          default: main
 
       - string:
           name: CEPH_ANSIBLE_BRANCH
           description: "The ceph-ansible branch to test"
-          default: master
+          default: main
 
     triggers:
       - timed: '@daily'

@@ -16,7 +16,7 @@ class TestCommits(object):
     """
     This class will contain all checks required for commits
     """
-    target_branch = os.getenv('ghprbTargetBranch', 'master')
+    target_branch = os.getenv('ghprbTargetBranch', 'main')
     source_branch = 'HEAD'
 
     workspace = os.getenv('WORKSPACE') or dirname(
@@ -32,7 +32,7 @@ class TestCommits(object):
 
     @classmethod
     def setup_class(cls):
-        # ensure that we have the latest commits from master
+        # ensure that we have the latest commits from main
         cls.command(
             'git fetch origin +refs/heads/{target_branch}:refs/remotes/origin/{target_branch}'.format(
                 target_branch=cls.target_branch))
@@ -49,7 +49,7 @@ class TestCommits(object):
             raise AssertionError("\n".join([
                 "The title/s of following commit/s is/are not started with 'doc', but they only touch files under 'doc/'. Please make sure the commit titles",
                 "are started with 'doc'. See the 'Submitting Patches' guide:",
-                "https://github.com/ceph/ceph/blob/master/SubmittingPatches.rst#commit-title",
+                "https://github.com/ceph/ceph/blob/main/SubmittingPatches.rst#commit-title",
                 ""] +
                 wrong_commits
             ))
@@ -67,7 +67,7 @@ class TestCommits(object):
             raise AssertionError("\n".join([
                 "Following commit/s is/are not signed, please make sure all TestCommits",
                 "are signed following the 'Submitting Patches' guide:",
-                "https://github.com/ceph/ceph/blob/master/SubmittingPatches.rst#1-sign-your-work",
+                "https://github.com/ceph/ceph/blob/main/SubmittingPatches.rst#1-sign-your-work",
                 ""] +
                 wrong_commits
             ))

@@ -13,14 +13,14 @@
     subcommand:
       - lvm
     ceph_branch:
-      - master
+      - main
       - nautilus
     exclude:
-      - ceph_branch: master
+      - ceph_branch: main
         distro: centos7
       - ceph_branch: nautilus
         distro: centos8
-      - ceph_branch: master
+      - ceph_branch: main
         distro: xenial
       - ceph_branch: nautilus
         distro: xenial
@@ -43,14 +43,14 @@
     subcommand:
       - batch
     ceph_branch:
-      - master
+      - main
       - nautilus
     exclude:
-      - ceph_branch: master
+      - ceph_branch: main
         distro: centos7
       - ceph_branch: nautilus
         distro: centos8
-      - ceph_branch: master
+      - ceph_branch: main
         distro: xenial
       - ceph_branch: nautilus
         distro: xenial
@@ -74,14 +74,14 @@
     subcommand:
       - batch
     ceph_branch:
-      - master
+      - main
       - nautilus
     exclude:
-      - ceph_branch: master
+      - ceph_branch: main
         distro: centos7
       - ceph_branch: nautilus
         distro: centos8
-      - ceph_branch: master
+      - ceph_branch: main
         distro: xenial
       - ceph_branch: nautilus
         distro: xenial

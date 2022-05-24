@@ -1,6 +1,6 @@
 - job:
     name: tcmu-runner-trigger
-    node: master
+    node: controller
     project-type: freestyle
     defaults: global
     quiet-period: 5
@@ -23,7 +23,7 @@
       - git:
           url: https://github.com/ceph/tcmu-runner.git
           branches:
-            - 'origin/master*'
+            - 'origin/main*'
             - 'origin/testing*'
             - 'origin/wip*'
           skip-tag: true

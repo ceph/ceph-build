@@ -17,12 +17,12 @@
       - string:
           name: BRANCH
           description: "The git branch (or tag) to build"
-          default: "master"
+          default: main
 
       - string:
           name: CEPH_WINDOWS_BRANCH
           description: "The branch name for the Ceph build."
-          default: master
+          default: main
 
       - string:
           name: CEPH_WINDOWS_SHA1
@@ -32,7 +32,7 @@
       - string:
           name: WNBD_BRANCH
           description: "The branch name for the WNBD build."
-          default: master
+          default: main
 
       - string:
           name: WNBD_SHA1

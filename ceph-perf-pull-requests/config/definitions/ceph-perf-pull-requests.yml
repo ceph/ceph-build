@@ -1,15 +1,15 @@
 # macros
 
 - scm:
-    name: ceph-master
+    name: ceph-main
     scm:
       - git:
           url: https://github.com/ceph/ceph.git
           branches:
-            - origin/master
+            - origin/main
           skip-tag: true
           timeout: 20
-          basedir: "ceph-master"
+          basedir: "ceph-main"
           shallow-clone: true
           wipe-workspace: true
 
@@ -31,12 +31,12 @@
     scm:
       - git:
           url: https://github.com/ceph/cbt.git
-          refspec: +refs/heads/master:refs/remotes/origin/master
+          refspec: +refs/heads/main:refs/remotes/origin/main
           do-not-fetch-tags: true
           honor-refspec: true
           name: origin
           branches:
-            - refs/heads/master
+            - refs/heads/main
           timeout: 20
           wipe-workspace: false
           basedir: "cbt"
@@ -81,14 +81,14 @@
     name: compare-cbt-results
     builders:
       - shell: |
-          cd ${{WORKSPACE}}/{src-dir-master}
-          archive_dir_master={archive-master}/$(git rev-parse --short HEAD)
+          cd ${{WORKSPACE}}/{src-dir-main}
+          archive_dir_main={archive-main}/$(git rev-parse --short HEAD)
           cd ${{WORKSPACE}}/{src-dir-pr}
           archive_dir_pr={archive-pr}/$(git rev-parse --short HEAD)
           . ${{WORKSPACE}}/gh-venv/bin/activate
           ${{WORKSPACE}}/cbt/compare.py -v \
             -a $archive_dir_pr             \
-            -b $archive_dir_master         \
+            -b $archive_dir_main         \
             --output report.md && result=success || result=failure
           github-check                                   \
             --owner {check-repo-owner}                   \
@@ -156,7 +156,7 @@
           cancel-builds-on-update: true
 
     scm:
-      - ceph-master
+      - ceph-main
       - ceph-pr
       - cbt
 
@@ -177,7 +177,7 @@
               # so clang is able to find gcc-toolset-${{gcc_toolset_ver}} which is listed as a
               # BuildRequires in ceph.spec.in, and it is installed by `run-make.sh`.
               # clang searches for GCC in a bunch of well known places:
-              # see https://github.com/llvm-mirror/clang/blob/master/lib/Driver/ToolChains/Gnu.cpp
+              # see https://github.com/llvm-mirror/clang/blob/main/lib/Driver/ToolChains/Gnu.cpp
               sudo ln -sf /opt/rh/gcc-toolset-${{gcc_toolset_ver}}/root/lib/gcc/x86_64-redhat-linux/${{gcc_toolset_ver}} \
                           /usr/lib/gcc/x86_64-redhat-linux/${{gcc_toolset_ver}}
               ;;
@@ -207,7 +207,7 @@
             --summary running
 
       - run-cbt:
-          src-dir: "ceph-master"
+          src-dir: "ceph-main"
           osd-flavor: '{osd-flavor}'
           # ideally cbt-results should be persited across jobs, so the test result can be reused
           archive-basedir: "$WORKSPACE/cbt-results"
@@ -217,8 +217,8 @@
           # use the basedir of git checkout, so it can be wiped
           archive-basedir: "$WORKSPACE/ceph-pr"
       - compare-cbt-results:
-          src-dir-master: "ceph-master"
-          archive-master: "$WORKSPACE/cbt-results"
+          src-dir-main: "ceph-main"
+          archive-main: "$WORKSPACE/cbt-results"
           src-dir-pr: "ceph-pr"
           archive-pr: "$WORKSPACE/ceph-pr"
           check-app-id: '{check-app-id}'

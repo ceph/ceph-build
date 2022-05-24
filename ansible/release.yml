@@ -2,9 +2,9 @@
 
 - hosts: localhost
   vars:
-    # should be passed in the CLI like `--extra-vars "version=1.23.45 branch=master"`
+    # should be passed in the CLI like `--extra-vars "version=1.23.45 branch=main"`
     version: 0-dev # e.g. 0.78
-    branch: master # any existing branch on Github
+    branch: main # any existing branch on Github
     release: STABLE # STABLE, RELEASE_CANDIDATE, HOTFIX, and SECURITY are valid options
     tag_name: "v{{ version}}"
     project: "ceph"

@@ -10,7 +10,7 @@
       - string:
           name: BRANCH
           description: "The git branch (or tag) to build"
-          default: "master"
+          default: main
 
       - string:
           name: DISTROS

@@ -14,7 +14,7 @@
     - string:
         name: ghprbPullId
         description: "the GitHub pull id, like '72' in 'ceph/pull/72'"
-        default: origin/master
+        default: origin/main
     project-type: freestyle
     properties:
     - build-discarder:
@@ -67,7 +67,7 @@
         success-status: "make check succeeded"
         failure-status: "make check failed"
         white-list-target-branches:
-        - master
+        - main
     wrappers:
       - credentials-binding:
           - username-password-separated:

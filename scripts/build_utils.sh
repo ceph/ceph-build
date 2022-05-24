@@ -144,7 +144,7 @@ install_python_packages_no_binary () {
     mkdir -p $PIP_SDIST_INDEX
 
     # We started pinning pip to 10.0.0 as the default to prevent mismatching
-    # versions on non-ephemeral slaves.  Some jobs require different or latest
+    # versions on non-ephemeral Jenkins builders.  Some jobs require different or latest
     # pip though so these if statements allow for that.
     # Updated to 20.3.4 in March 2021 because 10.0.0 is just too old.
     if [ "$2" == "latest" ]; then
@@ -207,7 +207,7 @@ install_python_packages () {
     export LC_ALL=en_US.UTF-8
 
     # We started pinning pip to 10.0.0 as the default to prevent mismatching
-    # versions on non-ephemeral slaves.  Some jobs require different or latest
+    # versions on non-ephemeral Jenkins builders.  Some jobs require different or latest
     # pip though so these if statements allow for that.
     # Updated to 20.3.4 in March 2021 because 10.0.0 is just too old.
     if [ "$2" == "latest" ]; then
@@ -546,7 +546,7 @@ setup_pbuilder() {
         else
           # this assumes that newer Debian releases are being added to
           # /etc/apt/trusted.gpg that is also the default location for Ubuntu trusted
-          # keys. The slave should ensure that the needed keys are added accordingly
+          # keys. The Jenkins builder should ensure that the needed keys are added accordingly
           # to this location.
           debootstrapopts='DEBOOTSTRAPOPTS=( "--keyring" "/etc/apt/trusted.gpg" )'
         fi
@@ -1101,7 +1101,7 @@ restart_libvirt_services() {
     sudo service libvirt-guests restart
 }
 
-# Function to update vagrant boxes on static libvirt slaves used for ceph-ansible and ceph-docker testing
+# Function to update vagrant boxes on static libvirt Jenkins builders used for ceph-ansible and ceph-docker testing
 update_vagrant_boxes() {
     outdated_boxes=`vagrant box outdated --global | grep 'is outdated' | awk '{ print $2 }' | tr -d "'"`
     if [ -n "$outdated_boxes" ]; then
@@ -1137,7 +1137,7 @@ start_tox() {
     done
     if [ "$release" = "dev" ]; then
         # dev runs will need to be set to the release
-        # that matches what the current ceph master
+        # that matches what the current ceph main
         # branch is at
         local release="quincy"
     fi
@@ -1264,7 +1264,7 @@ collect_ceph_logs() {
     # this is meant to be run in a testing scenario directory
     # with running vagrant vms. the ansible playbook will connect
     # to your test nodes and fetch any ceph logs that are present
-    # in /var/log/ceph and store them on the jenkins slave.
+    # in /var/log/ceph and store them on the jenkins builder.
     # these logs can then be archived using the JJB archive publisher
     limit=$1
 

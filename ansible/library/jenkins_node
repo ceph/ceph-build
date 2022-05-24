@@ -84,7 +84,7 @@ options:
 
   host:
     description:
-      - hostname or IP for the host to connect to the slave
+      - hostname or IP for the host to connect to the builder
 
 requirements: ['python-jenkins']
 author:

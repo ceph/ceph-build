@@ -8,7 +8,7 @@ $WDK_URL = "https://download.microsoft.com/download/7/d/6/7d602355-8ae9-414c-ae3
 $PYTHON3_URL = "https://www.python.org/ftp/python/3.10.1/python-3.10.1-amd64.exe"
 
 $WNBD_GIT_REPO = "https://github.com/ceph/wnbd.git"
-$WNBD_GIT_BRANCH = "master"
+$WNBD_GIT_BRANCH = "main"
 
 
 function Get-WindowsBuildInfo {

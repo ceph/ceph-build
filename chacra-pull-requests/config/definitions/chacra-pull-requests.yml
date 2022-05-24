@@ -23,7 +23,7 @@
           wipe-workspace: false
           basedir: "ceph-build"
           branches:
-            - origin/master
+            - origin/main
 
 
 - job:

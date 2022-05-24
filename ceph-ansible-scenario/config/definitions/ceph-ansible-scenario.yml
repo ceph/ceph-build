@@ -25,11 +25,11 @@
       - string:
           name: BRANCH
           description: "The ceph-ansible branch to test against"
-          default: "master"
+          default: "main"
       - string:
           name: CEPH_DEV_BRANCH
           description: "The ceph dev branch to test against if using a dev-* scenario"
-          default: "master"
+          default: "main"
       - string:
           name: CEPH_DEV_SHA1
           description: "The ceph sha1 to test against if using a dev-* scenario"

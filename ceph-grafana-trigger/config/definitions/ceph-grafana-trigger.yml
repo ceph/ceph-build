@@ -19,7 +19,7 @@
       - string:
           name: BRANCH
           description: "The git branch (or tag) to build"
-          default: master
+          default: main
       - string:
           name: CONTAINER_VERSION
           description: "The version tag for the containers; will have -ARCH added to it.  By convention, the version of Grafana"

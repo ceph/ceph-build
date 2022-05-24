@@ -24,7 +24,7 @@
       - git:
           url: https://github.com/ceph/ceph-medic
           branches:
-            - master
+            - main
             # as more stable branches are published, they need to be
             # added here
             #- stable-1.0

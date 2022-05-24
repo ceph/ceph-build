@@ -84,7 +84,7 @@ docker run --net host --security-opt label=disable \
 " | sudo tee /usr/local/bin/kcli
 sudo chmod +x /usr/local/bin/kcli
 
-# KCLI cleanup function can be found here: https://github.com/ceph/ceph/blob/master/src/pybind/mgr/dashboard/ci/cephadm/start-cluster.sh
+# KCLI cleanup function can be found here: https://github.com/ceph/ceph/blob/main/src/pybind/mgr/dashboard/ci/cephadm/start-cluster.sh
 sudo mkdir -p /var/lib/libvirt/images/ceph-dashboard
 kcli delete plan ceph -y || true
 kcli delete network ceph-dashboard -y

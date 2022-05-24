@@ -30,11 +30,11 @@
           description: "Machine types to capture images for.  (e.g., 'smithi' or 'smithi mira' for multiple machine types)"
       - string:
           name: TEUTHOLOGYBRANCH
-          default: "master"
+          default: main
           description: "Optionally define a different teuthology branch (useful for testing)"
       - string:
           name: CMANSIBLEBRANCH
-          default: "master"
+          default: main
           description: "Optionally define a different ceph-cm-ansible branch (useful for testing)"
       - string:
           name: PAUSEQUEUE
