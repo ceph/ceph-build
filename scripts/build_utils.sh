@@ -1345,10 +1345,9 @@ setup_rpm_build_deps() {
 
     elif [ "$RELEASE" = 9 ]; then
         $SUDO dnf -y copr enable ceph/el9
+        $SUDO dnf config-manager --set-enabled crb
+        
         $SUDO dnf -y install epel-next-release
-
-        $SUDO dnf config-manager --add-repo http://mirror.stream.centos.org/9-stream/CRB/x86_64/os/
-
         $SUDO dnf -y install javapackages-tools
     fi
 
