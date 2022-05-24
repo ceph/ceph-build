@@ -4,6 +4,7 @@
     scenario:
       - flake8
       - mypy
+      - unittests
     jobs:
       - 'cephadm-ansible-prs-syntax'
 
