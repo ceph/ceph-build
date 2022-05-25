@@ -32,7 +32,7 @@
           wipe-workspace: true
           basedir: "ceph-build"
           branches:
-            - origin/master
+            - origin/main
 
     builders:
       - shell:

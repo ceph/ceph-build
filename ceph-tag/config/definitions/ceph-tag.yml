@@ -18,7 +18,7 @@
       - string:
           name: BRANCH
           description: "The git BRANCH to build (e.g., pacific)"
-          default: master
+          default: main
 
       - bool:
           name: TAG

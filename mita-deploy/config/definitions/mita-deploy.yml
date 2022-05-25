@@ -4,7 +4,7 @@
       - git:
           url: https://github.com/ceph/mita.git
           branches:
-            - master
+            - main
           browser: auto
           timeout: 20
           skip-tag: true
@@ -29,8 +29,8 @@
     parameters:
       - string:
           name: BRANCH
-          description: "The git branch (or tag) to build, defaults to 'master'"
-          default: "master"
+          description: "The git branch (or tag) to build, defaults to 'main'"
+          default: "main"
     scm:
       - mita
 

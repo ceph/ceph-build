@@ -59,7 +59,7 @@
       - string:
           name: BRANCH
           description: "The git branch (or tag) to build.  NOTE: This branch must already be built and packages pushed to a chacra node!"
-          default: master
+          default: main
 
       - string:
           name: SHA1
@@ -88,7 +88,7 @@
       - string:
           name: CONTAINER_BRANCH
           description: "For CI_CONTAINER: Branch of ceph-container to use"
-          default: master
+          default: main
 
       - string:
           name: CONTAINER_REPO_HOSTNAME
