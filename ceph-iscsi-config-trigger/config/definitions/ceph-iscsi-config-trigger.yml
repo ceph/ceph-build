@@ -1,6 +1,6 @@
 - job:
     name: ceph-iscsi-config-trigger
-    node: controller
+    node: built-in
     project-type: freestyle
     defaults: global
     quiet-period: 5

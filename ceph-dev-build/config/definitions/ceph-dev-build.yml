@@ -1,6 +1,6 @@
 - job:
     name: ceph-dev-build
-    node: controller
+    node: built-in
     project-type: matrix
     defaults: global
     display-name: 'ceph-dev-build'
