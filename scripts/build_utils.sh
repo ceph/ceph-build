@@ -451,8 +451,13 @@ get_distro_and_target() {
             DISTRO="ubuntu"
             ;;
         centos*)
+            source /etc/os-release
+            if [ $VERSION -ge 8 ]; then
+                MOCK_TARGET="centos-stream+epel"
+            else
+                MOCK_TARGET="epel"
+            fi
             DISTRO="centos"
-            MOCK_TARGET="epel"
             ;;
         rhel*)
             DISTRO="rhel"
