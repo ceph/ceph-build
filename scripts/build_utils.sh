@@ -274,7 +274,7 @@ get_rpm_dist() {
     sles)
         DIST=sles$RELEASE
         ;;
-    opensuse)
+    opensuse-leap)
         DIST=opensuse$RELEASE
         DISTRO=opensuse
         ;;
