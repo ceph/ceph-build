@@ -33,7 +33,7 @@ function main() {
     then
         sudo yum -y install epel-release
         sudo yum -y install docker jq
-        sudo systemctl start docker
+        sudo systemctl start docker || sudo systemctl start podman
         pull_request_id=${ghprbPullId:-$2}
         workspace=${WORKSPACE:-$1}
     else
