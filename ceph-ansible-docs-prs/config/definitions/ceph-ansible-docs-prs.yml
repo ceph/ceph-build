@@ -1,5 +1,6 @@
 - job:
     name: ceph-ansible-docs-pull-requests
+    disabled: true
     node: (small && (centos8 || trusty)) || (vagrant && libvirt && smithi)
     project-type: freestyle
     defaults: global
