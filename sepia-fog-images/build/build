@@ -57,6 +57,7 @@ if [ ! -d teuthology ]; then
   git checkout $TEUTHOLOGYBRANCH
 else
   cd teuthology
+  git fetch
   git checkout main
   git pull
   git checkout $TEUTHOLOGYBRANCH
@@ -89,6 +90,7 @@ if [ ! -d ceph-cm-ansible ]; then
   git checkout $CMANSIBLEBRANCH
 else
   cd ceph-cm-ansible
+  git fetch
   git checkout main
   git pull
   git checkout $CMANSIBLEBRANCH
