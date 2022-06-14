@@ -27,7 +27,7 @@
     execution-strategy:
        combination-filter: |
          DIST == AVAILABLE_DIST && ARCH == AVAILABLE_ARCH &&
-         (ARCH == "x86_64" || (ARCH == "arm64" && ["xenial", "bionic", "centos7", "centos8"].contains(DIST)))
+         (ARCH == "x86_64" || (ARCH == "arm64" && ["xenial", "bionic", "centos7", "centos8", "centos9"].contains(DIST)))
     axes:
       - axis:
           type: label-expression
@@ -50,6 +50,7 @@
             - focal
             - centos7
             - centos8
+            - centos9
             - jessie
             - precise
             - centos6
@@ -150,4 +151,3 @@
               password: DOCKER_HUB_PASSWORD
       - build-name:
           name: "#${BUILD_NUMBER} ${BRANCH}, ${SHA1}, ${DISTROS}, ${FLAVOR}"
-

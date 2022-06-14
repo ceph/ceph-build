@@ -35,6 +35,7 @@
             - focal
             - centos7
             - centos8
+            - centos9
             - jessie
             - stretch
             - buster
@@ -65,7 +66,7 @@
                   regex: (mimic|nautilus|octopus|pacific|quincy)
                   label: '${BRANCH}'
                 - condition-kind: regex-match
-                  regex: (xenial|bionic|focal|centos7|centos8|buster|bullseye)
+                  regex: (xenial|bionic|focal|centos7|centos8|centos9|buster|bullseye)
                   label: '${DIST}'
           on-evaluation-failure: dont-run
           steps:

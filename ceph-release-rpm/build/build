@@ -33,6 +33,10 @@ if [ "$target" = "centos8" ] ; then
     target=el8
     chacra_baseurl="ceph-release/${chacra_ref}/HEAD/centos/8"
 fi
+if [ "$target"= "centos9" ] ; then
+    target=el9
+    chacra_baseurl="ceph-release/${chacra_ref}/HEAD/centos/9"
+fi
 if [ "$target" = "sles11sp2" ] ; then
     target=sles11
     chacra_baseurl="ceph-release/${chacra_ref}/HEAD/sles/11"
