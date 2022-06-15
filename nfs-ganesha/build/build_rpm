@@ -142,7 +142,7 @@ if [ $DIST = centos7 ]
 then
     sudo cat /etc/mock/${MOCK_TARGET}-${RELEASE}-${MOCKARCH}.cfg /etc/mock/templates/epel-${RELEASE}.tpl  > nfs-ganesha-mock.temp
 else
-    sudo cat /etc/mock/${MOCK_TARGET}-${RELEASE}-${MOCKARCH}.cfg /etc/mock/templates/centos-${RELEASE}.tpl /etc/mock/templates/epel-${RELEASE}.tpl  > nfs-ganesha-mock.temp
+    sudo cat /etc/mock/${MOCK_TARGET}-${RELEASE}-${MOCKARCH}.cfg /etc/mock/templates/centos-stream-${RELEASE}.tpl /etc/mock/templates/epel-${RELEASE}.tpl  > nfs-ganesha-mock.temp
 fi
 sudo head -n -1 nfs-ganesha-mock.temp > nfs-ganesha.cfg
 sudo cat $WORKSPACE/shaman.repo >> nfs-ganesha.cfg
