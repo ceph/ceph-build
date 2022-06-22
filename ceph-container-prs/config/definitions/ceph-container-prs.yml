@@ -10,7 +10,7 @@
 - job-template:
     name: 'ceph-container-prs-ceph_ansible-{test}'
     id: 'ceph-container-prs-auto'
-    node: vagrant&&libvirt&&centos8
+    node: vagrant&&libvirt&&centos8&&(braggi||adami)
     concurrent: true
     defaults: global
     display-name: 'ceph-container: Pull Requests [ceph_ansible-{test}]'
