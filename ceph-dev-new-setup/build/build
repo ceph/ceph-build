@@ -81,6 +81,8 @@ echo current version $cephver
 
 srcdir=`pwd`
 
+rewrite_ceph_version_file
+
 if [ -d "$releasedir/$cephver" ]; then
     echo "$releasedir/$cephver already exists; reuse that release tarball"
 else
