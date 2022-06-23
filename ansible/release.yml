@@ -12,6 +12,26 @@
     force_dch: false # if coming from a rc and wanting to release a stable you need to force dch
     debemail: ceph-maintainers@ceph.com
     debfullname: "Ceph Release Team"
+    pr_checklist: |
+      ## Checklist
+      - Tracker (select at least one)
+        - [ ] References tracker ticket
+        - [ ] Very recent bug; references commit where it was introduced
+        - [ ] New feature (ticket optional)
+        - [x] Doc update (no ticket needed)
+        - [ ] Code cleanup (no ticket needed)
+      - Component impact
+        - [ ] Affects [Dashboard](https://tracker.ceph.com/projects/dashboard/issues/new), opened tracker ticket
+        - [ ] Affects [Orchestrator](https://tracker.ceph.com/projects/orchestrator/issues/new), opened tracker ticket
+        - [x] No impact that needs to be tracked
+      - Documentation (select at least one)
+        - [ ] Updates relevant documentation
+        - [x] No doc update is appropriate
+      - Tests (select at least one)
+        - [ ] Includes [unit test(s)](https://docs.ceph.com/en/latest/dev/developer_guide/tests-unit-tests/)
+        - [ ] Includes [integration test(s)](https://docs.ceph.com/en/latest/dev/developer_guide/testing_integration_tests/)
+        - [ ] Includes bug reproducer
+        - [x] No tests
   roles:
     - { role: ceph-release, when: "project == 'ceph'" }
     - { role: ceph-deploy-release, when: "project == 'ceph-deploy'" }
