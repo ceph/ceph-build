@@ -1,8 +1,8 @@
 #!/bin/bash -e
 
-docs_pr_only
-if [ "$DOCS_ONLY" = true ]; then
-    echo "Only the doc/ dir changed.  No need to run make check or API tests."
+skip_make_check
+if [ "$SKIP_MAKE_CHECK" = true ]; then
+    echo "Only the doc/, .github, or qa/ dir changed.  No need to run make check or API tests."
     exit 0
 fi
 

@@ -1555,7 +1555,7 @@ maybe_reset_ci_container() {
 }
 
 # NOTE: This function will only work on a Pull Request job!
-docs_pr_only() {
+skip_make_check() {
   pushd .
   # Only try to cd to ceph repo if we need to.
   # The ceph-pr-commits job checks out ceph.git and ceph-build.git but most
@@ -1570,10 +1570,10 @@ docs_pr_only() {
     files="$(git diff --name-only origin/${ghprbTargetBranch}...origin/pr/${ghprbPullId}/head)"
   fi
   echo -e "changed files:\n$files"
-  if [ $(echo "$files" | grep -v '^doc/' | wc -l) -gt 0 ]; then
-      DOCS_ONLY=false
+  if [ $(echo "$files" | grep -v '^doc/\|^.github\|^qa/' | wc -l) -gt 0 ]; then
+      SKIP_MAKE_CHECK=false
   else
-      DOCS_ONLY=true
+      SKIP_MAKE_CHECK=true
   fi
   popd
 }
