@@ -47,12 +47,19 @@ done
 
 set +e
 
-# Just unlock machines.  FOG will reimage them on the next job they run.
-for host in $allhosts; do
-  teuthology-lock --unlock $host
-done
+# Unpause the queue if we paused it earlier
+if [ "$pausedqueue" = true ]; then
+  for type in $MACHINETYPES; do
+    teuthology-queue --pause 0 --machine_type $type
+  done
+fi
 
-# Unpause the queue
-for type in $MACHINETYPES; do
-  teuthology-queue --pause 0 --machine_type $type
-done
+if [ "$use_teuthologylock" = true ]; then
+  # Unlock all machines after all capture images are finished
+  for host in $allhosts; do
+    teuthology-lock --unlock $host
+  done
+else
+  deactivate
+  rm -rf $WORKSPACE/venv
+fi
