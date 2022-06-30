@@ -85,7 +85,7 @@
                 - shell: "sudo dpkg --configure -a"
 
       - archive:
-          artifacts: 'build/out/mgr.*.log'
+          artifacts: 'build/out/*.log'
           allow-empty: true
           latest-only: false
 
