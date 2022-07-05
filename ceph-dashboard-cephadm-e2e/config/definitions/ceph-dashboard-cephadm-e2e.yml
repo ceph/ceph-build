@@ -88,3 +88,7 @@
           artifacts: 'logs/**'
           allow-empty: true
           latest-only: false
+
+      - junit:
+          results: 'src/pybind/mgr/dashboard/frontend/cypress/reports/results-*.xml'
+          allow-empty: true
