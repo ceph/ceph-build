@@ -12,7 +12,8 @@ github_status_setup
 pkgs=( "tox" "github-status>0.0.3" )
 TEMPVENV=$(create_venv_dir)
 VENV=${TEMPVENV}/bin
-install_python_packages $TEMPVENV "pkgs[@]"
+set_centos_python3_version "python3.9"
+install_python_packages $TEMPVENV "pkgs[@]" "pip==22.0.4"
 
 GITHUB_STATUS_STATE="pending" $VENV/github-status create
 
@@ -34,6 +35,8 @@ elif [[ "$ghprbTargetBranch" == "octopus" ]]; then
     CEPH_ANSIBLE_BRANCH="stable-5.0"
 elif [[ "$ghprbTargetBranch" == "pacific" ]]; then
     CEPH_ANSIBLE_BRANCH="stable-6.0"
+elif [[ "$ghprbTargetBranch" == "quincy" ]]; then
+    CEPH_ANSIBLE_BRANCH="stable-7.0"
 else
     CEPH_ANSIBLE_BRANCH="main"
 fi
