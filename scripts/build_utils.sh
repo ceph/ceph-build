@@ -834,7 +834,6 @@ ceph_build_args_from_flavor() {
     crimson)
         CEPH_EXTRA_RPMBUILD_ARGS="--with seastar"
         CEPH_EXTRA_CMAKE_ARGS+=" -DCMAKE_BUILD_TYPE=Debug"
-        CEPH_EXTRA_CMAKE_ARGS+=" -DWITH_SEASTAR=ON"
         DEB_BUILD_PROFILES="pkg.ceph.crimson"
         ;;
     jaeger)
