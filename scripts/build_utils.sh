@@ -1155,6 +1155,9 @@ start_tox() {
     ENV_NAME="$(build_job_name "$DISTRIBUTION" "$DEPLOYMENT" "$SCENARIO")"
 
     case $SCENARIO in
+        rbdmirror)
+            TOX_INI_FILE=tox-rbdmirror.ini
+            ;;
         update)
             TOX_INI_FILE=tox-update.ini
             ;;
