@@ -34,6 +34,7 @@
       - collocation
       - lvm_batch
       - external_clients
+      - rbdmirror
     jobs:
       - 'ceph-ansible-prs-auto'
 
