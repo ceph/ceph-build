@@ -1,6 +1,6 @@
 # {{ ansible_managed }}
 [Unit]
-Description=Jenkins Slave
+Description=Jenkins Builder
 Wants=network.target
 After=network.target
 
@@ -12,7 +12,7 @@ Type=simple
 User={{ jenkins_user }}
 ExecStart=/usr/bin/java \
           -Dfile.encoding=UTF8 \
-          -jar /home/{{ jenkins_user }}/slave.jar \
+          -jar /home/{{ jenkins_user }}/agent.jar \
           -jnlpUrl {{ api_uri }}/computer/{{ ansible_default_ipv4.address }}+{{ nodename }}/slave-agent.jnlp \
           -jnlpCredentials @/etc/systemd/system/jenkins.secret
 StandardOutput=journal
