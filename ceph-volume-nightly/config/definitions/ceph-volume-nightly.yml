@@ -93,7 +93,7 @@
 - job-template:
     name: 'ceph-volume-nightly-{ceph_branch}-{subcommand}-{distro}-{objectstore}-{scenario}'
     display-name: 'ceph-volume {ceph_branch} {subcommand}: [{distro}-{objectstore}-{scenario}]'
-    node: vagrant&&libvirt&&(smithi||mira||irvingi)
+    node: vagrant&&libvirt&&centos8
     concurrent: true
     project-type: freestyle
     defaults: global
