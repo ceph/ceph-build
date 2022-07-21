@@ -19,7 +19,7 @@
     parameters:
       - string:
           name: BRANCH
-          description: "The git branch (or tag) to build (e.g., pacific)"
+          description: "The git branch (or tag) to build (e.g., pacific) DO NOT INCLUDE '-release'"
           default: main
 
       - bool:
