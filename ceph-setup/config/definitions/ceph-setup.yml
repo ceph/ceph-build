@@ -20,7 +20,7 @@
     parameters:
       - string:
           name: BRANCH
-          description: "The git branch (or tag) to build"
+          description: "The git branch (or tag) to build (e.g., pacific) DO NOT INCLUDE '-release'"
 
     scm:
       - git:
