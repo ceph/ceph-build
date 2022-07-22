@@ -41,21 +41,22 @@
   args:
     chdir: ceph
 
-- name: "git checkout {{ branch }}"
-  command: git checkout upstream/{{ branch }}
-  args:
-    chdir: ceph
-
-# In case any commits got pushed to {{ branch }} while we were building
-- name: "merge {{ branch }}-release changes back into {{ branch }}"
-  command: git merge -m "Merging {{ branch }}-release {{ version }} commit into {{ branch }}" {{ branch }}-release
-  args:
-    chdir: ceph
-  
-- name: "push version commit to {{ branch }}"
-  command: git push upstream {{ branch }}
-  args:
-    chdir: ceph
+- name: "create pull request to merge {{ branch }}-release back into {{ branch }}"
+  uri:
+    url: https://api.github.com/repos/ceph/ceph/pulls
+    method: POST
+    status_code: 201
+    headers:
+      Accept: "application/vnd.github.v3+json"
+      Authorization: "token {{ token }}"
+    body:
+      title: "v{{ version }}"
+      body: "{{ pr_checklist }}"
+      head: "{{ branch }}-release"
+      base: "{{ branch }}"
+    body_format: json
+  tags: pr
+  no_log: true
 
 - name: push the newly created tag
   command: git push upstream v{{ version }}

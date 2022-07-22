@@ -89,8 +89,20 @@
     DEBFULLNAME: "{{ debfullname }}"
   when: tag|bool is true
 
+- name: git config user.name
+  command: git config user.name "Ceph Release Team"
+  args:
+    chdir: ceph
+  when: tag|bool is true
+
+- name: git config user.email
+  command: git config user.email "ceph-maintainers@ceph.io"
+  args:
+    chdir: ceph
+  when: tag|bool is true
+
 - name: commit the version changes
-  command: git commit -a -m "{{ version }}"
+  command: git commit -a -s -m "{{ version }}"
   args:
     chdir: ceph
   when: tag|bool is true
