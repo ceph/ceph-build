@@ -39,7 +39,7 @@ if [[ ! $(command -v node) || $(node --version | grep -oE "v([0-9])+" | cut -c 2
     sudo apt install -y nodejs
     sudo rm -f /etc/apt/sources.list.d/nodesource.list
 fi
-sudo apt install -y libvirt-daemon-system libvirt-daemon-driver-qemu qemu-kvm libvirt-clients
+sudo apt install -y libvirt-daemon-system libvirt-daemon-driver-qemu qemu-kvm libvirt-clients runc
 
 sudo usermod -aG libvirt $(id -un)
 newgrp libvirt  # Avoid having to log out and log in for group addition to take effect.
