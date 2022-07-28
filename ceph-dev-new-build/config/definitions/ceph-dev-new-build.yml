@@ -48,6 +48,7 @@
             - xenial
             - bionic
             - focal
+            - jammy
             - jessie
             - precise
             - centos6
