@@ -417,6 +417,10 @@ get_distro_and_target() {
             DIST=wheezy
             DISTRO="debian"
             ;;
+        jammy*)
+            DIST=jammy
+            DISTRO="ubuntu"
+            ;;
         focal*)
             DIST=focal
             DISTRO="ubuntu"
@@ -527,6 +531,7 @@ setup_pbuilder() {
     [ "$DIST" = "xenial" ] && os="ubuntu"
     [ "$DIST" = "bionic" ] && os="ubuntu"
     [ "$DIST" = "focal" ] && os="ubuntu"
+    [ "$DIST" = "jammy" ] && os="ubuntu"
 
     if [ $os = "debian" ]; then
         mirror="http://www.gtlib.gatech.edu/pub/debian"
@@ -763,6 +768,8 @@ setup_pbuilder_for_old_gcc() {
             old=8;;
         focal)
             old=9;;
+        jammy)
+            old=11;;
     esac
     setup_gcc_hook $old > $hookdir/D10update-gcc-alternatives
     chmod +x $hookdir/D10update-gcc-alternatives
@@ -792,6 +799,7 @@ get_bptag() {
     [ "$dist" = "wheezy" ] && dver="~bpo70+1"
     [ "$dist" = "squeeze" ] && dver="~bpo60+1"
     [ "$dist" = "lenny" ] && dver="~bpo50+1"
+    [ "$dist" = "jammy" ] && dver="$dist"
     [ "$dist" = "focal" ] && dver="$dist"
     [ "$dist" = "bionic" ] && dver="$dist"
     [ "$dist" = "xenial" ] && dver="$dist"

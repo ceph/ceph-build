@@ -16,8 +16,8 @@
 
       - string:
           name: DISTROS
-          description: "A list of distros to build for. Available options are: centos9, centos8, focal, bionic, xenial, and trusty"
-          default: "centos8 trusty xenial bionic focal"
+          description: "A list of distros to build for. Available options are: centos9, centos8, jammy, focal, bionic, xenial, and trusty"
+          default: "centos8 trusty xenial bionic focal jammy"
 
       - string:
           name: ARCHS
@@ -65,6 +65,7 @@ If this is checked, then the binaries will be built and pushed to chacra even if
             - xenial
             - bionic
             - focal
+            - jammy
       - axis:
           type: dynamic
           name: DIST
