@@ -10,7 +10,7 @@
     project: "ceph"
     clean: true # if re-doing a deployment this deletes the remote branch in Jenkin's git repo
     force_dch: false # if coming from a rc and wanting to release a stable you need to force dch
-    debemail: ceph-maintainers@ceph.com
+    debemail: ceph-maintainers@ceph.io
     debfullname: "Ceph Release Team"
     pr_checklist: |
       ## Checklist
