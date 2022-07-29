@@ -70,6 +70,8 @@ for el_version in 7 8; do
   rsync -Lavh -e 'ssh -p 2222' --progress $el_cmd
 done
 
+ssh signer@download.ceph.com "/home/signer/bin/get-tarballs.sh $release $sha1 $version"
+
 if $need_rerun; then
   echo
   echo "********************************************"
