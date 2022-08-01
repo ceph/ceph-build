@@ -33,7 +33,6 @@ popd
 rm -rf $HOME/ansible/facts/*
 
 # Skip these scenarios, they don't exist.
-[[ "$ghprbTargetBranch" =~ stable && "$SCENARIO" == rbdmirror ]] ||
 [[ "$ghprbTargetBranch" != stable-4.0 && "$SCENARIO" == podman ]] ||
 [[ "$ghprbTargetBranch" =~ stable-4.0|stable-3 && "$SCENARIO" =~ cephadm|cephadm_adopt ]] ||
 [[ "$ghprbTargetBranch" != stable-3.2 && "$SCENARIO" == shrink_osd_legacy ]] ||
