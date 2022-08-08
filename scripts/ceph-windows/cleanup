@@ -16,6 +16,7 @@ if [[ -x $WORKSPACE/cephadm ]] && [[ -d /var/lib/ceph ]]; then
 fi
 
 # Cleanup remaning files / directories
+sudo $WORKSPACE/cephadm rm-repo
 sudo rm -rf \
     $WORKSPACE/ceph.conf $WORKSPACE/keyring $WORKSPACE/cephadm \
     $WORKSPACE/ceph.zip $WORKSPACE/known_hosts \
