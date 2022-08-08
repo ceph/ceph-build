@@ -40,6 +40,14 @@ if ! which virt-install >/dev/null; then
     sudo apt-get update
     sudo apt-get install -y virtinst
 fi
+if ! which xmllint >/dev/null; then
+    sudo apt-get update
+    sudo apt-get install -y libxml2-utils
+fi
+if ! which jq >/dev/null; then
+    sudo apt-get update
+    sudo apt-get install -y jq
+fi
 
 if ! sudo virsh net-info default &>/dev/null; then
     cat << EOF > $WORKSPACE/default-net.xml
@@ -102,6 +110,11 @@ sudo virt-install \
     --channel unix,target_type=virtio,name=org.qemu.guest_agent.0 \
     --noautoconsol
 
+# Find the VM NIC MAC address
+sudo virsh dumpxml $VM_NAME > $WORKSPACE/libvirt_vm.xml
+VM_NIC_MAC_ADDRESS=`xmllint --xpath 'string(/domain/devices/interface/mac/@address)' $WORKSPACE/libvirt_vm.xml`
+rm $WORKSPACE/libvirt_vm.xml
+
 export SSH_USER="administrator"
 export SSH_KNOWN_HOSTS_FILE="${BUILD_DIR}/known_hosts"
 export SSH_KEY="$SSH_PRIVATE_KEY"
@@ -114,11 +127,17 @@ while true; do
         echo "Timeout waiting for the VM to start"
         exit 1
     fi
-    VM_IP=$(sudo virsh domifaddr --source agent --interface Ethernet --full $VM_NAME | grep ipv4 | awk '{print $4}' | cut -d '/' -f1) || {
+    # Get the VM NIC IP address from the "default" virsh network
+    VM_IP=$(sudo virsh qemu-agent-command $VM_NAME '{"execute":"guest-network-get-interfaces"}' | jq -r ".return[] | select(.\"hardware-address\"==\"${VM_NIC_MAC_ADDRESS}\") | .\"ip-addresses\"[] | select(.\"ip-address\" | startswith(\"192.168.122.\")) | .\"ip-address\"") || {
         echo "Retrying in $SLEEP_SECS seconds"
         sleep $SLEEP_SECS
         continue
     }
+    if [[ -z $VM_IP ]]; then
+        echo "Cannot find the VM IP address. Retrying in $SLEEP_SECS seconds"
+        sleep $SLEEP_SECS
+        continue
+    fi
     ssh-keyscan -H $VM_IP &> $SSH_KNOWN_HOSTS_FILE || {
         echo "SSH is not reachable yet"
         sleep $SLEEP_SECS
