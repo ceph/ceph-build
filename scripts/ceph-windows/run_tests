@@ -38,7 +38,8 @@ sudo virsh net-dumpxml default > $WORKSPACE/default-net.xml
 MON_IP=`xmllint --xpath 'string(/network/ip/@address)' $WORKSPACE/default-net.xml`
 sudo rm $WORKSPACE/default-net.xml
 sudo $WORKSPACE/cephadm bootstrap --allow-fqdn-hostname --single-host-defaults --mon-ip $MON_IP
-sudo $WORKSPACE/cephadm add-repo --release $CEPHADM_RELEASE
+HOST_DISTRO=$(lsb_release -cs)
+curl -s -L https://shaman.ceph.com/api/repos/ceph/main/latest/ubuntu/$HOST_DISTRO/flavors/default/repo?arch=$(arch) | sudo tee /etc/apt/sources.list.d/ceph.list
 sudo $WORKSPACE/cephadm install ceph-common
 
 sudo cp /etc/ceph/ceph.conf $WORKSPACE/ceph.conf
