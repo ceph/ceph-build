@@ -18,6 +18,10 @@ if [[ -x $WORKSPACE/cephadm ]]; then
     fi
 fi
 
+# Cleanup repos
+sudo rm -f /etc/apt/sources.list.d/docker.list \
+           /etc/apt/sources.list.d/ceph.list
+
 # Cleanup remaining files / directories
 sudo rm -rf \
     $WORKSPACE/ceph.conf $WORKSPACE/keyring $WORKSPACE/cephadm \
