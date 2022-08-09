@@ -8,15 +8,17 @@ delete_libvirt_vms
 clear_libvirt_networks
 
 # Cleanup Ceph clusters spawned via cephadm
-if [[ -x $WORKSPACE/cephadm ]] && [[ -d /var/lib/ceph ]]; then
-    for FSID in $(sudo ls /var/lib/ceph); do
-        echo "Removing Ceph cluster $FSID"
-        sudo $WORKSPACE/cephadm rm-cluster --fsid $FSID --force
-    done
+if [[ -x $WORKSPACE/cephadm ]]; then
+    sudo $WORKSPACE/cephadm rm-repo
+    if [[ -d /var/lib/ceph ]]; then
+        for FSID in $(sudo ls /var/lib/ceph); do
+            echo "Removing Ceph cluster $FSID"
+            sudo $WORKSPACE/cephadm rm-cluster --fsid $FSID --force
+        done
+    fi
 fi
 
-# Cleanup remaning files / directories
-sudo $WORKSPACE/cephadm rm-repo
+# Cleanup remaining files / directories
 sudo rm -rf \
     $WORKSPACE/ceph.conf $WORKSPACE/keyring $WORKSPACE/cephadm \
     $WORKSPACE/ceph.zip $WORKSPACE/known_hosts \
