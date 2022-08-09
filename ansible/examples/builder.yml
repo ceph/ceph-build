@@ -518,6 +518,9 @@
         - ansible_os_family == "RedHat"
         - ansible_distribution_major_version|int <= 8
 
+    - name: "loginctl enable-linger {{ jenkins_user }}"
+      command: "loginctl enable-linger {{ jenkins_user }}"
+
     - name: "Create a {{ jenkins_user }} home directory"
       file:
         path: "/home/{{ jenkins_user }}/"
