@@ -109,7 +109,7 @@
                     FLAVOR=crimson
                     ARCHS=x86_64
       # build main on:
-      # default: jammy focal centos8 windows
+      # default: jammy focal centos8 centos9 windows
       # crimson: centos8
       - conditional-step:
           condition-kind: regex-match
@@ -126,7 +126,7 @@
                   predefined-parameters: |
                     BRANCH=${GIT_BRANCH}
                     FORCE=True
-                    DISTROS=jammy focal centos8 windows
+                    DISTROS=jammy focal centos8 centos9 windows
                 - project: 'ceph-dev'
                   predefined-parameters: |
                     BRANCH=${GIT_BRANCH}
