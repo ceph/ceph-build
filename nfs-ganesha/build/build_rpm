@@ -6,8 +6,7 @@ if test "$DISTRO" != "fedora" -a "$DISTRO" != "centos" -a "$DISTRO" != "rhel"; t
     exit 0
 fi
 
-## Get some basic information about the system and the repository
-RELEASE="$(lsb_release --short -r | cut -d '.' -f 1)" # sytem release
+get_rpm_dist
 
 # Disable the google-chrome repo on el7, which is not needed (el8 doesn't have this repo).
 if [ $DIST = centos7 ]

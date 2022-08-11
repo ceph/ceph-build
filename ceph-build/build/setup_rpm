@@ -18,8 +18,6 @@ if test $(id -u) != 0 ; then
 fi
 export LC_ALL=C # the following is vulnerable to i18n
 
-$SUDO yum install -y redhat-lsb-core
-
 mv ceph-build/ansible/ceph/dist .
 rm -rf ceph-build
 

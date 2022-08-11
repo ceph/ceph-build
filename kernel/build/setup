@@ -30,7 +30,6 @@ fi
 export LC_ALL=C # the following is vulnerable to i18n
 
 if test -f /etc/redhat-release ; then
-    $SUDO yum install -y redhat-lsb-core
     $SUDO yum install -y elfutils-libelf-devel  # for ORC unwinder
     $SUDO yum install -y flex bison  # for Kconfig
 
@@ -51,10 +50,10 @@ if which apt-get > /dev/null ; then
     NORMAL_DISTRO_VERSION=$AVAILABLE_DIST
 fi
 
-case $(lsb_release -si) in
-CentOS|Fedora|SUSE*|RedHatEnterpriseServer)
-        case $(lsb_release -si) in
-            SUSE*)
+case $DISTRO in
+rhel|centos|fedora|sles|opensuse-leap)
+        case $DISTRO in
+            opensuse)
                 $SUDO zypper -y yum-utils
                 ;;
             *)
@@ -63,7 +62,7 @@ CentOS|Fedora|SUSE*|RedHatEnterpriseServer)
         esac
         ;;
 *)
-        echo "$(lsb_release -si) is unknown, dependencies will have to be installed manually."
+        echo "$DISTRO is unknown, dependencies will have to be installed manually."
         ;;
 esac
 

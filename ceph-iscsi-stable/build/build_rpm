@@ -13,7 +13,7 @@ for project in $(ls -h | grep -v dist); do
   cd $WORKSPACE/$PROJECT
 
   # Get some basic information about the system and the repository
-  RELEASE="$(lsb_release --short -r | cut -d '.' -f 1)" # system release
+  get_rpm_dist
   VERSION="$(git describe --abbrev=0 --tags HEAD)" # for ceph-iscsi, this will return the major version number (e.g., 2)
   MAJOR_VERSION=$(echo $VERSION | cut -d '.' -f1)
   if [ $MAJOR_VERSION -gt $REPO_MAJOR_VERSION ] ; then
