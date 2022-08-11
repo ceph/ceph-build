@@ -615,8 +615,23 @@ setup_pbuilder() {
         setup_pbuilder_for_ppa $hookdir
         echo "HOOKDIR=$hookdir" >> ~/.pbuilderrc
     fi
+
+    # As of this writing, Ceph needs about 100GB of space to build the binaries.
+    # If the Jenkins builder has 150% that amount in RAM available, let's build
+    # on a tmpfs
+    available_mem=$(cat /proc/meminfo | grep MemAvailable | awk '{ print $2 }')
+    if [ $available_mem -gt 157286400 ]; then
+        echo "Will be building in a tmpfs"
+        sudo mkdir -p /var/cache/pbuilder/build
+        sudo mount -t tmpfs -o size=150G tmpfs /var/cache/pbuilder/build
+        echo "APTCACHEHARDLINK=no" >> ~/.pbuilderrc
+        PBUILDER_IN_TMPFS=true
+    else
+        echo "$available_mem kB is not enough space to build Ceph in a tmpfs.  Will use the Jenkins workspace instead"
+        PBUILDER_IN_TMPFS=false
+    fi
+
     sudo cp ~/.pbuilderrc /root/.pbuilderrc
-    sudo pbuilder clean
 
     if [ -e $basedir/$DIST.tgz ]; then
         echo updating $DIST base.tgz
@@ -904,10 +919,16 @@ build_debs() {
     pbuilddir="/srv/debian-base"
     cephver=$vers
 
+    if $PBUILDER_IN_TMPFS; then
+        pbuild_build_dir="/var/cache/pbuilder/build"
+    else
+        mkdir -p $WORKSPACE/build
+        pbuild_build_dir="$WORKSPACE/build"
+    fi
+
     echo version $cephver
 
     echo deb vers $bpvers
-
 
     echo building debs for $DIST
 
@@ -924,7 +945,12 @@ build_debs() {
         --basetgz $pbuilddir/$DIST.tgz \
         --buildresult $releasedir/$cephver \
         --use-network yes \
+        --buildplace $pbuild_build_dir \
         $releasedir/$cephver/ceph_$bpvers.dsc
+
+    if $PBUILDER_IN_TMPFS; then
+        sudo umount /var/cache/pbuilder/build
+    fi
 
     # do lintian checks
     echo lintian checks for $bpvers
