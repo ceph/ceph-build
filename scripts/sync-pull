@@ -27,7 +27,7 @@ echo "Found the most packages ($current_highest_count) in $highest_combo."
 # Check the the DEB and RPM chacra endpoints to see if the repos are or need updating.
 # This helps prevent packages from getting missed when signing and pushing.
 need_rerun=false
-for endpoint in https://chacra.ceph.com/repos/$project/$release/$sha1/$highest_combo https://chacra.ceph.com/repos/$project/$release/$sha1/centos/{7,8}; do
+for endpoint in https://chacra.ceph.com/repos/$project/$release/$sha1/$highest_combo https://chacra.ceph.com/repos/$project/$release/$sha1/centos/{7,8,9}; do
   chacra_repo_status=$(curl -s -L $endpoint)
   # python is only used here because jq isn't installed on the signer box
   chacra_needs_update=$(echo $chacra_repo_status | python -mjson.tool | grep needs_update | awk '{ print $2 }' | sed 's/,$//')
@@ -46,7 +46,7 @@ else
   newgen=true
   # Get numerical version number (we only need this with Octopus or later because of the new directory/path scheme).
   version=$(echo $chacra_repo_status | python -mjson.tool | grep \"version\" | awk '{ print $2 }' | sed 's/"//g')
-  [[ -d /opt/repos/$project/$release-$version ]] | mkdir -p /opt/repos/$project/$release-$version/{debian/jessie,centos/{7,8}}
+  [[ -d /opt/repos/$project/$release-$version ]] | mkdir -p /opt/repos/$project/$release-$version/{debian/jessie,centos/{7,8,9}}
 fi
 
 # Replace $highest_combo with your own DISTRO/VERSION if you don't want to sync from the repo with the most packages.
@@ -59,7 +59,7 @@ echo $deb_cmd
 echo "--------------------------------------------"
 rsync -Lavh -e 'ssh -p 2222' --progress --exclude '*lockfile*' $deb_cmd
 
-for el_version in 7 8; do
+for el_version in 7 8 9; do
   if $newgen; then
     el_cmd="ubuntu@chacra.ceph.com:/opt/repos/$project/$release/$sha1/centos/$el_version/flavors/default/* /opt/repos/$project/$release-$version/centos/$el_version/"
   else

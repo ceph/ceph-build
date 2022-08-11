@@ -34,7 +34,7 @@ ceph_sync() {
     fi
     rsync --progress --exclude '*lockfile*' -avr $deb_cmd
 
-    for el_version in 7 8; do
+    for el_version in 7 8 9; do
       if $newgen; then
         ssh signer@download.ceph.com "mkdir -p /data/download.ceph.com/www/rpm-$version/el$el_version"
 
