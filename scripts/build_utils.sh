@@ -949,7 +949,7 @@ build_debs() {
         $releasedir/$cephver/ceph_$bpvers.dsc
 
     if $PBUILDER_IN_TMPFS; then
-        sudo umount /var/cache/pbuilder/build
+        sudo umount $pbuild_build_dir
     fi
 
     # do lintian checks
