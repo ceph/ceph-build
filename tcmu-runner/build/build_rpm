@@ -10,8 +10,6 @@ if test "$DISTRO" != "fedora" -a "$DISTRO" != "centos" -a "$DISTRO" != "rhel"; t
     exit 0
 fi
 
-RELEASE="$(lsb_release --short -r | cut -d '.' -f 1)" # sytem release
-
 ## Get the desired CEPH_BRANCH/CEPH_SHA1 ceph repo
 # Get .repo file from appropriate shaman build
 REPO_URL="https://shaman.ceph.com/api/repos/ceph/$CEPH_BRANCH/$CEPH_SHA1/$DISTRO/$RELEASE/flavors/default/repo"
@@ -41,7 +39,7 @@ sudo yum install -y mock
 
 ## Get some basic information about the system and the repository
 # Get version
-RELEASE="$(lsb_release --short -r | cut -d '.' -f 1)" # system release
+get_rpm_dist
 VERSION="$(git describe --abbrev=0 --tags HEAD | sed -e 's/v//1;' | cut -d - -f 1)"
 REVISION="$(git describe --tags HEAD | sed -e 's/v//1;' | cut -d - -f 2- | sed 's/-/./g' | sed 's/^rc/0./')"
 if [ "$VERSION" = "$REVISION" ]; then

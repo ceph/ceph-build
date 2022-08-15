@@ -9,9 +9,7 @@ fi
 
 
 ## Install any setup-time deps (to make dist package)
-
-# We need this to get the major version from lsb_release
-sudo yum install -y redhat-lsb-core mock git wget
+sudo yum install -y mock git wget
 
 # Run the install-deps.sh upstream script if it exists
 if [ -x install-deps.sh ]; then
@@ -21,7 +19,7 @@ fi
 
 
 ## Get some basic information about the system and the repository
-RELEASE="$(lsb_release --short -r | cut -d '.' -f 1)" # sytem release
+get_rpm_dist
 VERSION="0.1"
 REVISION="$(git rev-list --count HEAD)-g$(git rev-parse --short HEAD)"
 RPM_RELEASE=$(echo $REVISION | tr '-' '_') # the '-' has a special meaning

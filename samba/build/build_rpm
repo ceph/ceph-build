@@ -6,7 +6,7 @@ if test "$DISTRO" != "fedora" -a "$DISTRO" != "centos" -a "$DISTRO" != "rhel"; t
     exit 0
 fi
 
-RELEASE="$(lsb_release --short -r | cut -d '.' -f 1)" # sytem release
+get_rpm_dist
 
 ## Get the desired CEPH_BRANCH/CEPH_SHA1 ceph repo
 # Get .repo file from appropriate shaman build

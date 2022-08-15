@@ -19,7 +19,7 @@ sudo gem install fpm
 
 ## Get some basic information about the system and the repository
 # Get version
-RELEASE="$(lsb_release --short -r | cut -d '.' -f 1)" # system release
+get_rpm_dist
 VERSION="$(git describe --abbrev=0 --tags HEAD | sed -e 's/v//1;')"
 REVISION="$(git describe --tags HEAD | sed -e 's/v//1;' | cut -d - -f 2- | sed 's/-/./')"
 if [ "$VERSION" = "$REVISION" ]; then

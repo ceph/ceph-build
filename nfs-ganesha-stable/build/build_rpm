@@ -6,8 +6,7 @@ if test "$DISTRO" != "fedora" -a "$DISTRO" != "centos" -a "$DISTRO" != "rhel"; t
     exit 0
 fi
 
-## Get some basic information about the system and the repository
-RELEASE="$(lsb_release --short -r | cut -d '.' -f 1)" # sytem release
+get_rpm_dist
 
 # Make sure old rpms are not leftover on the system
 sudo yum remove -y librados2 librgw2 libcephfs2 librados-devel librgw-devel libcephfs-devel

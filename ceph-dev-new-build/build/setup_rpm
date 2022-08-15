@@ -18,7 +18,7 @@ if test $(id -u) != 0 ; then
 fi
 export LC_ALL=C # the following is vulnerable to i18n
 
-$SUDO yum install -y redhat-lsb-core yum-utils
+$SUDO yum install -y yum-utils
 
 get_rpm_dist
 

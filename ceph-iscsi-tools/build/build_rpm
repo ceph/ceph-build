@@ -14,7 +14,7 @@ sudo yum install -y mock
 
 ## Get some basic information about the system and the repository
 # Get version
-RELEASE="$(lsb_release --short -r | cut -d '.' -f 1)" # system release
+get_rpm_dist
 VERSION="$(git describe --abbrev=0 --tags HEAD)"
 REVISION="$(git describe --tags HEAD | cut -d - -f 2- | sed 's/-/./')"
 if [ "$VERSION" = "$REVISION" ]; then
