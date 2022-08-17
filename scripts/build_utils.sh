@@ -842,6 +842,8 @@ ceph_build_args_from_flavor() {
     default)
         CEPH_EXTRA_RPMBUILD_ARGS="--with tcmalloc"
         CEPH_EXTRA_CMAKE_ARGS+=" -DALLOCATOR=tcmalloc"
+        # build boost with valgrind=on for https://tracker.ceph.com/issues/56500
+        CEPH_EXTRA_CMAKE_ARGS+=" -DWITH_SYSTEM_BOOST=OFF -DWITH_BOOST_VALGRIND=ON"
         DEB_BUILD_PROFILES=""
         ;;
     crimson)
