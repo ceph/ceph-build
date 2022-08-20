@@ -18,6 +18,20 @@ if [[ -x $WORKSPACE/cephadm ]]; then
     fi
 fi
 
+# Uninstall packages installed by "cephadm install ceph-common"
+sudo apt-get -y purge \
+    ceph-common  \
+    python3-ceph-argparse \
+    python3-ceph-common \
+    python3-cephfs \
+    librbd1 \
+    python3-rados \
+    python3-rbd \
+    python3-rgw \
+    libcephfs2 \
+    librados2 \
+    libradosstriper1
+
 # Cleanup repos
 sudo rm -f /etc/apt/sources.list.d/docker.list \
            /etc/apt/sources.list.d/ceph.list
