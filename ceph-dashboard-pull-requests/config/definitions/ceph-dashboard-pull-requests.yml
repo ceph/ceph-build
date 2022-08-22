@@ -98,7 +98,7 @@
 
     publishers:
       - archive:
-          artifacts: 'build/out/mgr.*.log'
+          artifacts: 'build/out/*.log, build/run/1/out/*.log, build/run/2/out/*.log'
           allow-empty: true
           latest-only: false
 
