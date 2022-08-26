@@ -57,7 +57,7 @@ else
 fi
 echo $deb_cmd
 echo "--------------------------------------------"
-rsync -Lavh -e 'ssh -p 2222' --progress --exclude '*lockfile*' $deb_cmd
+rsync -Lavh --progress --exclude '*lockfile*' $deb_cmd
 
 for el_version in 7 8 9; do
   if $newgen; then
@@ -67,7 +67,7 @@ for el_version in 7 8 9; do
   fi
   echo $el_cmd
   echo "--------------------------------------------"
-  rsync -Lavh -e 'ssh -p 2222' --progress $el_cmd
+  rsync -Lavh --progress $el_cmd
 done
 
 ssh signer@download.ceph.com "/home/signer/bin/get-tarballs.sh $release $sha1 $version"
