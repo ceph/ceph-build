@@ -27,7 +27,7 @@ echo "Found the most packages ($current_highest_count) in $highest_combo."
 # Check the the DEB and RPM chacra endpoints to see if the repos are or need updating.
 # This helps prevent packages from getting missed when signing and pushing.
 need_rerun=false
-for endpoint in https://chacra.ceph.com/repos/$project/$release/$sha1/$highest_combo https://chacra.ceph.com/repos/$project/$release/$sha1/centos/{7,8,9}; do
+for endpoint in https://chacra.ceph.com/repos/$project/$release/$sha1/centos/{7,8,9} https://chacra.ceph.com/repos/$project/$release/$sha1/$highest_combo; do
   chacra_repo_status=$(curl -s -L $endpoint)
   # python is only used here because jq isn't installed on the signer box
   chacra_needs_update=$(echo $chacra_repo_status | python -mjson.tool | grep needs_update | awk '{ print $2 }' | sed 's/,$//')
@@ -69,6 +69,8 @@ for el_version in 7 8 9; do
   echo "--------------------------------------------"
   rsync -Lavh -e 'ssh -p 2222' --progress $el_cmd
 done
+
+ssh signer@download.ceph.com "/home/signer/bin/get-tarballs.sh $release $sha1 $version"
 
 if $need_rerun; then
   echo
