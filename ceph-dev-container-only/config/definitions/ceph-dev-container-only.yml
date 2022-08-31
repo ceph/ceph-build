@@ -1,6 +1,6 @@
 - job:
     name: ceph-dev-container-only
-    node: 'gigantic && centos8'
+    node: built-in
     project-type: matrix
     defaults: global
     display-name: 'ceph-dev-container-only: Builds a quay.ceph.io/ceph-ci container given a BRANCH'
