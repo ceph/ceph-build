@@ -88,6 +88,8 @@ mv $WORKSPACE/nfs-ganesha-debian/debian $WORKSPACE/nfs-ganesha/
 # disable LizardFS FSAL see
 # https://review.gerrithub.io/c/ffilz/nfs-ganesha/+/475437
 sed -i '/-DUSE_FSAL_RGW=/a\			-DUSE_FSAL_LIZARDFS=NO \\' debian/rules
+# use tcmalloc allocator
+sed -i '/-DUSE_FSAL_RGW=/a\            -DALLOCATOR=tcmalloc \\' debian/rules
 
 ## Get some basic information about the system and the repository
 DEB_ARCH=$(dpkg-architecture -qDEB_BUILD_ARCH)
@@ -112,7 +114,7 @@ mkdir -p $WORKSPACE/dist/deb
 sudo pbuilder update \
     --basetgz $PBUILDDIR/$DIST.tgz \
     --distribution $DIST \
-    --extrapackages "apt-transport-https apt-utils ca-certificates debhelper python-all liblttng-ust0 liblttng-ust-dev liblttng-ctl-dev pkgconf quilt" \
+    --extrapackages "apt-transport-https apt-utils ca-certificates debhelper python-all liblttng-ust0 liblttng-ust-dev liblttng-ctl-dev pkgconf quilt libgoogle-perftools-dev" \
     --components "main restricted universe multiverse"
 
 # make sure no ceph packages are left over in pbuilder env
