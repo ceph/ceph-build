@@ -1,8 +1,7 @@
 - project:
     name: ceph-volume-nightly-lvm
     distro:
-      - xenial
-      - centos7
+      - focal
       - centos8
     objectstore:
       - bluestore
@@ -14,16 +13,8 @@
       - lvm
     ceph_branch:
       - main
-      - nautilus
-    exclude:
-      - ceph_branch: main
-        distro: centos7
-      - ceph_branch: nautilus
-        distro: centos8
-      - ceph_branch: main
-        distro: xenial
-      - ceph_branch: nautilus
-        distro: xenial
+      - quincy
+      - pacific
 
     jobs:
       - 'ceph-volume-nightly-{ceph_branch}-{subcommand}-{distro}-{objectstore}-{scenario}'
@@ -31,8 +22,7 @@
 - project:
     name: ceph-volume-nightly-batch
     distro:
-      - xenial
-      - centos7
+      - focal
       - centos8
     objectstore:
       - bluestore
@@ -44,16 +34,8 @@
       - batch
     ceph_branch:
       - main
-      - nautilus
-    exclude:
-      - ceph_branch: main
-        distro: centos7
-      - ceph_branch: nautilus
-        distro: centos8
-      - ceph_branch: main
-        distro: xenial
-      - ceph_branch: nautilus
-        distro: xenial
+      - quincy
+      - pacific
 
     jobs:
       - 'ceph-volume-nightly-{ceph_branch}-{subcommand}-{distro}-{objectstore}-{scenario}'
@@ -61,7 +43,7 @@
 - project:
     name: ceph-volume-nightly-batch-mixed
     distro:
-      - centos7
+      - focal
       - centos8
     objectstore:
       - bluestore
@@ -75,16 +57,8 @@
       - batch
     ceph_branch:
       - main
-      - nautilus
-    exclude:
-      - ceph_branch: main
-        distro: centos7
-      - ceph_branch: nautilus
-        distro: centos8
-      - ceph_branch: main
-        distro: xenial
-      - ceph_branch: nautilus
-        distro: xenial
+      - quincy
+      - pacific
 
     jobs:
       - 'ceph-volume-nightly-{ceph_branch}-{subcommand}-{distro}-{objectstore}-{scenario}'
