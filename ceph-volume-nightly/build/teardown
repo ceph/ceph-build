@@ -3,11 +3,9 @@
 # for every Vagrantfile in scenarios and then just destroys whatever is left.
 
 
-CEPH_VOLUME_FUNCTIONAL_TESTS_PATH=$WORKSPACE/src/ceph-volume/ceph_volume/tests/functional
-COLLECT_LOGS_PLAYBOOK_PATH="$CEPH_VOLUME_FUNCTIONAL_TESTS_PATH/$SUBCOMMAND/.tox/${DISTRO}-${OBJECTSTORE}-${SCENARIO}/tmp/ceph-ansible/tests/functional/collect-logs.yml"
-cd "$CEPH_VOLUME_FUNCTIONAL_TESTS_PATH"
+cd $WORKSPACE/src/ceph-volume/ceph_volume/tests/functional
 
 TEMPVENV=$(create_venv_dir)
 VENV=${TEMPVENV}/bin
 # the method exists in scripts/build_utils.sh
-teardown_vagrant_tests "$VENV" "$COLLECT_LOGS_PLAYBOOK_PATH"
+teardown_vagrant_tests $VENV
