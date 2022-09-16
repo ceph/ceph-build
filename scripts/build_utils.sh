@@ -1278,38 +1278,92 @@ github_status_setup() {
 
 }
 
+write_collect_logs_playbook() {
+    cat > $WORKSPACE/collect-logs.yml << EOF
+- hosts: all
+  become: yes
+  tasks:
+    - name: import_role ceph-defaults
+      import_role:
+        name: ceph-defaults
+
+    - name: import_role ceph-facts
+      import_role:
+        name: ceph-facts
+        tasks_from: container_binary.yml
+
+    - name: set_fact ceph_cmd
+      set_fact:
+        ceph_cmd: "{{ container_binary + ' run --rm --net=host -v /etc/ceph:/etc/ceph:z -v /var/lib/ceph:/var/lib/ceph:z -v /var/run/ceph:/var/run/ceph:z --entrypoint=ceph ' + ceph_docker_registry + '/' + ceph_docker_image + ':' + ceph_docker_image_tag if containerized_deployment | bool else 'ceph' }}"
+
+    - name: get some ceph status outputs
+      command: "{{ ceph_cmd }} --connect-timeout 10 --cluster {{ cluster }} {{ item }}"
+      register: ceph_status
+      run_once: True
+      delegate_to: mon0
+      failed_when: false
+      changed_when: false
+      with_items:
+        - "-s -f json"
+        - "osd tree"
+        - "osd dump"
+        - "pg dump"
+        - "versions"
+
+    - name: save ceph status to file
+      copy:
+        content: "{{ item.stdout }}"
+        dest: "{{ archive_path }}/{{ item.item | regex_replace(' ', '_') }}.log"
+      delegate_to: localhost
+      run_once: True
+      with_items: "{{ ceph_status.results }}"
+
+    - name: find ceph config file and logs
+      find:
+        paths:
+          - /etc/ceph
+          - /var/log/ceph
+        patterns:
+          - "*.conf"
+          - "*.log"
+      register: results
+
+    - name: collect ceph config file and logs
+      fetch:
+        src: "{{ item.path }}"
+        dest: "{{ archive_path }}/{{ inventory_hostname }}/"
+        flat: yes
+      with_items: "{{ results.files }}"
+EOF
+}
+
 collect_ceph_logs() {
     local venv=$1
+    shift
     # this is meant to be run in a testing scenario directory
     # with running vagrant vms. the ansible playbook will connect
     # to your test nodes and fetch any ceph logs that are present
     # in /var/log/ceph and store them on the jenkins builder.
     # these logs can then be archived using the JJB archive publisher
-
-    if [ -n "$2" ]; then
-        # set playbook path to overridden path
-        COLLECT_LOGS_PLAYBOOK_PATH="$2"
-    else
-        # set playbook path to default path
-        COLLECT_LOGS_PLAYBOOK_PATH="$WORKSPACE/tests/functional/collect-logs.yml"
-    fi
+    limit=$1
 
     if [ -f "./vagrant_ssh_config" ]; then
         mkdir -p $WORKSPACE/logs
+
+        write_collect_logs_playbook
 
         pkgs=( "ansible" )
         install_python_packages $TEMPVENV "pkgs[@]"
 
         export ANSIBLE_SSH_ARGS='-F ./vagrant_ssh_config'
         export ANSIBLE_STDOUT_CALLBACK='debug'
-        export ANSIBLE_ROLES_PATH=$WORKSPACE/roles
-        $venv/ansible-playbook -vv -i hosts --limit all --extra-vars "archive_path=$WORKSPACE/logs" "${COLLECT_LOGS_PLAYBOOK_PATH}" || true
+        $venv/ansible-playbook -vv -i hosts --limit $limit --extra-vars "archive_path=$WORKSPACE/logs" $WORKSPACE/collect-logs.yml || true
     fi
 }
 
 teardown_vagrant_tests() {
     local venv=$1
-    local collect_logs_playbook_path=$2
+    shift
 
     # collect ceph logs and teardown any running vagrant vms
     # this also cleans up any lingering livirt networks
@@ -1318,7 +1372,7 @@ teardown_vagrant_tests() {
     for scenario in $scenarios; do
         cd $scenario
         # collect all ceph logs from all test nodes
-        collect_ceph_logs "$venv" "$collect_logs_playbook_path"
+        collect_ceph_logs $venv all
         vagrant destroy -f
         stat ./fetch > /dev/null 2>&1 && rm -rf ./fetch
         cd -
