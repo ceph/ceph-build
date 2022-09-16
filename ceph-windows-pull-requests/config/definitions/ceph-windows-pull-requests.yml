@@ -13,8 +13,8 @@
       - build-discarder:
           days-to-keep: 15
           num-to-keep: 300
-          artifact-days-to-keep: -1
-          artifact-num-to-keep: -1
+          artifact-days-to-keep: 15
+          artifact-num-to-keep: 100
       - github:
           url: https://github.com/ceph/ceph/
       - rebuild:
@@ -71,6 +71,11 @@
           - ../../../scripts/ceph-windows/run_tests
 
     publishers:
+      - archive:
+          artifacts: 'logs/**'
+          allow-empty: true
+          latest-only: false
+
       - postbuildscript:
           builders:
             - role: SLAVE
