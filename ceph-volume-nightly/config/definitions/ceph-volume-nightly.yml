@@ -1,7 +1,6 @@
 - project:
     name: ceph-volume-nightly-lvm
     distro:
-      - focal
       - centos8
     objectstore:
       - bluestore
@@ -22,7 +21,6 @@
 - project:
     name: ceph-volume-nightly-batch
     distro:
-      - focal
       - centos8
     objectstore:
       - bluestore
@@ -43,7 +41,6 @@
 - project:
     name: ceph-volume-nightly-batch-mixed
     distro:
-      - focal
       - centos8
     objectstore:
       - bluestore

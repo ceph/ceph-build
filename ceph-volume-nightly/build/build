@@ -16,8 +16,10 @@ update_vagrant_boxes
 
 cd src/ceph-volume/ceph_volume/tests/functional/$SUBCOMMAND
 
-if [ "$CEPH_BRANCH" = "nautilus" ]; then
-    CEPH_ANSIBLE_BRANCH="stable-4.0"
+if [[ "$CEPH_BRANCH" == "pacific" ]]; then
+    CEPH_ANSIBLE_BRANCH="stable-6.0"
+elif [[ "$CEPH_BRANCH" == "quincy" ]]; then
+    CEPH_ANSIBLE_BRANCH="stable-7.0"
 else
     CEPH_ANSIBLE_BRANCH="main"
 fi
