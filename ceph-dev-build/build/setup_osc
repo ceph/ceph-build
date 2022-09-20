@@ -38,6 +38,10 @@ raw_version=`echo $vers | cut -d '-' -f 1`
 
 RELEASE_BRANCH=$(release_from_version $raw_version)
 case $RELEASE_BRANCH in
+reef)
+    DISTRO=opensuse
+    RELEASE="15.3"
+    ;;
 quincy)
     DISTRO=opensuse
     RELEASE="15.3"
