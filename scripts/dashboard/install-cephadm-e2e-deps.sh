@@ -62,6 +62,7 @@ sudo chgrp "$(id -un)" /var/run/docker.sock
 docker info
 docker container prune -f
 
+rm -rf ${HOME}/.kcli
 KCLI_CONFIG_DIR="${HOME}/.kcli"
 mkdir -p ${KCLI_CONFIG_DIR}
 if [[ ! -f "${KCLI_CONFIG_DIR}/id_rsa" ]]; then
@@ -88,5 +89,6 @@ sudo chmod +x /usr/local/bin/kcli
 sudo mkdir -p /var/lib/libvirt/images/ceph-dashboard
 kcli delete plan ceph -y || true
 kcli delete network ceph-dashboard -y
+kcli delete pool ceph-dashboard -y
 kcli create pool -p /var/lib/libvirt/images/ceph-dashboard ceph-dashboard
 kcli create network -c 192.168.100.0/24 ceph-dashboard

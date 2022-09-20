@@ -6,6 +6,8 @@ if [[ ! $(arch) =~ (i386|x86_64|amd64) ]]; then
     exit
 fi
 
+sudo rm -f /etc/apt/sources.list.d/cortx-motr.list
+
 if grep -q  debian /etc/*-release; then
     sudo bash -c 'echo "deb [arch=amd64] https://dl.google.com/linux/chrome/deb/ stable main" > /etc/apt/sources.list.d/google-chrome.list'
     curl -fsSL https://dl.google.com/linux/linux_signing_key.pub | sudo apt-key add -
