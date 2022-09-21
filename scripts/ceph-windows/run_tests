@@ -72,5 +72,6 @@ SSH_TIMEOUT=1h ssh_exec powershell.exe /workspace/repos/ceph-win32-tests/test_ho
 #
 # Collect logs
 #
+rm -rf $WORKSPACE/logs
 mkdir -p $WORKSPACE/logs
 scp_download /workspace/test_results $WORKSPACE/logs/test_results
