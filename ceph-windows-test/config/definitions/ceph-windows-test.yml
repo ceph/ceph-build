@@ -11,27 +11,51 @@
           days-to-keep: 30
           num-to-keep: 30
           artifact-days-to-keep: 30
-          artifact-num-to-keep: 30
+          artifact-num-to-keep: 15
 
     parameters:
       - string:
-          name: CEPH_WINDOWS_VERSION
-          description: "The Windows version for the Ceph build."
-          default: 1809
+          name: CEPH_GIT_REPO
+          description: "The Ceph git repo."
+          default: https://github.com/ceph/ceph.git
+
       - string:
-          name: CEPH_WINDOWS_BRANCH
-          description: "The branch name for the Ceph build."
+          name: CEPH_GIT_BRANCH
+          description: "The Ceph git branch name."
           default: main
+
       - string:
-          name: CEPH_WINDOWS_SHA1
-          description: "The SHA1 for the Ceph build."
-          default: latest
+          name: CEPH_WIN32_BUILD_FLAGS
+          description: |
+            Space-separated list of key=value items passed as environment variables to Ceph './win32_build.sh' script.
+            For example: "ENABLE_SHARED=True NUM_WORKERS=4". If this is not set, the default build flags are used.
+
+      - bool:
+          name: INCLUDE_USERSPACE_CRASH_DUMPS
+          description: "Include Windows user-space crash dumps in the artifacts collected."
+
+      - bool:
+          name: INCLUDE_CEPH_ZIP
+          description: "Include Ceph Windows zip (useful for debugging with symbol files) in the artifacts collected."
+
+    scm:
+      - git:
+          url: $CEPH_GIT_REPO
+          branches:
+            - $CEPH_GIT_BRANCH
+          browser: auto
+          timeout: 20
+          do-not-fetch-tags: true
+          shallow-clone: true
+          honor-refspec: true
+          wipe-workspace: true
+          basedir: ceph
 
     builders:
       - shell:
           !include-raw:
-            - ../../build/get_chacra_build
             - ../../../scripts/build_utils.sh
+            - ../../../scripts/ceph-windows/win32_build
             - ../../../scripts/ceph-windows/setup_libvirt_vm
             - ../../../scripts/ceph-windows/run_tests
 
@@ -43,7 +67,7 @@
 
     publishers:
       - archive:
-          artifacts: 'logs/**'
+          artifacts: 'artifacts/**'
           allow-empty: true
           latest-only: false
 
