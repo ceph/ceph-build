@@ -8,6 +8,7 @@ if [[ ! -f $WORKSPACE/ceph.zip ]]; then
 fi
 
 CEPHADM_RELEASE=${CEPHADM_RELEASE:-"quincy"}
+WIN_USERSPACE_CRASH_DUMPS=${WIN_USERSPACE_CRASH_DUMPS:-"C:\\userspace_crash_dumps"}
 
 #
 # Install requirements (if needed)
@@ -49,6 +50,16 @@ sudo chown $USER $WORKSPACE/ceph.conf $WORKSPACE/keyring
 sudo ceph osd pool create rbd
 
 #
+# Clone ceph-win32-tests repo
+#
+SSH_TIMEOUT=5m ssh_exec git.exe clone https://github.com/ceph/ceph-win32-tests.git /workspace/repos/ceph-win32-tests
+
+#
+# Set Windows user-space crash dumps directory
+#
+ssh_exec powershell.exe /workspace/repos/ceph-win32-tests/test_host/set_userspace_crashdump_location.ps1 -dumpDir $WIN_USERSPACE_CRASH_DUMPS
+
+#
 # Copy the ceph.conf and keyring to the Windows VM
 #
 ssh_exec powershell.exe mkdir -force /ProgramData/ceph/out
@@ -64,14 +75,23 @@ ssh_exec powershell.exe "New-Service -Name ceph-rbd -BinaryPathName 'c:\ceph\rbd
 ssh_exec powershell.exe Start-Service -Name ceph-rbd
 
 #
-# Run the Windows tests
+# Collect artifacts on script exit
 #
-SSH_TIMEOUT=5m ssh_exec git.exe clone https://github.com/ceph/ceph-win32-tests.git /workspace/repos/ceph-win32-tests
-SSH_TIMEOUT=1h ssh_exec powershell.exe /workspace/repos/ceph-win32-tests/test_host/run_tests.ps1 -workerCount 4
+function collect_artifacts() {
+    rm -rf $WORKSPACE/artifacts
+    mkdir -p $WORKSPACE/artifacts
+
+    scp_download /workspace/test_results $WORKSPACE/artifacts/test_results
+    if [[ "$INCLUDE_USERSPACE_CRASH_DUMPS" = true ]]; then
+        scp_download /userspace_crash_dumps $WORKSPACE/artifacts/userspace_crash_dumps
+    fi
+    if [[ "$INCLUDE_CEPH_ZIP" = true ]]; then
+        cp $WORKSPACE/ceph.zip $WORKSPACE/artifacts/ceph.zip
+    fi
+}
+trap collect_artifacts EXIT
 
 #
-# Collect logs
+# Run the Windows tests
 #
-rm -rf $WORKSPACE/logs
-mkdir -p $WORKSPACE/logs
-scp_download /workspace/test_results $WORKSPACE/logs/test_results
+SSH_TIMEOUT=1h ssh_exec powershell.exe /workspace/repos/ceph-win32-tests/test_host/run_tests.ps1 -workerCount 4

@@ -66,13 +66,14 @@
     - shell:
         !include-raw:
           - ../../../scripts/build_utils.sh
-          - ../../build/build
+          - ../../build/check_docs_pr_only
+          - ../../../scripts/ceph-windows/win32_build
           - ../../../scripts/ceph-windows/setup_libvirt_vm
           - ../../../scripts/ceph-windows/run_tests
 
     publishers:
       - archive:
-          artifacts: 'logs/**'
+          artifacts: 'artifacts/**'
           allow-empty: true
           latest-only: false
 

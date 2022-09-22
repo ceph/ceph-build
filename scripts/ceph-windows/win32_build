@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+set -o errexit
+set -o pipefail
+
+#
+# Build Ceph Windows
+#
+cd $WORKSPACE/ceph
+git submodule update --init --recursive
+ZIP_DEST=$WORKSPACE/ceph.zip $CEPH_WIN32_BUILD_FLAGS timeout 3h ./win32_build.sh

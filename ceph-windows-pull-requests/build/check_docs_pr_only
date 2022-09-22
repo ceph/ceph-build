@@ -7,10 +7,3 @@ if [ "$DOCS_ONLY" = true ]; then
     echo "Only the doc/ dir changed. No need to run Ceph Windows tests."
     exit 0
 fi
-
-#
-# Build Ceph Windows
-#
-cd $WORKSPACE/ceph
-git submodule update --init --recursive
-ZIP_DEST=$WORKSPACE/ceph.zip timeout 3h ./win32_build.sh
