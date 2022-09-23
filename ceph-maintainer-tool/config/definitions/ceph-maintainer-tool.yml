@@ -1,0 +1,46 @@
+- scm:
+    name: maintainer-tool
+    scm:
+      - git:
+          url: https://github.com/deepalik21/ceph-maintainer-tool.git
+          branches:
+            - origin/main
+          browser: auto
+          timeout: 20
+          basedir: "ceph-maintainer-tool"
+          wipe-workspace: false
+
+- scm:
+    name: ceph
+    scm:
+      - git:
+          url: https://github.com/ceph/ceph.git
+          timeout: 20
+          wipe-workspace: false
+          basedir: "ceph"
+          branches:
+            - origin/main
+
+
+- job:
+    name: ceph-maintainer-tool
+    description: Ceph maintainer tool
+    project-type: freestyle
+    block-downstream: false
+    block-upstream: false
+    defaults: global
+    display-name: 'ceph-maintainer-tool'
+
+    triggers:
+    # run every saturday at noon
+      - timed: "0 12 * * 6" 
+
+    scm:
+      - maintainer-tool
+      - ceph
+
+    builders:
+      - shell:
+          !include-raw:
+            - ../../../scripts/build_utils.sh
+            - ../../build/build

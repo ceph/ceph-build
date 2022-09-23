@@ -5,7 +5,7 @@ pkgs=( "python-ldap" )
 TEMPVENV=$(create_venv_dir)
 VENV=${TEMPVENV}/bin
 
-install_python_packages $TEMPVENV "pkgs[@]"
+install_python_packages $TEMPVENV "pkgs[@]" "pip==22.0.4"
 
 cd "$WORKSPACE/ceph/"
 #run maintainer tool script over ceph repo 
