@@ -1,0 +1,102 @@
+#!/usr/bin/env bash
+set -o errexit
+set -o pipefail
+
+if [[ -z $CEPH_WIN_CI_KEY ]]; then echo "ERROR: The CI SSH private key secret (CEPH_WIN_CI_KEY) is not set"; exit 1; fi
+
+export LIBVIRT_DIR="$WORKSPACE/libvirt"
+
+export SSH_KEY="$CEPH_WIN_CI_KEY"
+export SSH_KNOWN_HOSTS_FILE="$LIBVIRT_DIR/known_hosts"
+
+mkdir -p $LIBVIRT_DIR
+
+function get_libvirt_vm_ssh_address() {
+    if [[ -z $VM_NAME ]]; then
+        echo "ERROR: Env variable VM_NAME is not set"
+        exit 1
+    fi
+    if [[ -z $SSH_USER ]]; then
+        echo "ERROR: Env variable SSH_USER is not set"
+        exit 1
+    fi
+
+    if ! which xmllint >/dev/null; then
+        sudo apt-get update
+        sudo apt-get install -y libxml2-utils
+    fi
+    if ! which jq >/dev/null; then
+        sudo apt-get update
+        sudo apt-get install -y jq
+    fi
+
+    sudo virsh dumpxml $VM_NAME > $LIBVIRT_DIR/$VM_NAME.xml
+    local VM_NIC_MAC_ADDRESS=`xmllint --xpath 'string(/domain/devices/interface/mac/@address)' $LIBVIRT_DIR/$VM_NAME.xml`
+    rm $LIBVIRT_DIR/$VM_NAME.xml
+
+    local TIMEOUT=${TIMEOUT:-600}
+    local SLEEP_SECS=${SLEEP_SECS:-10}
+
+    SECONDS=0
+    while true; do
+        if [[ $SECONDS -gt $TIMEOUT ]]; then
+            >&2 echo "Timeout waiting for the VM to start"
+            return 1
+        fi
+        # Get the VM NIC IP address from the "default" virsh network
+        VM_IP=$(sudo virsh qemu-agent-command $VM_NAME '{"execute":"guest-network-get-interfaces"}' | jq -r ".return[] | select(.\"hardware-address\"==\"${VM_NIC_MAC_ADDRESS}\") | .\"ip-addresses\"[] | select(.\"ip-address\" | startswith(\"192.168.122.\")) | .\"ip-address\"") || {
+            >&2 echo "Retrying in $SLEEP_SECS seconds"
+            sleep $SLEEP_SECS
+            continue
+        }
+        if [[ -z $VM_IP ]]; then
+            >&2 echo "Cannot find the VM IP address. Retrying in $SLEEP_SECS seconds"
+            sleep $SLEEP_SECS
+            continue
+        fi
+        ssh-keyscan -H $VM_IP &> ${LIBVIRT_DIR}/${VM_NAME}_known_hosts || {
+            >&2 echo "SSH is not reachable yet"
+            sleep $SLEEP_SECS
+            continue
+        }
+        SSH_ADDRESS=$VM_IP SSH_KNOWN_HOSTS_FILE=${LIBVIRT_DIR}/${VM_NAME}_known_hosts ssh_exec hostname 1>&2 || {
+            >&2 echo "Cannot execute SSH commands yet"
+            sleep $SLEEP_SECS
+            continue
+        }
+        break
+    done
+    cat ${LIBVIRT_DIR}/${VM_NAME}_known_hosts >> $SSH_KNOWN_HOSTS_FILE
+    rm ${LIBVIRT_DIR}/${VM_NAME}_known_hosts
+    echo $VM_IP
+}
+
+#
+# Setup requirements (if needed)
+#
+if ! which virt-install >/dev/null; then
+    sudo apt-get update
+    sudo apt-get install -y virtinst
+fi
+if ! which cloud-localds >/dev/null; then
+    sudo apt-get update
+    sudo apt-get install -y cloud-image-utils
+fi
+if ! sudo virsh net-info default &>/dev/null; then
+    cat << EOF > $LIBVIRT_DIR/default-net.xml
+<network>
+  <name>default</name>
+  <bridge name="virbr0"/>
+  <forward mode="nat"/>
+  <ip address="192.168.122.1" netmask="255.255.255.0">
+    <dhcp>
+      <range start="192.168.122.2" end="192.168.122.254"/>
+    </dhcp>
+  </ip>
+</network>
+EOF
+    sudo virsh net-define $LIBVIRT_DIR/default-net.xml
+    sudo virsh net-start default
+    sudo virsh net-autostart default
+    rm $LIBVIRT_DIR/default-net.xml
+fi

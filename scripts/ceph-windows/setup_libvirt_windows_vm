@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+set -o errexit
+set -o pipefail
+
+if [[ -z $LIBVIRT_DIR ]]; then echo "ERROR: The env variable LIBVIRT_DIR is not set"; exit 1; fi
+
+export WINDOWS_VM_IMAGE_URL=${WINDOWS_VM_IMAGE_URL:-"https://filedump.ceph.com/windows/ceph-win-ltsc2019-ci-image.qcow2"}
+export WINDOWS_VM_NAME=${WINDOWS_VM_NAME:-"ceph-windows-client-${JOB_NAME}-${BUILD_ID}"}
+export WINDOWS_VM_VCPUS="8"
+export WINDOWS_VM_MEMORY="8192"  # 8GB
+export WINDOWS_SSH_USER="administrator"
+
+#
+# Setup the Windows VM to run Ceph client
+#
+mkdir -p $LIBVIRT_DIR
+echo "Downloading VM image from $WINDOWS_VM_IMAGE_URL"
+curl -s -L $WINDOWS_VM_IMAGE_URL -o ${LIBVIRT_DIR}/ceph-windows-client.qcow2
+
+sudo virt-install \
+    --name $WINDOWS_VM_NAME \
+    --os-variant win2k19 \
+    --boot hd \
+    --virt-type kvm \
+    --graphics spice \
+    --cpu host \
+    --vcpus $WINDOWS_VM_VCPUS \
+    --memory $WINDOWS_VM_MEMORY \
+    --disk ${LIBVIRT_DIR}/ceph-windows-client.qcow2,bus=virtio \
+    --network network=default,model=virtio \
+    --controller type=virtio-serial \
+    --channel unix,target_type=virtio,name=org.qemu.guest_agent.0 \
+    --noautoconsol
+
+#
+# Get the VM SSH address
+#
+export WINDOWS_VM_IP=$(VM_NAME=$WINDOWS_VM_NAME SSH_USER=$WINDOWS_SSH_USER get_libvirt_vm_ssh_address)

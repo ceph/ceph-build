@@ -7,37 +7,7 @@ set -o pipefail
 delete_libvirt_vms
 clear_libvirt_networks
 
-# Cleanup Ceph clusters spawned via cephadm
-if [[ -x $WORKSPACE/cephadm ]]; then
-    sudo $WORKSPACE/cephadm rm-repo
-    if [[ -d /var/lib/ceph ]]; then
-        for FSID in $(sudo ls /var/lib/ceph); do
-            echo "Removing Ceph cluster $FSID"
-            sudo $WORKSPACE/cephadm rm-cluster --fsid $FSID --force
-        done
-    fi
-fi
-
-# Uninstall packages installed by "cephadm install ceph-common"
-sudo apt-get -y purge \
-    ceph-common  \
-    python3-ceph-argparse \
-    python3-ceph-common \
-    python3-cephfs \
-    librbd1 \
-    python3-rados \
-    python3-rbd \
-    python3-rgw \
-    libcephfs2 \
-    librados2 \
-    libradosstriper1
-
-# Cleanup repos
-sudo rm -f /etc/apt/sources.list.d/docker.list \
-           /etc/apt/sources.list.d/ceph.list
-
 # Cleanup remaining files / directories
 sudo rm -rf \
-    $WORKSPACE/ceph.conf $WORKSPACE/keyring $WORKSPACE/cephadm \
-    $WORKSPACE/ceph.zip $WORKSPACE/known_hosts \
-    /etc/ceph /var/log/ceph /var/lib/ceph /var/run/ceph
+    $WORKSPACE/ceph $WORKSPACE/ceph_vstart $WORKSPACE/ceph.zip \
+    $WORKSPACE/libvirt

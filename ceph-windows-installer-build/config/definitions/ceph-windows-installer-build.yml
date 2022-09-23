@@ -62,7 +62,8 @@
           !include-raw:
             - ../../../scripts/build_utils.sh
             - ../../build/setup
-            - ../../../scripts/ceph-windows/setup_libvirt_vm
+            - ../../../scripts/ceph-windows/setup_libvirt
+            - ../../../scripts/ceph-windows/setup_libvirt_windows_vm
             - ../../build/build
 
     wrappers:

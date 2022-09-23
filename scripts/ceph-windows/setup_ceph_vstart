@@ -1,0 +1,95 @@
+#!/usr/bin/env bash
+set -o errexit
+set -o pipefail
+
+if [[ -z $UBUNTU_SSH_USER ]]; then echo "ERROR: The UBUNTU_SSH_USER env variable is not set"; exit 1; fi
+if [[ -z $UBUNTU_VM_IP ]]; then echo "ERROR: The UBUNTU_VM_IP env variable is not set"; exit 1; fi
+
+export VSTART_DIR="$WORKSPACE/ceph_vstart"
+export VSTART_MEMSTORE_BYTES="5368709120"  # 5GB
+
+export SSH_USER=$UBUNTU_SSH_USER
+export SSH_ADDRESS=$UBUNTU_VM_IP
+
+mkdir -p $VSTART_DIR
+
+function rsync_cmd() {
+    rsync -a --delete -e "ssh -i $CEPH_WIN_CI_KEY -o UserKnownHostsFile=$SSH_KNOWN_HOSTS_FILE" ${@}
+}
+
+#
+# Build Ceph vstart
+#
+cat > ${VSTART_DIR}/build-ceph-vstart.sh << EOF
+cd ~/ceph
+./install-deps.sh
+./do_cmake.sh \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DWITH_RADOSGW=OFF \
+    -DWITH_MGR_DASHBOARD_FRONTEND=OFF \
+    -WITH_MGR=OFF \
+    -WITH_LTTNG=OFF \
+    -DWITH_TESTS=OFF
+cd ./build
+ninja vstart
+EOF
+chmod +x ${VSTART_DIR}/build-ceph-vstart.sh
+time rsync_cmd $WORKSPACE/ceph ${VSTART_DIR}/build-ceph-vstart.sh ${UBUNTU_SSH_USER}@${UBUNTU_VM_IP}:
+
+time SSH_TIMEOUT=1h ssh_exec ./build-ceph-vstart.sh
+ssh_exec sudo apt-get install -y python3-prettytable
+
+#
+# Run Ceph vstart
+#
+cat > ${VSTART_DIR}/ceph-vstart.sh << EOF
+mkdir -p \$HOME/ceph-vstart/out
+
+cd ~/ceph/build
+VSTART_DEST=\$HOME/ceph-vstart ../src/vstart.sh \
+    -n --memstore -o "memstore_device_bytes=$VSTART_MEMSTORE_BYTES" \
+    --without-dashboard -i "$UBUNTU_VM_IP" \
+    2>&1 | tee \$HOME/ceph-vstart/vstart.log
+
+export CEPH_CONF=\$HOME/ceph-vstart/ceph.conf
+export CEPH_KEYRING=\$HOME/ceph-vstart/keyring
+
+./bin/ceph osd pool create rbd
+
+./bin/ceph osd pool set cephfs.a.data size 1 --yes-i-really-mean-it
+./bin/ceph osd pool set cephfs.a.meta size 1 --yes-i-really-mean-it
+./bin/ceph osd pool set rbd size 1 --yes-i-really-mean-it
+
+./bin/ceph tell mon.\* config set debug_mon 0
+./bin/ceph tell mon.\* config set debug_ms 0
+EOF
+chmod +x ${VSTART_DIR}/ceph-vstart.sh
+
+rsync_cmd ${VSTART_DIR}/ceph-vstart.sh ${UBUNTU_SSH_USER}@${UBUNTU_VM_IP}:
+time SSH_TIMEOUT=30m ssh_exec ./ceph-vstart.sh
+
+ssh_exec sudo mkdir -p /etc/ceph
+ssh_exec sudo cp ./ceph-vstart/ceph.conf ./ceph-vstart/keyring /etc/ceph
+
+rsync_cmd ${UBUNTU_SSH_USER}@${UBUNTU_VM_IP}:./ceph-vstart/ceph.conf ${VSTART_DIR}/ceph.conf
+rsync_cmd ${UBUNTU_SSH_USER}@${UBUNTU_VM_IP}:./ceph-vstart/keyring ${VSTART_DIR}/keyring
+
+export CEPH_CONF="$VSTART_DIR/ceph.conf"
+export CEPH_KEYRING="$VSTART_DIR/keyring"
+export CEPH_WINDOWS_CONF="$VSTART_DIR/ceph-windows.conf"
+
+MON_HOST=$(cat $CEPH_CONF | grep -o "mon host \=.*")
+
+cat > $CEPH_WINDOWS_CONF << EOF
+[client]
+    keyring = C:/ProgramData/ceph/keyring
+    admin socket = C:/ProgramData/ceph/out/\$name.\$pid.asok
+    client_mount_uid = 1000
+    client_mount_gid = 1000
+    client_permissions = true
+[global]
+    log to stderr = true
+    run dir = C:/ProgramData/ceph/out
+    crash dir = C:/ProgramData/ceph/out
+    $MON_HOST
+EOF

@@ -1,0 +1,65 @@
+#!/usr/bin/env bash
+set -o errexit
+set -o pipefail
+
+if [[ -z $LIBVIRT_DIR ]]; then echo "ERROR: The env variable LIBVIRT_DIR is not set"; exit 1; fi
+
+export UBUNTU_VM_IMAGE_URL=${UBUNTU_VM_IMAGE_URL:-"https://cloud-images.ubuntu.com/minimal/releases/jammy/release/ubuntu-22.04-minimal-cloudimg-amd64.img"}
+export UBUNTU_VM_NAME=${UBUNTU_VM_NAME:-"ceph-ubuntu-vstart-${JOB_NAME}-${BUILD_ID}"}
+export UBUNTU_VM_VCPUS="$(nproc)"  # use all the CPU cores avaiable on the host
+export UBUNTU_VM_MEMORY="32768"    # 32 GB
+export UBUNTU_SSH_USER="ubuntu"
+
+#
+# Setup the Ubuntu VM to run Ceph vstart
+#
+mkdir -p $LIBVIRT_DIR
+echo "Downloading VM image from $UBUNTU_VM_IMAGE_URL"
+curl -s -L $UBUNTU_VM_IMAGE_URL -o ${LIBVIRT_DIR}/ceph-ubuntu-vstart.qcow2
+qemu-img resize ${LIBVIRT_DIR}/ceph-ubuntu-vstart.qcow2 128G
+
+cat > ${LIBVIRT_DIR}/metadata.yaml << EOF
+instance-id: ceph-ubuntu-vstart
+local-hostname: ceph-ubuntu-vstart.local
+locale: en_US
+EOF
+
+cat > ${LIBVIRT_DIR}/user-data.yaml << EOF
+#cloud-config
+
+ssh_authorized_keys:
+  - $(ssh-keygen -y -f $SSH_KEY)
+
+packages_update: true
+packages:
+  - qemu-guest-agent
+  - locales
+  - rsync
+
+runcmd:
+  - [localedef, -i, en_US, -c, -f, UTF-8, -A, /usr/share/locale/locale.alias, en_US.UTF-8]
+  - [systemctl, start, qemu-guest-agent]
+EOF
+
+cloud-localds ${LIBVIRT_DIR}/config-drive.img ${LIBVIRT_DIR}/user-data.yaml ${LIBVIRT_DIR}/metadata.yaml
+
+sudo virt-install \
+    --name $UBUNTU_VM_NAME \
+    --os-variant ubuntu22.04 \
+    --boot hd \
+    --virt-type kvm \
+    --graphics spice \
+    --cpu host \
+    --vcpus $UBUNTU_VM_VCPUS \
+    --memory $UBUNTU_VM_MEMORY \
+    --disk ${LIBVIRT_DIR}/ceph-ubuntu-vstart.qcow2,bus=virtio \
+    --disk ${LIBVIRT_DIR}/config-drive.img,bus=virtio \
+    --network network=default,model=virtio \
+    --controller type=virtio-serial \
+    --channel unix,target_type=virtio,name=org.qemu.guest_agent.0 \
+    --noautoconsol
+
+#
+# Get the VM SSH address
+#
+export UBUNTU_VM_IP=$(VM_NAME=$UBUNTU_VM_NAME SSH_USER=$UBUNTU_SSH_USER get_libvirt_vm_ssh_address)
