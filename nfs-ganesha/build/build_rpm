@@ -124,8 +124,6 @@ fi
 sed -i 's/libcephfs1-devel/libcephfs-devel/' $WORKSPACE/nfs-ganesha/src/nfs-ganesha.spec
 sed -i 's/librgw2-devel/librgw-devel/' $WORKSPACE/nfs-ganesha/src/nfs-ganesha.spec
 sed -i 's/CMAKE_BUILD_TYPE=Debug/CMAKE_BUILD_TYPE=RelWithDebInfo/' $WORKSPACE/nfs-ganesha/src/nfs-ganesha.spec
-sed -i '/^BuildRequires:.*cmake$/a\BuildRequires:  gperftools-devel\' $WORKSPACE/nfs-ganesha/src/nfs-ganesha.spec
-sed -i '/-DSANITIZE_ADDRESS/a\        -DALLOCATOR=tcmalloc\' $WORKSPACE/nfs-ganesha/src/nfs-ganesha.spec
 
 ## Create the source rpm
 echo "Building SRPM"
