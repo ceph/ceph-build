@@ -8,3 +8,4 @@ set -o pipefail
 cd $WORKSPACE/ceph
 git submodule update --init --recursive
 ZIP_DEST=$WORKSPACE/ceph.zip $CEPH_WIN32_BUILD_FLAGS timeout 3h ./win32_build.sh
+rm -rf build

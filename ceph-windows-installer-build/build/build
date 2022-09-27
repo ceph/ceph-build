@@ -2,6 +2,12 @@
 set -o errexit
 set -o pipefail
 
+if [[ -z $WINDOWS_SSH_USER ]]; then echo "ERROR: The WINDOWS_SSH_USER env variable is not set"; exit 1; fi
+if [[ -z $WINDOWS_VM_IP ]]; then echo "ERROR: The WINDOWS_VM_IP env variable is not set"; exit 1; fi
+
+export SSH_USER=$WINDOWS_SSH_USER
+export SSH_ADDRESS=$WINDOWS_VM_IP
+
 BUILD_CONFIGURATION=${BUILD_CONFIGURATION:-"Release"}
 
 
