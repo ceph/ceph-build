@@ -36,7 +36,7 @@
                 <name>origin/testing</name>
               </hudson.plugins.git.BranchSpec>
               <hudson.plugins.git.BranchSpec>
-                <name>origin/main</name>
+                <name>origin/master</name>
               </hudson.plugins.git.BranchSpec>
               <hudson.plugins.git.BranchSpec>
                 <name>origin/for-linus</name>
