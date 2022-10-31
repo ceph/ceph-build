@@ -60,3 +60,8 @@ trap collect_artifacts EXIT
 # Run the Windows tests
 #
 SSH_TIMEOUT=1h ssh_exec powershell.exe /workspace/repos/ceph-win32-tests/test_host/run_tests.ps1 -workerCount 4
+
+ssh_exec curl.exe -s -L -o /workspace/test_rbd_wnbd.py https://raw.githubusercontent.com/ceph/ceph/main/qa/workunits/windows/test_rbd_wnbd.py
+SSH_TIMEOUT=5m ssh_exec python.exe /workspace/test_rbd_wnbd.py --test-name RbdTest --iterations 100
+SSH_TIMEOUT=5m ssh_exec python.exe /workspace/test_rbd_wnbd.py --test-name RbdFioTest --iterations 100
+SSH_TIMEOUT=5m ssh_exec python.exe /workspace/test_rbd_wnbd.py --test-name RbdStampTest --iterations 100
