@@ -5,7 +5,8 @@ $ProgressPreference = "SilentlyContinue"
 
 $VS_2019_BUILD_TOOLS_URL = "https://aka.ms/vs/16/release/vs_buildtools.exe"
 $WDK_URL = "https://download.microsoft.com/download/7/d/6/7d602355-8ae9-414c-ae36-109ece2aade6/wdk/wdksetup.exe"  # Windows 11 WDK (22000.1). It can be used to develop drivers for previous OS releases.
-$PYTHON3_URL = "https://www.python.org/ftp/python/3.10.1/python-3.10.1-amd64.exe"
+$PYTHON3_URL = "https://www.python.org/ftp/python/3.11.0/python-3.11.0-amd64.exe"
+$FIO_URL = "https://bsdio.com/fio/releases/fio-3.27-x64.msi"
 
 $WNBD_GIT_REPO = "https://github.com/ceph/wnbd.git"
 $WNBD_GIT_BRANCH = "main"
@@ -169,11 +170,11 @@ function Install-WnbdDriver {
 function Install-Python3 {
     Write-Output "Installing Python3"
     Install-Tool -URL $PYTHON3_URL -Params @("/quiet", "InstallAllUsers=1", "PrependPath=1")
-    Add-ToPathEnvVar -Path @("${env:ProgramFiles}\Python310\", "${env:ProgramFiles}\Python310\Scripts\")
+    Add-ToPathEnvVar -Path @("${env:ProgramFiles}\Python311\", "${env:ProgramFiles}\Python311\Scripts\")
     Write-Output "Installing pip dependencies"
     Start-ExecuteWithRetry {
         # Needed to run the Ceph unit tests via https://github.com/ceph/ceph-win32-tests scripts
-        Invoke-CommandLine "pip3.exe" "install os-testr python-dateutil requests"
+        Invoke-CommandLine "pip3.exe" "install os-testr python-dateutil requests prettytable"
     }
     Write-Output "Successfully installed Python3"
 }
@@ -201,6 +202,12 @@ function Install-Wix3Toolset {
     Write-Output "Successfully installed Wix3 toolset"
 }
 
+function Install-FIO {
+    Write-Output "Installing FIO"
+    Install-Tool -URL $FIO_URL -Params @("/qn", "/l*v", "$env:TEMP\fio-install.log", "/norestart")
+    Write-Output "Successfully installed FIO"
+}
+
 
 Get-WindowsBuildInfo
 Install-Requirements
@@ -210,5 +217,6 @@ Install-Git
 Install-WnbdDriver
 Install-Python3
 Install-Wix3Toolset
+Install-FIO
 
 Write-Output "Successfully installed the CI environment. Please reboot the system before sysprep."
