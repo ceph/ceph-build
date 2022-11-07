@@ -30,10 +30,11 @@
     block-upstream: false
     defaults: global
     display-name: 'ceph-maintainer-tool'
+    node: trusty && small
 
     triggers:
     # run every saturday at noon
-      - timed: "0 12 * * 6" 
+      - timed: "0 12 * * 6"
 
     scm:
       - maintainer-tool
