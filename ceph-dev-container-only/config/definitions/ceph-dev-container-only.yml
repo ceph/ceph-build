@@ -134,7 +134,7 @@
               credential-id: shaman-api-key
               variable: SHAMAN_API_KEY
           - username-password-separated:
-              credential-id: dmick-quay
+              credential-id: quay-ceph-io-ceph-ci
               username: CONTAINER_REPO_USERNAME
               password: CONTAINER_REPO_PASSWORD
       - build-name:
