@@ -25,6 +25,11 @@ function find_latest_tag {
   page=1
   while response=$(curl -s "https://quay.ceph.io/api/v1/repository/ceph-ci/daemon/tag/?page=${page}&limit=${page_size}"); do
     tag=$(echo "${response}" | jq -r ".tags[] | select((.name | contains(\"stable\")) and (.name | contains(\"${release}-centos-${el}-x86_64\"))) | .name")
+    local code=$?
+    if [ $code != 0 ]; then
+      echo "Error listing tags!" >&2
+      exit $code
+    fi
     if [ -n "${tag}" ]; then
       echo "${tag}" | head -n 1 | cut -d '"' -f 2
       return
