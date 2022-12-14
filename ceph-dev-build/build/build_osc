@@ -2,6 +2,9 @@
 set -ex
 
 case $RELEASE_BRANCH in
+reef)
+    OBSREPO="openSUSE_Leap_15.3"
+    ;;
 quincy)
     OBSREPO="openSUSE_Leap_15.3"
     ;;
