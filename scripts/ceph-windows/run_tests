@@ -61,20 +61,23 @@ trap collect_artifacts EXIT
 #
 SSH_TIMEOUT=1h ssh_exec powershell.exe /workspace/repos/ceph-win32-tests/test_host/run_tests.ps1 -workerCount 4
 
-LOCAL_SCRIPT_PATH="$WORKSPACE/ceph/qa/workunits/windows/test_rbd_wnbd.py"
+WIN_WORKUNITS_DIR="$WORKSPACE/ceph/qa/workunits/windows"
+LOCAL_SCRIPT_PATH="$WIN_WORKUNITS_DIR/run-tests.ps1"
 if [[ -f $LOCAL_SCRIPT_PATH ]]; then
     echo "Using locally cloned test script: $LOCAL_SCRIPT_PATH"
-    scp_upload $LOCAL_SCRIPT_PATH /workspace/test_rbd_wnbd.py
+    scp_upload $WIN_WORKUNITS_DIR /workspace/workunits
+    SSH_TIMEOUT=30m ssh_exec powershell.exe -File /workspace/workunits/run-tests.ps1
 else
     REMOTE_SCRIPT_URL="https://raw.githubusercontent.com/ceph/ceph/main/qa/workunits/windows/test_rbd_wnbd.py"
     echo "Using remote test script from: $REMOTE_SCRIPT_URL"
     ssh_exec curl.exe -s -L -o /workspace/test_rbd_wnbd.py $REMOTE_SCRIPT_URL
-fi
-SSH_TIMEOUT=5m ssh_exec python.exe /workspace/test_rbd_wnbd.py --test-name RbdTest --iterations 100
-SSH_TIMEOUT=5m ssh_exec python.exe /workspace/test_rbd_wnbd.py --test-name RbdFioTest --iterations 100
-SSH_TIMEOUT=5m ssh_exec python.exe /workspace/test_rbd_wnbd.py --test-name RbdStampTest --iterations 100
 
-# It can take a while to setup the partition (~10s), we'll use fewer iterations.
-SSH_TIMEOUT=5m ssh_exec python.exe /workspace/test_rbd_wnbd.py --test-name RbdFsTest --iterations 4
-SSH_TIMEOUT=5m ssh_exec python.exe /workspace/test_rbd_wnbd.py --test-name RbdFsFioTest --iterations 4
-SSH_TIMEOUT=5m ssh_exec python.exe /workspace/test_rbd_wnbd.py --test-name RbdFsStampTest --iterations 4
+    SSH_TIMEOUT=5m ssh_exec python.exe /workspace/test_rbd_wnbd.py --test-name RbdTest --iterations 100
+    SSH_TIMEOUT=5m ssh_exec python.exe /workspace/test_rbd_wnbd.py --test-name RbdFioTest --iterations 100
+    SSH_TIMEOUT=5m ssh_exec python.exe /workspace/test_rbd_wnbd.py --test-name RbdStampTest --iterations 100
+
+    # It can take a while to setup the partition (~10s), we'll use fewer iterations.
+    SSH_TIMEOUT=5m ssh_exec python.exe /workspace/test_rbd_wnbd.py --test-name RbdFsTest --iterations 4
+    SSH_TIMEOUT=5m ssh_exec python.exe /workspace/test_rbd_wnbd.py --test-name RbdFsFioTest --iterations 4
+    SSH_TIMEOUT=5m ssh_exec python.exe /workspace/test_rbd_wnbd.py --test-name RbdFsStampTest --iterations 4
+fi
