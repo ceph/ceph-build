@@ -1452,6 +1452,7 @@ setup_rpm_build_deps() {
     case "${FLAVOR}" in
     crimson)
       sed -i -e 's/%bcond_with seastar/%bcond_without seastar/g' $DIR/ceph.spec
+      sed -i -e 's/%bcond_without cephfs_java/%bcond_with cephfs_java/g' $DIR/ceph.spec
         ;;
     jaeger)
       sed -i -e 's/%bcond_with jaeger/%bcond_without jaeger/g' $DIR/ceph.spec
