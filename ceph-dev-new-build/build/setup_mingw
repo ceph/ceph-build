@@ -68,10 +68,10 @@ if [ "$THROWAWAY" = false ] ; then
     check_binary_existence $VENV $chacra_check_url
 fi
 
-# We need Ubuntu Focal to cross-compile Ceph for Windows.
-# Previous versions provide broken Mingw packages.
+# We need Ubuntu >= Jammy to cross-compile Ceph for Windows.
+# Previous versions provide broken Mingw packages/too old gcc.
 # "DIST" will be set to "windows", so we're currently overriding it with
 # a hardcoded value.
-DIST="focal"
+DIST="jammy"
 setup_pbuilder use_gcc
 DIST="$NORMAL_DISTRO"
