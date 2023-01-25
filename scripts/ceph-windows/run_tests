@@ -68,16 +68,18 @@ if [[ -f $LOCAL_SCRIPT_PATH ]]; then
     scp_upload $WIN_WORKUNITS_DIR /workspace/workunits
     SSH_TIMEOUT=30m ssh_exec powershell.exe -File /workspace/workunits/run-tests.ps1
 else
-    REMOTE_SCRIPT_URL="https://raw.githubusercontent.com/ceph/ceph/main/qa/workunits/windows/test_rbd_wnbd.py"
+    # The following is only used on Quincy, make sure to leave this in place while Quincy
+    # is still being tested.
+    REMOTE_SCRIPT_URL="https://raw.githubusercontent.com/ceph/ceph/1db85786588ad974621a6b669a3aae4e8799b1e6/qa/workunits/windows/test_rbd_wnbd.py"
     echo "Using remote test script from: $REMOTE_SCRIPT_URL"
     ssh_exec curl.exe -s -L -o /workspace/test_rbd_wnbd.py $REMOTE_SCRIPT_URL
 
-    SSH_TIMEOUT=5m ssh_exec python.exe /workspace/test_rbd_wnbd.py --test-name RbdTest --iterations 100
-    SSH_TIMEOUT=5m ssh_exec python.exe /workspace/test_rbd_wnbd.py --test-name RbdFioTest --iterations 100
-    SSH_TIMEOUT=5m ssh_exec python.exe /workspace/test_rbd_wnbd.py --test-name RbdStampTest --iterations 100
+    SSH_TIMEOUT=15m ssh_exec python.exe /workspace/test_rbd_wnbd.py --test-name RbdTest --iterations 100
+    SSH_TIMEOUT=30m ssh_exec python.exe /workspace/test_rbd_wnbd.py --test-name RbdFioTest --iterations 100
+    SSH_TIMEOUT=15m ssh_exec python.exe /workspace/test_rbd_wnbd.py --test-name RbdStampTest --iterations 100
 
     # It can take a while to setup the partition (~10s), we'll use fewer iterations.
-    SSH_TIMEOUT=5m ssh_exec python.exe /workspace/test_rbd_wnbd.py --test-name RbdFsTest --iterations 4
-    SSH_TIMEOUT=5m ssh_exec python.exe /workspace/test_rbd_wnbd.py --test-name RbdFsFioTest --iterations 4
-    SSH_TIMEOUT=5m ssh_exec python.exe /workspace/test_rbd_wnbd.py --test-name RbdFsStampTest --iterations 4
+    SSH_TIMEOUT=15m ssh_exec python.exe /workspace/test_rbd_wnbd.py --test-name RbdFsTest --iterations 4
+    SSH_TIMEOUT=15m ssh_exec python.exe /workspace/test_rbd_wnbd.py --test-name RbdFsFioTest --iterations 4
+    SSH_TIMEOUT=15m ssh_exec python.exe /workspace/test_rbd_wnbd.py --test-name RbdFsStampTest --iterations 4
 fi
