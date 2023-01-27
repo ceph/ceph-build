@@ -8,11 +8,14 @@ if [[ ! -f $CEPH_KEYRING ]]; then echo "ERROR: The Ceph keyring file doesn't exi
 
 if [[ -z $WINDOWS_SSH_USER ]]; then echo "ERROR: The WINDOWS_SSH_USER env variable is not set"; exit 1; fi
 if [[ -z $WINDOWS_VM_IP ]]; then echo "ERROR: The WINDOWS_VM_IP env variable is not set"; exit 1; fi
+if [[ -z $UBUNTU_SSH_USER ]]; then echo "ERROR: The UBUNTU_SSH_USER env variable is not set"; exit 1; fi
+if [[ -z $UBUNTU_VM_IP ]]; then echo "ERROR: The UBUNTU_VM_IP env variable is not set"; exit 1; fi
 
 export SSH_USER=$WINDOWS_SSH_USER
 export SSH_ADDRESS=$WINDOWS_VM_IP
 
 WIN_USERSPACE_CRASH_DUMPS=${WIN_USERSPACE_CRASH_DUMPS:-"C:\\userspace_crash_dumps"}
+COLLECT_EVENT_LOGS_SCRIPT_URL="https://raw.githubusercontent.com/ceph/ceph-build/main/scripts/ceph-windows/collect-event-logs.ps1"
 
 #
 # Clone ceph-win32-tests repo
@@ -28,6 +31,7 @@ ssh_exec powershell.exe /workspace/repos/ceph-win32-tests/test_host/set_userspac
 # Copy the ceph.conf and keyring to the Windows VM
 #
 ssh_exec powershell.exe mkdir -force /ProgramData/ceph/out
+ssh_exec powershell.exe mkdir -force /ProgramData/ceph/logs
 scp_upload $CEPH_WINDOWS_CONF /ProgramData/ceph/ceph.conf
 scp_upload $CEPH_KEYRING /ProgramData/ceph/keyring
 
@@ -46,6 +50,8 @@ function collect_artifacts() {
     rm -rf $WORKSPACE/artifacts
     mkdir -p $WORKSPACE/artifacts
 
+    SSH_USER=$UBUNTU_SSH_USER SSH_ADDRESS=$UBUNTU_VM_IP ssh_exec $WORKSPACE/ceph/build/bin/ceph status
+
     scp_download /workspace/test_results $WORKSPACE/artifacts/test_results
     if [[ "$INCLUDE_USERSPACE_CRASH_DUMPS" = true ]]; then
         scp_download /userspace_crash_dumps $WORKSPACE/artifacts/userspace_crash_dumps
@@ -53,9 +59,20 @@ function collect_artifacts() {
     if [[ "$INCLUDE_CEPH_ZIP" = true ]]; then
         cp $WORKSPACE/ceph.zip $WORKSPACE/artifacts/ceph.zip
     fi
+
+    mkdir -p $WORKSPACE/artifacts/client
+
+    scp_download /ProgramData/ceph/logs $WORKSPACE/artifacts/client/logs
+    cp $CEPH_WINDOWS_CONF $WORKSPACE/artifacts/client
+    ssh_exec /wnbd/wnbd-client.exe version
+    ssh_exec curl.exe --retry-max-time 30 --retry 10 -L -o /workspace/collect-event-logs.ps1 $COLLECT_EVENT_LOGS_SCRIPT_URL
+    ssh_exec powershell.exe /workspace/collect-event-logs.ps1 -LogDirectory /workspace/eventlogs
+    scp_download /workspace/eventlogs $WORKSPACE/artifacts/client/eventlogs
 }
 trap collect_artifacts EXIT
 
+# View cluster status before test run
+SSH_USER=$UBUNTU_SSH_USER SSH_ADDRESS=$UBUNTU_VM_IP ssh_exec $WORKSPACE/ceph/build/bin/ceph status
 #
 # Run the Windows tests
 #
