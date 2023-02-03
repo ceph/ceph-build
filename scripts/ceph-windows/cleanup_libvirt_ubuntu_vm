@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+set -o errexit
+set -o pipefail
+
+if [[ -z $UBUNTU_VM_NAME ]]; then echo "ERROR: The env variable UBUNTU_VM_NAME is not set"; exit 1; fi
+
+# Destroy and undefine the VM
+sudo virsh destroy $UBUNTU_VM_NAME
+sudo virsh undefine $UBUNTU_VM_NAME --remove-all-storage
