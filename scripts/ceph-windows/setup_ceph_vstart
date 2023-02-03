@@ -21,6 +21,10 @@ function rsync_cmd() {
 # Build Ceph vstart
 #
 cat > ${VSTART_DIR}/build-ceph-vstart.sh << EOF
+#!/usr/bin/env bash
+set -o errexit
+set -o pipefail
+
 cd ~/ceph
 ./install-deps.sh
 ./do_cmake.sh \

@@ -67,8 +67,10 @@
         !include-raw:
           - ../../../scripts/build_utils.sh
           - ../../build/check_docs_pr_only
-          - ../../../scripts/ceph-windows/win32_build
           - ../../../scripts/ceph-windows/setup_libvirt
+          - ../../../scripts/ceph-windows/setup_libvirt_ubuntu_vm
+          - ../../../scripts/ceph-windows/win32_build
+          - ../../../scripts/ceph-windows/cleanup_libvirt_ubuntu_vm
           - ../../../scripts/ceph-windows/setup_libvirt_ubuntu_vm
           - ../../../scripts/ceph-windows/setup_libvirt_windows_vm
           - ../../../scripts/ceph-windows/setup_ceph_vstart

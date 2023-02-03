@@ -2,10 +2,37 @@
 set -o errexit
 set -o pipefail
 
+if [[ -z $SSH_KEY ]]; then echo "ERROR: The SSH_KEY env variable is not set"; exit 1; fi
+if [[ -z $SSH_KNOWN_HOSTS_FILE ]]; then echo "ERROR: The SSH_KNOWN_HOSTS_FILE env variable is not set"; exit 1; fi
+
+if [[ -z $UBUNTU_SSH_USER ]]; then echo "ERROR: The UBUNTU_SSH_USER env variable is not set"; exit 1; fi
+if [[ -z $UBUNTU_VM_IP ]]; then echo "ERROR: The UBUNTU_VM_IP env variable is not set"; exit 1; fi
+
+export SSH_USER=$UBUNTU_SSH_USER
+export SSH_ADDRESS=$UBUNTU_VM_IP
+
+function rsync_cmd() {
+    rsync -a --delete -e "ssh -i $SSH_KEY -o UserKnownHostsFile=$SSH_KNOWN_HOSTS_FILE" ${@}
+}
+
 #
 # Build Ceph Windows
 #
-cd $WORKSPACE/ceph
+cat > ${WORKSPACE}/build-ceph-windows.sh << EOF
+#!/usr/bin/env bash
+set -o errexit
+set -o pipefail
+
+cd ~/ceph
+
+sudo apt-get update
+sudo apt-get install -y git
 git submodule update --init --recursive
-ZIP_DEST=$WORKSPACE/ceph.zip $CEPH_WIN32_BUILD_FLAGS timeout 3h ./win32_build.sh
-rm -rf build
+
+ZIP_DEST=~/ceph.zip $CEPH_WIN32_BUILD_FLAGS timeout 3h ./win32_build.sh
+EOF
+chmod +x ${WORKSPACE}/build-ceph-windows.sh
+time rsync_cmd $WORKSPACE/ceph ${WORKSPACE}/build-ceph-windows.sh ${UBUNTU_SSH_USER}@${UBUNTU_VM_IP}:
+
+time SSH_TIMEOUT=3h ssh_exec ./build-ceph-windows.sh
+time rsync_cmd ${UBUNTU_SSH_USER}@${UBUNTU_VM_IP}:~/ceph.zip $WORKSPACE/ceph.zip
