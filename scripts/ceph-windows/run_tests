@@ -50,7 +50,7 @@ function collect_artifacts() {
     rm -rf $WORKSPACE/artifacts
     mkdir -p $WORKSPACE/artifacts
 
-    SSH_USER=$UBUNTU_SSH_USER SSH_ADDRESS=$UBUNTU_VM_IP ssh_exec $WORKSPACE/ceph/build/bin/ceph status
+    SSH_USER=$UBUNTU_SSH_USER SSH_ADDRESS=$UBUNTU_VM_IP ssh_exec ./ceph/build/bin/ceph status
 
     scp_download /workspace/test_results $WORKSPACE/artifacts/test_results
     if [[ "$INCLUDE_USERSPACE_CRASH_DUMPS" = true ]]; then
@@ -72,7 +72,7 @@ function collect_artifacts() {
 trap collect_artifacts EXIT
 
 # View cluster status before test run
-SSH_USER=$UBUNTU_SSH_USER SSH_ADDRESS=$UBUNTU_VM_IP ssh_exec $WORKSPACE/ceph/build/bin/ceph status
+SSH_USER=$UBUNTU_SSH_USER SSH_ADDRESS=$UBUNTU_VM_IP ssh_exec ./ceph/build/bin/ceph status
 #
 # Run the Windows tests
 #
