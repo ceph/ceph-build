@@ -87,6 +87,7 @@ MON_HOST=$(cat $CEPH_CONF | grep -o "mon host \=.*")
 cat > $CEPH_WINDOWS_CONF << EOF
 [client]
     keyring = C:/ProgramData/ceph/keyring
+    log file = C:/ProgramData/ceph/logs/\$name.\$pid.log
     admin socket = C:/ProgramData/ceph/out/\$name.\$pid.asok
     client_mount_uid = 1000
     client_mount_gid = 1000
