@@ -49,8 +49,19 @@ ssh_exec powershell.exe Start-Service -Name ceph-rbd
 function collect_artifacts() {
     rm -rf $WORKSPACE/artifacts
     mkdir -p $WORKSPACE/artifacts
+    mkdir -p $WORKSPACE/artifacts/cluster
+    mkdir -p $WORKSPACE/artifacts/cluster/ceph_logs
 
     SSH_USER=$UBUNTU_SSH_USER SSH_ADDRESS=$UBUNTU_VM_IP ssh_exec ./ceph/build/bin/ceph status
+    SSH_USER=$UBUNTU_SSH_USER SSH_ADDRESS=$UBUNTU_VM_IP ssh_exec free -h
+
+    SSH_USER=$UBUNTU_SSH_USER SSH_ADDRESS=$UBUNTU_VM_IP ssh_exec \
+        "journalctl -b > /tmp/journal"
+    SSH_USER=$UBUNTU_SSH_USER SSH_ADDRESS=$UBUNTU_VM_IP scp_download \
+        /tmp/journal $WORKSPACE/artifacts/cluster/journal
+
+    SSH_USER=$UBUNTU_SSH_USER SSH_ADDRESS=$UBUNTU_VM_IP scp_download \
+        './ceph-vstart/out/*.log' $WORKSPACE/artifacts/cluster/ceph_logs/
 
     scp_download /workspace/test_results $WORKSPACE/artifacts/test_results
     if [[ "$INCLUDE_USERSPACE_CRASH_DUMPS" = true ]]; then
