@@ -20,16 +20,13 @@ function DumpEventLogEvtx($path){
     }
 }
 
-function ConvertEvtxDumpToTxt($path){
-    foreach ($i in (Get-ChildItem $path -Filter eventlog_*.evtx)) {
-        $logName = $i.BaseName + ".txt"
+function DumpEventLogTxt($path){
+    foreach ($i in (Get-WinEvent -ListLog * |  ? {$_.RecordCount -gt 0 })) {
+        $logName = "eventlog_" + $i.LogName + ".txt"
         $logName = $logName.replace(" ","-").replace("/", "-").replace("\", "-")
-        Write-Output "converting "$i.BaseName" evtx to txt"
+        Write-Output "exporting "$i.LogName" as "$logName
         $logFile = Join-Path $path $logName
-        & $Env:WinDir\System32\wevtutil.exe qe $i.FullName /lf > $logFile
-        if ($LASTEXITCODE) {
-            Throw "Failed to convert $($i.FullName) to txt"
-        }
+        Get-WinEvent -FilterHashtable @{LogName=$i.LogName;StartTime=$(Get-Date).AddHours(-24)} | Format-Table -AutoSize -Wrap > $logFile
     }
 }
 
@@ -44,13 +41,12 @@ function ClearEventLog(){
 
 mkdir -force $LogDirectory
 
-DumpEventLogEvtx $LogDirectory
-ConvertEvtxDumpToTxt $LogDirectory
+DumpEventLogTxt $LogDirectory
+
+if ($IncludeEvtxFiles) {
+    DumpEventLogEvtx $LogDirectory
+}
 
 if ($CleanupEventLog) {
     ClearEventLog
-}
-
-if (-not $IncludeEvtxFiles) {
-    rm $LogDirectory\eventlog_*.evtx
 }
