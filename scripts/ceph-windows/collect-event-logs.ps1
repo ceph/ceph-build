@@ -26,7 +26,13 @@ function DumpEventLogTxt($path){
         $logName = $logName.replace(" ","-").replace("/", "-").replace("\", "-")
         Write-Output "exporting "$i.LogName" as "$logName
         $logFile = Join-Path $path $logName
-        Get-WinEvent -FilterHashtable @{LogName=$i.LogName;StartTime=$(Get-Date).AddHours(-24)} | Format-Table -AutoSize -Wrap > $logFile
+        Get-WinEvent `
+            -ErrorAction SilentlyContinue `
+            -FilterHashtable @{
+                LogName=$i.LogName;
+                StartTime=$(Get-Date).AddHours(-6)
+            } | `
+            Format-Table -AutoSize -Wrap > $logFile
     }
 }
 
