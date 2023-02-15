@@ -5,7 +5,7 @@ param (
     [switch]$CleanupEventLog = $false
 )
 
-$ErrorActionPreference = "Stop"
+$ErrorActionPreference = "Ignore"
 
 function DumpEventLogEvtx($path){
     foreach ($i in (Get-WinEvent -ListLog * |  ? {$_.RecordCount -gt 0 })) {
@@ -15,7 +15,7 @@ function DumpEventLogEvtx($path){
         $logFile = Join-Path $path $logName
         & $Env:WinDir\System32\wevtutil.exe epl $i.LogName $logFile
         if ($LASTEXITCODE) {
-            Throw "Failed to export $($i.LogName) to $logFile"
+            Write-Output "Failed to export $($i.LogName) to $logFile"
         }
     }
 }
@@ -27,7 +27,7 @@ function DumpEventLogTxt($path){
         Write-Output "exporting "$i.LogName" as "$logName
         $logFile = Join-Path $path $logName
         Get-WinEvent `
-            -ErrorAction SilentlyContinue `
+            -ErrorAction "Ignore" `
             -FilterHashtable @{
                 LogName=$i.LogName;
                 StartTime=$(Get-Date).AddHours(-6)
@@ -40,7 +40,7 @@ function ClearEventLog(){
     foreach ($i in (Get-WinEvent -ListLog * |  ? {$_.RecordCount -gt 0 })) {
         & $Env:WinDir\System32\wevtutil.exe cl $i.LogName
         if ($LASTEXITCODE) {
-            Throw "Failed to clear $($i.LogName) from the event log"
+            Write-Output "Failed to clear $($i.LogName) from the event log"
         }
     }
 }
@@ -56,3 +56,5 @@ if ($IncludeEvtxFiles) {
 if ($CleanupEventLog) {
     ClearEventLog
 }
+
+Write-Output "Successfully collected Windows event logs."

@@ -111,3 +111,5 @@ else
     SSH_TIMEOUT=15m ssh_exec python.exe /workspace/test_rbd_wnbd.py --test-name RbdFsFioTest --iterations 4
     SSH_TIMEOUT=15m ssh_exec python.exe /workspace/test_rbd_wnbd.py --test-name RbdFsStampTest --iterations 4
 fi
+
+echo "Windows tests succeeded."
