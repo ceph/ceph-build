@@ -76,9 +76,12 @@ function collect_artifacts() {
     scp_download /ProgramData/ceph/logs $WORKSPACE/artifacts/client/logs
     cp $CEPH_WINDOWS_CONF $WORKSPACE/artifacts/client
     ssh_exec /wnbd/wnbd-client.exe version
-    ssh_exec curl.exe --retry-max-time 30 --retry 10 -L -o /workspace/collect-event-logs.ps1 $COLLECT_EVENT_LOGS_SCRIPT_URL
-    ssh_exec powershell.exe /workspace/collect-event-logs.ps1 -LogDirectory /workspace/eventlogs
-    scp_download /workspace/eventlogs $WORKSPACE/artifacts/client/eventlogs
+    # Event log collection is temporarily disabled. The script terminates
+    # abruptly even if the error action is set to "ignore".
+    #
+    # ssh_exec curl.exe --retry-max-time 30 --retry 10 -L -o /workspace/collect-event-logs.ps1 $COLLECT_EVENT_LOGS_SCRIPT_URL
+    # ssh_exec powershell.exe /workspace/collect-event-logs.ps1 -LogDirectory /workspace/eventlogs
+    # scp_download /workspace/eventlogs $WORKSPACE/artifacts/client/eventlogs
 }
 trap collect_artifacts EXIT
 
