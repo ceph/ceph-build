@@ -7,6 +7,7 @@ $VS_2019_BUILD_TOOLS_URL = "https://aka.ms/vs/16/release/vs_buildtools.exe"
 $WDK_URL = "https://download.microsoft.com/download/7/d/6/7d602355-8ae9-414c-ae36-109ece2aade6/wdk/wdksetup.exe"  # Windows 11 WDK (22000.1). It can be used to develop drivers for previous OS releases.
 $PYTHON3_URL = "https://www.python.org/ftp/python/3.11.0/python-3.11.0-amd64.exe"
 $FIO_URL = "https://bsdio.com/fio/releases/fio-3.27-x64.msi"
+$DOKANY_URL = "https://github.com/dokan-dev/dokany/releases/download/v2.0.6.1000/Dokan_x64.msi"
 
 $WNBD_GIT_REPO = "https://github.com/ceph/wnbd.git"
 $WNBD_GIT_BRANCH = "main"
@@ -208,6 +209,11 @@ function Install-FIO {
     Write-Output "Successfully installed FIO"
 }
 
+function Install-Dokany {
+    Write-Output "Installing Dokany"
+    Install-Tool -URL $DOKANY_URL -Params @("/quiet", "/norestart")
+    Write-Output "Successfully installed Dokany"
+}
 
 Get-WindowsBuildInfo
 Install-Requirements
@@ -215,6 +221,7 @@ Install-VisualStudio2019BuildTools
 Install-WDK
 Install-Git
 Install-WnbdDriver
+Install-Dokany
 Install-Python3
 Install-Wix3Toolset
 Install-FIO
