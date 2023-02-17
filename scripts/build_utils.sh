@@ -1682,7 +1682,16 @@ function ssh_exec() {
     if [[ ! -z $SSH_KNOWN_HOSTS_FILE ]]; then
         SSH_OPTS="$SSH_OPTS -o UserKnownHostsFile=$SSH_KNOWN_HOSTS_FILE"
     fi
-    timeout ${SSH_TIMEOUT:-"30s"} ssh -i ${SSH_KEY:-"$HOME/.ssh/id_rsa"} $SSH_OPTS ${SSH_USER}@${SSH_ADDRESS} ${@}
+    timeout ${SSH_TIMEOUT:-"30s"} ssh -i ${SSH_KEY:-"$HOME/.ssh/id_rsa"} $SSH_OPTS ${SSH_USER}@${SSH_ADDRESS} ${@} || {
+        EXIT_CODE=$?
+        # By default, the "timeout" CLI tool always exits with 124 when the
+        # timeout is exceeded. Unless "--preserve-status" argument is used, the
+        # exit code is never set to the exit code of the command that timed out.
+        if [[ $EXIT_CODE -eq 124 ]]; then
+            echo "ERROR: ssh command timed out"
+        fi
+        exit $EXIT_CODE
+    }
 }
 
 function scp_upload() {

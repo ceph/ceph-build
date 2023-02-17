@@ -5,42 +5,57 @@ param (
     [switch]$CleanupEventLog = $false
 )
 
-$ErrorActionPreference = "Ignore"
+function SanitizeName {
+    Param(
+        [Parameter(Mandatory=$true)]
+        [string]$Name
+    )
+    return $Name.replace(" ","-").replace("/", "-").replace("\", "-")
+}
 
-function DumpEventLogEvtx($path){
-    foreach ($i in (Get-WinEvent -ListLog * |  ? {$_.RecordCount -gt 0 })) {
-        $logName = "eventlog_" + $i.LogName + ".evtx"
-        $logName = $logName.replace(" ","-").replace("/", "-").replace("\", "-")
-        Write-Output "exporting "$i.LogName" as "$logName
-        $logFile = Join-Path $path $logName
-        & $Env:WinDir\System32\wevtutil.exe epl $i.LogName $logFile
+function DumpEventLogEvtx {
+    Param(
+        [Parameter(Mandatory=$true)]
+        [string]$Path
+    )
+    $winEvents = Get-WinEvent -ListLog * | Where-Object { $_.RecordCount -gt 0 }
+    foreach ($i in $winEvents) {
+        $logFile = Join-Path $Path "eventlog_$(SanitizeName $i.LogName).evtx"
+
+        Write-Output "exporting '$($i.LogName)' to $logFile"
+        & $Env:WinDir\System32\wevtutil.exe epl "$($i.LogName)" $logFile
         if ($LASTEXITCODE) {
             Write-Output "Failed to export $($i.LogName) to $logFile"
         }
     }
 }
 
-function DumpEventLogTxt($path){
-    foreach ($i in (Get-WinEvent -ListLog * |  ? {$_.RecordCount -gt 0 })) {
-        $logName = "eventlog_" + $i.LogName + ".txt"
-        $logName = $logName.replace(" ","-").replace("/", "-").replace("\", "-")
-        Write-Output "exporting "$i.LogName" as "$logName
-        $logFile = Join-Path $path $logName
+function DumpEventLogTxt {
+    Param(
+        [Parameter(Mandatory=$true)]
+        [string]$Path
+    )
+    $winEvents = Get-WinEvent -ListLog * | Where-Object { $_.RecordCount -gt 0 }
+    foreach ($i in $winEvents) {
+        $logFile = Join-Path $Path "eventlog_$(SanitizeName $i.LogName).txt"
+
+        Write-Output "exporting '$($i.LogName)' to $logFile"
         Get-WinEvent `
-            -ErrorAction "Ignore" `
+            -ErrorAction "SilentlyContinue" `
             -FilterHashtable @{
                 LogName=$i.LogName;
                 StartTime=$(Get-Date).AddHours(-6)
             } | `
-            Format-Table -AutoSize -Wrap > $logFile
+            Format-Table -AutoSize -Wrap | Out-File -Encoding ascii -FilePath $logFile
     }
 }
 
-function ClearEventLog(){
-    foreach ($i in (Get-WinEvent -ListLog * |  ? {$_.RecordCount -gt 0 })) {
+function ClearEventLog {
+    $winEvents = Get-WinEvent -ListLog * | Where-Object { $_.RecordCount -gt 0 }
+    foreach ($i in $winEvents) {
         & $Env:WinDir\System32\wevtutil.exe cl $i.LogName
         if ($LASTEXITCODE) {
-            Write-Output "Failed to clear $($i.LogName) from the event log"
+            Write-Output "Failed to clear '$($i.LogName)' from the event log"
         }
     }
 }
@@ -57,4 +72,4 @@ if ($CleanupEventLog) {
     ClearEventLog
 }
 
-Write-Output "Successfully collected Windows event logs."
+Write-Output "Finished collecting Windows event logs."
