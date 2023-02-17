@@ -1690,7 +1690,7 @@ function ssh_exec() {
         if [[ $EXIT_CODE -eq 124 ]]; then
             echo "ERROR: ssh command timed out"
         fi
-        exit $EXIT_CODE
+        return $EXIT_CODE
     }
 }
 
