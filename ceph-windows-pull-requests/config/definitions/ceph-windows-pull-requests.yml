@@ -36,6 +36,7 @@
             - ceph
           white-list-target-branches:
             - main
+            - reef
             - quincy
           trigger-phrase: 'jenkins test windows'
           skip-build-phrase: '^jenkins do not test.*'

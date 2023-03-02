@@ -21,7 +21,7 @@ keyid=460F3994
 
 if [ $# -eq 0 ]; then
   # Default releases if no arguments passed
-  releases=( mimic nautilus octopus pacific quincy )
+  releases=( pacific quincy reef )
 else
   releases=( "$@" )
 fi

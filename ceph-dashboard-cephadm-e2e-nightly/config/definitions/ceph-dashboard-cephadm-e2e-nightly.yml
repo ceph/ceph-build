@@ -2,9 +2,9 @@
     name: ceph-dashboard-cephadm-e2e-nightly
     ceph_branch:
       - main
+      - reef
       - quincy
       - pacific
-      - octopus
     jobs:
       - '{name}-{ceph_branch}'
 

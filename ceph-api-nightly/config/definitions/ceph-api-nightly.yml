@@ -2,10 +2,9 @@
     name: ceph-api-nightly
     ceph_branch:
       - main
+      - reef
       - quincy
       - pacific
-      - octopus
-      - nautilus
     test_suite:
       - backend:
           test_suite_script: run-backend-api-tests.sh
