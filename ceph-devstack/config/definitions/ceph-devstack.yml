@@ -1,0 +1,18 @@
+- job:
+    name: ceph-devstack
+    description: Run ceph-devstack
+    project-type: pipeline
+    concurrent: false
+    pipeline-scm:
+      scm:
+        - git:
+            url: https://github.com/zmc/ceph-devstack
+            branches:
+              - origin/main
+    parameters:
+      - string:
+          name: TEUTHOLOGY_BRANCH
+          default: "ceph-devstack"
+      - string:
+          name: TEUTHOLOGY_SUITE
+          default: "teuthology:no-ceph"
