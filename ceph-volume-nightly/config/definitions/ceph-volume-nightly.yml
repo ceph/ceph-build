@@ -12,6 +12,7 @@
       - lvm
     ceph_branch:
       - main
+      - reef
       - quincy
       - pacific
 
@@ -32,6 +33,7 @@
       - batch
     ceph_branch:
       - main
+      - reef
       - quincy
       - pacific
 
@@ -54,6 +56,7 @@
       - batch
     ceph_branch:
       - main
+      - reef
       - quincy
       - pacific
 

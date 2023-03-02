@@ -1159,7 +1159,7 @@ start_tox() {
         # dev runs will need to be set to the release
         # that matches what the current ceph main
         # branch is at
-        local release="quincy"
+        local release="reef"
     fi
     TOX_RUN_ENV=("timeout 3h")
     if [ -n "$ceph_docker_image_tag" ]; then

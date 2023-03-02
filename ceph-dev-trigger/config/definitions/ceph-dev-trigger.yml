@@ -35,6 +35,7 @@
             - 'origin/octopus'
             - 'origin/pacific'
             - 'origin/quincy'
+            - 'origin/reef'
           skip-tag: true
           timeout: 20
           wipe-workspace: true
@@ -120,6 +121,31 @@
                     BRANCH=${GIT_BRANCH}
                     FORCE=True
                     DISTROS=focal centos8 leap15
+                - project: 'ceph-dev'
+                  predefined-parameters: |
+                    BRANCH=${GIT_BRANCH}
+                    FORCE=True
+                    DISTROS=centos8
+                    FLAVOR=crimson
+      # build reef on:
+      # default: jammy focal centos8 centos9
+      # crimson: centos8
+      - conditional-step:
+          condition-kind: regex-match
+          regex: .*main.*
+          label: '${GIT_BRANCH}'
+          on-evaluation-failure: dont-run
+          steps:
+            - shell:
+                !include-raw:
+                - ../../../scripts/build_utils.sh
+                - ../../build/notify
+            - trigger-builds:
+                - project: 'ceph-dev'
+                  predefined-parameters: |
+                    BRANCH=${GIT_BRANCH}
+                    FORCE=True
+                    DISTROS=jammy focal centos8 centos9
                 - project: 'ceph-dev'
                   predefined-parameters: |
                     BRANCH=${GIT_BRANCH}

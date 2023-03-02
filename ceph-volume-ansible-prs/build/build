@@ -37,6 +37,8 @@ elif [[ "$ghprbTargetBranch" == "pacific" ]]; then
     CEPH_ANSIBLE_BRANCH="stable-6.0"
 elif [[ "$ghprbTargetBranch" == "quincy" ]]; then
     CEPH_ANSIBLE_BRANCH="stable-7.0"
+elif [[ "$ghprbTargetBranch" == "reef" ]]; then
+    CEPH_ANSIBLE_BRANCH="stable-8.0"
 else
     CEPH_ANSIBLE_BRANCH="main"
 fi
