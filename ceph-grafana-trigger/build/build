@@ -1,6 +1,6 @@
 #!/bin/bash -ex
 
-CONTAINER_VERSION=${CONTAINER_VERSION:-8.3.5}
+CONTAINER_VERSION=${CONTAINER_VERSION:-9.4.7}
 CONTAINER=ceph/ceph-grafana:${CONTAINER_VERSION}
 sudo dnf install -y podman
 sudo podman login quay.io -u ${CONTAINER_REPO_USERNAME} -p ${CONTAINER_REPO_PASSWORD}
