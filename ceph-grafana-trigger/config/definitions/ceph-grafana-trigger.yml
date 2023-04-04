@@ -23,7 +23,7 @@
       - string:
           name: CONTAINER_VERSION
           description: "The version tag for the containers; will have -ARCH added to it.  By convention, the version of Grafana"
-          default: "8.3.5"
+          default: "9.4.7"
     axes:
         - axis:
             type: label-expression
