@@ -29,9 +29,8 @@ echo "Found the most packages ($current_highest_count) in $highest_combo."
 need_rerun=false
 for endpoint in https://chacra.ceph.com/repos/$project/$release/$sha1/centos/{7,8,9} https://chacra.ceph.com/repos/$project/$release/$sha1/$highest_combo; do
   chacra_repo_status=$(curl -s -L $endpoint)
-  # python is only used here because jq isn't installed on the signer box
-  chacra_needs_update=$(echo $chacra_repo_status | python -mjson.tool | grep needs_update | awk '{ print $2 }' | sed 's/,$//')
-  chacra_is_updating=$(echo $chacra_repo_status | python -mjson.tool | grep is_updating | awk '{ print $2 }' | sed 's/,$//')
+  chacra_needs_update=$(echo $chacra_repo_status | jq .needs_update)
+  chacra_is_updating=$(echo $chacra_repo_status  | jq .is_updating)
 
   if [ "$chacra_needs_update" == "true" ] || [ "$chacra_is_updating" == "true" ]; then
     need_rerun=true
@@ -45,7 +44,7 @@ if [[ "$release" =~ ^[a-n].* ]]; then
 else
   newgen=true
   # Get numerical version number (we only need this with Octopus or later because of the new directory/path scheme).
-  version=$(echo $chacra_repo_status | python -mjson.tool | grep \"version\" | awk '{ print $2 }' | sed 's/"//g')
+  version=$(echo $chacra_repo_status | jq -r .extra.version)
   [[ -d /opt/repos/$project/$release-$version ]] | mkdir -p /opt/repos/$project/$release-$version/{debian/jessie,centos/{7,8,9}}
 fi
 
