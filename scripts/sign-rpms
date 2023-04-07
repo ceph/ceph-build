@@ -84,7 +84,14 @@ for release in "${releases[@]}"; do
               cd $directory
               # use the --no-database to workaround the large dbg packages issues
               # https://tracker.ceph.com/issues/39387
-              createrepo --no-database .
+              # later debian no longer has the (Python) createrepo; it's been replaced
+              # by a mostly-compatible C version called createrepo_c.  Use it if we can't
+              # find createrepo.
+              if command -v createrepo >/dev/null 2>&1 ; then
+                createrepo --no-database .
+              else
+                createrepo_c --compatibility --no-database .
+              fi
               cd -
             done
           fi
