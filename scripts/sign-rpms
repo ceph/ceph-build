@@ -70,15 +70,7 @@ for release in "${releases[@]}"; do
             fi
           done
 
-          # now sign the repomd.xml files
-          if [[ $update_repo -eq 1 ]]; then
-            for repomd in `find -name repomd.xml`; do
-              echo "signing repomd: $repomd"
-              gpg --batch --yes --passphrase "$GPG_PASSPHRASE" --detach-sign --armor -u $keyid $repomd
-            done
-          fi
-
-          # finally, update the repo metadata
+          # now, update the repo metadata
           if [[ $update_repo -eq 1 ]]; then
             for directory in $(ls $path/$distro/$distro_version); do
               cd $directory
@@ -93,6 +85,14 @@ for release in "${releases[@]}"; do
                 createrepo_c --compatibility --no-database .
               fi
               cd -
+            done
+          fi
+
+          # finally, sign the repomd.xml files
+          if [[ $update_repo -eq 1 ]]; then
+            for repomd in `find -name repomd.xml`; do
+              echo "signing repomd: $repomd"
+              gpg --batch --yes --passphrase "$GPG_PASSPHRASE" --detach-sign --armor -u $keyid $repomd
             done
           fi
 
