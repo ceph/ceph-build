@@ -8,8 +8,7 @@
     concurrent: true
     properties:
       - build-discarder:
-          days-to-keep: 14
-          artifact-days-to-keep: 14
+          num-to-keep: 25
       - github:
           url: https://github.com/ceph/ceph
       - copyartifact:
