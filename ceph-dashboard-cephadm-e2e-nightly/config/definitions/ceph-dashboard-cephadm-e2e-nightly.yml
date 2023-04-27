@@ -68,8 +68,6 @@
       - ansicolor
 
     publishers:
-      - email:
-          recipients: ceph-qa@ceph.io
       - archive:
           artifacts: 'logs/**'
           allow-empty: true
