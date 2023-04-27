@@ -25,4 +25,7 @@ else
   ENVIRONMENT="${SCENARIO}"
 fi
 
+# Skip the following scenarios as they are not valid:
+
+[[ "$ghprbTargetBranch" == pacific && "$DISTRIBUTION" == el9 ]] ||
 "${VENV}"/tox --workdir="${TEMPVENV}" -c tox.ini -e "${ENVIRONMENT}" -r -v -- --provider=libvirt
