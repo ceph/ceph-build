@@ -163,6 +163,9 @@ install_python_packages_no_binary () {
         $venv/pip install "pip==20.3.4"
     fi
 
+    echo "Ensuring latest wheel is installed"
+    $venv/pip install -U wheel
+
     echo "Updating setuptools"
     pip_download $VENV setuptools
 
@@ -225,6 +228,9 @@ install_python_packages () {
         echo "Installing pip 20.3.4"
         $venv/pip install "pip==20.3.4"
     fi
+
+    echo "Ensuring latest wheel is installed"
+    $venv/pip install -U wheel
 
     echo "Updating setuptools"
     pip_download $venv setuptools
