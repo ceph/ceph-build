@@ -237,6 +237,11 @@ install_python_packages () {
         # install packages from the local pip cache, ignoring pypi
         $venv/pip install --upgrade --exists-action=i --find-links="file://$PIP_SDIST_INDEX" --no-index $package
     done
+
+    # See https://tracker.ceph.com/issues/59652
+    echo "Pinning urllib3 and requests"
+    $venv/pip install "urllib3<2.0.0"
+    $venv/pip install "requests<2.30.0"
 }
 
 make_chacractl_config () {
