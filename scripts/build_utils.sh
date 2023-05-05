@@ -232,7 +232,7 @@ install_python_packages () {
     echo "Ensuring latest wheel is installed"
     $venv/pip install -U wheel
 
-    echo "Updating setuptools"
+    echo "Updating setuptools: testing12"
     pip_download $venv setuptools
 
     pkgs=("${!1}")
