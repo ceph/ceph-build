@@ -977,7 +977,7 @@ build_debs() {
     if [ "$THROWAWAY" = false ] ; then
         # push binaries to chacra
         find release/$vers/ | \
-            egrep "*\.(changes|deb|ddeb|dsc|gz)$" | \
+            egrep "*(\.changes|\.deb|\.ddeb|\.dsc|ceph[^/]*\.gz)$" | \
             egrep -v "(Packages|Sources|Contents)" | \
             $venv/chacractl binary ${chacra_flags} create ${chacra_endpoint}
 
