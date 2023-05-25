@@ -6,7 +6,10 @@ if [[ -z $UBUNTU_SSH_USER ]]; then echo "ERROR: The UBUNTU_SSH_USER env variable
 if [[ -z $UBUNTU_VM_IP ]]; then echo "ERROR: The UBUNTU_VM_IP env variable is not set"; exit 1; fi
 
 export VSTART_DIR="$WORKSPACE/ceph_vstart"
-export VSTART_MEMSTORE_BYTES="5368709120"  # 5GB
+
+USE_MEMSTORE="${USE_MEMSTORE:-no}"
+VSTART_MEMSTORE_BYTES="5368709120"  # 5GB
+VSTART_BLUESTORE_BYTES="5368709120"  # 5GB
 
 export SSH_USER=$UBUNTU_SSH_USER
 export SSH_ADDRESS=$UBUNTU_VM_IP
@@ -43,6 +46,12 @@ time rsync_cmd $WORKSPACE/ceph ${VSTART_DIR}/build-ceph-vstart.sh ${UBUNTU_SSH_U
 time SSH_TIMEOUT=1h ssh_exec ./build-ceph-vstart.sh
 ssh_exec sudo apt-get install -y python3-prettytable
 
+if [[ "$USE_MEMSTORE" == "yes" ]]; then
+    OBJECTSTORE_ARGS="--memstore -o memstore_device_bytes=$VSTART_MEMSTORE_BYTES"
+else
+    OBJECTSTORE_ARGS="--bluestore -o bluestore_block_size=$VSTART_BLUESTORE_BYTES"
+fi
+
 #
 # Run Ceph vstart
 #
@@ -51,7 +60,7 @@ mkdir -p \$HOME/ceph-vstart/out
 
 cd ~/ceph/build
 VSTART_DEST=\$HOME/ceph-vstart ../src/vstart.sh \
-    -n --memstore -o "memstore_device_bytes=$VSTART_MEMSTORE_BYTES" \
+    -n $OBJECTSTORE_ARGS \
     --without-dashboard -i "$UBUNTU_VM_IP" \
     2>&1 | tee \$HOME/ceph-vstart/vstart.log
 
