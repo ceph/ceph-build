@@ -33,6 +33,8 @@
             - stable-4.0
             - stable-5.0
             - stable-6.0
+            - stable-7.0
+            - stable-8.0
           browser: auto
           skip-tag: true
           timeout: 20
