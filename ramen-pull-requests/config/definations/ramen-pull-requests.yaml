@@ -1,0 +1,52 @@
+- job:
+    name: ramen-pull-requests
+    node: huge
+    project-type: freestyle
+    defaults: global
+    concurrent: true
+    display-name: "ramen: Pull Requests"
+    quiet-period: 5
+    block-downstream: false
+    block-upstream: false
+    retry-count: 3
+    properties:
+      - build-discarder:
+          days-to-keep: 15
+          num-to-keep: 30
+          artifact-days-to-keep: -1
+          artifact-num-to-keep: -1
+      - github:
+          url: ${ramen-repo}
+
+    parameters:
+      - string:
+          name: branch
+          default: origin/ramen-pr-ci
+
+      - string:
+          name: repo
+          default: https://github.com/rakeshgm/ramen/
+
+    triggers:
+      - github-pull-request:
+          trigger-phrase: "jenkins test.*|jenkins retest.*"
+          only-trigger-phrase: false
+          github-hooks: true
+          permit-all: false
+          auto-close-on-fail: false
+
+    scm:
+      - git:
+          url: ${repo}
+          branches:
+            - ${branch}
+          refspec: +refs/pull/*:refs/remotes/origin/pr/*
+          browser: auto
+          timeout: 20
+          skip-tag: true
+          wipe-workspace: true
+
+    builders:
+      - shell: !include-raw:
+          - ../../build/build
+          - ../../build/post
