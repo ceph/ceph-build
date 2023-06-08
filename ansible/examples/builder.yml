@@ -926,6 +926,18 @@
           systemd:
             daemon_reload: yes
 
+        - name: Stop jenkins service
+          service:
+            name: jenkins
+            state: stopped
+
+        - name: Kill any errant slave.jar or agent.jar processes
+          shell:
+            cmd: "pkill -f -9 'java.*(slave|agent).jar'"
+          register: result
+          become: true
+          failed_when: result.rc > 1
+
         - name: Start jenkins service
           service:
             name: jenkins
