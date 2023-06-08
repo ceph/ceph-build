@@ -888,7 +888,7 @@
 
     - name: Register Permanent Builder
       block:
-        - name: Register permenant builder using JNLP
+        - name: Register permanent builder using JNLP
           jenkins_node:
             username: "{{ api_user }}"
             uri: "{{ api_uri }}"
@@ -904,6 +904,7 @@
             remoteFS: '/home/{{ jenkins_user }}/build'
             executors: '{{ executors|default(1) }}'
             exclusive: true
+          tags: register
 
         - name: Download agent.jar
           get_url:
