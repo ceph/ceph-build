@@ -615,13 +615,8 @@
       when: ansible_os_family == "Suse"
 
     - name: Ensure the home dir has the right owner permissions
-      file:
-        path: "/home/{{ jenkins_user }}"
-        state: directory
-        owner: "{{ jenkins_user }}"
-        group: "{{ jenkins_user }}"
-        recurse: yes
-        follow: no
+      command: "sudo chown -R {{ jenkins_user }}:{{ jenkins_user }} /home/{{ jenkins_user}}"
+      tags: chown
 
     ## DEBIAN GPG KEY TASKS
     - name: Install Debian GPG Keys on Ubuntu
