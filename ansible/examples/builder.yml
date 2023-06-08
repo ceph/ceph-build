@@ -17,7 +17,7 @@
     - api_uri: 'https://jenkins.ceph.com'
     - jenkins_credentials_uuid: 'jenkins-build'
     - nodename: '{{ nodename }}'
-    - labels: '{{ labels }}'
+    - labels: "{{ jenkins_labels[ansible_hostname] }}"
     - grant_sudo: true
     - osc_user: 'username'
     - osc_pass: 'password'
@@ -882,7 +882,7 @@
         # mapping from Jenkins back to whatever service created the current
         # node
         name: "{{ ansible_default_ipv4.address }}+{{ nodename }}"
-        labels: "{{ labels }}"
+        labels: "{{ labels | default('') }}"
         host: "{{ ansible_default_ipv4.address }}"
         credentialsId: "{{ jenkins_credentials_uuid }}"
         remoteFS: '/home/{{ jenkins_user }}/build'
