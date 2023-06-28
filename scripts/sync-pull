@@ -1,6 +1,6 @@
 #!/bin/bash
 
-: ${2?"Usage: $0 \$project \$release \$sha1"}
+: ${3?"Usage: $0 \$project \$release \$sha1"}
   #  Script exits here if command-line parameter absent,
   #+ with following error message.
   #    usage-message.sh: 1: Usage: sync-pull $project $release $sha1
