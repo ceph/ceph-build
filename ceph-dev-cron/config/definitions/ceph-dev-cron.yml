@@ -40,7 +40,6 @@
     builders:
       # build pacific on:
       # default: focal bionic centos8 leap15
-      # crimson: centos8
       - conditional-step:
           condition-kind: regex-match
           regex: .*pacific.*
@@ -57,13 +56,6 @@
                     BRANCH=${GIT_BRANCH}
                     FORCE=True
                     DISTROS=focal bionic centos8 leap15
-                - project: 'ceph-dev'
-                  predefined-parameters: |
-                    BRANCH=${GIT_BRANCH}
-                    FORCE=True
-                    DISTROS=centos8
-                    FLAVOR=crimson
-                    ARCHS=x86_64
       # build quincy on:
       # default: focal centos8 centos9 leap15
       # crimson: centos8
