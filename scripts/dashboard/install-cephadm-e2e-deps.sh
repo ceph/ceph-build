@@ -65,7 +65,7 @@ docker container prune -f
 KCLI_CONFIG_DIR="${HOME}/.kcli"
 mkdir -p ${KCLI_CONFIG_DIR}
 if [[ ! -f "${KCLI_CONFIG_DIR}/id_rsa" ]]; then
-    ssh-keygen -t rsa -q -f "${KCLI_CONFIG_DIR}/id_rsa" -N ""
+    sudo ssh-keygen -t rsa -q -f "${KCLI_CONFIG_DIR}/id_rsa" -N "" <<< y
 fi
 
 : ${KCLI_CONTAINER_IMAGE:='quay.io/karmab/kcli:2543a61'}

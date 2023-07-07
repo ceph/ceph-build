@@ -64,6 +64,12 @@
           shallow-clone: true
           wipe-workspace: true
 
+      - git:
+          url: https://github.com/ceph/ceph-build.git
+          branches:
+            - main
+          basedir: ceph-build
+
     builders:
       - shell:
           !include-raw:
@@ -92,3 +98,14 @@
       - junit:
           results: 'src/pybind/mgr/dashboard/frontend/cypress/reports/results-*.xml'
           allow-empty: true
+
+      - postbuildscript:
+          builders:
+            - role: SLAVE
+              build-on:
+                - SUCCESS
+                - UNSTABLE
+                - FAILURE
+                - ABORTED
+              build-steps:
+                - shell: "${WORKSPACE}/ceph-build/ceph-dashboard-cephadm-e2e/build/cleanup"
