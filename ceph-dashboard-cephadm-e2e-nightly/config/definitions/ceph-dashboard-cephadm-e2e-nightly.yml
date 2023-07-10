@@ -48,6 +48,12 @@
           shallow-clone: true
           wipe-workspace: true
 
+      - git:
+          url: https://github.com/ceph/ceph-build.git
+          branches:
+            - main
+          basedir: ceph-build
+
     builders:
       - shell:
           !include-raw-escape:
@@ -72,3 +78,14 @@
           artifacts: 'logs/**'
           allow-empty: true
           latest-only: false
+
+      - postbuildscript:
+          builders:
+            - role: SLAVE
+              build-on:
+                - SUCCESS
+                - UNSTABLE
+                - FAILURE
+                - ABORTED
+              build-steps:
+                - shell: "ceph-build/ceph-dashboard-cephadm-e2e/build/cleanup"
