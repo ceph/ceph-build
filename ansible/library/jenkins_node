@@ -101,6 +101,7 @@ EXAMPLES = """
            name={{ node_name }} operation=delete
 """
 import ast
+import traceback
 import xmltodict
 
 HAS_JENKINS_API = True
@@ -299,7 +300,9 @@ def main():
         else:
             message = getattr(ex, 'message', None)
             msg = getattr(ex, 'msg', message)
-            msg = "%s: %s" % (ex.__class__.__name__, msg)
+            if not msg:
+                msg = str(ex)
+            msg = "%s: %s\n%s" % (ex.__class__.__name__, msg, traceback.format_tb(ex.__traceback__))
         return module.fail_json(msg=msg)
 
     args = {'changed': changed}
