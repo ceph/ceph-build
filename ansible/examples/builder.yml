@@ -13,20 +13,31 @@
     - libvirt: false # Should vagrant be installed?
     - permanent: false # Is this a permanent builder?  Since the ephemeral (non-permanent) tasks get run more often, we'll default to false.
     - jenkins_user: 'jenkins-build'
-    #- jenkins_key: This gets defined below now.
-    # jenkins API credentials:
     - api_user: 'ceph-jenkins'
-    - token: '{{ token }}'
     - api_uri: 'https://jenkins.ceph.com'
     - jenkins_credentials_uuid: 'jenkins-build'
     - nodename: '{{ nodename }}'
-    - labels: '{{ labels }}'
+    - labels: "{{ jenkins_labels[ansible_hostname] }}"
     - grant_sudo: true
     - osc_user: 'username'
     - osc_pass: 'password'
     - container_mirror: 'docker-mirror.front.sepia.ceph.com:5000'
+    - secrets_path: "{{ lookup('env', 'ANSIBLE_SECRETS_PATH') | default('/etc/ansible/secrets', true) }}"
+
 
   tasks:
+    - name: "Include secrets"
+      include_vars: "{{ secrets_path | mandatory }}/jenkins_api_token.yml"
+      no_log: true
+      tags:
+        always
+
+    - set_fact:
+        token: "{{ jenkins_api_token }}"
+      no_log: true
+      tags:
+        always
+
     ## DEFINE PACKAGE LISTS BELOW
     # Universal DEBs
     - set_fact:
@@ -604,13 +615,8 @@
       when: ansible_os_family == "Suse"
 
     - name: Ensure the home dir has the right owner permissions
-      file:
-        path: "/home/{{ jenkins_user }}"
-        state: directory
-        owner: "{{ jenkins_user }}"
-        group: "{{ jenkins_user }}"
-        recurse: yes
-        follow: no
+      command: "sudo chown -R {{ jenkins_user }}:{{ jenkins_user }} /home/{{ jenkins_user}}"
+      tags: chown
 
     ## DEBIAN GPG KEY TASKS
     - name: Install Debian GPG Keys on Ubuntu
@@ -871,7 +877,7 @@
         # mapping from Jenkins back to whatever service created the current
         # node
         name: "{{ ansible_default_ipv4.address }}+{{ nodename }}"
-        labels: "{{ labels }}"
+        labels: "{{ labels | default('') }}"
         host: "{{ ansible_default_ipv4.address }}"
         credentialsId: "{{ jenkins_credentials_uuid }}"
         remoteFS: '/home/{{ jenkins_user }}/build'
@@ -882,7 +888,7 @@
 
     - name: Register Permanent Builder
       block:
-        - name: Register permenant builder using JNLP
+        - name: Register permanent builder using JNLP
           jenkins_node:
             username: "{{ api_user }}"
             uri: "{{ api_uri }}"
@@ -898,6 +904,7 @@
             remoteFS: '/home/{{ jenkins_user }}/build'
             executors: '{{ executors|default(1) }}'
             exclusive: true
+          tags: register
 
         - name: Download agent.jar
           get_url:
@@ -918,6 +925,18 @@
         - name: Reload systemd unit files (to pick up potential changes)
           systemd:
             daemon_reload: yes
+
+        - name: Stop jenkins service
+          service:
+            name: jenkins
+            state: stopped
+
+        - name: Kill any errant slave.jar or agent.jar processes
+          shell:
+            cmd: "pkill -f -9 'java.*(slave|agent).jar'"
+          register: result
+          become: true
+          failed_when: result.rc > 1
 
         - name: Start jenkins service
           service:
