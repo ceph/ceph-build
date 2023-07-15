@@ -100,6 +100,8 @@ EXAMPLES = """
   jenkins_node: uri={{ jenkins_uri }} username={{ user }} password={{ password }}
            name={{ node_name }} operation=delete
 """
+import ast
+import xmltodict
 
 HAS_JENKINS_API = True
 try:
@@ -124,7 +126,49 @@ def translate_params(params):
     return sanitized
 
 
-def create(uri, user, password, name, **kw):
+
+#
+# it's not clear to me how ansible passes lists as lists,
+# so convert them if necessary
+#
+def maybe_convert_string_to_list(v):
+    if isinstance(v, basestring):
+        try:
+            v = ast.literal_eval(v)
+        except Exception:
+            # no, really; ast makes a best effort, and if it fails,
+            # we didn't need its conversion
+            pass
+    return v
+
+def sanitize_update_params(kw):
+
+    def translate_labels(labels):
+        return 'label', ' '.join(labels)
+
+    # this list may be smaller than it needs to be, but these are
+    # the only ones I want to support for now
+    VALID_UPDATE_PARAMS = {
+        # value, if any, is function returning new key and value to use
+        'name': None,
+        'remoteFS': None,
+        'numExecutors': None,
+        'labels': translate_labels,
+    }
+    update_kws = dict()
+    invalid = list()
+    for k, v in kw.items():
+        v = maybe_convert_string_to_list(v)
+        if k not in VALID_UPDATE_PARAMS:
+            invalid.append(k)
+        else:
+            if VALID_UPDATE_PARAMS[k]:
+                k, v = VALID_UPDATE_PARAMS[k](v)
+            update_kws[k] = v
+    return invalid, update_kws
+
+
+def create_or_modify(uri, user, password, name, **kw):
     launcher_params = {}
     launcher_params['credentialsId'] = kw.pop('credentialsId', None)
     launcher_params['host'] = kw.pop('host', None)
@@ -132,11 +176,24 @@ def create(uri, user, password, name, **kw):
         launcher_params = {}
     params = translate_params(kw)
     j = _jenkins(uri, user, password)
+
     if j.node_exists(name):
-        return False, "Failed to create node '%s' - already exists." % name
-    j.create_node(name, launcher_params=launcher_params, **params)
-    if not j.node_exists(name):
-        return False, "Failed to create node '%s'." % name
+        # if it already exists, we can reconfigure it
+
+        # select valid config keys, transform a few
+        invalid, params = sanitize_update_params(params)
+
+        config = xmltodict.parse(j.get_node_config(name))
+        for k, v in params.items():
+            config['slave'][k] = v
+        new_xconfig = xmltodict.unparse(config)
+
+        j.reconfig_node(name, new_xconfig)
+    else:
+        j.create_node(name, launcher_params=launcher_params, **params)
+        if not j.node_exists(name):
+            return False, "Failed to create node '%s'." % name
+
     return True, None
 
 
@@ -204,7 +261,7 @@ def main():
     launcher = module.params.get('launcher', 'hudson.plugins.sshslaves.SSHLauncher')
 
     api_calls = {
-        'create': create,
+        'create': create_or_modify,
         'delete': delete,
         'enable': enable,
         'disable': disable
