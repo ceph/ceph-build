@@ -29,6 +29,7 @@
           credentials-id: 'jenkins-build'
           branches:
             - $BRANCH
+          timeout: 20
           skip-tag: true
           wipe-workspace: true
 
