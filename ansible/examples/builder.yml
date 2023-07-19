@@ -17,7 +17,7 @@
     - api_uri: 'https://jenkins.ceph.com'
     - jenkins_credentials_uuid: 'jenkins-build'
     - nodename: '{{ nodename }}'
-    - labels: "{{ jenkins_labels[ansible_hostname] }}"
+    - labels: "{{ jenkins_labels[inventory_hostname] }}"
     - grant_sudo: true
     - osc_user: 'username'
     - osc_pass: 'password'
