@@ -53,6 +53,7 @@
             - centos8
             - centos9
             - jessie
+            - bookworm
             - precise
             - centos6
             - leap15
