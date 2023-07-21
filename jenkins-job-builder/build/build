@@ -69,7 +69,9 @@ JJB_CONFIG="$HOME/.jenkins_jobs.$JENKINS_FQDN.ini"
 
 # Delete jobs our controller has that didn't get job xml written during `jenkins-jobs test`
 # jenkins-job-builder doesn't get a config written so we `grep -v it` so it doesn't get deleted.
-for JOB in $(curl -s https://$JENKINS_FQDN/api/json | jq -r '.jobs[].name' | grep -v jenkins-job-builder | sort); do
+# Jobs that start with 'preserve-' will also be kept, as it's assumed they're jobs under
+# development that will be deleted (perhaps renamed) once development is finished.
+for JOB in $(curl -s https://$JENKINS_FQDN/api/json | jq -r '.jobs[].name' | egrep -v 'jenkins-job-builder|^preserve-' | sort); do
     if [ ! -f $TEMPDIR/$JOB ]; then
         echo "Did not find job definition for $JOB.  Deleting!"
         $VENV/jenkins-jobs --log_level DEBUG --conf $JJB_CONFIG delete $JOB
