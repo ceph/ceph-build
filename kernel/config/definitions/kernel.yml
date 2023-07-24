@@ -17,7 +17,7 @@
       - string:
           name: DISTROS
           description: "A list of distros to build for. Available options are: centos9, centos8, jammy, focal, bionic, xenial, and trusty"
-          default: "centos8 trusty xenial bionic focal jammy"
+          default: "centos9 centos8 trusty xenial bionic focal jammy"
 
       - string:
           name: ARCHS
