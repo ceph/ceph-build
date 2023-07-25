@@ -800,7 +800,7 @@ setup_pbuilder_for_old_gcc() {
 setup_pbuilder_for_ppa() {
     local hookdir=$1
     if use_ppa; then
-        local gcc_ver=11
+        local gcc_ver=12
         setup_pbuilder_for_new_gcc $hookdir $gcc_ver
     else
         setup_pbuilder_for_old_gcc $hookdir
