@@ -670,6 +670,8 @@ use_ppa() {
             case $DIST in
                 focal)
                     use_ppa=true;;
+                jammy)
+                    use_ppa=true;;
                 *)
                     use_ppa=false;;
             esac
