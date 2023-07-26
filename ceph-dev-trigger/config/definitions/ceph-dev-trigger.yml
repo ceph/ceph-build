@@ -122,7 +122,7 @@
                     FLAVOR=crimson
       # build reef on:
       # default: jammy focal centos8 centos9
-      # crimson: centos8
+      # crimson: centos8 centos9
       - conditional-step:
           condition-kind: regex-match
           regex: .*main.*
@@ -143,11 +143,11 @@
                   predefined-parameters: |
                     BRANCH=${GIT_BRANCH}
                     FORCE=True
-                    DISTROS=centos8
+                    DISTROS=centos8 centos9
                     FLAVOR=crimson
       # build main on:
       # default: jammy focal centos8 centos9
-      # crimson: centos8
+      # crimson: centos8 centos9
       - conditional-step:
           condition-kind: regex-match
           regex: .*main.*
@@ -168,7 +168,7 @@
                   predefined-parameters: |
                     BRANCH=${GIT_BRANCH}
                     FORCE=True
-                    DISTROS=centos8
+                    DISTROS=centos8 centos9
                     FLAVOR=crimson
 
     wrappers:
