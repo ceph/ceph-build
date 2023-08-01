@@ -645,7 +645,22 @@
             url: https://ftp-master.debian.org/keys/release-10.asc
             keyring: /etc/apt/trusted.gpg
             state: present
+
+        - name: Add the Debian Bookworm Key
+          apt_key:
+           id: 350947F8
+           url: https://ftp-master.debian.org/keys/archive-key-12.asc
+           keyring: /etc/apt/trusted.gpg
+           state: present
+
+        - name: Add the Debian Security Bookworm Key
+          apt_key:
+            id: AEC0A8F0
+            url: https://ftp-master.debian.org/keys/archive-key-12-security.asc
+            keyring: /etc/apt/trusted.gpg
+            state: present
       when: ansible_os_family == "Debian"
+      tags: debian-keys
 
     ## VAGRANT PLUGIN TASKS
     - name: Install vagrant-libvirt plugin
