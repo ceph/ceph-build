@@ -48,9 +48,9 @@ options:
     required: false
     default: null
 
-  labels:
+  label:
     description:
-      - Labels to associate with a node, like "amd64" or "python"
+      - List of labels in a string, space-separated, to associate with a node, like "amd64" or "python"
     required: false
     default: null
 
@@ -144,9 +144,6 @@ def maybe_convert_string_to_list(v):
 
 def sanitize_update_params(kw):
 
-    def translate_labels(labels):
-        return 'label', ' '.join(labels)
-
     # this list may be smaller than it needs to be, but these are
     # the only ones I want to support for now
     VALID_UPDATE_PARAMS = {
@@ -154,12 +151,11 @@ def sanitize_update_params(kw):
         'name': None,
         'remoteFS': None,
         'numExecutors': None,
-        'labels': translate_labels,
+        'label': None,
     }
     update_kws = dict()
     invalid = list()
     for k, v in kw.items():
-        v = maybe_convert_string_to_list(v)
         if k not in VALID_UPDATE_PARAMS:
             invalid.append(k)
         else:
@@ -191,6 +187,9 @@ def create_or_modify(uri, user, password, name, **kw):
 
         j.reconfig_node(name, new_xconfig)
     else:
+        if 'label' in params:
+            params['labels'] = params['label']
+            params.pop('label')
         j.create_node(name, launcher_params=launcher_params, **params)
         if not j.node_exists(name):
             return False, "Failed to create node '%s'." % name
@@ -234,7 +233,7 @@ def main():
             name=dict(required=True),
             executors=dict(required=False, default=2),
             description=dict(required=False, default=None),
-            labels=dict(required=False, default=None),
+            label=dict(required=False, default=None),
             host=dict(required=False, default=None),
             credentialsId=dict(required=False, default=None),
             launcher=dict(required=False, default='hudson.plugins.sshslaves.SSHLauncher'),
@@ -254,7 +253,7 @@ def main():
     name = module.params['name']
     executors = module.params['executors']
     description = module.params.get('description')
-    labels = module.params.get('labels')
+    label = module.params.get('label')
     exclusive = module.params.get('exclusive', False)
     host = module.params.get('host')
     remoteFS = module.params.get('remoteFS')
@@ -284,7 +283,7 @@ def main():
             name,
             executors=executors,
             description=description,
-            labels=labels,
+            label=label,
             exclusive=exclusive,
             host=host,
             credentialsId=credentialsId,

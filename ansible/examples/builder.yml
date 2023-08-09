@@ -17,7 +17,7 @@
     - api_uri: 'https://jenkins.ceph.com'
     - jenkins_credentials_uuid: 'jenkins-build'
     - nodename: '{{ nodename }}'
-    - labels: "{{ jenkins_labels[inventory_hostname] }}"
+    - label: "{{ jenkins_labels[inventory_hostname] }}"
     - grant_sudo: true
     - osc_user: 'username'
     - osc_pass: 'password'
@@ -896,7 +896,7 @@
         # mapping from Jenkins back to whatever service created the current
         # node
         name: "{{ ansible_default_ipv4.address }}+{{ nodename }}"
-        labels: "{{ labels | default('') }}"
+        label: "{{ label | default('') }}"
         host: "{{ ansible_default_ipv4.address }}"
         credentialsId: "{{ jenkins_credentials_uuid }}"
         remoteFS: '/home/{{ jenkins_user }}/build'
@@ -916,7 +916,7 @@
             # mapping from Jenkins back to whatever service created the current
             # node
             name: "{{ ansible_default_ipv4.address }}+{{ ansible_hostname }}"
-            labels: "{{ labels }}"
+            label: "{{ label }}"
             host: "{{ ansible_default_ipv4.address }}"
             credentialsId: "{{ jenkins_credentials_uuid }}"
             launcher: 'hudson.slaves.JNLPLauncher'
