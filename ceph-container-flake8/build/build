@@ -21,7 +21,7 @@ function check(){
     while read -r filename; do
         pushd "$(dirname "$filename")"
         file=$(basename "$filename")
-        sudo docker run --rm -v "$workspace"/ceph-container/tox.ini:/tox.ini:z -v "$(pwd)"/"$file":/code/"$file":z eeacms/flake8
+        sudo docker run --rm -v "$(pwd)"/"$file":/apps/"$file":z docker.io/alpine/flake8 "$file"
         popd
     done
     return $?
