@@ -1409,11 +1409,19 @@ teardown_vagrant_tests() {
 }
 
 get_nr_build_jobs() {
-    # assume each compiling job takes 2200 MiB memory on average
+    # assume each compiling job takes 3000 MiB memory on average when nproc <= 50
+    # otherwise, assume 4000 MiB when nproc > 50
+    # See https://tracker.ceph.com/issues/57296
     local nproc=$(nproc)
-    local max_build_jobs=$(vmstat --stats --unit m | \
+    if [[ $nproc -gt 50 ]]; then
+        local max_build_jobs=$(vmstat --stats --unit m | \
+                               grep 'total memory' | \
+                               awk '{print int($1/4000)}')
+    else
+        local max_build_jobs=$(vmstat --stats --unit m | \
                                grep 'total memory' | \
                                awk '{print int($1/3000)}')
+    fi
     if [[ $max_build_jobs -eq 0 ]]; then
         # probably the system is under high load, use a safe number
         max_build_jobs=16
