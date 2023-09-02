@@ -70,18 +70,13 @@ else
   use_teuthologylock=false
 fi
 
-if [ "$use_teuthologylock" = true ]; then
-  # Bootstrap teuthology
-  ./bootstrap
-
-  cd $WORKSPACE
-
-  source $WORKSPACE/teuthology/virtualenv/bin/activate
-else
-  virtualenv $WORKSPACE/venv
-  source $WORKSPACE/venv/bin/activate
-  pip install $(grep -E 'ansible==' requirements.txt | awk '{ print $1 }')
-fi
+# once this bootstrap was conditional on use_teuthologylock,
+# but we also want teuthology-queue, even if we're not using
+# teuthology-lock
+# Bootstrap teuthology
+./bootstrap
+cd $WORKSPACE
+source $WORKSPACE/teuthology/virtualenv/bin/activate
 
 # Clone or update ceph-cm-ansible
 if [ ! -d ceph-cm-ansible ]; then
