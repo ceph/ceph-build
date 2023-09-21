@@ -40,6 +40,7 @@ scp_upload $CEPH_KEYRING /ProgramData/ceph/keyring
 #
 SSH_TIMEOUT=5m scp_upload $WORKSPACE/ceph.zip /ceph.zip
 SSH_TIMEOUT=10m ssh_exec powershell.exe "\$ProgressPreference='SilentlyContinue'; Expand-Archive -Path /ceph.zip -DestinationPath / -Force"
+ssh_exec powershell.exe "Add-MpPreference -ExclusionPath 'C:\ceph'"
 ssh_exec powershell.exe "New-Service -Name ceph-rbd -BinaryPathName 'c:\ceph\rbd-wnbd.exe service'"
 ssh_exec powershell.exe net.exe start ceph-rbd
 
