@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+set +x
+echo "Starting cleanup..."
+docker container prune -f
+minikube stop
+minikube delete
+echo "Cleanup completed."
