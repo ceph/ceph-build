@@ -64,6 +64,28 @@ else
     echo "forcing."
 fi
 
+# This is a dev release, enable some debug cmake configs. Note: it has been
+# this way since at least 35e1a715. It's difficult to tell when or even if ceph
+# was ever properly built with debugging configurations for QA as there are
+# corresponding changes in ceph with the switch to cmake which makes this
+# challenging to evaluate.
+#
+# It's likely that it was wrongly assumed that cmake would set the build type
+# to Debug because the ".git" directory would be present. This is not the case
+# because the "make-dist" script (executed below) creates a git tarball that is
+# used for the actual untar/build. See also:
+#
+# https://github.com/ceph/ceph/pull/53800
+#
+# Addendum and possibly temporary restriction: only enable these for branches
+# ending in "-debug".
+if [[ "$BRANCH" == *-debug ]]; then
+  CEPH_EXTRA_CMAKE_ARGS+=" -DCMAKE_BUILD_TYPE=Debug -DWITH_CEPH_DEBUG_MUTEX=ON"
+  printf 'Added debug cmake configs to branch %s. CEPH_EXTRA_CMAKE_ARGS: %s\n' "$BRANCH" "$CEPH_EXTRA_CMAKE_ARGS"
+else
+  printf 'No cmake debug options added to branch %s.\n' "$BRANCH"
+fi
+
 ceph_build_args_from_flavor ${FLAVOR}
 
 mkdir -p release
