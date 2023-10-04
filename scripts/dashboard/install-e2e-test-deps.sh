@@ -7,7 +7,7 @@ if [[ ! $(arch) =~ (i386|x86_64|amd64) ]]; then
 fi
 
 if grep -q  debian /etc/*-release; then
-    NODEJS_MAJOR_VERSION=14
+    NODEJS_MAJOR_VERSION=16
     DISTRO="$(lsb_release -cs)"
     if [[ ! $(command -v node) || $(node --version | grep -oE "v([0-9])+" | cut -c 2-) < ${NODEJS_MAJOR_VERSION} ]]; then
         sudo apt-get purge nodejs -y
