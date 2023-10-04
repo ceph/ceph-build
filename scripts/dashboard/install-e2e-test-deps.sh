@@ -7,6 +7,25 @@ if [[ ! $(arch) =~ (i386|x86_64|amd64) ]]; then
 fi
 
 if grep -q  debian /etc/*-release; then
+    NODEJS_MAJOR_VERSION=16
+    DISTRO="$(lsb_release -cs)"
+    if [[ ! $(command -v node) || $(node --version | grep -oE "v([0-9])+" | cut -c 2-) < ${NODEJS_MAJOR_VERSION} ]]; then
+        sudo apt-get purge nodejs -y
+        sudo dpkg --remove --force-remove-reinstreq libnode-dev
+        sudo dpkg --remove --force-remove-reinstreq libnode72:amd64
+
+        NODEJS_KEYRING=/usr/share/keyrings/nodesource.gpg
+        curl -fsSL https://deb.nodesource.com/gpgkey/nodesource.gpg.key | gpg --dearmor | sudo tee "${NODEJS_KEYRING}" >/dev/null
+        gpg --no-default-keyring --keyring "${NODEJS_KEYRING}" --list-keys
+
+        NODEJS_VERSION="node_${NODEJS_MAJOR_VERSION}.x"
+        echo "deb [signed-by=${NODEJS_KEYRING}] https://deb.nodesource.com/${NODEJS_VERSION} ${DISTRO} main" | sudo tee /etc/apt/sources.list.d/nodesource.list
+        echo "deb-src [signed-by=${NODEJS_KEYRING}] https://deb.nodesource.com/${NODEJS_VERSION} ${DISTRO} main" | sudo tee -a /etc/apt/sources.list.d/nodesource.list
+
+        sudo apt update -y
+        sudo apt install -y nodejs
+        sudo rm -f /etc/apt/sources.list.d/nodesource.list
+    fi
     sudo bash -c 'echo "deb [arch=amd64] https://dl.google.com/linux/chrome/deb/ stable main" > /etc/apt/sources.list.d/google-chrome.list'
     curl -fsSL https://dl.google.com/linux/linux_signing_key.pub | sudo apt-key add -
     sudo apt-get update

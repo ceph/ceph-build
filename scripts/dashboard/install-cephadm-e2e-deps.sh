@@ -20,25 +20,6 @@ sudo apt update -y
 sudo apt install -y apt-transport-https ca-certificates curl gnupg lsb-release \
     openssh-server software-properties-common
 
-NODEJS_MAJOR_VERSION=14
-DISTRO="$(lsb_release -cs)"
-if [[ ! $(command -v node) || $(node --version | grep -oE "v([0-9])+" | cut -c 2-) < ${NODEJS_MAJOR_VERSION} ]]; then
-    sudo add-apt-repository -y -r ppa:chris-lea/node.js
-    sudo rm -f /etc/apt/sources.list.d/chris-lea-node_js-*.list
-    sudo rm -f /etc/apt/sources.list.d/chris-lea-node_js-*.list.save
-
-    NODEJS_KEYRING=/usr/share/keyrings/nodesource.gpg
-    curl -fsSL https://deb.nodesource.com/gpgkey/nodesource.gpg.key | gpg --dearmor | sudo tee "${NODEJS_KEYRING}" >/dev/null
-    gpg --no-default-keyring --keyring "${NODEJS_KEYRING}" --list-keys
-
-    NODEJS_VERSION="node_${NODEJS_MAJOR_VERSION}.x"
-    echo "deb [signed-by=${NODEJS_KEYRING}] https://deb.nodesource.com/${NODEJS_VERSION} ${DISTRO} main" | sudo tee /etc/apt/sources.list.d/nodesource.list
-    echo "deb-src [signed-by=${NODEJS_KEYRING}] https://deb.nodesource.com/${NODEJS_VERSION} ${DISTRO} main" | sudo tee -a /etc/apt/sources.list.d/nodesource.list
-
-    sudo apt update -y
-    sudo apt install -y nodejs
-    sudo rm -f /etc/apt/sources.list.d/nodesource.list
-fi
 sudo apt install -y libvirt-daemon-system libvirt-daemon-driver-qemu qemu-kvm libvirt-clients runc
 
 sudo usermod -aG libvirt $(id -un)
