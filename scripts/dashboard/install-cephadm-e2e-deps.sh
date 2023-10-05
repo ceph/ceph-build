@@ -20,7 +20,7 @@ sudo apt update -y
 sudo apt install -y apt-transport-https ca-certificates curl gnupg lsb-release \
     openssh-server software-properties-common
 
-NODEJS_MAJOR_VERSION=14
+NODEJS_MAJOR_VERSION=16
 DISTRO="$(lsb_release -cs)"
 if [[ ! $(command -v node) || $(node --version | grep -oE "v([0-9])+" | cut -c 2-) < ${NODEJS_MAJOR_VERSION} ]]; then
     sudo add-apt-repository -y -r ppa:chris-lea/node.js
