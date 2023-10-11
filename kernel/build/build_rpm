@@ -24,21 +24,18 @@ env
 echo "*****"
 
 # Clean rpmbuild structure
-rm -rf ~/rpmbuild/
+rm -rf ./rpmbuild/
 
 # Build the rpms
 echo "Building RPMs"
 make -j$(getconf _NPROCESSORS_ONLN) binrpm-pkg
 
-# Make sure we execute at the top level directory
-cd "$WORKSPACE"
-
 [ "$FORCE" = true ] && chacra_flags="--force" || chacra_flags=""
 
 if [ "$THROWAWAY" = false ] ; then
     # push binaries to chacra
-    find ~/rpmbuild/ | egrep '\.rpm$' | $VENV/chacractl binary ${chacra_flags} create ${chacra_endpoint}/$ARCH/
-    PACKAGE_MANAGER_VERSION=$(rpm --queryformat '%{VERSION}-%{RELEASE}\n' -qp $(find ~/rpmbuild/ | egrep "\.$ARCH\.rpm" | head -1))
+    find ./rpmbuild/ | egrep '\.rpm$' | $VENV/chacractl binary ${chacra_flags} create ${chacra_endpoint}/$ARCH/
+    PACKAGE_MANAGER_VERSION=$(rpm --queryformat '%{VERSION}-%{RELEASE}\n' -qp $(find ./rpmbuild/ | egrep "\.$ARCH\.rpm" | head -1))
 
     # write json file with build info
     cat > $WORKSPACE/repo-extra.json << EOF
