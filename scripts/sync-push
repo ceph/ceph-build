@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -ex
 # This script will push repository files from the signer box to the upstream repositories.
 # By default it will sync all releases defined, but can optionally take one or more
 # releases to sync:
