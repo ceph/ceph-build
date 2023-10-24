@@ -24,7 +24,6 @@
     - container_mirror: 'docker-mirror.front.sepia.ceph.com:5000'
     - secrets_path: "{{ lookup('env', 'ANSIBLE_SECRETS_PATH') | default('/etc/ansible/secrets', true) }}"
 
-
   tasks:
     - name: "Include secrets"
       include_vars: "{{ secrets_path | mandatory }}/jenkins_api_token.yml"
@@ -643,6 +642,27 @@
           apt_key:
             id: 77E11517
             url: https://ftp-master.debian.org/keys/release-10.asc
+            keyring: /etc/apt/trusted.gpg
+            state: present
+
+        - name: Add the Debian Bullseye Key
+          apt_key:
+           id: 8DD47936
+           url: https://ftp-master.debian.org/keys/archive-key-11.asc
+           keyring: /etc/apt/trusted.gpg
+           state: present
+
+        - name: Add the Debian Security Bullseye Key
+          apt_key:
+            id: 4AAD5C5D
+            url: https://ftp-master.debian.org/keys/archive-key-11-security.asc
+            keyring: /etc/apt/trusted.gpg
+            state: present
+
+        - name: Add the Debian Bullseye Stable Key
+          apt_key:
+            id: 0D6C9793
+            url: https://ftp-master.debian.org/keys/release-11.asc
             keyring: /etc/apt/trusted.gpg
             state: present
 
