@@ -78,8 +78,8 @@ SECURITY: Builds from BRANCH-release branch in ceph-private.git (private repo)."
 
       - string:
           name: DISTROS
-          description: "A list of distros to build for. Available options are: centos9, centos8, centos7, centos6, jammy, focal, bionic, xenial, trusty, precise, wheezy, jessie, buster, bullseye"
-          default: "jammy focal bionic centos8 buster bullseye"
+          description: "A list of distros to build for. Available options are: centos9, centos8, centos7, centos6, jammy, focal, bionic, xenial, trusty, precise, wheezy, jessie, buster, bullseye, bookworm"
+          default: "jammy focal centos8 centos9 bookworm"
 
       - string:
           name: ARCHS

@@ -41,6 +41,7 @@
             - stretch
             - buster
             - bullseye
+            - bookworm
             - precise
             - centos6
       - axis:
@@ -67,7 +68,7 @@
                   regex: (mimic|nautilus|octopus|pacific|quincy|reef)
                   label: '${BRANCH}'
                 - condition-kind: regex-match
-                  regex: (xenial|bionic|focal|jammy|centos7|centos8|centos9|buster|bullseye)
+                  regex: (xenial|bionic|focal|jammy|centos7|centos8|centos9|buster|bullseye|bookworm)
                   label: '${DIST}'
           on-evaluation-failure: dont-run
           steps:
