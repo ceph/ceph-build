@@ -411,6 +411,10 @@ get_distro_and_target() {
     # Get distro from DIST for chacra uploads
     DISTRO=""
     case $DIST in
+        bookworm*)
+            DIST=bookworm
+            DISTRO="debian"
+            ;;
         bullseye*)
             DIST=bullseye
             DISTRO="debian"
@@ -811,6 +815,7 @@ get_bptag() {
     dist=$1
 
     [ "$dist" = "sid" ] && dver=""
+    [ "$dist" = "bookworm" ] && dver="~bpo12+1"
     [ "$dist" = "bullseye" ] && dver="~bpo11+1"
     [ "$dist" = "buster" ] && dver="~bpo10+1"
     [ "$dist" = "stretch" ] && dver="~bpo90+1"
