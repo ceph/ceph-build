@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -ex
 # This script is meant to be used when signing RPMs on a "signer" box. Such
 # a box needs to have the actual signing keys and follow the structure for
 # a repository layout. The layout follows this convention:
