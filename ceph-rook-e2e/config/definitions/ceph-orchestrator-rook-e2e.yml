@@ -40,7 +40,7 @@
             - luminous
             - mimic
             - nautilus
-          trigger-phrase: 'jenkins test rook orchestrator'
+          trigger-phrase: 'jenkins test rook e2e'
           skip-build-phrase: '^jenkins do not test.*'
           only-trigger-phrase: false
           github-hooks: true
