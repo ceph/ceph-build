@@ -40,6 +40,9 @@
             - luminous
             - mimic
             - nautilus
+            - pacific
+            - quincy
+            - octopus
           trigger-phrase: 'jenkins test rook e2e'
           skip-build-phrase: '^jenkins do not test.*'
           only-trigger-phrase: false
