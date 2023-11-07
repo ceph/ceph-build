@@ -38,7 +38,7 @@
       - string:
           name: NFS_GANESHA_BRANCH
           description: "The git branch (or tag) to build"
-          default: "V5.5"
+          default: "V5.7"
 
       - string:
           name: NFS_GANESHA_DEBIAN_BRANCH
