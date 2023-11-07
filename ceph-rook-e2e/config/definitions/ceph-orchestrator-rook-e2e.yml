@@ -1,0 +1,99 @@
+- job:
+    name: ceph-orchestrator-rook-e2e
+    project-type: freestyle
+    defaults: global
+    concurrent: true
+    node: huge && jammy && x86_64
+    display-name: 'ceph: Rook Orchestrator E2E'
+    quiet-period: 5
+    block-downstream: false
+    block-upstream: false
+    retry-count: 3
+    properties:
+      - build-discarder:
+          days-to-keep: 15
+          num-to-keep: 300
+          artifact-days-to-keep: -1
+          artifact-num-to-keep: -1
+      - github:
+          url: https://github.com/ceph/ceph/
+      - rebuild:
+          auto-rebuild: true
+      - inject:
+          properties-content: |
+            TERM=xterm
+    parameters:
+      - string:
+          name: sha1
+          description: "commit id or a refname, like 'origin/pr/72/head'"
+
+    triggers:
+      - github-pull-request:
+          cancel-builds-on-update: true
+          allow-whitelist-orgs-as-admins: true
+          org-list:
+            - ceph
+          white-list-labels:
+            - orchestrator
+            - rook
+          black-list-target-branches:
+            - luminous
+            - mimic
+            - nautilus
+            - pacific
+            - quincy
+            - octopus
+          trigger-phrase: 'jenkins test rook e2e'
+          skip-build-phrase: '^jenkins do not test.*'
+          only-trigger-phrase: false
+          github-hooks: true
+          permit-all: true
+          auto-close-on-fail: false
+          status-context: "ceph rook orchestrator e2e tests"
+          started-status: "running ceph rook orchestrator e2e tests"
+          success-status: "ceph rook orchestrator e2e tests succeeded"
+          failure-status: "ceph rook orchestrator e2e tests failed"
+
+    scm:
+      - git:
+          url: https://github.com/ceph/ceph.git
+          branches:
+            - origin/pr/${ghprbPullId}/merge
+          refspec: +refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*
+          browser: auto
+          timeout: 20
+          skip-tag: true
+          shallow-clone: true
+          wipe-workspace: true
+
+      - git:
+          url: https://github.com/ceph/ceph-build.git
+          branches:
+            - main
+          basedir: ceph-build
+
+    builders:
+      - shell:
+          !include-raw:
+             - ../../../scripts/rook-orch/install-rook-e2e-deps.sh
+      - shell: |
+          export COMMIT_INFO_MESSAGE="$ghprbPullTitle"
+          timeout 3600 ./src/pybind/mgr/rook/ci/run-rook-e2e-tests.sh
+    wrappers:
+      - inject-passwords:
+          global: true
+          mask-password-params: true
+      - ansicolor
+
+    publishers:
+
+      - postbuildscript:
+          builders:
+            - role: SLAVE
+              build-on:
+                - SUCCESS
+                - UNSTABLE
+                - FAILURE
+                - ABORTED
+              build-steps:
+                - shell: "${WORKSPACE}/ceph-build/ceph-rook-e2e/build/cleanup"
