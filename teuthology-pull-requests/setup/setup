@@ -1,8 +1,0 @@
-#!/bin/bash
-
-set -ex
-
-# run the teuthology bootstrap to setup this jenkins slave for
-# teuthology pull requests testing. Passing 'install' here
-# installs any missing requirements found needed to bootstrap teuthology
-./bootstrap install
