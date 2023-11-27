@@ -10,7 +10,7 @@
 
 # this directory is auth-protected so anxious users don't try to
 # pull an in-progress release
-staging_dir=/data/download.ceph.com/www/staging
+prerelease_dir=/data/download.ceph.com/www/prerelease
 
 releases=${*:-"pacific quincy reef"}
 
@@ -30,21 +30,21 @@ ceph_sync() {
 
     if $newgen; then
       version=$(echo $path | cut -d '-' -f2)
-      ssh signer@download.ceph.com "mkdir -p ${staging_dir}/debian-$version"
+      ssh signer@download.ceph.com "mkdir -p ${prerelease_dir}/debian-$version"
 
-      deb_cmd="$path/debian/jessie/* signer@download.ceph.com:${staging_dir}/debian-$version/"
+      deb_cmd="$path/debian/jessie/* signer@download.ceph.com:${prerelease_dir}/debian-$version/"
     else
-      deb_cmd="$path/debian/jessie/* signer@download.ceph.com:${staging_dir}/debian-$release/"
+      deb_cmd="$path/debian/jessie/* signer@download.ceph.com:${prerelease_dir}/debian-$release/"
     fi
     rsync --progress --exclude '*lockfile*' -avr $deb_cmd
 
     for el_version in 7 8 9; do
       if $newgen; then
-        ssh signer@download.ceph.com "mkdir -p ${staging_dir}/rpm-$version/el$el_version"
+        ssh signer@download.ceph.com "mkdir -p ${prerelease_dir}/rpm-$version/el$el_version"
 
-        el_cmd="$path/centos/$el_version/* signer@download.ceph.com:${staging_dir}/rpm-$version/el${el_version}/"
+        el_cmd="$path/centos/$el_version/* signer@download.ceph.com:${prerelease_dir}/rpm-$version/el${el_version}/"
       else
-        el_cmd="$path/centos/$el_version/* signer@download.ceph.com:${staging_dir}/rpm-$release/el${el_version}/"
+        el_cmd="$path/centos/$el_version/* signer@download.ceph.com:${prerelease_dir}/rpm-$release/el${el_version}/"
       fi
       if [ -d "$path/centos/$el_version" ]; then
         rsync --progress -avr $el_cmd
@@ -54,7 +54,7 @@ ceph_sync() {
 
   # Since paths are listed alphabetically/numerically in the first `for` loop, the last $version is what gets used for the new symlink below.
   if $newgen; then
-    ssh signer@download.ceph.com "cd ${staging_dir}/; \
+    ssh signer@download.ceph.com "cd ${prerelease_dir}/; \
                                   ln -sfn debian-$version debian-$release; \
                                   ln -sfn rpm-$version rpm-$release"
   fi
@@ -65,5 +65,5 @@ do
    ceph_sync $i
 done
 
-echo "Once you've tested the repos at ${staging_dir}, don't forget to mv them
+echo "Once you've tested the repos at ${prerelease_dir}, don't forget to mv them
 up to the parent directory!"
