@@ -30,6 +30,7 @@ ceph_sync() {
 
     if $newgen; then
       version=$(echo $path | cut -d '-' -f2)
+      release=$(echo $release | cut -d '-' -f1)
       ssh signer@download.ceph.com "mkdir -p ${prerelease_dir}/debian-$version"
 
       deb_cmd="$path/debian/jessie/* signer@download.ceph.com:${prerelease_dir}/debian-$version/"
