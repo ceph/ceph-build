@@ -6,7 +6,7 @@ if [ "$TAG" = false ] ; then
     echo "Assuming tagging process has succeeded before because TAG was set to false"
 else
     # the following two methods exist in scripts/build_utils.sh
-    pkgs=( "ansible" )
+    pkgs=( "ansible<9.0" )
     TEMPVENV=$(create_venv_dir)
     VENV=${TEMPVENV}/bin
     install_python_packages $TEMPVENV "pkgs[@]"
