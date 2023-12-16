@@ -1,0 +1,28 @@
+#!/bin/bash
+set -e
+
+sudo apt-get install jq -y
+
+cd "$WORKSPACE"/ceph-container/ || exit
+TMPNAME=$(mktemp)
+
+ARCH=x86_64 \
+	TEST_BUILD_ONLY=true \
+	PRERELEASE=true \
+	FORCE_BUILD=true \
+	X86_64_FLAVORS_TO_BUILD=${X86_64_FLAVORS_TO_BUILD} \
+	AARCH64_FLAVORS_TO_BUILD="" \
+	FULL_BUILD_TAG_TMPFILE=${TMPNAME} \
+	bash -x contrib/build-ceph-base.sh
+
+imagename=$(<${TMPNAME})
+
+# strip leading path components, sub _ for : in name
+imagetag=${imagename##*/}
+imagetag=${imagetag//:/_}
+imagetag=quay.ceph.io/ceph/prerelease:${imagetag}
+
+docker tag ${imagename} ${imagetag}
+docker login --username ${QUAY_CEPH_IO_USERNAME} --password ${QUAY_CEPH_IO_PASSWORD} quay.ceph.io
+docker push ${imagetag}
+docker rmi ${imagename}

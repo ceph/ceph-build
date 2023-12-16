@@ -1,0 +1,58 @@
+- job:
+    name: ceph-container-prerelease-build
+    node: huge && trusty && x86_64
+    project-type: freestyle
+    defaults: global
+    display-name: 'ceph-container-prerelease-build: build prerelease container images and push to quay.ceph.io'
+    quiet-period: 5
+    block-downstream: false
+    block-upstream: false
+    retry-count: 3
+    properties:
+      - build-discarder:
+          days-to-keep: 1
+          num-to-keep: 1
+          artifact-days-to-keep: 1
+          artifact-num-to-keep: 1
+      - github:
+          url: https://github.com/ceph/ceph-container
+
+    parameters:
+      - string:
+          name: BRANCH
+          description: "Branch of ceph-container.git to use"
+          default: main
+
+      - string:
+          name: X86_64_FLAVORS_TO_BUILD
+          description: "x86 flavor(s) to build"
+          default: "reef,centos,8"
+
+    scm:
+      - git:
+          url: https://github.com/ceph/ceph-container.git
+          branches:
+            - ${BRANCH}
+          browser: auto
+          basedir: "ceph-container"
+          timeout: 20
+
+    builders:
+      - shell:
+          !include-raw:
+            - ../../../scripts/build_utils.sh
+            - ../../build/build
+
+    wrappers:
+      - inject-passwords:
+          global: true
+          mask-password-params: true
+      - credentials-binding:
+          - username-password-separated:
+              credential-id: release-build-quay-ceph-io
+              username: QUAY_CEPH_IO_USERNAME
+              password: QUAY_CEPH_IO_PASSWORD
+          - username-password-separated:
+              credential-id: download-ceph-com-prerelease
+              username: PRERELEASE_USERNAME
+              password: PRERELEASE_PASSWORD
