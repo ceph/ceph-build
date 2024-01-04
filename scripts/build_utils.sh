@@ -1490,7 +1490,7 @@ setup_rpm_build_deps() {
     # python-rpm-macro we use for identifying the python related dependencies
     $SUDO yum install -y python3-devel
 
-    $SUDO yum-builddep -y --setopt=*.skip_if_unavailable=true $DIR/ceph.spec
+    $SUDO yum-builddep -v -y --setopt=*.skip_if_unavailable=true $DIR/ceph.spec
 }
 
 setup_rpm_build_area() {
