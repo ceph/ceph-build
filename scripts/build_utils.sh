@@ -1488,9 +1488,9 @@ setup_rpm_build_deps() {
     # Make sure we have all the rpm macros installed and at the latest version
     # before installing the dependencies, python3-devel requires the
     # python-rpm-macro we use for identifying the python related dependencies
-    $SUDO yum install -y python3-devel
+    $SUDO dnf install -y python3-devel
 
-    $SUDO yum-builddep -v -y --setopt=*.skip_if_unavailable=true $DIR/ceph.spec
+    $SUDO dnf builddep -d 10 --debugsolver -y --setopt=*.skip_if_unavailable=true $DIR/ceph.spec
 }
 
 setup_rpm_build_area() {
