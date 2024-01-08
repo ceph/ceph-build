@@ -1490,6 +1490,7 @@ setup_rpm_build_deps() {
     # python-rpm-macro we use for identifying the python related dependencies
     $SUDO dnf install -y python3-devel
 
+    $SUDO dnf clean all
     $SUDO dnf builddep -d 10 --debugsolver -y --setopt=*.skip_if_unavailable=true $DIR/ceph.spec
 }
 
