@@ -1491,7 +1491,7 @@ setup_rpm_build_deps() {
     $SUDO dnf install -y python3-devel
 
     $SUDO dnf clean all
-    $SUDO dnf builddep -d 10 --debugsolver -y --setopt=*.skip_if_unavailable=true $DIR/ceph.spec
+    $SUDO dnf builddep -y --setopt=*.skip_if_unavailable=true $DIR/ceph.spec
 }
 
 setup_rpm_build_area() {
