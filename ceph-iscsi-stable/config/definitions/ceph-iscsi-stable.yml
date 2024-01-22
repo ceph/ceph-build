@@ -31,7 +31,7 @@
       - string:
           name: CEPH_ISCSI_BRANCH
           description: "The git branch (or tag) to build"
-          default: "3.5"
+          default: "3.6"
 
       - string:
           name: CEPH_ISCSI_TOOLS_BRANCH
@@ -40,8 +40,8 @@
 
       - string:
           name: DISTROS
-          description: "A list of distros to build for. Available options are: centos7 centos8"
-          default: "centos7 centos8"
+          description: "A list of distros to build for. Available options are: centos8 centos9"
+          default: "centos8 centos9"
 
       - string:
           name: ARCHS
@@ -70,7 +70,7 @@ If this is checked, then the binaries will be built and pushed to chacra even if
     execution-strategy:
        combination-filter: |
          DIST == AVAILABLE_DIST && ARCH == AVAILABLE_ARCH &&
-         (ARCH == "x86_64" || (ARCH == "arm64" && ["centos7", "centos8"].contains(DIST)))
+         (ARCH == "x86_64" || (ARCH == "arm64" && ["centos8"].contains(DIST)))
     axes:
       - axis:
           type: label-expression
@@ -86,8 +86,8 @@ If this is checked, then the binaries will be built and pushed to chacra even if
           type: label-expression
           name: AVAILABLE_DIST
           values:
-            - centos7
             - centos8
+            - centos9
       - axis:
           type: dynamic
           name: DIST
