@@ -18,10 +18,8 @@ set -ex
 cd $WORKSPACE
 
 # This will set the DISTRO and MOCK_TARGET variables.
-#get_distro_and_target
-# I could not get that function to work so I'm hardcoding these vars.
-DISTRO="centos"
-MOCK_TARGET="epel"
+get_distro_and_target
+echo "DISTRO: $DISTRO  MOCK_TARGET: $MOCK_TARGET"
 
 # Make sure the dist directory is clean
 rm -rf dist
