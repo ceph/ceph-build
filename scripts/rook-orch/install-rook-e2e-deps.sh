@@ -15,6 +15,7 @@ install_docker(){
     fi
     sudo groupadd docker || true
     sudo usermod -aG docker $(id -un)
+    sudo systemctl unmask docker
     sudo systemctl start docker
     sudo chgrp "$(id -un)" /var/run/docker.sock
 
@@ -22,20 +23,16 @@ install_docker(){
     docker container prune -f
 }
 
-configure_libvirt(){
-    sudo usermod -aG libvirt $(id -un)
-    sudo su -l $USER  # Avoid having to log out and log in for group addition to take effect.
-    sudo systemctl enable --now libvirtd
-    sudo systemctl restart libvirtd
-    sleep 10 # wait some time for libvirtd service to restart
-}
+# delete any existing minikube setup
+minikube delete
+
+# delete any existing libvirt socket
+sudo rm -rf /var/run/libvirt/libvirt-sock
 
 # install dependencies
 sudo apt update -y
-sudo apt install -y qemu-kvm libvirt-daemon-driver-qemu libvirt-clients libvirt-daemon-system  runc python3
-sudo apt install -y python3-pip
-pip3 install behave
-configure_libvirt
+sudo apt install --reinstall -y qemu-kvm libvirt-daemon-driver-qemu libvirt-clients libvirt-daemon-system  runc python3
+sudo apt install --reinstall -y python3-pip
 install_docker
 
 # install minikube
