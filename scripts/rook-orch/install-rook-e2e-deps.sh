@@ -33,7 +33,6 @@ sudo rm -rf /var/run/libvirt/libvirt-sock
 sudo apt update -y
 sudo apt install --reinstall -y qemu-kvm libvirt-daemon-driver-qemu libvirt-clients libvirt-daemon-system  runc python3
 sudo apt install --reinstall -y python3-pip
-python -m pip install behave
 install_docker
 
 # install minikube
