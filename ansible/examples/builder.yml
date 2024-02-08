@@ -920,6 +920,13 @@
             executors: '{{ executors|default(1) }}'
             exclusive: true
 
+        - name: Update ca-trust bundle
+          command:
+            cmd: "update-ca-trust"
+          when:
+            - ansible_os_family == "RedHat"
+            - ansible_distribution_major_version|int <= 7
+
         - name: Download agent.jar
           get_url:
             url: "{{ api_uri }}/jnlpJars/agent.jar"
