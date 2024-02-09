@@ -102,7 +102,7 @@ EXAMPLES = """
 """
 import ast
 import traceback
-import xmltodict
+import xml.etree.ElementTree as ET
 
 HAS_JENKINS_API = True
 try:
@@ -165,6 +165,117 @@ def sanitize_update_params(kw):
     return invalid, update_kws
 
 
+# our own limited implementation of xmltodict, because
+# that module is hard to find in distro packages
+
+def _create_or_append(d, tag, v):
+    if tag not in d:
+        d[tag] = ''
+
+    if not d[tag]:
+        d[tag] = list((v,))
+    else:
+        d[tag].append(v)
+
+
+def xml_to_dict(e):
+    '''
+    XML element to dict.  Note that multiple occurrences of
+    the same tag are translated to an item where value is a list.
+    '''
+    d = dict()
+    xml_to_dict_worker(e, d)
+    return d
+
+
+def xml_to_dict_worker(e, curdict):
+    subd = None
+    if e.attrib or len(e):
+        curdict[e.tag] = subd = dict()
+
+    if e.attrib:
+        for k,v in e.attrib.items():
+            subd['@'+k] = v
+
+    # XXX maybe don't strip?
+    if e.text:
+        e.text = e.text.strip()
+    if not (len(e)):
+        # if subd exists, there were attributes and/or children,
+        # and text goes into a #text item of subd.
+        # If subd does not exist, there are no children or attrs,
+        # and this text goes into curdict[e.tag] directly.
+        #
+        # Note: multiple text strings are weird in etree; since order
+        # matters, they can't all live in e.text, or even e; they appear in
+        # the 'tail' attribute of subsequent nested elements, if those exist.
+        # That's just too much to handle here, so we ignore any but the
+        # first text string.  That should be fine for Jenkins anyway.
+        if subd:
+            if e.text:
+                # only create an addr for a non-null e.text
+                _create_or_append(subd, '#text', e.text)
+        else:
+            # but fill curdict[e.tag] even if e.text is None
+            _create_or_append(curdict, e.tag, e.text)
+        return
+
+    # there are children; there must have been no text
+    for c in e:
+        xml_to_dict_worker(c, subd)
+
+
+def _scalar_or_list(v):
+    if v and isinstance(v, list):
+        return v
+    if v:
+        # v might be iterable.  Don't iterate it.
+        l = list()
+        l.append(v)
+        return l
+    # v was None
+    return list()
+
+
+def dict_to_xml(d):
+    '''
+    Python dict to xml element, the dual of xml_to_dict()
+    '''
+    if len(d) > 1:
+        raise ValueError
+    # get first item
+    k,v = next(iter(d.items()))
+    e = ET.Element(k)
+    dict_to_xml_worker(e, v)
+    return e
+
+
+def dict_to_xml_worker(e, value):
+    if isinstance(value, dict):
+        # process entire dict, recursing if necessary
+        for k,v in value.items():
+            if k.startswith('@'):
+                e.set(k[1:], v)
+            else:
+                if isinstance(v, dict):
+                    c = ET.Element(k)
+                    e.append(c)
+                    dict_to_xml_worker(c, v)
+                else:
+                    if v is None:
+                        c = ET.Element(k)
+                        e.append(c)
+                        c.text = v
+                    else:
+                        for s in _scalar_or_list(v):
+                            c = ET.Element(k)
+                            c.text = s
+                            e.append(c)
+    else:
+        # wasn't a dict at the call; just set text and return
+        e.text = value
+
+
 def create_or_modify(uri, user, password, name, **kw):
     launcher_params = {}
     launcher_params['credentialsId'] = kw.pop('credentialsId', None)
@@ -180,12 +291,15 @@ def create_or_modify(uri, user, password, name, **kw):
         # select valid config keys, transform a few
         invalid, params = sanitize_update_params(params)
 
-        config = xmltodict.parse(j.get_node_config(name))
+        configstr = j.get_node_config(name)
+        xml_config = ET.fromstring(configstr)
+        config = xml_to_dict(xml_config)
         for k, v in params.items():
             config['slave'][k] = v
-        new_xconfig = xmltodict.unparse(config)
+        new_xconfig = dict_to_xml(config)
+        new_xconfigstr = ET.tostring(new_xconfig, encoding='unicode')
 
-        j.reconfig_node(name, new_xconfig)
+        j.reconfig_node(name, new_xconfigstr)
     else:
         if 'label' in params:
             params['labels'] = params['label']

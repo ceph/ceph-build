@@ -119,7 +119,6 @@
           - python3-pip
           - python3-venv
           - python3-virtualenv
-          - python3-xmltodict
       when:
         - ansible_os_family == "Debian"
         - ansible_distribution_major_version|int >= 18
@@ -210,7 +209,6 @@
           - python3-pip
           - python3-devel
           - python3-virtualenv
-          - python3-xmltodict
           - mock
           - podman
         container_service_name: podman
@@ -235,7 +233,6 @@
           - jq
           - python3-pip
           - python3-devel
-          - python3-xmltodict
           - podman
         container_service_name: podman
         container_certs_path: "/etc/containers/certs.d/{{ container_mirror }}"
@@ -291,7 +288,6 @@
           - python2-virtualenv
           - python3-pip
           - python3-virtualenv
-          - python3-xmltodict
           - rpm-build
           - rpmdevtools
           - tig
@@ -801,7 +797,7 @@
     - set_fact:
         pip_version: pip3
         ansible_python_interpreter: /usr/bin/python3
-      when: (ansible_os_family == "RedHat" and ansible_distribution_major_version|int >= 8) or
+      when: (ansible_os_family == "RedHat" and ansible_distribution_major_version|int >= 7) or
             (ansible_os_family == "Debian" and ansible_distribution_major_version|int >= 18) or
             ansible_os_family == "Suse"
       tags:
@@ -923,6 +919,13 @@
             remoteFS: '/home/{{ jenkins_user }}/build'
             executors: '{{ executors|default(1) }}'
             exclusive: true
+
+        - name: Update ca-trust bundle
+          command:
+            cmd: "update-ca-trust"
+          when:
+            - ansible_os_family == "RedHat"
+            - ansible_distribution_major_version|int <= 7
 
         - name: Download agent.jar
           get_url:
