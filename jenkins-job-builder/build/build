@@ -9,7 +9,7 @@
 set -euxo pipefail
 
 # the following two methods exist in scripts/build_utils.sh
-pkgs=( "dataclasses" "jenkins-job-builder>=3.5.0" )
+pkgs=( "dataclasses" "jenkins-job-builder>=3.5.0,<6.0.0" )
 TEMPVENV=$(create_venv_dir)
 VENV=${TEMPVENV}/bin
 install_python_packages $TEMPVENV "pkgs[@]" latest
