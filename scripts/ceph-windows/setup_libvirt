@@ -74,14 +74,9 @@ function get_libvirt_vm_ssh_address() {
 #
 # Setup requirements (if needed)
 #
-if ! which virt-install >/dev/null; then
-    sudo apt-get update
-    sudo apt-get install -y virtinst
-fi
-if ! which cloud-localds >/dev/null; then
-    sudo apt-get update
-    sudo apt-get install -y cloud-image-utils
-fi
+sudo apt-get update
+sudo apt-get install -y libvirt-daemon-system virtinst cloud-image-utils
+
 if ! sudo virsh net-info default &>/dev/null; then
     cat << EOF > $LIBVIRT_DIR/default-net.xml
 <network>
