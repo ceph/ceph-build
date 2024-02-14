@@ -58,6 +58,7 @@
                     DISTROS=focal bionic centos8 leap15
       # build quincy on:
       # default: focal centos8 centos9 leap15
+      # crimson: centos8
       - conditional-step:
           condition-kind: regex-match
           regex: .*quincy.*
@@ -74,9 +75,16 @@
                     BRANCH=${GIT_BRANCH}
                     FORCE=True
                     DISTROS=focal centos8 centos9 leap15
+                - project: 'ceph-dev'
+                  predefined-parameters: |
+                    BRANCH=${GIT_BRANCH}
+                    FORCE=True
+                    DISTROS=centos8
+                    FLAVOR=crimson
+                    ARCHS=x86_64
       # build reef on:
       # default: jammy focal centos8 centos9 windows
-      # crimson: centos9
+      # crimson: centos8 centos9
       - conditional-step:
           condition-kind: regex-match
           regex: .*reef.*
@@ -97,12 +105,12 @@
                   predefined-parameters: |
                     BRANCH=${GIT_BRANCH}
                     FORCE=True
-                    DISTROS=centos9
+                    DISTROS=centos8 centos9
                     FLAVOR=crimson
                     ARCHS=x86_64
       # build main on:
       # default: jammy focal centos8 centos9 windows
-      # crimson: centos9
+      # crimson: centos8 centos9
       - conditional-step:
           condition-kind: regex-match
           regex: .*main.*
@@ -123,7 +131,7 @@
                   predefined-parameters: |
                     BRANCH=${GIT_BRANCH}
                     FORCE=True
-                    DISTROS=centos9
+                    DISTROS=centos8 centos9
                     FLAVOR=crimson
                     ARCHS=x86_64
 
