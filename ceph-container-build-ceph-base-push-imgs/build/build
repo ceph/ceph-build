@@ -5,6 +5,7 @@ set -e
 sudo apt-get install jq -y
 
 cd "$WORKSPACE"/ceph-container/ || exit
+export PRERELEASE=false
 ARCH=x86_64 bash -x contrib/build-ceph-base.sh
 
 echo "Now running manifest script"
