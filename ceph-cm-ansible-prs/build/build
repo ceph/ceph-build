@@ -1,0 +1,89 @@
+#!/bin/bash
+# NOTE: Commented code was my attempt at creating this as a matrix job.
+# I couldn't get the child jobs to share the same checkout/venv of teuthology
+# so I left the code in place in case I (or somebody else) wants to take a
+# crack at it in the future.
+
+set -ex
+
+# Clone or update teuthology
+if [ ! -d teuthology ]; then
+  git clone https://github.com/ceph/teuthology
+  cd teuthology
+else
+  cd teuthology
+  git pull
+fi
+
+# Bootstrap teuthology
+./bootstrap
+
+cd $WORKSPACE
+
+# Clone or update teuthology
+if [ ! -d downburst ]; then
+  git clone https://github.com/ceph/downburst
+  cd downburst
+else
+  cd downburst
+  git pull
+fi
+
+# Bootstrap downburst
+./bootstrap
+
+# Activate our virtualenv containing teuthology and ansible
+source $WORKSPACE/teuthology/virtualenv/bin/activate
+
+# Add downburst to path
+PATH=$PATH:$WORKSPACE/downburst/virtualenv/bin
+
+#if [ $DISTRO == "xenial" ]; then
+#  DISTRO="ubuntu"
+#  DISTRO_VERSION="16.04"
+#elif [ $DISTRO == "trusty" ]; then
+#  DISTRO="ubuntu"
+#  DISTRO_VERSION="14.04"
+#elif [ $DISTRO == "centos" ]; then
+#  DISTRO="centos"
+#  DISTRO_VERSION="7.3"
+#else
+#  echo "Unknown distro: $DISTRO"
+#  exit 1
+#fi
+
+# Don't bail since we'll almost certainly not lock every machine/os type on the first try
+set +e
+
+for machine_type in smithi mira vps; do
+  LOCK_TRUSTY_CMD="teuthology-lock --lock-many 1 --machine-type $machine_type --os-type ubuntu --os-version 14.04"
+  LOCK_XENIAL_CMD="teuthology-lock --lock-many 1 --machine-type $machine_type --os-type ubuntu --os-version 16.04"
+  LOCK_CENTOS_CMD="teuthology-lock --lock-many 1 --machine-type $machine_type --os-type centos --os-version 7.3"
+  $LOCK_TRUSTY_CMD; while [ $? -ne 0 ]; do sleep 5; $LOCK_TRUSTY_CMD; done
+  $LOCK_XENIAL_CMD; while [ $? -ne 0 ]; do sleep 5; $LOCK_XENIAL_CMD; done
+  $LOCK_CENTOS_CMD; while [ $? -ne 0 ]; do sleep 5; $LOCK_CENTOS_CMD; done
+done
+
+#LOCK_CMD="teuthology-lock --lock-many 1 --machine-type $MACHINE_TYPE --os-type $DISTRO --os-version $DISTRO_VERSION"
+#
+## Keep trying to lock a machine
+#$LOCK_CMD; while [ $? -ne 0 ]; do sleep 5; $LOCK_CMD; done
+
+set -e
+
+locked_machines=$(teuthology-lock --brief | awk '{ print $1 }' | paste -sd "," -)
+#locked_machines=$(teuthology-lock --brief --machine-type $MACHINE_TYPE --os-type $DISTRO --os-version $DISTRO_VERSION | awk '{ print $1 }' | paste -sd "," -)
+
+cd $WORKSPACE/ceph-cm-ansible
+
+# Erase line about the vault password since testnodes don't need any secrets
+sed -i '/vault_password_file/d' ./ansible.cfg
+
+ansible-playbook -vv ansible_managed.yml --limit=\"$locked_machines\"
+#ansible-playbook -vvv ansible_managed.yml --limit=\"$locked_machine\"
+ 
+ansible-playbook -vv testnodes.yml -e ansible_ssh_user=ubuntu --limit=\"$locked_machines\"
+#ansible-playbook -vvv testnodes.yml -e ansible_ssh_user=ubuntu --limit=\"$locked_machine\"
+
+teuthology-lock --unlock -t <(teuthology-lock --list-targets)
+#teuthology-lock --unlock $locked_machine
