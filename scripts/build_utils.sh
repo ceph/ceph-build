@@ -870,7 +870,8 @@ ceph_build_args_from_flavor() {
         ;;
     crimson)
         CEPH_EXTRA_RPMBUILD_ARGS="--with seastar"
-        CEPH_EXTRA_CMAKE_ARGS+=" -DCMAKE_BUILD_TYPE=Debug"
+	# use clang for crimson builds due to coroutine support, see https://tracker.ceph.com/issues/64375
+        CEPH_EXTRA_CMAKE_ARGS+=" -DCMAKE_BUILD_TYPE=Debug -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++"
         DEB_BUILD_PROFILES="pkg.ceph.crimson"
         ;;
     jaeger)
