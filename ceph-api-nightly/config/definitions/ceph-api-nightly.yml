@@ -2,6 +2,7 @@
     name: ceph-api-nightly
     ceph_branch:
       - main
+      - squid
       - reef
       - quincy
       - pacific

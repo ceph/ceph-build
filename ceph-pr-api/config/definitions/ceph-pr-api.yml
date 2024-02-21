@@ -36,6 +36,7 @@
             - ceph
           white-list-target-branches:
             - main
+            - squid
             - reef
             - quincy
             - pacific
