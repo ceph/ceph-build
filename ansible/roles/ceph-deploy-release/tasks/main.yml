@@ -25,11 +25,11 @@
   # we probably messed up the previous commit+tag, so we chose to use 'clean'
   # that will rollback that commit, delete the local and remote tag, and force
   # push the new changes
-- include: clear_version.yml
+- include_tasks: clear_version.yml
   when: (clean and last_commit.stdout == tag_name)
 
   # if the last commit wasn't one that we already did, then go ahead and make
   # the changes + tag for the release. Otherwise, just skip because it was
   # already done for this release
-- include: release.yml
+- include_tasks: release.yml
   when: (tag_name != last_commit.stdout)

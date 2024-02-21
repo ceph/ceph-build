@@ -1,15 +1,15 @@
 ---
-- include: repo.yml
+- include_tasks: repo.yml
 
-- include: dependencies.yml
+- include_tasks: dependencies.yml
 
-- include: nginx.yml
+- include_tasks: nginx.yml
 
-- include: letsencrypt.yml
+- include_tasks: letsencrypt.yml
   tags:
     - letsencrypt
 
-- include: ufw.yml
+- include_tasks: ufw.yml
   tags:
     - ufw
 
@@ -19,18 +19,18 @@
     state: present
   register: jenkins_install
 
-- include: config.yml
+- include_tasks: config.yml
 
-- include: plugins.yml
+- include_tasks: plugins.yml
   when: okay_with_restart == "y"
   tags:
     - plugins
 
 # This should only get run the first time the role is run.
 # The variables should be passed as --extra-vars via ansible-playbook command
-- include: auth.yml
+- include_tasks: auth.yml
   when: github_oauth_client is defined and github_oauth_secret is defined
   tags:
     - auth
 
-- include: config.yml
+- include_tasks: config.yml

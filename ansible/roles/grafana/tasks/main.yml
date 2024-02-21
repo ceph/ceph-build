@@ -40,11 +40,11 @@
     - restart app
   become: true
 
-- include: postgresql.yml
+- include_tasks: postgresql.yml
   tags:
     - postgresql
 
-- include: nginx.yml
+- include_tasks: nginx.yml
 
 - name: ensure nginx is running
   become: true
