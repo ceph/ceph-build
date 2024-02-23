@@ -3,7 +3,7 @@
 set -e
 
 # the following two methods exist in scripts/build_utils.sh
-pkgs=( "ansible" "ansible-core<=2.15.4" "jenkins-job-builder>=3.5.0,<6.0.0" "urllib3==1.26.1" "pyopenssl" "ndg-httpsclient" "pyasn1" )
+pkgs=( "ansible" "ansible-core" "jenkins-job-builder>=3.5.0,<6.0.0" "urllib3==1.26.1" "pyopenssl" "ndg-httpsclient" "pyasn1" )
 TEMPVENV=$(create_venv_dir)
 VENV=${TEMPVENV}/bin
 install_python_packages $TEMPVENV "pkgs[@]"

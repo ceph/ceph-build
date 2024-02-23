@@ -3,7 +3,7 @@
 set -ex
 
 # the following two methods exist in scripts/build_utils.sh
-pkgs=( "ansible<9.0" )
+pkgs=( "ansible" )
 TEMPVENV=$(create_venv_dir)
 VENV=${TEMPVENV}/bin
 install_python_packages $TEMPVENV "pkgs[@]"

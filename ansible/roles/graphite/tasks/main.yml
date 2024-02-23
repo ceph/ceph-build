@@ -40,13 +40,13 @@
     creates: "/usr/lib/python2.7/dist-packages/graphite/graphite_web.py"
   become: true
 
-- include: carbon.yml
+- include_tasks: carbon.yml
 
-- include: systemd.yml
+- include_tasks: systemd.yml
   tags:
     - systemd
 
-- include: postgresql.yml
+- include_tasks: postgresql.yml
   tags:
     - postgresql
 

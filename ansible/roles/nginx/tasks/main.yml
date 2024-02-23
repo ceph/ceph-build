@@ -44,10 +44,10 @@
   notify:
     - restart nginx
 
-- include: ssl.yml
+- include_tasks: ssl.yml
   when: development_server == true
 
-- include: letsencrypt.yml
+- include_tasks: letsencrypt.yml
   when: development_server == false
 
 - name: link nginx config
