@@ -8,11 +8,41 @@
         - git:
             url: https://github.com/zmc/ceph-devstack
             branches:
-              - origin/main
+              - origin/${CEPH_DEVSTACK_BRANCH}
     parameters:
       - string:
+          name: CEPH_DEVSTACK_BRANCH
+          default: "main"
+      - string:
           name: TEUTHOLOGY_BRANCH
-          default: "ceph-devstack"
+          default: "main"
+      - string:
+          name: TEUTHOLOGY_CEPH_BRANCH
+          default: "main"
+      - string:
+          name: TEUTHOLOGY_CEPH_REPO
+          default: "https://github.com/ceph/ceph.git"
       - string:
           name: TEUTHOLOGY_SUITE
           default: "teuthology:no-ceph"
+      - string:
+          name: TEUTHOLOGY_SUITE_BRANCH
+          default: "main"
+      - string:
+          name: TEUTHOLOGY_SUITE_REPO
+          default: "https://github.com/ceph/ceph.git"
+
+    triggers:
+      - github-pull-request:
+          admin-list:
+            - zmc
+            - dmick
+            - kamoltat
+            - amathuria
+          org-list:
+            - ceph
+          trigger-phrase: 'jenkins test.*|jenkins retest.*'
+          only-trigger-phrase: false
+          github-hooks: true
+          permit-all: false
+          auto-close-on-fail: false
