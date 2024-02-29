@@ -10,4 +10,4 @@ docker.io:
     grafana/grafana: ^(9\.?|[0-9]{2,}\.?)([0-9]*\.?){1,}$
 EOF
 
-podman run --rm -v ./sync.yml:/sync.yml quay.io/skopeo/stable sync --src yaml --dest docker /sync.yml "${DEST_REGISTRY}" --dest-username "${DEST_USERNAME}" --dest-password "${DEST_PASSWORD}"
+podman run --rm --security-opt label=disable -v ./sync.yml:/sync.yml:ro quay.io/skopeo/stable sync --src yaml --dest docker /sync.yml "${DEST_REGISTRY}" --dest-username "${DEST_USERNAME}" --dest-password "${DEST_PASSWORD}"
