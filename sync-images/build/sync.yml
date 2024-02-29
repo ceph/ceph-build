@@ -1,3 +1,0 @@
-docker.io:
-  images-by-tag-regex:
-    grafana/grafana: ^(9\.?|[0-9]{2,}\.?)([0-9]*\.?){1,}$
