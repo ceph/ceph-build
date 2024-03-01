@@ -1453,6 +1453,10 @@ setup_rpm_build_deps() {
             $SUDO yum-config-manager --enable centos-sclo-rh-testing
         fi
     elif [ "$RELEASE" = 8 ]; then
+        # for grpc-devel
+        # See https://copr.fedorainfracloud.org/coprs/ceph/grpc/
+        $SUDO yum -y install https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm
+        $SUDO dnf copr enable -y ceph/grpc
         # centos 8.3 changes to lowercase repo names
         $SUDO dnf config-manager --set-enabled PowerTools || \
             $SUDO dnf config-manager --set-enabled powertools
