@@ -12,7 +12,8 @@ sudo journalctl -u libvirtd --pager-end --no-pager
 echo "======= END VAGRANT DEBUGGING ======="
 
 # the method exists in scripts/build_utils.sh
-teardown_vagrant_tests $VENV
+COLLECT_LOGS_PLAYBOOK_PATH="$WORKSPACE/tests/functional/collect-logs.yml"
+teardown_vagrant_tests $VENV $COLLECT_LOGS_PLAYBOOK_PATH
 
 # clean fact cache
 rm -rf $HOME/ansible/facts/*

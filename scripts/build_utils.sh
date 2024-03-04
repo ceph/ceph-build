@@ -1361,31 +1361,35 @@ EOF
 
 collect_ceph_logs() {
     local venv=$1
+    local limit=$2
+    local collect_logs_playbook_path=$3
     shift
     # this is meant to be run in a testing scenario directory
     # with running vagrant vms. the ansible playbook will connect
     # to your test nodes and fetch any ceph logs that are present
     # in /var/log/ceph and store them on the jenkins builder.
     # these logs can then be archived using the JJB archive publisher
-    limit=$1
 
     if [ -f "./vagrant_ssh_config" ]; then
         mkdir -p $WORKSPACE/logs
 
-        write_collect_logs_playbook
+        if [ -z "$collect_logs_playbook_path" ]; then
+            write_collect_logs_playbook
+            collect_logs_playbook_path="$WORKSPACE/collect-logs.yml"
+        fi
 
         pkgs=( "ansible" )
         install_python_packages $TEMPVENV "pkgs[@]"
 
         export ANSIBLE_SSH_ARGS='-F ./vagrant_ssh_config'
         export ANSIBLE_STDOUT_CALLBACK='debug'
-        $venv/ansible-playbook -vv -i hosts --limit $limit --extra-vars "archive_path=$WORKSPACE/logs" $WORKSPACE/collect-logs.yml || true
+        $venv/ansible-playbook -vv -i hosts --limit $limit --extra-vars "archive_path=$WORKSPACE/logs" "$collect_logs_playbook_path" || true
     fi
 }
 
 teardown_vagrant_tests() {
     local venv=$1
-    shift
+    local collect_logs_playbook_path=$2
 
     # collect ceph logs and teardown any running vagrant vms
     # this also cleans up any lingering livirt networks
@@ -1394,7 +1398,7 @@ teardown_vagrant_tests() {
     for scenario in $scenarios; do
         cd $scenario
         # collect all ceph logs from all test nodes
-        collect_ceph_logs $venv all
+        collect_ceph_logs $venv all "$collect_logs_playbook_path"
         vagrant destroy -f
         stat ./fetch > /dev/null 2>&1 && rm -rf ./fetch
         cd -
