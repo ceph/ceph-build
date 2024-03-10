@@ -1375,7 +1375,9 @@ collect_ceph_logs() {
 
         if [ -z "$collect_logs_playbook_path" ]; then
             write_collect_logs_playbook
-            collect_logs_playbook_path="$WORKSPACE/collect-logs.yml"
+        else
+            # the playbook needs to be in the root directory so it can discover the roles
+            cp $collect_logs_playbook_path $WORKSPACE/collect-logs.yml
         fi
 
         pkgs=( "ansible" )
@@ -1383,7 +1385,7 @@ collect_ceph_logs() {
 
         export ANSIBLE_SSH_ARGS='-F ./vagrant_ssh_config'
         export ANSIBLE_STDOUT_CALLBACK='debug'
-        $venv/ansible-playbook -vv -i hosts --limit $limit --extra-vars "archive_path=$WORKSPACE/logs" "$collect_logs_playbook_path" || true
+        $venv/ansible-playbook -vv -i hosts --limit $limit --extra-vars "archive_path=$WORKSPACE/logs" $WORKSPACE/collect-logs.yml || true
     fi
 }
 
