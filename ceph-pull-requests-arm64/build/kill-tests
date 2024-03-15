@@ -1,0 +1,32 @@
+#!/bin/bash -ex
+
+# kill all descendant processes of ctest
+
+# ceph-pull-requests-arm64/build/build is killed by jenkins when the ceph-pull-requests-arm64 job is aborted or
+# canceled, see https://www.jenkins.io/doc/book/using/aborting-a-build/ . but build/build does not
+# wait until all its children processes quit. after ctest is killed by SIGTERM, there is chance
+# that some tests are still running as ctest does not get a chance to kill them before it terminates.
+# if these tests had timed out, ctest would kill them using SIGKILL. so we need to kill them
+# manually after the job is aborted.
+
+# if ctest is still running, get its pid, otherwise we are done.
+ctest_pid=$(pgrep ctest) || exit 0
+# the parent process of ctest should have been terminated, but this might not be true when
+# it comes to some of its descendant processes, for instance, unittest-seastar-messenger
+ctest_pgid=$(ps --no-headers --format 'pgid:1' --pid $ctest_pid)
+kill -SIGTERM -- -"$ctest_pgid"
+# try harder
+for seconds in 0 1 1 2 3; do
+    sleep $seconds
+    if pgrep --pgroup $ctest_pgid > /dev/null; then
+        # kill only if we've waited for a while
+        if test $seconds != 0; then
+            pgrep --pgroup $ctest_pgid
+            echo 'try harder'
+            kill -SIGKILL -- -"$ctest_pgid"
+        fi
+    else
+        echo 'killed'
+        break
+    fi
+done
