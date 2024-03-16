@@ -125,7 +125,7 @@
       # crimson: centos8 centos9
       - conditional-step:
           condition-kind: regex-match
-          regex: .*main.*
+          regex: .*reef.*
           label: '${GIT_BRANCH}'
           on-evaluation-failure: dont-run
           steps:
