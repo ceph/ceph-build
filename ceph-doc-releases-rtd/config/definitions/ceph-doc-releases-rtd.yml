@@ -35,7 +35,7 @@
             - 'doc/releases'
     builders:
       - shell: |
-          RELEASES="reef quincy pacific octopus"
+          RELEASES="squid reef quincy pacific octopus"
           for release in $RELEASES; do
             curl -X POST -H "Authorization: Token $READTHEDOCS_TOKEN" https://readthedocs.org/api/v3/projects/ceph/versions/$release/builds/
           done

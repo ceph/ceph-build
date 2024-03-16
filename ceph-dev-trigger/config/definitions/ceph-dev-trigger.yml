@@ -26,75 +26,14 @@
           browser: auto
           branches:
             - 'origin/main'
-            - 'origin/jewel'
-            - 'origin/kraken'
-            - 'origin/hammer'
-            - 'origin/luminous'
-            - 'origin/mimic*'
-            - 'origin/nautilus'
-            - 'origin/octopus'
-            - 'origin/pacific'
             - 'origin/quincy'
             - 'origin/reef'
+            - 'origin/squid'
           skip-tag: true
           timeout: 20
           wipe-workspace: true
 
     builders:
-      # build nautilus on:
-      # default: bionic xenial centos7 centos8
-      - conditional-step:
-          condition-kind: regex-match
-          regex: .*nautilus.*
-          label: '${GIT_BRANCH}'
-          on-evaluation-failure: dont-run
-          steps:
-            - shell:
-                !include-raw:
-                - ../../../scripts/build_utils.sh
-                - ../../build/notify
-            - trigger-builds:
-                - project: 'ceph-dev'
-                  predefined-parameters: |
-                    BRANCH=${GIT_BRANCH}
-                    FORCE=True
-                    DISTROS=bionic xenial centos7 centos8
-      # build octopus on:
-      # default: focal bionic centos7 centos8 leap15
-      - conditional-step:
-          condition-kind: regex-match
-          regex: .*octopus.*
-          label: '${GIT_BRANCH}'
-          on-evaluation-failure: dont-run
-          steps:
-            - shell:
-                !include-raw:
-                - ../../../scripts/build_utils.sh
-                - ../../build/notify
-            - trigger-builds:
-                - project: 'ceph-dev'
-                  predefined-parameters: |
-                    BRANCH=${GIT_BRANCH}
-                    FORCE=True
-                    DISTROS=focal bionic centos7 centos8 leap15
-      # build pacific on:
-      # default: focal bionic centos8 leap15
-      - conditional-step:
-          condition-kind: regex-match
-          regex: .*pacific.*
-          label: '${GIT_BRANCH}'
-          on-evaluation-failure: dont-run
-          steps:
-            - shell:
-                !include-raw:
-                - ../../../scripts/build_utils.sh
-                - ../../build/notify
-            - trigger-builds:
-                - project: 'ceph-dev'
-                  predefined-parameters: |
-                    BRANCH=${GIT_BRANCH}
-                    FORCE=True
-                    DISTROS=focal bionic centos8 leap15
       # build quincy on:
       # default: focal centos8 leap15
       # crimson: centos8
@@ -126,6 +65,31 @@
       - conditional-step:
           condition-kind: regex-match
           regex: .*reef.*
+          label: '${GIT_BRANCH}'
+          on-evaluation-failure: dont-run
+          steps:
+            - shell:
+                !include-raw:
+                - ../../../scripts/build_utils.sh
+                - ../../build/notify
+            - trigger-builds:
+                - project: 'ceph-dev'
+                  predefined-parameters: |
+                    BRANCH=${GIT_BRANCH}
+                    FORCE=True
+                    DISTROS=jammy focal centos8 centos9
+                - project: 'ceph-dev'
+                  predefined-parameters: |
+                    BRANCH=${GIT_BRANCH}
+                    FORCE=True
+                    DISTROS=centos8 centos9
+                    FLAVOR=crimson
+      # build squid on:
+      # default: jammy focal centos8 centos9
+      # crimson: centos8 centos9
+      - conditional-step:
+          condition-kind: regex-match
+          regex: .*squid.*
           label: '${GIT_BRANCH}'
           on-evaluation-failure: dont-run
           steps:

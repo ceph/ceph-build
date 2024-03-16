@@ -65,7 +65,7 @@
             - condition-kind: and
               condition-operands:
                 - condition-kind: regex-match
-                  regex: (mimic|nautilus|octopus|pacific|quincy|reef)
+                  regex: (mimic|nautilus|octopus|pacific|quincy|reef|squid)
                   label: '${BRANCH}'
                 - condition-kind: regex-match
                   regex: (xenial|bionic|focal|jammy|centos7|centos8|centos9|buster|bullseye|bookworm)
