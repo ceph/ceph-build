@@ -35,7 +35,6 @@
           <autoRebuild>false</autoRebuild>
           <rebuildDisabled>false</rebuildDisabled>
           </com.sonyericsson.rebuild.RebuildSettings>
-    publishers: []
     quiet-period: '5'
     retry-count: '3'
     scm:
@@ -68,6 +67,43 @@
         failure-status: "make check failed"
         white-list-target-branches:
         - main
+    publishers:
+      - cobertura:
+          report-file: "src/pybind/mgr/dashboard/frontend/coverage/cobertura-coverage.xml"
+          only-stable: "true"
+          health-auto-update: "false"
+          stability-auto-update: "false"
+          zoom-coverage-chart: "true"
+          source-encoding: "Big5"
+          targets:
+            - files:
+                healthy: 10
+                unhealthy: 20
+                failing: 30
+            - method:
+                healthy: 10
+                unhealthy: 20
+                failing: 30
+      - postbuildscript:
+          builders:
+            - role: SLAVE
+              build-on:
+                - ABORTED
+              build-steps:
+                - shell:
+                    !include-raw:
+                      - ../../build/kill-tests
+      - xunit:
+          thresholds:
+            - failed:
+                unstable: 0
+                unstablenew: 0
+                failure: 0
+                failurenew: 0
+          types:
+            - ctest:
+                pattern: "build/Testing/**/Test.xml"
+                skip-if-no-test-files: true
     wrappers:
       - credentials-binding:
           - username-password-separated:
