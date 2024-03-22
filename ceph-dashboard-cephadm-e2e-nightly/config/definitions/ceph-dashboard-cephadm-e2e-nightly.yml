@@ -5,7 +5,6 @@
       - squid
       - reef
       - quincy
-      - pacific
     jobs:
       - '{name}-{ceph_branch}'
 

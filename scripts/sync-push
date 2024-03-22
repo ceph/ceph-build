@@ -12,7 +12,7 @@
 # pull an in-progress release
 prerelease_dir=/data/download.ceph.com/www/prerelease
 
-releases=${*:-"pacific quincy reef"}
+releases=${*:-"quincy reef squid"}
 
 ceph_sync() {
   release=$1

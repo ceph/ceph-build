@@ -169,12 +169,38 @@
                     DISTROS=centos8 centos9
                     FLAVOR=crimson
                     ARCHS=x86_64
+      # build squid on:
+      # default: jammy focal centos8 centos9 windows
+      # crimson: centos8 centos9
+      - conditional-step:
+          condition-kind: regex-match
+          regex: .*squid.*
+          label: '${GIT_BRANCH}'
+          on-evaluation-failure: dont-run
+          steps:
+            - shell:
+                !include-raw:
+                - ../../../scripts/build_utils.sh
+                - ../../build/notify
+            - trigger-builds:
+                - project: 'ceph-dev-new'
+                  predefined-parameters: |
+                    BRANCH=${GIT_BRANCH}
+                    FORCE=True
+                    DISTROS=jammy focal centos8 centos9 windows
+                - project: 'ceph-dev-new'
+                  predefined-parameters: |
+                    BRANCH=${GIT_BRANCH}
+                    FORCE=True
+                    DISTROS=centos8 centos9
+                    FLAVOR=crimson
+                    ARCHS=x86_64
       # If no release name is found in branch, build on all possible distro/flavor combos (except xenial and bionic).
       # regex matching and 'on-evaluation-failure: run' doesn't work here so triple negative it is.
       - conditional-step:
           condition-kind: shell
           condition-command: |
-            echo "${GIT_BRANCH}" | grep -v '\(luminous\|mimic\|nautilus\|octopus\|pacific\|quincy\|reef\|centos9-only\|crimson-only\|jaeger\)'
+            echo "${GIT_BRANCH}" | grep -v '\(luminous\|mimic\|nautilus\|octopus\|pacific\|quincy\|reef\|squid\|centos9-only\|crimson-only\|jaeger\)'
           on-evaluation-failure: dont-run
           steps:
             - shell:
