@@ -1527,7 +1527,7 @@ build_rpms() {
 
     # Build RPMs
     cd ${build_area}/SPECS
-    rpmbuild -ba --define "_topdir ${build_area}" ${extra_rpm_build_args} ceph.spec
+    rpmbuild -ba --define "_topdir ${build_area}" --define "_binary_payload w2T12.xzdio" ${extra_rpm_build_args} ceph.spec
     echo done
 }
 
@@ -1663,11 +1663,13 @@ EOF
     if $is_dev_release; then
         rpmbuild -bb \
                  --define "_topdir ${build_area}" \
+		 --define "_binary_payload w2T12.xzdio" \
                  ${build_area}/SPECS/ceph-release.spec
     else
         # build source packages for official releases
         rpmbuild -ba \
                  --define "_topdir ${build_area}" \
+		 --define "_binary_payload w2T12.xzdio" \
                  --define "_unpackaged_files_terminate_build 0" \
                  ${build_area}/SPECS/ceph-release.spec
     fi
