@@ -84,7 +84,7 @@ fi
 
 # XXX perhaps use job parameters instead of literals; then
 # later stages can also use them to compare etc.
-if [[ "$CI_CONTAINER" == true && $DISTRO == "centos" && $RELEASE == "8" ]] ; then
+if [[ "$CI_CONTAINER" == true && $DISTRO == "centos" && "$RELEASE" =~ 8|9 ]] ; then
     loop=0
     ready=false
     while ((loop < 15)); do
