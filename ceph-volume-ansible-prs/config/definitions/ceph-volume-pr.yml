@@ -2,10 +2,9 @@
 - project:
     name: ceph-volume-ansible-prs-lvm
     distro:
-      - centos8
+      - centos
     objectstore:
       - bluestore
-      - filestore
     scenario:
       - create
       - dmcrypt
@@ -18,7 +17,7 @@
 - project:
     name: ceph-volume-ansible-prs-batch
     distro:
-      - centos8
+      - centos
     objectstore:
       - bluestore
       - filestore
@@ -34,10 +33,9 @@
 - project:
     name: ceph-volume-ansible-prs-batch-mixed
     distro:
-      - centos8
+      - centos
     objectstore:
       - bluestore
-      - filestore
     scenario:
       - mixed_type
       - mixed_type_dmcrypt

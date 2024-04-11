@@ -1,10 +1,9 @@
 - project:
     name: ceph-volume-nightly-lvm
     distro:
-      - centos8
+      - centos
     objectstore:
       - bluestore
-      - filestore
     scenario:
       - create
       - dmcrypt
@@ -22,10 +21,9 @@
 - project:
     name: ceph-volume-nightly-batch
     distro:
-      - centos8
+      - centos
     objectstore:
       - bluestore
-      - filestore
     scenario:
       - single_type
       - single_type_dmcrypt
@@ -43,10 +41,9 @@
 - project:
     name: ceph-volume-nightly-batch-mixed
     distro:
-      - centos8
+      - centos
     objectstore:
       - bluestore
-      - filestore
     scenario:
       - mixed_type
       - mixed_type_dmcrypt
