@@ -20,7 +20,6 @@
       - centos
     objectstore:
       - bluestore
-      - filestore
     scenario:
       - single_type
       - single_type_dmcrypt
