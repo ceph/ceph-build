@@ -110,12 +110,12 @@
                 - name: ceph-volume-scenario
                   current-parameters: true
                   predefined-parameters: |
-                    SCENARIO=centos8-bluestore-create
+                    SCENARIO=centos-bluestore-create
                     SUBCOMMAND=lvm
                 - name: ceph-volume-scenario
                   current-parameters: true
                   predefined-parameters: |
-                    SCENARIO=centos8-bluestore-dmcrypt
+                    SCENARIO=centos-bluestore-dmcrypt
                     SUBCOMMAND=lvm
           - multijob:
               name: 'testing ceph-volume batch - bluestore'
@@ -124,30 +124,30 @@
                 - name: ceph-volume-scenario
                   current-parameters: true
                   predefined-parameters: |
-                    SCENARIO=centos8-bluestore-single_type
+                    SCENARIO=centos-bluestore-single_type
                     SUBCOMMAND=batch
                 - name: ceph-volume-scenario
                   current-parameters: true
                   predefined-parameters: |
-                    SCENARIO=centos8-bluestore-single_type_dmcrypt
+                    SCENARIO=centos-bluestore-single_type_dmcrypt
                     SUBCOMMAND=batch
                 - name: ceph-volume-scenario
                   current-parameters: true
                   predefined-parameters: |
-                    SCENARIO=centos8-bluestore-mixed_type
+                    SCENARIO=centos-bluestore-mixed_type
                     SUBCOMMAND=batch
                 - name: ceph-volume-scenario
                   current-parameters: true
                   predefined-parameters: |
-                    SCENARIO=centos8-bluestore-mixed_type_dmcrypt
+                    SCENARIO=centos-bluestore-mixed_type_dmcrypt
                     SUBCOMMAND=batch
                 - name: ceph-volume-scenario
                   current-parameters: true
                   predefined-parameters: |
-                    SCENARIO=centos8-bluestore-mixed_type_explicit
+                    SCENARIO=centos-bluestore-mixed_type_explicit
                     SUBCOMMAND=batch
                 - name: ceph-volume-scenario
                   current-parameters: true
                   predefined-parameters: |
-                    SCENARIO=centos8-bluestore-mixed_type_dmcrypt_explicit
+                    SCENARIO=centos-bluestore-mixed_type_dmcrypt_explicit
                     SUBCOMMAND=batch
