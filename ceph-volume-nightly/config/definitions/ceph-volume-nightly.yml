@@ -13,7 +13,6 @@
       - main
       - reef
       - quincy
-      - pacific
 
     jobs:
       - 'ceph-volume-nightly-{ceph_branch}-{subcommand}-{distro}-{objectstore}-{scenario}'
@@ -33,7 +32,6 @@
       - main
       - reef
       - quincy
-      - pacific
 
     jobs:
       - 'ceph-volume-nightly-{ceph_branch}-{subcommand}-{distro}-{objectstore}-{scenario}'
@@ -55,7 +53,6 @@
       - main
       - reef
       - quincy
-      - pacific
 
     jobs:
       - 'ceph-volume-nightly-{ceph_branch}-{subcommand}-{distro}-{objectstore}-{scenario}'
