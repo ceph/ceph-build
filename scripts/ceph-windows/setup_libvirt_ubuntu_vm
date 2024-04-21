@@ -7,7 +7,7 @@ if [[ -z $LIBVIRT_DIR ]]; then echo "ERROR: The env variable LIBVIRT_DIR is not 
 export UBUNTU_VM_IMAGE_URL=${UBUNTU_VM_IMAGE_URL:-"https://cloud-images.ubuntu.com/minimal/releases/jammy/release/ubuntu-22.04-minimal-cloudimg-amd64.img"}
 export UBUNTU_VM_NAME=${UBUNTU_VM_NAME:-"ceph-ubuntu-vstart-${JOB_NAME}-${BUILD_ID}"}
 export UBUNTU_VM_VCPUS="$(nproc)"  # use all the CPU cores avaiable on the host
-export UBUNTU_VM_MEMORY="65536"    # 64 GB
+export UBUNTU_VM_MEMORY=${UBUNTU_VM_MEMORY:-"16384"}  # 16 GB
 export UBUNTU_SSH_USER="ubuntu"
 
 #
