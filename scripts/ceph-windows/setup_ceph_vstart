@@ -43,7 +43,7 @@ EOF
 chmod +x ${VSTART_DIR}/build-ceph-vstart.sh
 time rsync_cmd $WORKSPACE/ceph ${VSTART_DIR}/build-ceph-vstart.sh ${UBUNTU_SSH_USER}@${UBUNTU_VM_IP}:
 
-time SSH_TIMEOUT=1h ssh_exec ./build-ceph-vstart.sh
+time SSH_TIMEOUT=4h ssh_exec ./build-ceph-vstart.sh
 ssh_exec sudo apt-get install -y python3-prettytable
 
 if [[ "$USE_MEMSTORE" == "yes" ]]; then
@@ -79,7 +79,7 @@ EOF
 chmod +x ${VSTART_DIR}/ceph-vstart.sh
 
 rsync_cmd ${VSTART_DIR}/ceph-vstart.sh ${UBUNTU_SSH_USER}@${UBUNTU_VM_IP}:
-time SSH_TIMEOUT=30m ssh_exec ./ceph-vstart.sh
+time SSH_TIMEOUT=10m ssh_exec ./ceph-vstart.sh
 
 ssh_exec sudo mkdir -p /etc/ceph
 ssh_exec sudo cp ./ceph-vstart/ceph.conf ./ceph-vstart/keyring /etc/ceph
