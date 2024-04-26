@@ -1,5 +1,8 @@
 #!/bin/bash
 # vim: ts=4 sw=4 expandtab
+
+# PS4 is expanded as the prefix for -x traces
+PS4="\$(date) :: "
 set -ex
 
 
