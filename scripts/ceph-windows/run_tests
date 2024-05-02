@@ -38,7 +38,7 @@ scp_upload $CEPH_KEYRING /ProgramData/ceph/keyring
 #
 # Setup the Ceph Windows build in the Windows VM
 #
-SSH_TIMEOUT=5m scp_upload $WORKSPACE/ceph.zip /ceph.zip
+scp_upload $WORKSPACE/ceph.zip /ceph.zip
 SSH_TIMEOUT=10m ssh_exec powershell.exe "\$ProgressPreference='SilentlyContinue'; Expand-Archive -Path /ceph.zip -DestinationPath / -Force"
 ssh_exec powershell.exe "Add-MpPreference -ExclusionPath 'C:\ceph'"
 ssh_exec powershell.exe "New-Service -Name ceph-rbd -BinaryPathName 'c:\ceph\rbd-wnbd.exe service'"
@@ -83,6 +83,7 @@ function collect_artifacts() {
     ssh_exec curl.exe --retry-max-time 30 --retry 10 -L -o /workspace/collect-event-logs.ps1 $COLLECT_EVENT_LOGS_SCRIPT_URL
     SSH_TIMEOUT=30m ssh_exec powershell.exe /workspace/collect-event-logs.ps1 -LogDirectory /workspace/eventlogs
     scp_download /workspace/eventlogs $WORKSPACE/artifacts/client/eventlogs
+    echo "Successfully retrieved artifacts."
 }
 trap collect_artifacts EXIT
 
