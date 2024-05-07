@@ -1747,7 +1747,16 @@ function scp_upload() {
     if [[ ! -z $SSH_KNOWN_HOSTS_FILE ]]; then
         SSH_OPTS="$SSH_OPTS -o UserKnownHostsFile=$SSH_KNOWN_HOSTS_FILE"
     fi
-    timeout ${SSH_TIMEOUT:-"30s"} scp -i ${SSH_KEY:-"$HOME/.ssh/id_rsa"} $SSH_OPTS -r $LOCAL_FILE ${SSH_USER}@${SSH_ADDRESS}:${REMOTE_FILE}
+    timeout ${SSH_TIMEOUT:-"10m"} scp -i ${SSH_KEY:-"$HOME/.ssh/id_rsa"} $SSH_OPTS -r $LOCAL_FILE ${SSH_USER}@${SSH_ADDRESS}:${REMOTE_FILE} || {
+        EXIT_CODE=$?
+        # By default, the "timeout" CLI tool always exits with 124 when the
+        # timeout is exceeded. Unless "--preserve-status" argument is used, the
+        # exit code is never set to the exit code of the command that timed out.
+        if [[ $EXIT_CODE -eq 124 ]]; then
+            echo "ERROR: scp upload timed out"
+        fi
+        return $EXIT_CODE
+    }
 }
 
 function scp_download() {
@@ -1765,7 +1774,16 @@ function scp_download() {
     if [[ ! -z $SSH_KNOWN_HOSTS_FILE ]]; then
         SSH_OPTS="$SSH_OPTS -o UserKnownHostsFile=$SSH_KNOWN_HOSTS_FILE"
     fi
-    timeout ${SSH_TIMEOUT:-"30s"} scp -i ${SSH_KEY:-"$HOME/.ssh/id_rsa"} $SSH_OPTS -r ${SSH_USER}@${SSH_ADDRESS}:${REMOTE_FILE} $LOCAL_FILE
+    timeout ${SSH_TIMEOUT:-"10m"} scp -i ${SSH_KEY:-"$HOME/.ssh/id_rsa"} $SSH_OPTS -r ${SSH_USER}@${SSH_ADDRESS}:${REMOTE_FILE} $LOCAL_FILE || {
+        EXIT_CODE=$?
+        # By default, the "timeout" CLI tool always exits with 124 when the
+        # timeout is exceeded. Unless "--preserve-status" argument is used, the
+        # exit code is never set to the exit code of the command that timed out.
+        if [[ $EXIT_CODE -eq 124 ]]; then
+            echo "ERROR: scp download timed out"
+        fi
+        return $EXIT_CODE
+    }
 }
 
 function retrycmd_if_failure() {

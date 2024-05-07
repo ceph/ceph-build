@@ -33,7 +33,7 @@ popd
 #
 # Upload ceph-windows-installer repo to the Windows VM
 #
-SSH_TIMEOUT=5m scp_upload $WORKSPACE/ceph-windows-installer /workspace/ceph-windows-installer
+scp_upload $WORKSPACE/ceph-windows-installer /workspace/ceph-windows-installer
 
 #
 # Build the Visual Studio project
