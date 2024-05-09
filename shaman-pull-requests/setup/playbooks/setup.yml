@@ -5,4 +5,4 @@
   sudo: True
 
   tasks:
-     - include: tasks/postgresql.yml
+     - import_tasks: tasks/postgresql.yml
