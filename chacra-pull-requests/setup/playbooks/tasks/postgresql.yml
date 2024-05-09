@@ -4,6 +4,9 @@
     update_cache: yes
   become: yes
 
+# I don't see why this is important; why can't we
+# just install the latest version
+
 - name: set postgresql version on trusty
   set_fact:
       postgresql_version: "9.3"
@@ -25,6 +28,12 @@
       postgresql_version: "12"
       python_version: "3"
   when: ansible_distribution_release == "focal"
+
+- name: set postgresql version on jammy
+  set_fact:
+      postgresql_version: "14"
+      python_version: "3"
+  when: ansible_distribution_release == "jammy"
 
 - name: install postgresql requirements
   become: yes
