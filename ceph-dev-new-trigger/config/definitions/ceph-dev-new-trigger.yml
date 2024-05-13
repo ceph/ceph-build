@@ -204,7 +204,7 @@
                   predefined-parameters: |
                     BRANCH=${GIT_BRANCH}
                     FORCE=True
-                    DISTROS=jammy centos8 centos9 windows
+                    DISTROS=jammy centos9 windows
             - trigger-builds:
                 - project: 'ceph-dev-new'
                   predefined-parameters: |
