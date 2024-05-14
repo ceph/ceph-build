@@ -984,8 +984,11 @@ build_debs() {
 
     if [ "$THROWAWAY" = false ] ; then
         # push binaries to chacra
+        egrep_pattern="*(\.changes|\.deb|\.ddeb|\.dsc|ceph[^/]*\.gz)$"
+        [ "$RELEASE_TYPE" = "SECURITY" ] && egrep_pattern = "*(\.deb\.ddeb)%"
+
         find release/$vers/ | \
-            egrep "*(\.changes|\.deb|\.ddeb|\.dsc|ceph[^/]*\.gz)$" | \
+            egrep "$egrep_pattern" | \
             egrep -v "(Packages|Sources|Contents)" | \
             $venv/chacractl binary ${chacra_flags} create ${chacra_endpoint}
 
