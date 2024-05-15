@@ -555,7 +555,11 @@ setup_pbuilder() {
     [ "$DIST" = "jammy" ] && os="ubuntu"
 
     if [ $os = "debian" ]; then
-        mirror="http://www.gtlib.gatech.edu/pub/debian"
+        # this mirror seems to have been decommissioned.  Like other
+        # places where we add specific package mirrors, let's revert
+        # to default (unspecified) for now until we decide there's
+        # a problem we need to address.
+        # mirror="http://www.gtlib.gatech.edu/pub/debian"
         if [ "$DIST" = "jessie" ]; then
           # despite the fact we're building for jessie, pbuilder was failing due to
           # missing wheezy key 8B48AD6246925553.  Pointing pbuilder at the archive
@@ -617,7 +621,9 @@ setup_pbuilder() {
     local opts
     opts+=" --basetgz $basedir/$DIST.tgz"
     opts+=" --distribution $DIST"
-    opts+=" --mirror $mirror"
+    if [ -n "$mirror" ] ; then
+        opts+=" --mirror $mirror"
+    fi
 
     if [ -n "$use_gcc" ]; then
         # Newer pbuilder versions set $HOME to /nonexistent which breaks all kinds of
