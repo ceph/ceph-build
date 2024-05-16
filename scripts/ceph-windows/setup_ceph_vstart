@@ -44,7 +44,7 @@ chmod +x ${VSTART_DIR}/build-ceph-vstart.sh
 time rsync_cmd $WORKSPACE/ceph ${VSTART_DIR}/build-ceph-vstart.sh ${UBUNTU_SSH_USER}@${UBUNTU_VM_IP}:
 
 time SSH_TIMEOUT=4h ssh_exec ./build-ceph-vstart.sh
-ssh_exec sudo apt-get install -y python3-prettytable
+time SSH_TIMEOUT=10m ssh_exec sudo apt-get install -y python3-prettytable
 
 if [[ "$USE_MEMSTORE" == "yes" ]]; then
     OBJECTSTORE_ARGS="--memstore -o memstore_device_bytes=$VSTART_MEMSTORE_BYTES"
