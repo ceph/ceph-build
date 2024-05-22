@@ -20,6 +20,14 @@
 
 keyid=460F3994
 
+function usage() {
+	echo "sign-rpms <project> [ release [ release ..]]"
+}
+
+if [[ $# -lt 1 ]] ; then usage ; exit 1 ; fi
+
+project=$1; shift
+
 if [ $# -eq 0 ]; then
   # Default releases if no arguments passed
   releases=( quincy reef squid )
@@ -43,9 +51,8 @@ echo
 for release in "${releases[@]}"; do
   for distro in  "${distros[@]}"; do
     for distro_version in  "${distro_versions[@]}"; do
-      for path in /opt/repos/ceph/$release*; do
+      for path in /opt/repos/$project/$release*; do
         if [ -d "$path/$distro/$distro_version" ]; then
-          #path="/opt/repos/ceph/$release/$distro/$distro_version"
           echo "Checking packages in: $path/$distro/$distro_version"
           update_repo=0
           cd $path/$distro/$distro_version
