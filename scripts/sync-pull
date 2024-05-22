@@ -1,4 +1,5 @@
 #!/bin/bash -ex
+# vim: ts=2:sw=2:expandtab
 
 : ${3?"Usage: $0 \$project \$release \$sha1"}
   #  Script exits here if command-line parameter absent,
