@@ -1705,7 +1705,7 @@ docs_pr_only() {
     files="$(git diff --name-only origin/${ghprbTargetBranch}...origin/pr/${ghprbPullId}/head)"
   fi
   echo -e "changed files:\n$files"
-  if [ $(echo "$files" | grep -v '^doc/' | wc -l) -gt 0 ]; then
+  if [ $(echo "$files" | egrep -v '^(doc/|admin/)' | wc -l) -gt 0 ]; then
       DOCS_ONLY=false
   else
       DOCS_ONLY=true
