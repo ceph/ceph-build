@@ -555,11 +555,9 @@ setup_pbuilder() {
     [ "$DIST" = "jammy" ] && os="ubuntu"
 
     if [ $os = "debian" ]; then
-        # this mirror seems to have been decommissioned.  Like other
-        # places where we add specific package mirrors, let's revert
-        # to default (unspecified) for now until we decide there's
-        # a problem we need to address.
+        # this mirror seems to have been decommissioned.
         # mirror="http://www.gtlib.gatech.edu/pub/debian"
+        mirror="http://ftp.us.debian.org/debian"
         if [ "$DIST" = "jessie" ]; then
           # despite the fact we're building for jessie, pbuilder was failing due to
           # missing wheezy key 8B48AD6246925553.  Pointing pbuilder at the archive
