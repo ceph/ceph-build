@@ -3,7 +3,7 @@
     node: arm64 && xenial
     project-type: freestyle
     defaults: global
-    display-name: 'ceph-container: build and push ceph base container images to Quay.io on arm64'
+    display-name: ceph-container-build-ceph-base-push-imgs-arm64
     quiet-period: 5
     block-downstream: false
     block-upstream: false
