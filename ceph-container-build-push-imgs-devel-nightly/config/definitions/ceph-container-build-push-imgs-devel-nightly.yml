@@ -3,7 +3,7 @@
     node: huge && trusty && x86_64
     project-type: freestyle
     defaults: global
-    display-name: 'ceph-container: Nightly build and push devel container images to Quay.io'
+    name: ceph-container-build-push-imgs-devel-nightly
     quiet-period: 5
     block-downstream: false
     block-upstream: false
