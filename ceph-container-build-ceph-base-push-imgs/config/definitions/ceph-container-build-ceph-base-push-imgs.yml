@@ -20,6 +20,12 @@
     triggers:
       - timed: '@daily'
 
+    parameters:
+      - string:
+          name: X86_64_FLAVORS_TO_BUILD
+          description: "x86 flavor(s) to build"
+          default: "pacific,centos,8 quincy,centos,8 reef,centos,8"
+
     scm:
       - git:
           url: https://github.com/ceph/ceph-container.git
