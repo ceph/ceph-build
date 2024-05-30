@@ -1,4 +1,5 @@
 #!/bin/bash -ex
+# vim: ts=2:sw=2:expandtab
 
 : ${3?"Usage: $0 \$project \$release \$sha1"}
   #  Script exits here if command-line parameter absent,
@@ -12,22 +13,24 @@ sha1=${3}
 echo "sync for: $project $release"
 echo "********************************************"
 
-# This ugly loop check all possible DEB combinations to see which repo has the most packages since that's likely the repo you want to sync.
-current_highest_count=0
-for combo in debian/bookworm debian/bullseye ubuntu/bionic ubuntu/focal ubuntu/jammy; do
-  combo_count=$(curl -s https://chacra.ceph.com/r/$project/$release/$sha1/${combo}/flavors/default/pool/main/c/ceph/ | wc -l)
-  if [ $combo_count -gt $current_highest_count ]; then
-    current_highest_count=$combo_count
-    highest_combo=$combo
-  fi
-done
+if [[ "$project" == "ceph" ]] ; then
+  # This ugly loop checks all possible DEB combinations to see which repo has the most packages since that's likely the repo you want to sync.
+  current_highest_count=0
+  for combo in debian/bookworm debian/bullseye ubuntu/bionic ubuntu/focal ubuntu/jammy; do
+    combo_count=$(curl -fs https://chacra.ceph.com/r/$project/$release/$sha1/${combo}/flavors/default/pool/main/c/ceph/ | wc -l)
+    if [ $combo_count -gt $current_highest_count ]; then
+      current_highest_count=$combo_count
+      highest_combo=$combo
+    fi
+  done
 
-echo "Found the most packages ($current_highest_count) in $highest_combo."
+  echo "Found the most packages ($current_highest_count) in $highest_combo."
+fi
 
 # Check the the DEB and RPM chacra endpoints to see if the repos are or need updating.
 # This helps prevent packages from getting missed when signing and pushing.
 need_rerun=false
-for endpoint in https://chacra.ceph.com/repos/$project/$release/$sha1/centos/{7,8,9} https://chacra.ceph.com/repos/$project/$release/$sha1/$highest_combo; do
+for endpoint in https://chacra.ceph.com/repos/$project/$release/$sha1/centos/{8,9} https://chacra.ceph.com/repos/$project/$release/$sha1/$highest_combo; do
   chacra_repo_status=$(curl -s -L $endpoint)
   chacra_needs_update=$(echo $chacra_repo_status | jq .needs_update)
   chacra_is_updating=$(echo $chacra_repo_status  | jq .is_updating)
@@ -37,39 +40,45 @@ for endpoint in https://chacra.ceph.com/repos/$project/$release/$sha1/centos/{7,
   fi
 done
 
-# We started using the new /opt/repos/ceph/$release-X.X.X format with Octopus.
-# Older releases have all packages in one big $release dir without a trailing "-X.X.X" so we need to adjust paths accordingly.
-if [[ "$release" =~ ^[a-n].* ]]; then
-  newgen=false
-else
-  newgen=true
-  # Get numerical version number (we only need this with Octopus or later because of the new directory/path scheme).
-  version=$(echo $chacra_repo_status | jq -r .extra.version)
-  [[ -d /opt/repos/$project/$release-$version ]] | mkdir -p /opt/repos/$project/$release-$version/{debian/jessie,centos/{7,8,9}}
-fi
+relver=$release
 
-# Replace $highest_combo with your own DISTRO/VERSION if you don't want to sync from the repo with the most packages.
-if $newgen; then
-  deb_cmd="ubuntu@chacra.ceph.com:/opt/repos/$project/$release/$sha1/$highest_combo/flavors/default/* /opt/repos/$project/$release-$version/debian/jessie/"
-else
-  deb_cmd="ubuntu@chacra.ceph.com:/opt/repos/$project/$release/$sha1/$highest_combo/flavors/default/* /opt/repos/$project/$release/debian/jessie/"
-fi
-echo $deb_cmd
-echo "--------------------------------------------"
-rsync -Lavh --progress --exclude '*lockfile*' $deb_cmd
-
-for el_version in 7 8 9; do
-  if $newgen; then
-    el_cmd="ubuntu@chacra.ceph.com:/opt/repos/$project/$release/$sha1/centos/$el_version/flavors/default/* /opt/repos/$project/$release-$version/centos/$el_version/"
+if [[ "$project" == "ceph" ]] ; then
+  # We started using the new /opt/repos/ceph/$release-X.X.X format with Octopus.
+  # Older releases have all packages in one big $release dir without a trailing "-X.X.X" so we need to adjust paths accordingly.
+  if [[ "$release" =~ ^[a-n].* ]]; then
+    newgen=false
   else
-    el_cmd="ubuntu@chacra.ceph.com:/opt/repos/$project/$release/$sha1/centos/$el_version/flavors/default/* /opt/repos/$project/$release/centos/$el_version/"
+    newgen=true
+    # Get numerical version number (we only need this with Octopus or later because of the new directory/path scheme).
+    version=$(echo $chacra_repo_status | jq -r .extra.version)
+    relver=$release-$version
   fi
+  [[ -d /opt/repos/$project/$relver ]] || mkdir -p /opt/repos/$project/$relver/{debian/jessie,centos/{8,9}}
+else
+  # not ceph (i.e. ceph-iscsi)
+  [[ -d /opt/repos/$project/$relver ]] || mkdir -p /opt/repos/$project/$relver/centos/{8,9}
+fi
+
+if [[ "$project" == "ceph" ]] ; then
+  # Replace $highest_combo with your own DISTRO/VERSION if you don't want to sync from the repo with the most packages.
+  if [[ $highest_combo -gt 0 ]] ; then
+    deb_cmd="ubuntu@chacra.ceph.com:/opt/repos/$project/$release/$sha1/$highest_combo/flavors/default/* /opt/repos/$project/$relver/debian/jessie/"
+    echo $deb_cmd
+    echo "--------------------------------------------"
+    rsync -Lavh --progress --exclude '*lockfile*' $deb_cmd
+  fi
+fi
+
+for el_version in 8 9; do
+  el_cmd="ubuntu@chacra.ceph.com:/opt/repos/$project/$release/$sha1/centos/$el_version/flavors/default/* /opt/repos/$project/$relver/centos/$el_version/"
   echo $el_cmd
   echo "--------------------------------------------"
   rsync -Lavh --progress $el_cmd
 done
 
-ssh signer@download.ceph.com "/home/signer/bin/get-tarballs.sh $release $sha1 $version"
+if [[ "$project" == "ceph" ]]; then
+  ssh signer@download.ceph.com "/home/signer/bin/get-tarballs.sh $release $sha1 $version"
+fi
 
 if $need_rerun; then
   echo

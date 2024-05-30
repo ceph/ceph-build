@@ -1,4 +1,5 @@
 #!/bin/bash -ex
+# vim:ts=2 sw=2 expandtab
 # This script will push repository files from the signer box to the upstream repositories.
 # By default it will sync all releases defined, but can optionally take one or more
 # releases to sync:
@@ -10,48 +11,93 @@
 
 # this directory is auth-protected so anxious users don't try to
 # pull an in-progress release
-prerelease_dir=/data/download.ceph.com/www/prerelease
 
-releases=${*:-"quincy reef squid"}
+function usage() {
+  echo "sync-push <project> [ release [ release ..]]"
+}
 
-ceph_sync() {
-  release=$1
-  for path in $(ls -d /opt/repos/ceph/* | grep $release | sort -V); do
+if [[ $# -lt 1 ]] ; then usage ; exit 1 ; fi
 
-    # We started using the new /opt/repos/ceph/$release-X.X.X format with Octopus.
-    # Older releases have all packages in one big $release dir without a trailing "-X.X.X" so we need to adjust paths accordingly.
-    if [[ "$release" =~ ^[a-n].* ]]; then
-      # Nautilus and older
-      newgen=false
-    else
-      # Octopus and newer
-      newgen=true
-    fi
+project=$1; shift
+prerelease_dir=/data/download.ceph.com/www/prerelease/${project}
 
-    if $newgen; then
+if [[ "$project" == "ceph" ]] ; then
+  releases=${*:-"quincy reef squid"}
+else
+  releases=$*
+fi
+
+make_repofile() {
+  project=$1
+  release=$2
+  el_version=$3
+  echo "[${project}]
+name=ceph-iscsi noarch packages
+baseurl=http://download.ceph.com/prerelease/${project}/${release}/rpm/el${el_version}/noarch
+enabled=1
+gpgcheck=0
+gpgkey=https://download.ceph.com/keys/release.asc
+type=rpm-md
+
+[${project}-source]
+name=ceph-iscsi source packages
+baseurl=http://download.ceph.com/prerelease/ceph-iscsi/${release}/rpm/el${el_version}/SRPMS
+enabled=0
+gpgcheck=1
+gpgkey=https://download.ceph.com/keys/release.asc
+type=rpm-md
+  "
+}
+
+project_sync() {
+  project=$1
+  release=$2
+  newgen=false
+  for path in $(ls -d /opt/repos/$project/* | grep $release | sort -V); do
+    if [[ "$project" == "ceph" ]] ; then
       version=$(echo $path | cut -d '-' -f2)
       release=$(echo $release | cut -d '-' -f1)
-      ssh signer@download.ceph.com "mkdir -p ${prerelease_dir}/debian-$version"
-
-      deb_cmd="$path/debian/jessie/* signer@download.ceph.com:${prerelease_dir}/debian-$version/"
-    else
-      deb_cmd="$path/debian/jessie/* signer@download.ceph.com:${prerelease_dir}/debian-$release/"
-    fi
-    rsync --progress --exclude '*lockfile*' -avr $deb_cmd
-
-    for el_version in 7 8 9; do
-      if $newgen; then
-        ssh signer@download.ceph.com "mkdir -p ${prerelease_dir}/rpm-$version/el$el_version"
-
-        el_cmd="$path/centos/$el_version/* signer@download.ceph.com:${prerelease_dir}/rpm-$version/el${el_version}/"
+      # We started using the new /opt/repos/ceph/$release-X.X.X format with Octopus.
+      # Older releases have all packages in one big $release dir without a trailing "-X.X.X" so we need to adjust paths accordingly.
+      if [[ "$release" =~ ^[a-n].* ]]; then
+        # Nautilus and older
+        debian_path=debian-$release
+        rpm_path=rpm-$release
       else
-        el_cmd="$path/centos/$el_version/* signer@download.ceph.com:${prerelease_dir}/rpm-$release/el${el_version}/"
+        # Octopus and newer
+        newgen=true
+        debian_path=debian-$version
+        rpm_path=rpm-$version
       fi
-      if [ -d "$path/centos/$el_version" ]; then
-        rsync --progress -avr $el_cmd
-      fi
-    done
-  done
+      dcc_deb_path=${prerelease_dir}/${debian_path}
+      dcc_rpm_path=${prerelease_dir}/${rpm_path}
+    else
+      dcc_deb_path=""
+      dcc_rpm_path=${prerelease_dir}/${version}/rpm
+    fi
+
+    if [[ -n "${dcc_deb_path}" ]]; then
+      ssh signer@download.ceph.com "mkdir -p ${dcc_deb_path}"
+
+      deb_cmd="$path/debian/jessie/* signer@download.ceph.com:${prerelease_dir}/${debian_path}"
+      rsync --progress --exclude '*lockfile*' -avr $deb_cmd
+    fi
+
+    if [[ -n "${dcc_rpm_path}" ]] ; then
+      for el_version in 8 9; do
+        ssh signer@download.ceph.com "mkdir -p ${dcc_rpm_path}/el$el_version"
+        destpath="signer@download.ceph.com:${dcc_rpm_path}/el${el_version}"
+        el_cmd="$path/centos/$el_version/* ${destpath}"
+        if [ -d "$path/centos/$el_version" ]; then
+          rsync --progress -avr $el_cmd
+        fi
+        if [[ "$project" == "ceph-iscsi" ]]; then
+          echo "$(make_repofile ${project} ${release} ${el_version})" > ceph-iscsi.repo
+          rsync --progress -avr ceph-iscsi.repo ${destpath}
+        fi
+      done
+    fi
+done
 
   # Since paths are listed alphabetically/numerically in the first `for` loop, the last $version is what gets used for the new symlink below.
   if $newgen; then
@@ -63,8 +109,13 @@ ceph_sync() {
 
 for i in "${releases[@]}"
 do
-   ceph_sync $i
+   project_sync $project $i
 done
 
 echo "Once you've tested the repos at ${prerelease_dir}, don't forget to mv them
 up to the parent directory!"
+if [[ "$project" == "ceph-iscsi" ]]; then
+  echo "And for ceph-iscsi, modify the .repo files in */rpm/*/* to remove the prerelease/ part of the path in baseurl!"
+fi
+
+
