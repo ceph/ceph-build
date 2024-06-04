@@ -118,8 +118,7 @@
                     FORCE=True
                     DISTROS=focal bionic centos8 windows
       # build quincy on:
-      # default: focal jammy centos8 centos9 leap15
-      # crimson: centos8
+      # default: focal jammy centos9 leap15
       - conditional-step:
           condition-kind: regex-match
           regex: .*quincy.*
@@ -135,17 +134,10 @@
                   predefined-parameters: |
                     BRANCH=${GIT_BRANCH}
                     FORCE=True
-                    DISTROS=focal jammy centos8 centos9 leap15
-                - project: 'ceph-dev-new'
-                  predefined-parameters: |
-                    BRANCH=${GIT_BRANCH}
-                    FORCE=True
-                    DISTROS=centos8
-                    FLAVOR=crimson
-                    ARCHS=x86_64
+                    DISTROS=focal jammy centos9 leap15
       # build reef on:
-      # default: jammy focal centos8 centos9 windows
-      # crimson: centos8 centos9
+      # default: jammy focal centos9 windows
+      # crimson: centos9
       - conditional-step:
           condition-kind: regex-match
           regex: .*reef.*
@@ -161,17 +153,17 @@
                   predefined-parameters: |
                     BRANCH=${GIT_BRANCH}
                     FORCE=True
-                    DISTROS=jammy focal centos8 centos9 windows
+                    DISTROS=jammy focal centos9 windows
                 - project: 'ceph-dev-new'
                   predefined-parameters: |
                     BRANCH=${GIT_BRANCH}
                     FORCE=True
-                    DISTROS=centos8 centos9
+                    DISTROS=centos9
                     FLAVOR=crimson
                     ARCHS=x86_64
       # build squid on:
-      # default: jammy centos8 centos9 windows
-      # crimson: centos8 centos9
+      # default: jammy centos9 windows
+      # crimson: centos9
       - conditional-step:
           condition-kind: regex-match
           regex: .*squid.*
@@ -187,12 +179,12 @@
                   predefined-parameters: |
                     BRANCH=${GIT_BRANCH}
                     FORCE=True
-                    DISTROS=jammy centos8 centos9 windows
+                    DISTROS=jammy centos9 windows
                 - project: 'ceph-dev-new'
                   predefined-parameters: |
                     BRANCH=${GIT_BRANCH}
                     FORCE=True
-                    DISTROS=centos8 centos9
+                    DISTROS=centos9
                     FLAVOR=crimson
                     ARCHS=x86_64
       # If no release name is found in branch, build on all possible distro/flavor combos (except xenial, bionic, focal).
@@ -212,13 +204,13 @@
                   predefined-parameters: |
                     BRANCH=${GIT_BRANCH}
                     FORCE=True
-                    DISTROS=jammy centos8 centos9 windows
+                    DISTROS=jammy centos9 windows
             - trigger-builds:
                 - project: 'ceph-dev-new'
                   predefined-parameters: |
                     BRANCH=${GIT_BRANCH}
                     FORCE=True
-                    DISTROS=centos8 centos9
+                    DISTROS=centos9
                     FLAVOR=crimson
                     ARCHS=x86_64
       # build only centos9, no crimson, no jaeger
@@ -241,7 +233,7 @@
                     ARCHS=x86_64
       # Build only the `crimson` flavour, don't waste resources on the default one.
       # Useful for the crimson's bug-hunt at Sepia
-      # crimson: centos8 centos9
+      # crimson: centos9
       - conditional-step:
           condition-kind: regex-match
           regex: .*crimson-only.*
@@ -257,7 +249,7 @@
                   predefined-parameters: |
                     BRANCH=${GIT_BRANCH}
                     FORCE=True
-                    DISTROS=centos8 centos9
+                    DISTROS=centos9
                     FLAVOR=crimson
                     ARCHS=x86_64
       # Build jaegertracing branch on needed env,  don't waste resources on the default one.
