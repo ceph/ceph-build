@@ -39,7 +39,7 @@
 
     builders:
       # build quincy on:
-      # default: focal centos8 centos9 leap15
+      # default: focal centos9 leap15
       - conditional-step:
           condition-kind: regex-match
           regex: .*quincy.*
@@ -55,7 +55,7 @@
                   predefined-parameters: |
                     BRANCH=${GIT_BRANCH}
                     FORCE=True
-                    DISTROS=focal centos8 centos9 leap15
+                    DISTROS=focal centos9 leap15
       # build reef on:
       # default: jammy focal centos8 centos9 windows
       # crimson: centos9
