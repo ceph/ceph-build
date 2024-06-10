@@ -144,7 +144,7 @@
     - set_fact:
         universal_rpms:
           - createrepo
-          - java-1.8.0-openjdk
+          - java-11-openjdk
           - git
           - libtool
           #- rpm-sign
