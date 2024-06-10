@@ -12,7 +12,6 @@
     name: cephadm-ansible-prs-functional
     worker_labels: 'vagrant && libvirt && (braggi || adami)'
     distribution:
-      - el8
       - el9
     scenario:
       - functional
