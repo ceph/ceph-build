@@ -10,6 +10,11 @@ npm ci
 
 npm run build:development
 
+if [ "$BRANCH" = "main" ]; then
+  echo "branch must not be named 'main', exiting"
+  exit 1
+fi
+
 if [ ! -d /opt/www/${BRANCH} ]; then
   mkdir -p /opt/www/${BRANCH}
 fi
