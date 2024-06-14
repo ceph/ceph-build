@@ -29,3 +29,6 @@ EOF
     sudo yum install -y python-requests pyOpenSSL python-jinja2 python-jwt scipy python-routes python3-routes
     sudo yum install -y xorg-x11-server-Xvfb.x86_64
 fi
+
+# kill any existing Xvfb process to avoid port conflict
+sudo killall Xvfb || true
