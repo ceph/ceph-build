@@ -6,8 +6,10 @@ WORKDIR=$(mktemp -td tox.XXXXXXXXXX)
 
 cat << EOF > ./sync.yml
 docker.io:
-  images-by-tag-regex:
-    grafana/grafana: ^(9\.?|[0-9]{2,}\.?)([0-9]*\.?){1,}$
+  images-by-semver:
+    nginx: ">= 1.26.0"
+    grafana/grafana: ">= 9.0.0"
 EOF
-
+# make sure we pull the last stable image
+podman pull quay.io/skopeo/stable
 podman run --rm --security-opt label=disable -v ./sync.yml:/sync.yml:ro quay.io/skopeo/stable sync --src yaml --dest docker /sync.yml "${DEST_REGISTRY}" --dest-username "${DEST_USERNAME}" --dest-password "${DEST_PASSWORD}"
