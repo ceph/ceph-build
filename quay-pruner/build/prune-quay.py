@@ -211,6 +211,15 @@ def main():
 
     quaytags = get_all_quay_tags(quaytoken)
 
+    # build a map of digest to name(s) for detecting "same image"
+    digest_map = dict()
+    for tag in quaytags:
+        digest = tag['manifest_digest']
+        if digest in digest_map:
+           digest_map[digest].add(tag['name'])
+        else:
+            digest_map[digest] = set((tag['name'],))
+
     # find all full tags to delete, put them and ref tag on list
     tags_to_delete = set()
     short_sha1s_to_delete = list()
@@ -236,26 +245,24 @@ def main():
 
         # accumulate full and ref tags to delete; keep list of short_sha1s
 
+        tags_to_delete.add(name)
         if args.verbose:
             print('Marking %s for deletion' % name)
-        tags_to_delete.add(name)
-        if ref:
-            # the ref tag may already have been overwritten by a new
-            # build of the same ref, but a different sha1. Delete it only
-            # if it refers to the same image_id as the full tag.
-            names_of_same_image = [
-                t['name'] for t in quaytags
-                if not t['is_manifest_list']
-                and t['image_id'] == tag['image_id']
-            ]
-            if ref in names_of_same_image:
+
+        # the ref tag may already have been overwritten by a new
+        # build of the same ref, but a different sha1, so rather than
+        # deleting the ref tag, delete any tags that refer to the same
+        # image as the full tag we have in hand
+        digest = tag['manifest_digest']
+        if digest in digest_map:
+            # remove full tag name; no point in marking for delete twice
+            # (set.add would be safe, but only report if there are new marks)
+            digest_map[digest].discard(name)
+            if digest_map[digest]:
+                tags_to_delete.update(digest_map[digest])
                 if args.verbose:
-                    print('Marking %s for deletion' % name)
-                    tags_to_delete.add(name)
-            else:
-                if args.verbose:
-                    print('Skipping %s: not in %s' %
-                          (name, names_of_same_image))
+                    print(f'Also marking {digest_map[digest]}, same digest')
+
         if short_sha1:
             if args.verbose:
                 print('Marking %s for 2nd-pass deletion' % short_sha1)
