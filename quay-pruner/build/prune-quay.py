@@ -18,7 +18,7 @@ start_page = 1
 page_limit = 100000
 
 NAME_RE = re.compile(
-    r'(.*)-([0-9a-f]{7})-centos-([78])-(x86_64|aarch64)-devel'
+    r'(.*)-([0-9a-f]{7})-centos-.*([0-9]+)-(x86_64|aarch64)-devel'
 )
 SHA1_RE = re.compile(r'([0-9a-f]{40})(-crimson|-aarch64)*')
 
