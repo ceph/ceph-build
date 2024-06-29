@@ -66,41 +66,55 @@ def parse_quay_tag(tag):
     return ref, short_sha1, el, arch
 
 
+shaman_data = None
+
 def query_shaman(ref, sha1, el):
 
-    params = {
-        'project': 'ceph',
-        'flavor': 'default',
-        'status': 'ready',
-    }
+    global shaman_data
+
+    error = False
+    if shaman_data is None:
+        params = {
+            'project': 'ceph',
+            'flavor': 'default',
+            'status': 'ready',
+        }
+        try:
+            response = requests.get(
+                'https://shaman.ceph.com/api/search/',
+                params=params,
+                timeout=30
+            )
+            response.raise_for_status()
+            shaman_data = response.json()
+        except requests.exceptions.RequestException as e:
+            print(
+                'Shaman request',
+                response.url,
+                'failed:',
+                e,
+                response.reason,
+                file=sys.stderr
+            )
+            error = True
+
+    filtered = shaman_data
+
     if el:
-        params['distros'] = \
-            'centos/{el}/x86_64,centos/{el}/aarch64'.format(el=el)
+        filterlist = [el]
     else:
-        params['distros'] = \
-            'centos/7/x86_64,centos/8/x86_64,centos/9/x86_64,' + \
-            'centos/7/aarch64,centos/8/aarch64,centos/9/aarch64'
+        filterlist = ['7','8','9']
+    filtered = [
+        rec for rec in filtered if
+        rec['distro'] == 'centos' and
+        rec['distro_version'] in filterlist
+    ]
+
     if ref:
-        params['ref'] = ref
+        filtered = [rec for rec in filtered if rec['ref'] == ref]
     if sha1:
-        params['sha1'] = sha1
-    try:
-        response = requests.get(
-            'https://shaman.ceph.com/api/search/',
-            params=params,
-            timeout=30
-        )
-        response.raise_for_status()
-    except requests.exceptions.RequestException as e:
-        print(
-            'Shaman request',
-            response.url,
-            'failed:',
-            e,
-            response.reason,
-            file=sys.stderr
-        )
-    return response
+        filtered = [rec for rec in filtered if rec['sha1'] == sha1]
+    return error, filtered
 
 
 def ref_present_in_shaman(ref, short_sha1, el, arch, verbose):
@@ -113,19 +127,15 @@ def ref_present_in_shaman(ref, short_sha1, el, arch, verbose):
             print('Found %s in shaman short_sha1_cache' % short_sha1)
         return True
 
-    response = query_shaman(ref, None, el)
-    if not response.ok:
-        print('Shaman request', response.request.url, 'failed:',
-              response.status_code, response.reason, file=sys.stderr)
+    error, matches = query_shaman(ref, None, el)
+    if error:
+        print('Shaman request failed')
         # don't cache, but claim present:
         # avoid deletion in case of transient shaman failure
         if verbose:
             print('Found %s (assumed because shaman request failed)' % ref)
         return True
 
-    matches = response.json()
-    if len(matches) == 0:
-        return False
     for match in matches:
         if match['sha1'][0:7] == short_sha1:
             if verbose:
@@ -142,19 +152,15 @@ def sha1_present_in_shaman(sha1, verbose):
             print('Found %s in shaman sha1_cache' % sha1)
         return True
 
-    response = query_shaman(None, sha1, None)
-    if not response.ok:
-        print('Shaman request', response.request.url, 'failed:',
-              response.status_code, response.reason, file=sys.stderr)
+    error, matches = query_shaman(None, sha1, None)
+    if error:
+        print('Shaman request failed')
         # don't cache, but claim present
         # to avoid deleting on transient shaman failure
         if verbose:
             print('Found %s (assuming because shaman request failed)' % sha1)
         return True
 
-    matches = response.json()
-    if len(matches) == 0:
-        return False
     for match in matches:
         if match['sha1'] == sha1:
             if verbose:
@@ -179,7 +185,7 @@ def delete_from_quay(tagname, quaytoken, dryrun):
         print('Deleted', tagname)
     except requests.exceptions.RequestException as e:
         print(
-            'Problem deleting tag %s:',
+            'Problem deleting tag:',
             tagname,
             e,
             response.reason,
