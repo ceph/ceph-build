@@ -74,6 +74,7 @@ def query_shaman(ref, sha1, el):
 
     error = False
     if shaman_data is None:
+        print('Getting repo data from shaman for ceph builds', file=sys.stderr)
         params = {
             'project': 'ceph',
             'flavor': 'default',
@@ -215,6 +216,7 @@ def main():
                 'rb'
             ).read().strip().decode()
 
+    print('Getting ceph-ci container tags from quay.ceph.io', file=sys.stderr)
     quaytags = get_all_quay_tags(quaytoken)
 
     # build a map of digest to name(s) for detecting "same image"
