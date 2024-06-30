@@ -32,7 +32,7 @@ def get_all_quay_tags(quaytoken):
         try:
             response = requests.get(
                 '/'.join((QUAYBASE, 'repository', REPO, 'tag')),
-                params={'page': page, 'limit': 100, 'onlyActiveTags': 'false'},
+                params={'page': page, 'limit': 100, 'onlyActiveTags': 'true'},
                 headers={'Authorization': 'Bearer %s' % quaytoken},
                 timeout=30,
             )
