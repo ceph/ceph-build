@@ -98,7 +98,7 @@
           condition-command: |
             #!/bin/bash
             set -x
-            if [[ ! "$CEPH_BRANCH" =~ main|reef|quincy|pacific ]]; then
+            if [[ ! "$CEPH_BRANCH" =~ main|squid|reef|quincy|pacific ]]; then
               exit 1
             fi
           on-evaluation-failure: dont-run
