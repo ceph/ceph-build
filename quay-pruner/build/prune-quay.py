@@ -10,7 +10,6 @@ QUAYBASE = "https://quay.ceph.io/api/v1"
 REPO = "ceph-ci/ceph"
 
 # cache shaman search results so we only have to ask once
-short_sha1_cache = set()
 sha1_cache = set()
 
 # quay page ranges to fetch; hackable for testing
@@ -123,11 +122,6 @@ def ref_present_in_shaman(ref, short_sha1, el, arch, verbose):
     if ref is None:
         return False
 
-    if short_sha1 in short_sha1_cache:
-        if verbose:
-            print('Found %s in shaman short_sha1_cache' % short_sha1)
-        return True
-
     error, matches = query_shaman(ref, None, el)
     if error:
         print('Shaman request failed')
@@ -141,7 +135,6 @@ def ref_present_in_shaman(ref, short_sha1, el, arch, verbose):
         if match['sha1'][0:7] == short_sha1:
             if verbose:
                 print('Found %s in shaman: sha1 %s' % (ref, match['sha1']))
-            short_sha1_cache.add(short_sha1)
             return True
     return False
 
