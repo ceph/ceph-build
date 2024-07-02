@@ -230,7 +230,6 @@ def main():
 
     # find all full tags to delete, put them and ref tag on list
     tags_to_delete = set()
-    short_sha1s_to_delete = list()
     for tag in quaytags:
         name = tag['name']
         if 'expiration' in tag or 'end_ts' in tag:
@@ -271,28 +270,13 @@ def main():
                 if args.verbose:
                     print(f'Also marking {digest_map[digest]}, same digest')
 
-        if short_sha1:
-            if args.verbose:
-                print('Marking %s for 2nd-pass deletion' % short_sha1)
-            short_sha1s_to_delete.append(short_sha1)
-
     # now find all the full-sha1 tags to delete by making a second
-    # pass and seeing if the tagname starts with a short_sha1 we
-    # know we want deleted, or if it matches SHA1_RE but is gone from
+    # pass and seeing if the tagname matches SHA1_RE but is gone from
     # shaman
     for tag in quaytags:
 
         name = tag['name']
         if 'expiration' in tag or 'end_ts' in tag:
-            continue
-
-        if name[0:7] in short_sha1s_to_delete:
-            if args.verbose:
-                print('Marking %s for deletion: matches short_sha1 %s' %
-                      (name, name[0:7]))
-
-            tags_to_delete.add(name)
-            # already selected a SHA1 tag; no point in checking for orphaned
             continue
 
         match = SHA1_RE.match(name)
