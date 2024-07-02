@@ -289,11 +289,14 @@ def main():
                 if args.verbose:
                     print('Skipping %s, present in shaman' % name)
                 continue
-            if args.verbose:
-                print(
-                    'Marking %s for deletion: orphaned sha1 tag' % name
-                )
-            tags_to_delete.add(name)
+            # <sha1>-crimson tags don't have full or ref tags to go with.
+            # Delete them iff the default <sha1> tag is to be deleted
+            if (match[2] == '-crimson') and (sha1 in tags_to_delete):
+                if args.verbose:
+                    print(
+                        'Marking %s for deletion: orphaned sha1 tag' % name
+                    )
+                tags_to_delete.add(name)
 
     if args.verbose:
         print('\nDeleting tags:', sorted(tags_to_delete))
