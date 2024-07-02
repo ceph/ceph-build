@@ -302,7 +302,7 @@ def main():
         print('\nDeleting tags:', sorted(tags_to_delete))
 
     # and now delete all the ones we found
-    for tagname in sorted(tags_to_delete):
+    for tagname in tags_to_delete:
         delete_from_quay(tagname, quaytoken, args.dryrun)
 
 
