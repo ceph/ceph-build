@@ -227,6 +227,9 @@ def main():
             digest_map[digest].add(tag['name'])
         else:
             digest_map[digest] = set((tag['name'],))
+    if args.verbose:
+        for d,l in digest_map.items():
+            print(f'{d}: {l}')
 
     # find all full tags to delete, put them and ref tag on list
     tags_to_delete = set()
