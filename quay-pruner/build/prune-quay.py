@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import argparse
+import functools
 import os
 import re
 import requests
@@ -65,45 +66,51 @@ def parse_quay_tag(tag):
     return ref, short_sha1, el, arch
 
 
-shaman_data = None
+@functools.cache
+def shaman_data():
+    print('Getting repo data from shaman for ceph builds', file=sys.stderr)
+    shaman_result = None
+    params = {
+        'project': 'ceph',
+        'flavor': 'default',
+        'status': 'ready',
+    }
+    try:
+        response = requests.get(
+            'https://shaman.ceph.com/api/search/',
+            params=params,
+            timeout=30
+        )
+        response.raise_for_status()
+        shaman_result = response.json()
+    except requests.exceptions.RequestException as e:
+        print(
+            'Shaman request',
+            response.url,
+            'failed:',
+            e,
+            response.reason,
+            file=sys.stderr
+        )
+    return shaman_result
+
 
 def query_shaman(ref, sha1, el):
+    '''
+    filter shaman data by given criteria.
 
-    global shaman_data
+    returns (error, filtered_data)
+    error is True if no data could be retrieved
+    '''
 
-    error = False
-    if shaman_data is None:
-        print('Getting repo data from shaman for ceph builds', file=sys.stderr)
-        params = {
-            'project': 'ceph',
-            'flavor': 'default',
-            'status': 'ready',
-        }
-        try:
-            response = requests.get(
-                'https://shaman.ceph.com/api/search/',
-                params=params,
-                timeout=30
-            )
-            response.raise_for_status()
-            shaman_data = response.json()
-        except requests.exceptions.RequestException as e:
-            print(
-                'Shaman request',
-                response.url,
-                'failed:',
-                e,
-                response.reason,
-                file=sys.stderr
-            )
-            error = True
-
-    filtered = shaman_data
+    filtered = shaman_data()
+    if not filtered:
+        return True, None
 
     if el:
         filterlist = [el]
     else:
-        filterlist = ['7','8','9']
+        filterlist = ['7', '8', '9']
     filtered = [
         rec for rec in filtered if
         rec['distro'] == 'centos' and
@@ -114,7 +121,7 @@ def query_shaman(ref, sha1, el):
         filtered = [rec for rec in filtered if rec['ref'] == ref]
     if sha1:
         filtered = [rec for rec in filtered if rec['sha1'] == sha1]
-    return error, filtered
+    return False, filtered
 
 
 def ref_present_in_shaman(ref, short_sha1, el, arch, verbose):
