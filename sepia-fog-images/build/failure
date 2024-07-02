@@ -12,6 +12,13 @@ funPowerCycle () {
   fi
 }
 
+# Should we use teuthology-lock to lock systems?
+if [ "$DEFINEDHOSTS" == "" ]; then
+  use_teuthologylock=true
+else
+  use_teuthologylock=false
+fi
+
 # Clone or update teuthology
 if [ ! -d teuthology ]; then
   git clone https://github.com/ceph/teuthology
