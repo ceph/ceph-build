@@ -224,7 +224,7 @@ def main():
     for tag in quaytags:
         digest = tag['manifest_digest']
         if digest in digest_map:
-           digest_map[digest].add(tag['name'])
+            digest_map[digest].add(tag['name'])
         else:
             digest_map[digest] = set((tag['name'],))
 
