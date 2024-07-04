@@ -1,7 +1,7 @@
 - job:
     name: ceph-volume-pr
     display-name: 'ceph-volume: Pull Request tox tests'
-    node: small && centos8
+    node: small && centos9
     project-type: freestyle
     defaults: global
     quiet-period: 5
