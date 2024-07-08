@@ -30,7 +30,7 @@ fi
 # Check the the DEB and RPM chacra endpoints to see if the repos are or need updating.
 # This helps prevent packages from getting missed when signing and pushing.
 need_rerun=false
-for endpoint in https://chacra.ceph.com/repos/$project/$release/$sha1/centos/{8,9} https://chacra.ceph.com/repos/$project/$release/$sha1/$highest_combo; do
+for endpoint in https://chacra.ceph.com/repos/$project/$release/$sha1/centos/9 https://chacra.ceph.com/repos/$project/$release/$sha1/$highest_combo; do
   chacra_repo_status=$(curl -s -L $endpoint)
   chacra_needs_update=$(echo $chacra_repo_status | jq .needs_update)
   chacra_is_updating=$(echo $chacra_repo_status  | jq .is_updating)
@@ -53,10 +53,10 @@ if [[ "$project" == "ceph" ]] ; then
     version=$(echo $chacra_repo_status | jq -r .extra.version)
     relver=$release-$version
   fi
-  [[ -d /opt/repos/$project/$relver ]] || mkdir -p /opt/repos/$project/$relver/{debian/jessie,centos/{8,9}}
+  [[ -d /opt/repos/$project/$relver ]] || mkdir -p /opt/repos/$project/$relver/{debian/jessie,centos/9}
 else
   # not ceph (i.e. ceph-iscsi)
-  [[ -d /opt/repos/$project/$relver ]] || mkdir -p /opt/repos/$project/$relver/centos/{8,9}
+  [[ -d /opt/repos/$project/$relver ]] || mkdir -p /opt/repos/$project/$relver/centos/9
 fi
 
 if [[ "$project" == "ceph" ]] ; then
@@ -69,7 +69,7 @@ if [[ "$project" == "ceph" ]] ; then
   fi
 fi
 
-for el_version in 8 9; do
+for el_version in 9; do
   el_cmd="ubuntu@chacra.ceph.com:/opt/repos/$project/$release/$sha1/centos/$el_version/flavors/default/* /opt/repos/$project/$relver/centos/$el_version/"
   echo $el_cmd
   echo "--------------------------------------------"
