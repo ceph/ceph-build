@@ -1,7 +1,7 @@
 - job:
     name: sync-images
     id: sync-images
-    node: small && centos8
+    node: small && centos9
     defaults: global
     display-name: sync-images
     quiet-period: 5
