@@ -61,7 +61,7 @@ fi
 
 if [[ "$project" == "ceph" ]] ; then
   # Replace $highest_combo with your own DISTRO/VERSION if you don't want to sync from the repo with the most packages.
-  if [[ $highest_combo -gt 0 ]] ; then
+  if [[ -n "$highest_combo" ]] ; then
     deb_cmd="ubuntu@chacra.ceph.com:/opt/repos/$project/$release/$sha1/$highest_combo/flavors/default/* /opt/repos/$project/$relver/debian/jessie/"
     echo $deb_cmd
     echo "--------------------------------------------"
