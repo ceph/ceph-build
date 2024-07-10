@@ -83,7 +83,7 @@
                     FLAVOR=crimson
                     ARCHS=x86_64
       # build squid on:
-      # default: jammy focal centos9 windows
+      # default: jammy centos9 windows
       # crimson: centos9
       - conditional-step:
           condition-kind: regex-match
@@ -100,7 +100,7 @@
                   predefined-parameters: |
                     BRANCH=${GIT_BRANCH}
                     FORCE=True
-                    DISTROS=jammy focal centos9 windows
+                    DISTROS=jammy centos9 windows
                 - project: 'ceph-dev'
                   predefined-parameters: |
                     BRANCH=${GIT_BRANCH}
@@ -109,7 +109,7 @@
                     FLAVOR=crimson
                     ARCHS=x86_64
       # build main on:
-      # default: jammy focal centos9 windows
+      # default: jammy centos9 windows
       # crimson: centos9
       - conditional-step:
           condition-kind: regex-match
@@ -126,7 +126,7 @@
                   predefined-parameters: |
                     BRANCH=${GIT_BRANCH}
                     FORCE=True
-                    DISTROS=jammy focal centos9 windows
+                    DISTROS=jammy centos9 windows
                 - project: 'ceph-dev'
                   predefined-parameters: |
                     BRANCH=${GIT_BRANCH}
