@@ -14,7 +14,7 @@
 
 - job:
     name: ceph-container-flake8
-    node: small && centos8
+    node: small && centos9
     defaults: global
     display-name: 'ceph-container-flake8'
     properties:
