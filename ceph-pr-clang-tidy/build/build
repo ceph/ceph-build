@@ -1,1 +1,35 @@
+#!/bin/bash
+set -ex
+
+docs_pr_only
+if [ "$DOCS_ONLY" = true ]; then
+    echo "Only the doc/ dir changed.  No need to run make check or API tests."
+    mkdir -p $WORKSPACE/build/out
+    echo "File created to avoid Jenkins' Artifact Archiving plugin from hanging" > $WORKSPACE/build/out/mgr.foo.log
+    exit 0
+fi
+
 sudo apt-get install -y clang-tidy
+
+sudo apt-get install -y parallel
+
+build_debs ${VENV} ${vers} ${debian_version}
+
+output_file="clang-tidy-result"
+file_list="files_to_check.txt"
+
+# Store the list of files from both rgw and osd directories
+find "$WORKSPACE/src/rgw" \( -name '*.cpp' -o -name '*.hpp' -o -name '*.cc' \) > "$file_list"
+find "$WORKSPACE/src/osd" \( -name '*.cpp' -o -name '*.hpp' -o -name '*.cc' \) >> "$file_list"
+
+# Run clang-tidy and save output
+{
+  echo "Files being checked:"
+  cat "$file_list"
+  echo
+  parallel -m clang-tidy -checks="-*,bugprone-use-after-move" -p "$WORKSPACE/build" {} < "$file_list"
+} | tee "$WORKSPACE/build/$output_file"
+
+sudo chmod +x ../src/script/clang-tidy-to-junit.py
+
+cat "$WORKSPACE/build/$output_file" | ../src/script/clang-tidy-to-junit.py $WORKSPACE/src >"$WORKSPACE/report.xml"

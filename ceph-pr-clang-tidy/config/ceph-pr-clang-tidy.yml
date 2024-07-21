@@ -16,12 +16,6 @@
       - github:
           url: https://github.com/ceph/ceph/
 
-  parameters:
-  - string:
-      name: ghprbPullId
-      description: "the GitHub pull id, like '72' in 'ceph/pull/72'"
-      default: origin/main
-
   scm:
   - git:
       url: https://github.com/ceph/ceph.git
