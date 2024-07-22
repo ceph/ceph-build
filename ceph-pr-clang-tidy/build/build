@@ -30,6 +30,6 @@ find "$WORKSPACE/src/osd" \( -name '*.cpp' -o -name '*.hpp' -o -name '*.cc' \) >
   parallel -m clang-tidy -checks="-*,bugprone-use-after-move" -p "$WORKSPACE/build" {} < "$file_list"
 } | tee "$WORKSPACE/build/$output_file"
 
-sudo chmod +x ../src/script/clang-tidy-to-junit.py
+sudo chmod +x clang-tidy-to-junit.py
 
-cat "$WORKSPACE/build/$output_file" | ../src/script/clang-tidy-to-junit.py $WORKSPACE/src >"$WORKSPACE/report.xml"
+cat "$WORKSPACE/build/$output_file" | clang-tidy-to-junit.py $WORKSPACE/src >"$WORKSPACE/report.xml"

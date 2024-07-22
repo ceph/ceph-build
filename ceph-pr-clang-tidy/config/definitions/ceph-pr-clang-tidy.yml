@@ -39,7 +39,7 @@
       permit-all: true
       auto-close-on-fail: false
       status-context: "Signed-off-by"
-      started-status: "checking if bugs exist in file"
+      started-status: "checking if bugs exist"
       success-status: "no bugs found"
       failure-status: "bugs found"
 
@@ -48,6 +48,7 @@
       !include-raw:
         - ../../../scripts/build_utils.sh
         - ../../build/build
+        - ../../build/clang-tidy-to-junit.py
 
   publishers:
   - junit:
