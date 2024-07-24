@@ -38,7 +38,7 @@
       github-hooks: true
       permit-all: true
       auto-close-on-fail: false
-      status-context: "Signed-off-by"
+      status-context: "Clang-tidy lint check"
       started-status: "checking if bugs exist"
       success-status: "no bugs found"
       failure-status: "bugs found"
