@@ -32,4 +32,4 @@ find "$WORKSPACE/src/osd" \( -name '*.cpp' -o -name '*.hpp' -o -name '*.cc' \) >
 
 sudo chmod +x clang-tidy-to-junit.py
 
-cat "$WORKSPACE/build/$output_file" | clang-tidy-to-junit.py $WORKSPACE/src >"$WORKSPACE/report.xml"
+clang-tidy-to-junit.py $WORKSPACE/src < "$WORKSPACE/build/$output_file" > "$WORKSPACE/report.xml"
