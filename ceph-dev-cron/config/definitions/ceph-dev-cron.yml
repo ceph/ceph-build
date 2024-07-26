@@ -57,7 +57,7 @@
                     FORCE=True
                     DISTROS=focal centos8 centos9 leap15
       # build reef on:
-      # default: jammy focal centos9 windows
+      # default: jammy focal centos8 centos9 windows
       # crimson: centos9
       - conditional-step:
           condition-kind: regex-match
@@ -74,7 +74,7 @@
                   predefined-parameters: |
                     BRANCH=${GIT_BRANCH}
                     FORCE=True
-                    DISTROS=jammy focal centos9 windows
+                    DISTROS=jammy focal centos8 centos9 windows
                 - project: 'ceph-dev'
                   predefined-parameters: |
                     BRANCH=${GIT_BRANCH}
