@@ -118,7 +118,7 @@
                     FORCE=True
                     DISTROS=focal bionic centos8 windows
       # build quincy on:
-      # default: focal jammy centos9 leap15
+      # default: focal jammy centos8 centos9 leap15
       - conditional-step:
           condition-kind: regex-match
           regex: .*quincy.*
@@ -134,7 +134,7 @@
                   predefined-parameters: |
                     BRANCH=${GIT_BRANCH}
                     FORCE=True
-                    DISTROS=focal jammy centos9 leap15
+                    DISTROS=focal jammy centos8 centos9 leap15
       # build reef on:
       # default: jammy focal centos9 windows
       # crimson: centos9
