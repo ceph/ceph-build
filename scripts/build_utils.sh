@@ -802,7 +802,7 @@ setup_pbuilder_for_old_gcc() {
         focal)
             old=9;;
         jammy)
-            old=11;;
+            old=12;;
     esac
     setup_gcc_hook $old > $hookdir/D10update-gcc-alternatives
     chmod +x $hookdir/D10update-gcc-alternatives
