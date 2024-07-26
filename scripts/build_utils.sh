@@ -802,7 +802,13 @@ setup_pbuilder_for_old_gcc() {
         focal)
             old=9;;
         jammy)
-            old=12;;
+            # jammy has gcc-12 but it may not be installed
+            old=12
+            cat >> $hookdir/D05install-old-gcc <<EOF
+env DEBIAN_FRONTEND=noninteractive apt-get install -y g++-$old
+EOF
+            chmod +x $hookdir/D05install-old-gcc
+            ;;
     esac
     setup_gcc_hook $old > $hookdir/D10update-gcc-alternatives
     chmod +x $hookdir/D10update-gcc-alternatives
