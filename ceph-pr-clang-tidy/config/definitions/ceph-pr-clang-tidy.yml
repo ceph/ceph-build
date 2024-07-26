@@ -1,6 +1,6 @@
 - job:
     name: ceph-pr-clang-tidy
-    node: small
+    node: jammy && small
     project-type: freestyle
     defaults: global
     display-name: 'ceph: Clang-tidy checks'
