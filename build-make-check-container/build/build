@@ -1,0 +1,20 @@
+#!/bin/bash
+set -e
+
+# Uncomment these to run locally on your workstation
+#DISTRO="ubuntu:20.04"
+#DISTRO="centos:8"
+#BRANCH=${BRANCH:-master}
+#WORKSPACE=~/git/ceph/ceph-build
+
+DASHED_DISTRO=$(echo "$DISTRO" | sed 's/:/-/')
+
+cd "$WORKSPACE"/build-make-check-container/build
+
+sudo docker build --build-arg INSTALL_DEPS_BRANCH=$BRANCH --build-arg DISTRO=$DISTRO -t make-check:$BRANCH-$DASHED_DISTRO .
+
+sudo docker login -u "${REGISTRY_USERNAME}" -p "${REGISTRY_PASSWORD}" quay.ceph.io
+
+sudo docker image tag make-check:$BRANCH-$DASHED_DISTRO quay.ceph.io/cephci/make-check:$BRANCH-$DASHED_DISTRO
+
+sudo docker push quay.ceph.io/cephci/make-check:$BRANCH-$DASHED_DISTRO
