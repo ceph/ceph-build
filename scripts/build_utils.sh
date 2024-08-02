@@ -960,7 +960,7 @@ build_debs() {
 
     echo building debs for $DIST
 
-    CEPH_EXTRA_CMAKE_ARGS="$CEPH_EXTRA_CMAKE_ARGS $(extra_cmake_args)"
+    CEPH_EXTRA_CMAKE_ARGS="$CEPH_EXTRA_CMAKE_ARGS $(extra_cmake_args)" + " -DCMAKE_EXPORT_COMPILE_COMMANDS:BOOL=ON"
     DEB_BUILD_OPTIONS="parallel=$(get_nr_build_jobs)"
 
     # pass only those env vars specifically noted
