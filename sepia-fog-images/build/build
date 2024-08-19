@@ -186,7 +186,12 @@ while [[ $(echo $remaininghosts | wc -w) != 0 ]]; do
       # Set DHCP back
       ssh ubuntu@store01.front.sepia.ceph.com "sudo /usr/local/sbin/set-next-server.sh $host fog"
       # Prep the host for FOG image capture
+      #
+      # this pushd/popd should not be necessary, but I'm trying to get ansible to find
+      # its galaxy modules in teuthology/.ansible
+      pushd $WORKSPACE/teuthology
       ansible-playbook $WORKSPACE/ceph-cm-ansible/tools/prep-fog-capture.yml -e ansible_ssh_user=ubuntu --limit="$host*"
+      popd
       remaininghosts=${remaininghosts//$host/}
     else
       # This gets noisy
