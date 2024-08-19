@@ -8,6 +8,16 @@
 
 set -ex
 
+if ! grep -s 'User.*ubuntu' ~/.ssh/config >/dev/null 2>&1  ; then
+  echo << EOF
+ERROR: The jenkins-build user on host teuthology does not have "User
+ubuntu" in .ssh/config.  This will make teuthology connections,
+and thus this job, fail.  Please add that configuration to
+/home/jenkins-build/.ssh/config on teuthology.
+EOF
+  exit 1
+fi
+
 # Converts distro friendly names into Cobbler/FOG image names
 funSetProfiles () {
   splitdistro=$(echo $1 | cut -d '_' -f1)
@@ -186,7 +196,8 @@ while [[ $(echo $remaininghosts | wc -w) != 0 ]]; do
       # Set DHCP back
       ssh ubuntu@store01.front.sepia.ceph.com "sudo /usr/local/sbin/set-next-server.sh $host fog"
       # Prep the host for FOG image capture
-      ansible-playbook $WORKSPACE/ceph-cm-ansible/tools/prep-fog-capture.yml -e ansible_ssh_user=ubuntu --limit="$host*"
+      # set ANSIBLE_CONFIG to allow teuthology to specify collections dir
+      ANSIBLE_CONFIG=$WORKSPACE/teuthology/ansible.cfg ansible-playbook $WORKSPACE/ceph-cm-ansible/tools/prep-fog-capture.yml -e ansible_ssh_user=ubuntu --limit="$host*"
       remaininghosts=${remaininghosts//$host/}
     else
       # This gets noisy
