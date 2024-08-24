@@ -13,23 +13,26 @@ sudo apt-get install -y clang-tidy
 
 sudo apt-get install -y parallel
 
-build_debs ${VENV} ${vers} ${debian_version}
-
 output_file="clang-tidy-result"
 file_list="files_to_check.txt"
 
+# The file `ceph_build.tar.gz` is copied from the job `ceph-pull-request` using copy_artifacts
+tar -xzf ceph_build.tar.gz -C "$WORKSPACE"
+
+rm ceph_build.tar.gz
+
 # Store the list of files from both rgw and osd directories
-find "$WORKSPACE/src/rgw" \( -name '*.cpp' -o -name '*.hpp' -o -name '*.cc' \) > "$file_list"
-find "$WORKSPACE/src/osd" \( -name '*.cpp' -o -name '*.hpp' -o -name '*.cc' \) >> "$file_list"
+find "$WORKSPACE/ceph/src/rgw" \( -name '*.cpp' -o -name '*.hpp' -o -name '*.cc' \) > "$file_list"
+find "$WORKSPACE/ceph/src/osd" \( -name '*.cpp' -o -name '*.hpp' -o -name '*.cc' \) >> "$file_list"
 
 # Run clang-tidy and save output
 {
   echo "Files being checked:"
   cat "$file_list"
   echo
-  parallel -m clang-tidy -checks="-*,bugprone-use-after-move" -p "$WORKSPACE/build" {} < "$file_list"
-} | tee "$WORKSPACE/build/$output_file"
+  parallel -m clang-tidy -checks="-*,bugprone-use-after-move" -p "$WORKSPACE/ceph/build" {} < "$file_list"
+} | tee "$WORKSPACE/ceph/build/$output_file"
 
 sudo chmod +x clang-tidy-to-junit.py
 
-clang-tidy-to-junit.py $WORKSPACE/src < "$WORKSPACE/build/$output_file" > "$WORKSPACE/report.xml"
+clang-tidy-to-junit.py $WORKSPACE/ceph/src < "$WORKSPACE/ceph/build/$output_file" > "$WORKSPACE/report.xml"

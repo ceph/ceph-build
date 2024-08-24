@@ -13,37 +13,22 @@
       - build-discarder:
           days-to-keep: 15
           artifact-days-to-keep: 15
-      - github:
-          url: https://github.com/ceph/ceph/
-
-  scm:
-  - git:
-      url: https://github.com/ceph/ceph.git
-      name: origin
-      branches:
-        - origin/pr/${ghprbPullId}/merge
-      refspec: +refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*
-      skip-tag: true
-      shallow-clone: true
-      honor-refspec: true
-      timeout: 20
 
   triggers:
   - github-pull-request:
       allow-whitelist-orgs-as-admins: true
       org-list:
         - ceph
-      trigger-phrase: 'jenkins test clang-tidy'
       only-trigger-phrase: false
-      github-hooks: true
-      permit-all: true
-      auto-close-on-fail: false
       status-context: "Clang-tidy lint check"
       started-status: "checking if bugs exist"
       success-status: "no bugs found"
       failure-status: "bugs found"
 
   builders:
+  - copyartifact:
+    project: ceph-pull-requests
+
   - shell:
       !include-raw:
         - ../../../scripts/build_utils.sh
