@@ -12,3 +12,5 @@ export WITH_RBD_RWL=true
 timeout 3h ./run-make-check.sh
 sleep 5
 ps -ef | grep -v jnlp | grep ceph || true
+
+sudo tar -czf ceph_build.tar.gz *
