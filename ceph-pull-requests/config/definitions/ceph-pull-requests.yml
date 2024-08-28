@@ -23,7 +23,8 @@
       - inject:
           properties-content: |
             TERM=xterm
-
+      - copyartifact:
+          project: ceph-pr-clang-tidy
     parameters:
       - string:
           name: ghprbPullId
