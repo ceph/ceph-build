@@ -1,7 +1,25 @@
-- job:
-    name: ceph-volume-pr
-    display-name: 'ceph-volume: Pull Request tox tests'
-    node: small && centos9
+
+- project:
+    name: ceph-volume-cephadm-prs
+    distro:
+      - centos
+    objectstore:
+      - bluestore
+    method:
+      - lvm
+      - raw
+    scenario:
+      - unencrypted
+      - dmcrypt
+
+    jobs:
+      - 'ceph-volume-prs-{distro}-{objectstore}-{method}-{scenario}'
+
+- job-template:
+    name: 'ceph-volume-prs-{distro}-{objectstore}-{method}-{scenario}'
+    display-name: 'ceph-volume {method}: Pull Request [{distro}-{objectstore}-{scenario}]'
+    node: vagrant&&libvirt&&centos9
+    concurrent: true
     project-type: freestyle
     defaults: global
     quiet-period: 5
@@ -11,7 +29,7 @@
       - github:
           url: https://github.com/ceph/ceph
       - build-discarder:
-          days-to-keep: 14
+          days-to-keep: 30
     discard-old-builds: true
 
     parameters:
@@ -34,41 +52,49 @@
           name: GITHUB_OAUTH_TOKEN
           description: "Secret API Token to set status. Only needed when manually triggering a PR test"
 
+
     triggers:
       - github-pull-request:
           cancel-builds-on-update: true
+          allow-whitelist-orgs-as-admins: true
+          org-list:
+            - ceph
           only-trigger-phrase: true
-          trigger-phrase: 'jenkins test ceph-volume tox'
+          trigger-phrase: '^jenkins test ceph-volume {distro} {objectstore}-{method}-{scenario}|jenkins test ceph-volume all.*|jenkins test ceph-volume {distro} all.*'
           github-hooks: true
           permit-all: true
           auto-close-on-fail: false
-          status-context: "ceph-volume tox testing"
-          started-status: "ceph-volume tox running"
-          success-status: "ceph-volume tox OK"
-          failure-status: "ceph-volume tox failed"
+          status-context: "ceph-volume {method} testing {distro}-{objectstore}-{scenario}"
+          started-status: "ceph-volume {method} running {distro}-{objectstore}-{scenario}"
+          success-status: "ceph-volume {method} {distro}-{objectstore}-{scenario} OK"
+          failure-status: "ceph-volume {method} {distro}-{objectstore}-{scenario} failed"
 
     scm:
       - git:
-          url: https://github.com/ceph/ceph
-          browser: auto
+          url: https://github.com/ceph/ceph.git
           branches:
-            - ${sha1}
+            - ${{sha1}}
           refspec: +refs/pull/*:refs/remotes/origin/pr/*
-          skip-tag: true
+          browser: auto
           timeout: 20
+          skip-tag: true
           wipe-workspace: true
 
     builders:
       - inject:
           properties-content: |
+            DISTRO={distro}
+            OBJECTSTORE={objectstore}
+            METHOD={method}
+            SCENARIO={scenario}
             GITHUB_REPOSITORY="ceph/ceph"
-            GITHUB_STATUS_CONTEXT="ceph-volume tox tests"
+            GITHUB_STATUS_CONTEXT="ceph-volume testing {distro}-{objectstore}-{method}-{scenario}"
             GITHUB_STATUS_STARTED="running"
             GITHUB_STATUS_SUCCESS="OK"
             GITHUB_STATUS_FAILURE="failed"
             GITHUB_STATUS_ERROR="completed with errors"
       - shell:
-          !include-raw:
+          !include-raw-escape:
             - ../../../scripts/build_utils.sh
             - ../../build/build
 
@@ -86,6 +112,11 @@
                   - ABORTED
               build-steps:
                 - shell:
-                    !include-raw:
+                    !include-raw-escape:
                       - ../../../scripts/build_utils.sh
                       - ../../build/teardown
+
+      - archive:
+          artifacts: 'logs/**'
+          allow-empty: true
+          latest-only: false

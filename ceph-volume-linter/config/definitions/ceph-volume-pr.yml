@@ -1,56 +1,7 @@
-
-- project:
-    name: ceph-volume-ansible-prs-lvm
-    distro:
-      - centos
-    objectstore:
-      - bluestore
-    scenario:
-      - create
-      - dmcrypt
-    subcommand:
-      - lvm
-
-    jobs:
-      - 'ceph-volume-prs-{subcommand}-{distro}-{objectstore}-{scenario}'
-
-- project:
-    name: ceph-volume-ansible-prs-batch
-    distro:
-      - centos
-    objectstore:
-      - bluestore
-    scenario:
-      - single_type
-      - single_type_dmcrypt
-    subcommand:
-      - batch
-
-    jobs:
-      - 'ceph-volume-prs-{subcommand}-{distro}-{objectstore}-{scenario}'
-
-- project:
-    name: ceph-volume-ansible-prs-batch-mixed
-    distro:
-      - centos
-    objectstore:
-      - bluestore
-    scenario:
-      - mixed_type
-      - mixed_type_dmcrypt
-      - mixed_type_explicit
-      - mixed_type_dmcrypt_explicit
-    subcommand:
-      - batch
-
-    jobs:
-      - 'ceph-volume-prs-{subcommand}-{distro}-{objectstore}-{scenario}'
-
-- job-template:
-    name: 'ceph-volume-prs-{subcommand}-{distro}-{objectstore}-{scenario}'
-    display-name: 'ceph-volume {subcommand}: Pull Request [{distro}-{objectstore}-{scenario}]'
-    node: vagrant&&libvirt&&centos9
-    concurrent: true
+- job:
+    name: ceph-volume-linter
+    display-name: 'ceph-volume: Pull Request linter tests'
+    node: small && centos9
     project-type: freestyle
     defaults: global
     quiet-period: 5
@@ -60,7 +11,7 @@
       - github:
           url: https://github.com/ceph/ceph
       - build-discarder:
-          days-to-keep: 30
+          days-to-keep: 14
     discard-old-builds: true
 
     parameters:
@@ -83,49 +34,41 @@
           name: GITHUB_OAUTH_TOKEN
           description: "Secret API Token to set status. Only needed when manually triggering a PR test"
 
-
     triggers:
       - github-pull-request:
           cancel-builds-on-update: true
-          allow-whitelist-orgs-as-admins: true
-          org-list:
-            - ceph
           only-trigger-phrase: true
-          trigger-phrase: '^jenkins test ceph-volume {subcommand} {distro}-{objectstore}-{scenario}|jenkins test ceph-volume all.*|jenkins test ceph-volume {subcommand} all.*|jenkins test ceph-volume {subcommand} {scenario}.*'
+          trigger-phrase: 'jenkins test ceph-volume linter'
           github-hooks: true
           permit-all: true
           auto-close-on-fail: false
-          status-context: "ceph-volume {subcommand} testing {distro}-{objectstore}-{scenario}"
-          started-status: "ceph-volume {subcommand} running {distro}-{objectstore}-{scenario}"
-          success-status: "ceph-volume {subcommand} {distro}-{objectstore}-{scenario} OK"
-          failure-status: "ceph-volume {subcommand} {distro}-{objectstore}-{scenario} failed"
+          status-context: "ceph-volume tox testing"
+          started-status: "ceph-volume tox running"
+          success-status: "ceph-volume tox OK"
+          failure-status: "ceph-volume tox failed"
 
     scm:
       - git:
-          url: https://github.com/ceph/ceph.git
-          branches:
-            - ${{sha1}}
-          refspec: +refs/pull/*:refs/remotes/origin/pr/*
+          url: https://github.com/ceph/ceph
           browser: auto
-          timeout: 20
+          branches:
+            - ${sha1}
+          refspec: +refs/pull/*:refs/remotes/origin/pr/*
           skip-tag: true
+          timeout: 20
           wipe-workspace: true
 
     builders:
       - inject:
           properties-content: |
-            SCENARIO={scenario}
-            DISTRO={distro}
-            OBJECTSTORE={objectstore}
-            SUBCOMMAND={subcommand}
             GITHUB_REPOSITORY="ceph/ceph"
-            GITHUB_STATUS_CONTEXT="ceph-volume {subcommand} testing {distro}-{objectstore}-{scenario}"
+            GITHUB_STATUS_CONTEXT="ceph-volume linter tests"
             GITHUB_STATUS_STARTED="running"
             GITHUB_STATUS_SUCCESS="OK"
             GITHUB_STATUS_FAILURE="failed"
             GITHUB_STATUS_ERROR="completed with errors"
       - shell:
-          !include-raw-escape:
+          !include-raw:
             - ../../../scripts/build_utils.sh
             - ../../build/build
 
@@ -143,11 +86,6 @@
                   - ABORTED
               build-steps:
                 - shell:
-                    !include-raw-escape:
+                    !include-raw:
                       - ../../../scripts/build_utils.sh
                       - ../../build/teardown
-
-      - archive:
-          artifacts: 'logs/**'
-          allow-empty: true
-          latest-only: false

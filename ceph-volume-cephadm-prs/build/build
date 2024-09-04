@@ -1,0 +1,30 @@
+#!/bin/bash
+set -ex
+env
+WORKDIR=$(mktemp -td tox.XXXXXXXXXX)
+
+# set up variables needed for
+# githubstatus to report back to the github PR
+# if this project was started manually
+github_status_setup
+
+# the following two methods exist in scripts/build_utils.sh
+pkgs=( "tox" "github-status>0.0.3" )
+TEMPVENV=$(create_venv_dir)
+VENV=${TEMPVENV}/bin
+set_centos_python3_version "python3.9"
+install_python_packages $TEMPVENV "pkgs[@]" "pip==22.0.4"
+
+GITHUB_STATUS_STATE="pending" $VENV/github-status create
+
+prune_stale_vagrant_vms $WORKSPACE/../**/tests
+delete_libvirt_vms
+clear_libvirt_networks
+restart_libvirt_services
+update_vagrant_boxes
+
+cd src/ceph-volume/ceph_volume/tests/functional/${DISTRO}/${OBJECTSTORE}/${METHOD}/${SCENARIO}
+
+CEPH_DEV_BRANCH=$ghprbTargetBranch $VENV/tox --workdir=$WORKDIR -vre ${DISTRO}-${OBJECTSTORE}-${METHOD}-${SCENARIO} -- --provider=libvirt
+
+GITHUB_STATUS_STATE="success" $VENV/github-status create
