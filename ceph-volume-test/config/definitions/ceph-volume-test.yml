@@ -24,130 +24,40 @@
           description: "The ceph sha1 to test against"
           default: "latest"
       - string:
-          name: CEPH_ANSIBLE_BRANCH
-          description: "The ceph-ansible branch to test against"
-          default: "main"
-      - string:
           name: CEPH_REPO_URL
           description: "The full https url to clone from"
           default: "https://github.com/ceph/ceph.git"
 
     builders:
-      # centos8 based jobs for pacific & quincy
-      - conditional-step:
-          condition-kind: shell
-          condition-command: |
-            #!/bin/bash
-            set -x
-            if [[ ! "$CEPH_BRANCH" =~ pacific|quincy ]]; then
-              exit 1
-            fi
-          on-evaluation-failure: dont-run
-          steps:
-          - multijob:
-              name: 'testing ceph-volume lvm - filestore'
-              condition: SUCCESSFUL
-              projects:
-                - name: ceph-volume-scenario
-                  current-parameters: true
-                  predefined-parameters: |
-                    SCENARIO=centos8-filestore-create
-                    SUBCOMMAND=lvm
-                - name: ceph-volume-scenario
-                  current-parameters: true
-                  predefined-parameters: |
-                    SCENARIO=centos8-filestore-dmcrypt
-                    SUBCOMMAND=lvm
-          - multijob:
-              name: 'testing ceph-volume batch - filestore'
-              condition: SUCCESSFUL
-              projects:
-                - name: ceph-volume-scenario
-                  current-parameters: true
-                  predefined-parameters: |
-                    SCENARIO=centos8-filestore-single_type
-                    SUBCOMMAND=batch
-                - name: ceph-volume-scenario
-                  current-parameters: true
-                  predefined-parameters: |
-                    SCENARIO=centos8-filestore-single_type_dmcrypt
-                    SUBCOMMAND=batch
-                - name: ceph-volume-scenario
-                  current-parameters: true
-                  predefined-parameters: |
-                    SCENARIO=centos8-filestore-mixed_type_dmcrypt
-                    SUBCOMMAND=batch
-                - name: ceph-volume-scenario
-                  current-parameters: true
-                  predefined-parameters: |
-                    SCENARIO=centos8-filestore-mixed_type
-                    SUBCOMMAND=batch
-                - name: ceph-volume-scenario
-                  current-parameters: true
-                  predefined-parameters: |
-                    SCENARIO=centos8-filestore-mixed_type_dmcrypt_explicit
-                    SUBCOMMAND=batch
-                - name: ceph-volume-scenario
-                  current-parameters: true
-                  predefined-parameters: |
-                    SCENARIO=centos8-filestore-mixed_type_explicit
-                    SUBCOMMAND=batch
-      # centos8 based jobs for pacific onward
-      - conditional-step:
-          condition-kind: shell
-          condition-command: |
-            #!/bin/bash
-            set -x
-            if [[ ! "$CEPH_BRANCH" =~ main|squid|reef|quincy|pacific ]]; then
-              exit 1
-            fi
-          on-evaluation-failure: dont-run
-          steps:
-          - multijob:
-              name: 'testing ceph-volume lvm - bluestore'
-              condition: SUCCESSFUL
-              projects:
-                - name: ceph-volume-scenario
-                  current-parameters: true
-                  predefined-parameters: |
-                    SCENARIO=centos-bluestore-create
-                    SUBCOMMAND=lvm
-                - name: ceph-volume-scenario
-                  current-parameters: true
-                  predefined-parameters: |
-                    SCENARIO=centos-bluestore-dmcrypt
-                    SUBCOMMAND=lvm
-          - multijob:
-              name: 'testing ceph-volume batch - bluestore'
-              condition: SUCCESSFUL
-              projects:
-                - name: ceph-volume-scenario
-                  current-parameters: true
-                  predefined-parameters: |
-                    SCENARIO=centos-bluestore-single_type
-                    SUBCOMMAND=batch
-                - name: ceph-volume-scenario
-                  current-parameters: true
-                  predefined-parameters: |
-                    SCENARIO=centos-bluestore-single_type_dmcrypt
-                    SUBCOMMAND=batch
-                - name: ceph-volume-scenario
-                  current-parameters: true
-                  predefined-parameters: |
-                    SCENARIO=centos-bluestore-mixed_type
-                    SUBCOMMAND=batch
-                - name: ceph-volume-scenario
-                  current-parameters: true
-                  predefined-parameters: |
-                    SCENARIO=centos-bluestore-mixed_type_dmcrypt
-                    SUBCOMMAND=batch
-                - name: ceph-volume-scenario
-                  current-parameters: true
-                  predefined-parameters: |
-                    SCENARIO=centos-bluestore-mixed_type_explicit
-                    SUBCOMMAND=batch
-                - name: ceph-volume-scenario
-                  current-parameters: true
-                  predefined-parameters: |
-                    SCENARIO=centos-bluestore-mixed_type_dmcrypt_explicit
-                    SUBCOMMAND=batch
+      - multijob:
+          name: 'testing ceph-volume'
+          condition: SUCCESSFUL
+          projects:
+            - name: ceph-volume-scenario
+              current-parameters: true
+              predefined-parameters: |
+                DISTRO=centos
+                OBJECTSTORE=bluestore
+                METHOD=lvm
+                SCENARIO=unencrypted
+            - name: ceph-volume-scenario
+              current-parameters: true
+              predefined-parameters: |
+                DISTRO=centos
+                OBJECTSTORE=bluestore
+                METHOD=lvm
+                SCENARIO=dmcrypt
+            - name: ceph-volume-scenario
+              current-parameters: true
+              predefined-parameters: |
+                DISTRO=centos
+                OBJECTSTORE=bluestore
+                METHOD=raw
+                SCENARIO=unencrypted
+            - name: ceph-volume-scenario
+              current-parameters: true
+              predefined-parameters: |
+                DISTRO=centos
+                OBJECTSTORE=bluestore
+                METHOD=raw
+                SCENARIO=dmcrypt

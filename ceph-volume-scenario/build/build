@@ -14,6 +14,6 @@ clear_libvirt_networks
 restart_libvirt_services
 update_vagrant_boxes
 
-cd src/ceph-volume/ceph_volume/tests/functional/$SUBCOMMAND
+cd src/ceph-volume/ceph_volume/tests/functional/${DISTRO}/${OBJECTSTORE}/${METHOD}/${SCENARIO}
 
-CEPH_DEV_BRANCH=$CEPH_BRANCH CEPH_DEV_SHA1=$CEPH_SHA1 CEPH_ANSIBLE_BRANCH=$CEPH_ANSIBLE_BRANCH $VENV/tox --workdir=$WORKDIR -vre $SCENARIO -- --provider=libvirt
+CEPH_DEV_BRANCH=$CEPH_BRANCH CEPH_DEV_SHA1=$CEPH_SHA1 $VENV/tox --workdir=$WORKDIR -vre ${DISTRO}-${OBJECTSTORE}-${METHOD}-${OBJECTSTORE}-${SCENARIO} -- --provider=libvirt

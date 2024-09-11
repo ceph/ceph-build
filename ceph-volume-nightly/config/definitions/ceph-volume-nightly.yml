@@ -4,63 +4,23 @@
       - centos
     objectstore:
       - bluestore
-    scenario:
-      - create
-      - dmcrypt
-    subcommand:
+    method:
       - lvm
-    ceph_branch:
-      - main
-      - reef
-      - quincy
-
-    jobs:
-      - 'ceph-volume-nightly-{ceph_branch}-{subcommand}-{distro}-{objectstore}-{scenario}'
-
-- project:
-    name: ceph-volume-nightly-batch
-    distro:
-      - centos
-    objectstore:
-      - bluestore
+      - raw
     scenario:
-      - single_type
-      - single_type_dmcrypt
-    subcommand:
-      - batch
+      - unencrypted
+      - dmcrypt
     ceph_branch:
       - main
+      - squid
       - reef
-      - quincy
 
     jobs:
-      - 'ceph-volume-nightly-{ceph_branch}-{subcommand}-{distro}-{objectstore}-{scenario}'
-
-- project:
-    name: ceph-volume-nightly-batch-mixed
-    distro:
-      - centos
-    objectstore:
-      - bluestore
-    scenario:
-      - mixed_type
-      - mixed_type_dmcrypt
-      - mixed_type_explicit
-      - mixed_type_dmcrypt_explicit
-    subcommand:
-      - batch
-    ceph_branch:
-      - main
-      - reef
-      - quincy
-
-    jobs:
-      - 'ceph-volume-nightly-{ceph_branch}-{subcommand}-{distro}-{objectstore}-{scenario}'
-
+      - 'ceph-volume-nightly-{ceph_branch}-{distro}-{objectstore}-{method}-{scenario}'
 
 - job-template:
-    name: 'ceph-volume-nightly-{ceph_branch}-{subcommand}-{distro}-{objectstore}-{scenario}'
-    display-name: 'ceph-volume {ceph_branch} {subcommand}: [{distro}-{objectstore}-{scenario}]'
+    name: 'ceph-volume-nightly-{ceph_branch}-{distro}-{objectstore}-{method}-{scenario}'
+    display-name: 'ceph-volume {ceph_branch}: [{distro}-{objectstore}-{method}-{scenario}]'
     node: vagrant&&libvirt&&centos9
     concurrent: true
     project-type: freestyle
@@ -91,10 +51,10 @@
     builders:
       - inject:
           properties-content: |
-            SCENARIO={scenario}
             DISTRO={distro}
             OBJECTSTORE={objectstore}
-            SUBCOMMAND={subcommand}
+            METHOD={method}
+            SCENARIO={scenario}
             CEPH_BRANCH={ceph_branch}
       - shell:
           !include-raw-escape:
@@ -125,4 +85,4 @@
           latest-only: false
 
       - email:
-          recipients: aschoen@redhat.com gabrioux@redhat.com
+          recipients: gabrioux@ibm.com
