@@ -138,7 +138,8 @@
             - ceph
           skip-build-phrase: '^jenkins do not test.*|.*\[skip ci\].*'
           trigger-phrase: '^jenkins test {distribution}-{deployment}-{scenario}|jenkins test all.*'
-          black-list-labels: 'draft'
+          black-list-labels:
+            - draft
           only-trigger-phrase: false
           github-hooks: true
           permit-all: true
