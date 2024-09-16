@@ -1,0 +1,14 @@
+#!/bin/bash
+github_status_setup
+
+# the following two methods exist in scripts/build_utils.sh
+pkgs=( "github-status>0.0.3" )
+install_python_packages "pkgs[@]"
+
+# The end of the build/make-check/build writes this sentinel file if `make check` passes.
+if [[ -f "$WORKSPACE/.makecheckpassed" ]]; then
+  GITHUB_STATUS_CONTEXT="ceph PR - API tests"
+else
+  GITHUB_STATUS_CONTEXT="ceph PR - make check"
+fi
+GITHUB_STATUS_STATE="failure" $VENV/github-status create
