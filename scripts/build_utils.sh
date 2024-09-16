@@ -1817,3 +1817,19 @@ function set_centos_python3_version() {
     sudo dnf reinstall -y $EXPECTED_PYTHON3_VERSION || sudo dnf install -y $EXPECTED_PYTHON3_VERSION
     sudo ln -fs /usr/bin/$EXPECTED_PYTHON3_VERSION /usr/bin/python3
 }
+
+# rewrites src/ceph_release with the appropriate release type.
+# in the ceph-setup job, $RELEASE_TYPE will be defined.
+# in ceph-dev-{setup,new-setup}, it's not defined so it's a dev release
+function rewrite_ceph_version_file() {
+    if [ "$RELEASE_TYPE" == "STABLE" ]; then
+      echo "Writing 'stable' to src/ceph_release file"
+      sed -i '$ s/.*/stable/g' src/ceph_release
+    elif [ "$RELEASE_TYPE" == "RELEASE_CANDIDATE" ]; then
+      echo "Writing 'rc' to src/ceph_release file"
+      sed -i '$ s/.*/rc/g' src/ceph_release
+    else
+      echo "Writing 'dev' to src/ceph_release file"
+      sed -i '$ s/.*/dev/g' src/ceph_release
+    fi
+}
