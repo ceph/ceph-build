@@ -14,16 +14,6 @@
           days-to-keep: 30
           artifact-days-to-keep: 30
 
-    scm:
-      - git:
-          url: git@github.com:ceph/ceph-container.git
-          basedir: ceph-container
-          credentials-id: 'jenkins-build'
-          branches:
-            - $CONTAINER_BRANCH
-          skip-tag: true
-          wipe-workspace: true
-
     execution-strategy:
        combination-filter: |
          DIST == AVAILABLE_DIST && ARCH == AVAILABLE_ARCH &&
