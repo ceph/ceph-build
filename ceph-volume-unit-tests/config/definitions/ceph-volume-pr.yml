@@ -1,6 +1,6 @@
 - job:
-    name: ceph-volume-linter
-    display-name: 'ceph-volume: Pull Request linter tests'
+    name: ceph-volume-unit-tests
+    display-name: 'ceph-volume: Pull Request unit tests'
     node: small && centos9
     project-type: freestyle
     defaults: global
@@ -38,7 +38,7 @@
       - github-pull-request:
           cancel-builds-on-update: true
           only-trigger-phrase: true
-          trigger-phrase: 'jenkins test ceph-volume linter'
+          trigger-phrase: 'jenkins ceph-volume unit tests'
           github-hooks: true
           permit-all: true
           auto-close-on-fail: false
@@ -62,7 +62,7 @@
       - inject:
           properties-content: |
             GITHUB_REPOSITORY="ceph/ceph"
-            GITHUB_STATUS_CONTEXT="ceph-volume linter tests"
+            GITHUB_STATUS_CONTEXT="ceph-volume unit tests"
             GITHUB_STATUS_STARTED="running"
             GITHUB_STATUS_SUCCESS="OK"
             GITHUB_STATUS_FAILURE="failed"
