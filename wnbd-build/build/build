@@ -15,7 +15,7 @@ BUILD_CONFIGURATION=${BUILD_CONFIGURATION:-"Release"}
 # Install requirements (if needed)
 #
 if ! which zip >/dev/null; then
-    sudo apt-get update
+    sudo apt-get update -o Acquire::Languages=none -o Acquire::Translation=none || true
     sudo apt-get install -y zip
 fi
 

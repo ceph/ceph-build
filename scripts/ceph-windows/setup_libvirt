@@ -22,11 +22,11 @@ function get_libvirt_vm_ssh_address() {
     fi
 
     if ! which xmllint >/dev/null; then
-        sudo apt-get update
+        sudo apt-get update -o Acquire::Languages=none -o Acquire::Translation=none || true
         sudo apt-get install -y libxml2-utils
     fi
     if ! which jq >/dev/null; then
-        sudo apt-get update
+        sudo apt-get update -o Acquire::Languages=none -o Acquire::Translation=none || true
         sudo apt-get install -y jq
     fi
 
@@ -74,7 +74,7 @@ function get_libvirt_vm_ssh_address() {
 #
 # Setup requirements (if needed)
 #
-sudo apt-get update
+sudo apt-get update -o Acquire::Languages=none -o Acquire::Translation=none || true
 sudo apt-get install -y libvirt-daemon-system virtinst cloud-image-utils qemu-kvm
 
 # Ensure that the libvirt socket is available, otherwise virsh commands will fail.
