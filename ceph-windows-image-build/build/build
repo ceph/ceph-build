@@ -37,15 +37,15 @@ function restart_windows_vm() {
 
 
 if ! which virt-install >/dev/null; then
-    sudo apt-get update
+    sudo apt-get update -o Acquire::Languages=none -o Acquire::Translation=none || true
     sudo apt-get install -y virtinst
 fi
 if ! which xmllint >/dev/null; then
-    sudo apt-get update
+    sudo apt-get update -o Acquire::Languages=none -o Acquire::Translation=none || true
     sudo apt-get install -y libxml2-utils
 fi
 if ! which jq >/dev/null; then
-    sudo apt-get update
+    sudo apt-get update -o Acquire::Languages=none -o Acquire::Translation=none || true
     sudo apt-get install -y jq
 fi
 
