@@ -9,6 +9,9 @@ docker.io:
   images-by-semver:
     nginx: ">= 1.26.0"
     grafana/grafana: ">= 9.0.0"
+    grafana/loki: "= 3.0.0"
+    grafana/promtail: "= 3.0.0"
+    maxwo/snmp-notifier: "= v1.2.1"
 EOF
 # make sure we pull the last stable image
 podman pull quay.io/skopeo/stable
