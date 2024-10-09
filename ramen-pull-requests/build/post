@@ -1,0 +1,6 @@
+#!/bin/bash
+
+set -ex
+
+.$WORKSPACE/hack/e2e/uninstall
+sudo rm -rf ramen/
