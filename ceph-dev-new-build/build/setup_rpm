@@ -18,9 +18,16 @@ if test $(id -u) != 0 ; then
 fi
 export LC_ALL=C # the following is vulnerable to i18n
 
-$SUDO yum install -y yum-utils
-
 get_rpm_dist
+
+if [ "$DIST" = el8 ]; then
+    # after centos stream 8 eol, its repos were moved to vault.centos.org
+    $SUDO sed -i -e 's|mirrorlist|#mirrorlist|g' \
+-e 's|#baseurl=http://mirror.centos.org|baseurl=https://vault.centos.org|g' \
+/etc/yum.repos.d/*.repo
+fi
+
+$SUDO yum install -y yum-utils
 
 BRANCH=`branch_slash_filter $BRANCH`
 
