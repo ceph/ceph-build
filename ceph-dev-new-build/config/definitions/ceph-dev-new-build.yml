@@ -141,5 +141,9 @@
               credential-id: dgalloway-docker-hub
               username: DOCKER_HUB_USERNAME
               password: DOCKER_HUB_PASSWORD
+          - username-password-separated:
+              credential-id: ibm-cloud-sccache-bucket
+              username: AWS_ACCESS_KEY_ID
+              password: AWS_SECRET_ACCESS_KEY
       - build-name:
           name: "#${BUILD_NUMBER} ${BRANCH}, ${SHA1}, ${DISTROS}, ${FLAVOR}"
