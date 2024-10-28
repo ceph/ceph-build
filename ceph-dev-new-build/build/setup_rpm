@@ -76,3 +76,9 @@ if [ "$THROWAWAY" = false ] ; then
     # TODO if this exits we need to post to shaman a success
     check_binary_existence $VENV $chacra_check_url
 fi
+
+if [ "$SCCACHE" = true ] ; then
+    write_sccache_conf
+    write_aws_credentials
+    install_sccache
+fi
