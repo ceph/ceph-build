@@ -90,6 +90,7 @@
           !include-raw:
             - ../../build/validate_rpm
             - ../../../scripts/build_utils.sh
+            - ../../../scripts/setup_sccache.sh
             - ../../build/setup_rpm
             - ../../build/build_rpm
       # osc build scripts
