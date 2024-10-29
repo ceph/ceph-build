@@ -172,4 +172,8 @@ mv release/$vers/*.tar.* dist/.
 # Parameters
 mv release/version dist/.
 
+
+if [ "$SCCACHE" = true ] ; then
+    CEPH_EXTRA_RPMBUILD_ARGS="${CEPH_EXTRA_RPMBUILD_ARGS} --with sccache"
+fi
 write_dist_files
