@@ -76,6 +76,11 @@
           description: "Use sccache"
           default: false
 
+      - bool:
+          name: DWZ
+          description: "Use dwz to make debuginfo packages smaller"
+          default: true
+
     builders:
       - multijob:
           name: 'ceph dev setup phase'
