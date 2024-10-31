@@ -103,10 +103,18 @@ echo current version $cephver
 
 srcdir=`pwd`
 
+if command -v podman; then
+    PODMAN=podman
+else
+    PODMAN="sudo docker"
+fi
+
 if [ -d "$releasedir/$cephver" ]; then
     echo "$releasedir/$cephver already exists; reuse that release tarball"
 else
-    dch -v $cephver-1 'autobuilder'
+    # Create a container image to provide debian-specific utilities, so that this job can run on any container-capable host
+    printf "FROM ubuntu:24.04\nRUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y dpkg-dev devscripts && apt-get clean && rm -rf /var/lib/apt/lists/*" | $PODMAN build -t ubuntu_builder -
+    $PODMAN run --rm -v $PWD:/ceph:z ubuntu_builder:latest bash -c "cd /ceph && dch -v $cephver-1 'autobuilder'"
 
     echo building tarball
     rm ceph-*.tar.gz || true
@@ -156,7 +164,7 @@ vers=`cat release/version`
     cd release/$vers
     mkdir -p ceph-$vers/debian
     cp -r debian/* ceph-$vers/debian/
-    dpkg-source -b ceph-$vers
+    $PODMAN run --rm -v $PWD:/ceph:z ubuntu_builder:latest bash -c "cd /ceph && dpkg-source -b ceph-$vers"
 )
 
 mkdir -p dist
