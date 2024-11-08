@@ -48,6 +48,7 @@ PACKAGE_MANAGER_VERSION="$RPM_VERSION-$RPM_RELEASE"
 
 BUILDAREA=$(setup_rpm_build_area ./rpm/$dist)
 build_rpms ${BUILDAREA} "${CEPH_EXTRA_RPMBUILD_ARGS}"
+[ "$SCCACHE" = true ] && sccache -s
 build_ceph_release_rpm ${BUILDAREA} true
 
 # Make sure we execute at the top level directory

@@ -184,4 +184,8 @@ mv release/version dist/.
 if [ "$DWZ" = false ] ; then
     CEPH_EXTRA_RPMBUILD_ARGS="${CEPH_EXTRA_RPMBUILD_ARGS} --without dwz"
 fi
+
+if [ "$SCCACHE" = true ] ; then
+    CEPH_EXTRA_RPMBUILD_ARGS="${CEPH_EXTRA_RPMBUILD_ARGS} --with sccache"
+fi
 write_dist_files
