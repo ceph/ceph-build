@@ -116,16 +116,21 @@ else
     printf "FROM ubuntu:24.04\nRUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y dpkg-dev devscripts && apt-get clean && rm -rf /var/lib/apt/lists/*" | $PODMAN build -t ubuntu_builder -
     $PODMAN run --rm -v $PWD:/ceph:z ubuntu_builder:latest bash -c "cd /ceph && dch -v $cephver-1 'autobuilder'"
 
+    # declare an associative array to map file extensions to tar flags
+    declare -A compression=( ["bz2"]="j" ["gz"]="z" ["xz"]="J" )
+    for cmp in "${!compression[@]}"; do
+        rm -f ceph-*.tar.$cmp
+    done
     echo building tarball
-    rm ceph-*.tar.gz || true
-    rm ceph-*.tar.bz2 || true
-
     ./make-dist $cephver
-    vers=`ls ceph-*.tar.bz2 | cut -c 6- | sed 's/.tar.bz2//'`
-    extension="tar.bz2"
-    extract_flags="jxf"
-    compress_flags="jcf"
-
+    for cmp in "${!compression[@]}"; do
+      extension="tar.$cmp"
+      vers=$(ls ceph-*.$extension | cut -c 6- | sed "s/.$extension//" || true)
+      flag="${compression[$cmp]}"
+      extract_flags="${flag}xf"
+      compress_flags="${flag}cf"
+      if [ "$vers" != "" ]; then break; fi
+    done
     echo tarball vers $vers
 
     echo extracting
