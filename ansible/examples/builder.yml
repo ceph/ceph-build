@@ -234,6 +234,7 @@
           - python3-pip
           - python3-devel
           - podman
+          - skopeo
         container_service_name: podman
         container_certs_path: "/etc/containers/certs.d/{{ container_mirror }}"
         hackery_packages:
