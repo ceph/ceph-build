@@ -1,0 +1,170 @@
+ceph_build_repo = "https://github.com/ceph/ceph-build"
+ceph_build_branch = "jenkinsfile"
+base_node_label = "gigantic"
+ubuntu_releases = [
+  "noble", // 24.04
+  "jammy", // 22.04
+  "focal", // 20.04
+]
+debian_releases = [
+  "bookworm", // v12 (2023)
+  "bullseye", // v11 (2021)
+]
+
+pipeline {
+  agent any
+  stages {
+    stage("source distribution") {
+      steps {
+        script {
+          if ( ! env.SETUP_BUILD_ID ) {
+            def setup_build = build(
+              job: "ceph-dev-new-setup",
+              parameters: [
+                string(name: "BRANCH", value: env.BRANCH),
+                string(name: "FLAVOR", value: env.FLAVOR),
+                string(name: "SCCACHE", value: env.SCCACHE),
+                string(name: "DWZ", value: env.DWZ),
+              ]
+            )
+            env.SETUP_BUILD_ID = setup_build.getNumber()
+          }
+          println "SETUP_BUILD_ID=${env.SETUP_BUILD_ID}"
+          def setup_build_url = new URI([env.JENKINS_URL, "job", "ceph-dev-new-setup", env.SETUP_BUILD_ID].join("/")).normalize()
+          println "${setup_build_url}"
+        }
+      }
+    }
+    stage("parallel build") {
+      matrix {
+        agent {
+          label "${DIST}&&${ARCH}&&${base_node_label}"
+        }
+        when {
+          beforeAgent true
+          allOf {
+            expression { env.DISTROS.contains(env.DIST) }
+            expression { env.ARCHS.contains(env.ARCH) }
+          }
+        }
+        axes {
+          axis {
+            name 'DIST'
+            values 'centos9', 'jammy'
+          }
+          axis {
+            name 'ARCH'
+            values 'x86_64', 'arm64'
+          }
+        }
+        stages {
+            stage("node") {
+              steps {
+                script {
+                  def node_shortname = env.NODE_NAME.split('\\+')[-1]
+                  def node_url = new URI([env.JENKINS_URL, "computer", env.NODE_NAME].join("/")).normalize()
+                  echo "DIST=${env.DIST} ARCH=${env.ARCH} FLAVOR=${env.FLAVOR}\n${node_shortname}\n${node_url}"
+                }
+                sh "cat /etc/os-release"
+              }
+            }
+            stage("checkout ceph-build") {
+              steps {
+                checkout scmGit(
+                  branches: [[name: ceph_build_branch]],
+                  userRemoteConfigs: [[url: ceph_build_repo]],
+                  extensions: [
+                    [$class: 'CleanBeforeCheckout']
+                  ],
+                )
+              }
+            }
+            stage("copy artifacts") {
+              steps {
+                copyArtifacts(
+                  projectName: "ceph-dev-new-setup",
+                  selector: specific(buildNumber: env.SETUP_BUILD_ID),
+                  filter: "dist/sha1,dist/version,dist/other_envvars,dist/ceph_*.orig.tar.gz",
+                )
+                script {
+                  def sha1_props = readProperties file: "${WORKSPACE}/dist/sha1"
+                  env.SHA1 = sha1_props.SHA1
+                  println "SHA1=${env.SHA1}"
+                  env.VERSION = readFile file: "${WORKSPACE}/dist/version"
+                  def shaman_url = "https://shaman.ceph.com/builds/ceph/${env.BRANCH}/${env.SHA1}"
+                  def build_description = """SHA1=${env.SHA1}<br />
+                    VERSION=${env.VERSION}<br />
+                    <a href="${shaman_url}">shaman builds for this branch+commit</a>
+                  """
+                  buildDescription build_description
+                }
+                sh "sha256sum dist/*"
+                sh "cat dist/sha1 dist/version"
+              }
+            }
+          stage("build") {
+            environment {
+              CHACRACTL_KEY = credentials('chacractl-key')
+              SHAMAN_API_KEY = credentials('shaman-api-key')
+              CONTAINER_REPO_CREDS = credentials('quay-ceph-io-ceph-ci')
+              SCCACHE_BUCKET_CREDS = credentials('ibm-cloud-sccache-bucket')
+            }
+            steps {
+              script {
+                env.CONTAINER_REPO_USERNAME = env.CONTAINER_REPO_CREDS_USR
+                env.CONTAINER_REPO_PASSWORD = env.CONTAINER_REPO_CREDS_PSW
+                env.AWS_ACCESS_KEY_ID = env.SCCACHE_BUCKET_CREDS_USR
+                env.AWS_SECRET_ACCESS_KEY = env.SCCACHE_BUCKET_CREDS_PSW
+                def props = readProperties file: "${WORKSPACE}/dist/other_envvars"
+                for (p in props) {
+                  env."${p.key}" = p.value
+                }
+                if ( (debian_releases + ubuntu_releases).contains(env.DIST) ) {
+                  def sccache_flag = "-DWITH_SCCACHE=ON"
+                  if ( env.SCCACHE == "true" && ! env.CEPH_EXTRA_CMAKE_ARGS.contains(sccache_flag) ) {
+                    env.CEPH_EXTRA_CMAKE_ARGS = "${env.CEPH_EXTRA_CMAKE_ARGS} ${sccache_flag}"
+                  }
+                  sh """#!/bin/bash
+                    . ./ceph-dev-new-build/build/validate_deb
+                    . ./scripts/build_utils.sh
+                    . ./ceph-dev-new-build/build/setup_deb
+                    . ./scripts/setup_sccache.sh
+                    . ./ceph-dev-new-build/build/setup_pbuilder
+                    . ./ceph-dev-new-build/build/build_deb
+                  """
+                } else if ( env.DIST =~ /^(centos|rhel|fedora).*/ ) {
+                  sh """#!/bin/bash
+                    . ./ceph-dev-new-build/build/validate_rpm
+                    . ./scripts/build_utils.sh
+                    . ./scripts/setup_sccache.sh
+                    . ./ceph-dev-new-build/build/setup_rpm
+                    [ "$CI_BUILD" = "true" ] || exit 0
+                    reset_sccache
+                    . ./ceph-dev-new-build/build/build_rpm
+                  """
+                } else if ( env.DIST =~ /suse|sles/ ) {
+                  sh """#!/bin/bash
+                    . ./ceph-dev-new-build/build/validate_osc
+                    . ./scripts/build_utils.sh
+                    . ./ceph-dev-new-build/build/setup_osc
+                    . ./ceph-dev-new-build/build/build_osc
+                  """
+                } else if ( env.DIST =~ /windows/ ) {
+                  sh """#!/bin/bash
+                    . ./ceph-dev-new-build/build/validate_mingw
+                    . ./scripts/build_utils.sh
+                    . ./ceph-dev-new-build/build/setup_mingw
+                    . ./ceph-dev-new-build/build/build_mingw
+                  """
+                } else {
+                  throw new Exception("DIST '${env.DIST}' is invalid!")
+                }
+              }
+              sh "command -v sccache && sccache --show-adv-stats || true"
+            }
+          }
+        }
+      }
+    }
+  }
+}
