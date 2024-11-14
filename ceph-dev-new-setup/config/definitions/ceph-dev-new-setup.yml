@@ -15,7 +15,7 @@
       - github:
           url: https://github.com/ceph/ceph-ci
       - copyartifact:
-          projects: ceph-dev-new-build,ceph-dev-new,ceph-dev-pipeline
+          projects: ceph-dev-new-build,ceph-dev-new,ceph-dev-pipeline,preserve-ceph-dev-pipeline
 
     parameters:
       - string:
