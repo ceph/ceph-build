@@ -3,36 +3,47 @@ set -ex
 
 docs_pr_only
 if [ "$DOCS_ONLY" = true ]; then
-    echo "Only the doc/ dir changed.  No need to run make check or API tests."
+    echo "Only the doc/ dir changed. No need to run make check or API tests."
     mkdir -p $WORKSPACE/build/out
     echo "File created to avoid Jenkins' Artifact Archiving plugin from hanging" > $WORKSPACE/build/out/mgr.foo.log
     exit 0
 fi
 
 sudo apt-get install -y clang-tidy
-
 sudo apt-get install -y parallel
-
 output_file="clang-tidy-result"
 file_list="files_to_check.txt"
 
 # The file `ceph_build.tar.gz` is copied from the job `ceph-pull-request` using copy_artifacts
 tar -xzf ceph_build.tar.gz -C "$WORKSPACE"
-
 rm ceph_build.tar.gz
 
-# Store the list of files from both rgw and osd directories
-find "$WORKSPACE/ceph/src/rgw" \( -name '*.cpp' -o -name '*.hpp' -o -name '*.cc' \) > "$file_list"
-find "$WORKSPACE/ceph/src/osd" \( -name '*.cpp' -o -name '*.hpp' -o -name '*.cc' \) >> "$file_list"
+# Get list of modified files in the current commit
+cd "$WORKSPACE/ceph"
+git diff --name-only HEAD~1 HEAD > modified_files.txt
 
-# Run clang-tidy and save output
+# Filter for only C++ files in rgw and osd directories
+cat modified_files.txt | grep -E "^(src/rgw|src/osd).*\.(cpp|hpp|cc)$" > "$file_list"
+
+# Check if there are any files to analyze
+if [ ! -s "$file_list" ]; then
+    echo "No C++ files were modified in rgw or osd directories in this commit."
+    mkdir -p "$WORKSPACE/ceph/build"
+    echo "No files to analyze" > "$WORKSPACE/ceph/build/$output_file"
+    # Create empty report to avoid potential CI issues
+    echo "<?xml version='1.0' encoding='UTF-8'?><testsuites></testsuites>" > "$WORKSPACE/report.xml"
+    exit 0
+fi
+
+# Run clang-tidy only on modified files and save output
 {
-  echo "Files being checked:"
-  cat "$file_list"
-  echo
-  parallel -m clang-tidy -checks="-*,bugprone-use-after-move" -p "$WORKSPACE/ceph/build" {} < "$file_list"
+    echo "Files being checked:"
+    cat "$file_list"
+    echo
+    # Add full path to files
+    sed -i "s|^|$WORKSPACE/ceph/|" "$file_list"
+    parallel -m clang-tidy -checks="-*,bugprone-use-after-move" -p "$WORKSPACE/ceph/build" {} < "$file_list"
 } | tee "$WORKSPACE/ceph/build/$output_file"
 
 sudo chmod +x clang-tidy-to-junit.py
-
-clang-tidy-to-junit.py $WORKSPACE/ceph/src < "$WORKSPACE/ceph/build/$output_file" > "$WORKSPACE/report.xml"
+./clang-tidy-to-junit.py $WORKSPACE/ceph/src < "$WORKSPACE/ceph/build/$output_file" > "$WORKSPACE/report.xml"
