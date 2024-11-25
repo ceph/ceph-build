@@ -105,6 +105,8 @@ srcdir=`pwd`
 
 if command -v podman; then
     PODMAN=podman
+    PODMAN_STORAGE_DIR="$HOME/.local/share/containers/storage/"
+    test -d $PODMAN_STORAGE_DIR && sudo chgrp -R $(groups | cut -d' ' -f1) $PODMAN_STORAGE_DIR
 else
     PODMAN="sudo docker"
 fi
