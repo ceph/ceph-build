@@ -91,6 +91,7 @@
             - ../../build/setup_deb
             - ../../build/setup_pbuilder
             - ../../build/build_deb
+            - ../../../scripts/status_completed
       # rpm build scripts
       - shell:
           !include-raw:
@@ -99,6 +100,7 @@
             - ../../../scripts/setup_sccache.sh
             - ../../build/setup_rpm
             - ../../build/build_rpm
+            - ../../../scripts/status_completed
       # osc build scripts
       - shell:
           !include-raw:
@@ -106,6 +108,7 @@
             - ../../../scripts/build_utils.sh
             - ../../build/setup_osc
             - ../../build/build_osc
+            - ../../../scripts/status_completed
       # mingw build scripts (targeting Windows)
       - shell:
           !include-raw:
@@ -113,6 +116,7 @@
             - ../../../scripts/build_utils.sh
             - ../../build/setup_mingw
             - ../../build/build_mingw
+            - ../../../scripts/status_completed
 
     publishers:
       - postbuildscript:
