@@ -55,6 +55,3 @@ fi
 
 # pbuilder will leave root-owned files in shared workspaces
 sudo chown -R jenkins-build ${WORKSPACE}/dist
-
-# update shaman with the completed build status
-update_build_status "completed" "ceph" $NORMAL_DISTRO $NORMAL_DISTRO_VERSION $NORMAL_ARCH

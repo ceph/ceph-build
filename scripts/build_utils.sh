@@ -1021,9 +1021,6 @@ EOF
 
         echo Check the status of the repo at: https://shaman.ceph.com/api/repos/${chacra_repo_endpoint}/
     fi
-
-    # update shaman with the completed build status
-    update_build_status "completed" "ceph" $NORMAL_DISTRO $NORMAL_DISTRO_VERSION $NORMAL_ARCH
 }
 
 extra_cmake_args() {

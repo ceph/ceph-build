@@ -93,6 +93,7 @@
                   - ../../build/setup_deb
                   - ../../build/setup_pbuilder
                   - ../../build/build_deb
+                  - ../../../scripts/status_completed
             # rpm build scripts
             - shell:
                 !include-raw:
@@ -100,6 +101,7 @@
                   - ../../../scripts/build_utils.sh
                   - ../../build/setup_rpm
                   - ../../build/build_rpm
+                  - ../../../scripts/status_completed
     publishers:
       - postbuildscript:
           builders:
