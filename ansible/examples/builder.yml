@@ -23,6 +23,7 @@
     - osc_pass: 'password'
     - container_mirror: 'docker-mirror.front.sepia.ceph.com:5000'
     - secrets_path: "{{ lookup('env', 'ANSIBLE_SECRETS_PATH') | default('/etc/ansible/secrets', true) }}"
+    - java_version: 'java-17'
 
 
   tasks:
@@ -56,6 +57,7 @@
           - libffi-dev
           - default-jdk
           - default-jre
+          - openjdk-17-jdk
           - debian-keyring
           - debian-archive-keyring
           - software-properties-common
@@ -144,7 +146,7 @@
     - set_fact:
         universal_rpms:
           - createrepo
-          - java-11-openjdk
+          - java-17-openjdk
           - git
           - libtool
           #- rpm-sign
@@ -831,6 +833,27 @@
         - libvirt-guests
       when: libvirt|bool
 
+    - name: Set java alternative for debian
+      block:
+        - name: Get java version alternative
+          shell: >-
+            update-alternatives --query java | awk -F':' '/{{ java_version }}/ && /Alternative/ {print $2}'
+          register: java_alternatives
+          changed_when: false
+
+        - name: Set java version alternative
+          alternatives:
+            name: java
+            path: "{{ java_alternatives.stdout.strip() }}"
+      when:
+        - (ansible_os_family | lower) == 'debian'
+
+    - name: Set java version alternative for RedHat
+      shell:
+        cmd: update-alternatives --set java '{{ java_version }}-openjdk.{{ ansible_architecture }}'
+      when:
+        - (ansible_os_family | lower) == 'redhat'
+
     ## CONTAINER SERVICE TASKS
     - name: Container Tasks
       block:
@@ -935,9 +958,10 @@
           register: jar_changed
 
         - name: Install the systemd unit files for jenkins
-          template:
+          ansible.builtin.template:
             src: "templates/systemd/jenkins.{{ item }}.j2"
             dest: "/etc/systemd/system/jenkins.{{ item }}"
+            force: yes
           with_items:
             - service
             - secret
