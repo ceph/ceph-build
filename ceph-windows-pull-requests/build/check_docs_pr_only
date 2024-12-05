@@ -3,7 +3,8 @@ set -o errexit
 set -o pipefail
 
 docs_pr_only
-if [ "$DOCS_ONLY" = true ]; then
-    echo "Only the doc/ dir changed. No need to run Ceph Windows tests."
+container_pr_only
+if [[ "$DOCS_ONLY" = true || "$CONTAINER_ONLY" = true ]]; then
+    echo "Only the doc/ or container/ dir changed. No need to run Ceph Windows tests."
     exit 0
 fi

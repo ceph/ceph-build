@@ -1,8 +1,9 @@
 #!/bin/bash -e
 
 docs_pr_only
-if [ "$DOCS_ONLY" = true ]; then
-    echo "Only the doc/ dir changed.  No need to run make check or API tests."
+container_pr_only
+if [[ "$DOCS_ONLY" = true || "$CONTAINER_ONLY" = true ]]; then
+    echo "Only the doc/ or container/ dir changed.  No need to run make check or API tests."
     mkdir -p $WORKSPACE/build/out
     echo "File created to avoid Jenkins' Artifact Archiving plugin from hanging" > $WORKSPACE/build/out/mgr.foo.log
     exit 0
