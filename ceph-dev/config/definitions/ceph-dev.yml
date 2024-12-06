@@ -63,11 +63,6 @@ If this is checked, then the binaries will be built and pushed to chacra even if
           default: true
 
       - string:
-          name: CONTAINER_BRANCH
-          description: "For CI_CONTAINER: Branch of ceph-container to use"
-          default: main
-
-      - string:
           name: CONTAINER_REPO_HOSTNAME
           description: "For CI_CONTAINER: Name of container repo server (i.e. 'quay.io')"
           default: "quay.ceph.io"
