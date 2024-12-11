@@ -23,12 +23,6 @@
 
     triggers:
       - github-pull-request:
-          org-list:
-            - ceph
-          white-list:
-            - adamduncan
-            - Pete-Robelou
-            - zdover23
           cancel-builds-on-update: true
           trigger-phrase: 'jenkins test.*|jenkins retest.*'
           only-trigger-phrase: false
