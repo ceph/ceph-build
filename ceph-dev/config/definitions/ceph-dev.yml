@@ -23,7 +23,7 @@
 
       - string:
           name: DISTROS
-          description: "A list of distros to build for. Available options are: centos9, centos8, centos7, centos6, jammy, focal, bionic, xenial, trusty, precise, wheezy, jessie, and windows"
+          description: "A list of distros to build for. Available options are: centos9, centos8, centos7, centos6, jammy, focal, bionic, xenial, trusty, precise, bookworm, bullseye, buster, and windows"
           default: "jammy focal bionic centos7 centos8 centos9"
 
       - string:
