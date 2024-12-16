@@ -236,7 +236,7 @@ if [ "$PAUSEQUEUE" == "true" ]; then
     while [ $deploytasks -gt 0 ]; do
       echo "$(date) -- $deploytasks FOG deploy tasks still queued.  Sleeping 10sec"
       sleep 10
-      deploytasks=$(curl -f -s -k -H "fog-api-token: ${FOG_API_TOKEN}" -H "fog-user-token: ${FOG_USER_TOKEN}" http://fog.front.sepia.ceph.com/fog/task/active -d '{"typeID": "'${fogdeployid}'"}' -X GET | jq -r '.count')
+      deploytasks=$(curl -f -s -k -H "fog-api-token: ${FOG_API_TOKEN}" -H "fog-user-token: ${FOG_USER_TOKEN}" http://fog.front.sepia.ceph.com/fog/task/active -d '{"typeID": "'${fogdeployid}'", "imageID": "'${fogimageid}'"}' -X GET | jq -r '.count')
       ((++currentretries))
       # Retry for 1hr
       funRetry $currentretries 360
