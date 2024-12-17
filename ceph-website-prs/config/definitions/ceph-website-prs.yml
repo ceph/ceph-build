@@ -23,6 +23,8 @@
 
     triggers:
       - github-pull-request:
+          org-list:
+            - ceph
           cancel-builds-on-update: true
           trigger-phrase: 'jenkins test.*|jenkins retest.*'
           only-trigger-phrase: false
