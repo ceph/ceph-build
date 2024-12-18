@@ -11,8 +11,13 @@
       - github:
           url: https://github.com/ceph/ceph-ci
       - build-discarder:
-          days-to-keep: 30
-          artifact-days-to-keep: 30
+          days-to-keep: 90
+          artifact-days-to-keep: 90
+
+    parameters:
+      - copyartifact-build-selector:
+          name: SETUP_BUILD_ID
+          which-build: multijob-build
 
     execution-strategy:
        combination-filter: |
@@ -70,7 +75,8 @@
       - copyartifact:
           project: ceph-dev-new-setup
           filter: 'dist/**'
-          which-build: multijob-build
+          which-build: build-param
+          param: SETUP_BUILD_NUMBER
       - inject:
           properties-file: ${WORKSPACE}/dist/sha1
       - inject:
