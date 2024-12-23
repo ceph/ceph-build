@@ -45,6 +45,13 @@ pipeline {
           allOf {
             expression { env.DISTROS.contains(env.DIST) }
             expression { env.ARCHS.contains(env.ARCH) }
+            anyOf {
+              environment name: "CI_COMPILE", value: "true"
+              allOf {
+                environment name: "CI_CONTAINER", value: "true"
+                environment name: "DIST", value: "centos9"
+              }
+            }
           }
         }
         axes {
@@ -81,10 +88,17 @@ pipeline {
             }
             stage("copy artifacts") {
               steps {
+                script {
+                  if ( env.CI_COMPILE == "true" ) {
+                    env.ARTIFACT_FILTER = "dist/**"
+                  } else {
+                    env.ARTIFACT_FILTER = "dist/sha1,dist/version,dist/other_envvars,dist/ceph_*.orig.tar.gz"
+                  }
+                }
                 copyArtifacts(
                   projectName: "ceph-dev-new-setup",
                   selector: specific(buildNumber: env.SETUP_BUILD_ID),
-                  filter: "dist/sha1,dist/version,dist/other_envvars,dist/ceph_*.orig.tar.gz",
+                  filter: env.ARTIFACT_FILTER,
                 )
                 script {
                   def sha1_props = readProperties file: "${WORKSPACE}/dist/sha1"
@@ -135,7 +149,7 @@ pipeline {
                     . ./scripts/build_utils.sh
                     . ./scripts/setup_sccache.sh
                     . ./ceph-dev-new-build/build/setup_rpm
-                    [ "$CI_BUILD" = "true" ] || exit 0
+                    [ "$CI_COMPILE" = "true" ] || exit 0
                     reset_sccache
                     . ./ceph-dev-new-build/build/build_rpm
                   """

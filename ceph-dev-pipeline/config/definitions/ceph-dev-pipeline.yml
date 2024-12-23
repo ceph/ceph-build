@@ -34,6 +34,11 @@
           default: "x86_64"
 
       - bool:
+          name: CI_COMPILE
+          description: "Whether to compile and build packages"
+          default: true
+
+      - bool:
           name: THROWAWAY
           description: "Whether to push any binaries to Chacra"
           default: true
