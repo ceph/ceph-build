@@ -12,7 +12,17 @@ if [[ $CI_CONTAINER == "true" && $DISTRO == "centos" && "$RELEASE" =~ 8|9 ]] ; t
     ready=false
     while ((loop < 15)); do
       curl -s "https://shaman.ceph.com/api/search/?project=ceph&distros=centos/${RELEASE}/${ARCH}&sha1=${SHA1}&ref=${BRANCH}&flavor=${FLAVOR}" > shaman.status
-      if [[ ($(jq -r '.[0].extra.build_url' < shaman.status) == ${BUILD_URL}) && ($(jq -r '.[0].status' < shaman.status) == 'ready') ]] ; then ready=true; break; fi
+      if [[ ($(jq -r '.[0].status' < shaman.status) == 'ready') ]]; then
+        # If we skipped compilation, we will not have generated a shaman build,
+        # so skip validating against extra.build_url
+        if [[ ${CI_COMPILE:-true} == "false" ]]; then
+          ready=true
+          break
+        elif [[ ($(jq -r '.[0].extra.build_url' < shaman.status) == ${BUILD_URL}) ]]; then
+          ready=true
+          break
+        fi
+      fi
       ((loop = loop + 1))
       sleep 60
     done
