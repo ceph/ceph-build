@@ -106,13 +106,10 @@ pipeline {
             environment {
               CHACRACTL_KEY = credentials('chacractl-key')
               SHAMAN_API_KEY = credentials('shaman-api-key')
-              CONTAINER_REPO_CREDS = credentials('quay-ceph-io-ceph-ci')
               SCCACHE_BUCKET_CREDS = credentials('ibm-cloud-sccache-bucket')
             }
             steps {
               script {
-                env.CONTAINER_REPO_USERNAME = env.CONTAINER_REPO_CREDS_USR
-                env.CONTAINER_REPO_PASSWORD = env.CONTAINER_REPO_CREDS_PSW
                 env.AWS_ACCESS_KEY_ID = env.SCCACHE_BUCKET_CREDS_USR
                 env.AWS_SECRET_ACCESS_KEY = env.SCCACHE_BUCKET_CREDS_PSW
                 def props = readProperties file: "${WORKSPACE}/dist/other_envvars"
@@ -160,7 +157,33 @@ pipeline {
                   throw new Exception("DIST '${env.DIST}' is invalid!")
                 }
               }
-              sh "command -v sccache && sccache --show-adv-stats || true"
+            }
+          }
+          stage("container") {
+            when {
+              environment name: "CI_CONTAINER", value: "true"
+              environment name: "DIST", value: "centos9"
+            }
+            environment {
+              CONTAINER_REPO_CREDS = credentials('quay-ceph-io-ceph-ci')
+            }
+            steps {
+              script {
+                env.CONTAINER_REPO_USERNAME = env.CONTAINER_REPO_CREDS_USR
+                env.CONTAINER_REPO_PASSWORD = env.CONTAINER_REPO_CREDS_PSW
+                env.DISTRO = sh(
+                  script: '. /etc/os-release && echo -n $ID',
+                  returnStdout: true,
+                )
+                env.RELEASE = sh(
+                  script: '. /etc/os-release && echo -n $VERSION_ID',
+                  returnStdout: true,
+                )
+                env.cephver = env.VERSION.trim()
+                sh '''#!/bin/bash
+                  ./scripts/build_container
+                '''
+              }
             }
           }
         }
