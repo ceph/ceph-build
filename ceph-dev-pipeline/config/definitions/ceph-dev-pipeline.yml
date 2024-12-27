@@ -1,5 +1,5 @@
 - job:
-    name: ceph-dev-pipeline
+    name: preserve-ceph-dev-pipeline
     description: ceph-dev-pipeline
     project-type: pipeline
     concurrent: true
