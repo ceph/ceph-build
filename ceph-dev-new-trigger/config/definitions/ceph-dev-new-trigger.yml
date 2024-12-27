@@ -8,7 +8,7 @@
     block-upstream: false
     properties:
       - build-discarder:
-          num-to-keep: 50
+          num-to-keep: 100
           artifact-days-to-keep: -1
           artifact-num-to-keep: -1
       - github:
@@ -273,6 +273,14 @@
                     DISTROS=centos8 focal
                     FLAVOR=jaeger
                     ARCHS=x86_64
+      # sccache
+      - conditional-step:
+          condition-kind: regex-match
+          regex: .*sccache.*
+          label: '${GIT_BRANCH}'
+          on-evaluation-failure: dont-run
+          steps:
+            - shell: echo skipping
 
     wrappers:
       - inject-passwords:
