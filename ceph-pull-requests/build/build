@@ -13,4 +13,4 @@ timeout 3h ./run-make-check.sh
 sleep 5
 ps -ef | grep -v jnlp | grep ceph || true
 
-sudo tar -czf ceph_build.tar.gz *
+sudo tar -czf ceph_build.tar.gz build/boost build/include
