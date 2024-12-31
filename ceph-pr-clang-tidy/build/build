@@ -1,8 +1,6 @@
 #!/bin/bash
 set -ex
 
-# Clone the Ceph repository
-git clone https://github.com/ceph/ceph.git "$WORKSPACE/ceph"
 cd "$WORKSPACE/ceph"
 
 # Initialize and update submodules
@@ -10,8 +8,8 @@ git submodule update --init --recursive --progress
 
 # Install dependencies
 sudo apt-get install -y curl
-./install-deps.sh
 sudo apt-get install -y python3-routes
+sudo apt-get install -y clang-tidy parallel
 
 # Configure the build
 ./do_cmake.sh -DCMAKE_EXPORT_COMPILE_COMMANDS:BOOL=ON
@@ -26,7 +24,6 @@ sudo mv "$WORKSPACE/build/include" ./include
 
 # Prepare for Clang-Tidy
 cd "$WORKSPACE/ceph"
-sudo apt-get install -y clang-tidy parallel
 output_file="clang-tidy-result"
 file_list="files_to_check.txt"
 

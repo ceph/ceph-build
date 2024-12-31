@@ -13,7 +13,11 @@
       - build-discarder:
           days-to-keep: 15
           artifact-days-to-keep: 15
-
+          
+    parameters:
+      - string:
+          name: BRANCH
+          default: main
   triggers:
   - github-pull-request:
       allow-whitelist-orgs-as-admins: true
@@ -25,9 +29,19 @@
       success-status: "no bugs found"
       failure-status: "bugs found"
 
+  scm:
+    - git:
+        url: https://github.com/ceph/ceph.git
+        branches:
+          - $BRANCH
+        browser: auto
+        timeout: 20
+        shallow-clone: true
+        wipe-workspace: true
+
   builders:
   - copyartifact:
-    project: ceph-pull-requests
+      project: ceph-pull-requests
 
   - shell:
       !include-raw:
