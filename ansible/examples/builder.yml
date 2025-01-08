@@ -10,19 +10,19 @@
   become: true
   user: ubuntu # This should be overridden on the CLI (e.g., -e user=centos).  It doesn't matter on a mita/prado builder because the playbook is run locally by root.
   vars:
-    - libvirt: false # Should vagrant be installed?
-    - permanent: false # Is this a permanent builder?  Since the ephemeral (non-permanent) tasks get run more often, we'll default to false.
-    - jenkins_user: 'jenkins-build'
-    - api_user: 'ceph-jenkins'
-    - api_uri: 'https://jenkins.ceph.com'
-    - jenkins_credentials_uuid: 'jenkins-build'
-    - nodename: '{{ nodename }}'
-    - label: "{{ jenkins_labels[inventory_hostname] }}"
-    - grant_sudo: true
-    - osc_user: 'username'
-    - osc_pass: 'password'
-    - container_mirror: 'docker-mirror.front.sepia.ceph.com:5000'
-    - secrets_path: "{{ lookup('env', 'ANSIBLE_SECRETS_PATH') | default('/etc/ansible/secrets', true) }}"
+    libvirt: false # Should vagrant be installed?
+    permanent: false # Is this a permanent builder?  Since the ephemeral (non-permanent) tasks get run more often, we'll default to false.
+    jenkins_user: 'jenkins-build'
+    api_user: 'ceph-jenkins'
+    api_uri: 'https://jenkins.ceph.com'
+    jenkins_credentials_uuid: 'jenkins-build'
+    nodename: '{{ nodename }}'
+    label: "{{ jenkins_labels[inventory_hostname] }}"
+    grant_sudo: true
+    osc_user: 'username'
+    osc_pass: 'password'
+    container_mirror: 'docker-mirror.front.sepia.ceph.com:5000'
+    secrets_path: "{{ lookup('env', 'ANSIBLE_SECRETS_PATH') | default('/etc/ansible/secrets', true) }}"
 
 
   tasks:
