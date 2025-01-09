@@ -76,7 +76,7 @@
           project: ceph-dev-new-setup
           filter: 'dist/**'
           which-build: build-param
-          param: SETUP_BUILD_NUMBER
+          param: SETUP_BUILD_ID
       - inject:
           properties-file: ${WORKSPACE}/dist/sha1
       - inject:
