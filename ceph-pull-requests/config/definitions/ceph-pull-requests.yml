@@ -23,7 +23,8 @@
       - inject:
           properties-content: |
             TERM=xterm
-
+      - copyartifact:
+          project: ceph-pr-clang-tidy
     parameters:
       - string:
           name: ghprbPullId
@@ -64,6 +65,8 @@
         !include-raw:
           - ../../../scripts/build_utils.sh
           - ../../build/build
+    - trigger-builds:
+        - project: 'ceph-pr-clang-tidy'
 
     publishers:
       - cobertura:
@@ -102,6 +105,10 @@
             - ctest:
                 pattern: "build/Testing/**/Test.xml"
                 skip-if-no-test-files: true
+      - archive:
+          artifacts: 'ceph_build.tar.gz'
+          allow-empty: false
+          latest-only: false
     wrappers:
       - ansicolor
       - credentials-binding:
