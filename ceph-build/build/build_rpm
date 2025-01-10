@@ -82,6 +82,3 @@ if [[ $DISTRO == "centos" && "$RELEASE" =~ 8|9 ]] ; then
     cd ${WORKSPACE}/dist/ceph-${cephver}/container
     CEPH_SHA1=${SHA1} ./build.sh
 fi
-
-# update shaman with the completed build status
-update_build_status "completed" "ceph" $NORMAL_DISTRO $NORMAL_DISTRO_VERSION $NORMAL_ARCH
