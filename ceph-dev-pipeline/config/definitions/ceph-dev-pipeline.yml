@@ -16,6 +16,9 @@
       script-path: ceph-dev-pipeline/build/Jenkinsfile
       lightweight-checkout: true
       do-not-fetch-tags: true
+    properties:
+      - github:
+          url: https://github.com/ceph/ceph/
 
     parameters:
       - string:
