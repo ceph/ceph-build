@@ -1,0 +1,58 @@
+#!/bin/bash
+set -ex
+
+cd "$WORKSPACE/ceph"
+
+# Initialize and update submodules
+git submodule update --init --recursive --progress
+
+# Install dependencies
+sudo apt-get install -y curl
+sudo apt-get install -y python3-routes
+sudo apt-get install -y clang-tidy parallel
+
+# Configure the build
+./do_cmake.sh -DCMAKE_EXPORT_COMPILE_COMMANDS:BOOL=ON
+cd build
+
+# Replace the boost and include directories from the tar file
+tar -xzf "$WORKSPACE/ceph_build.tar.gz" -C "$WORKSPACE"
+rm "$WORKSPACE/ceph_build.tar.gz"
+sudo rm -rf boost include
+sudo mv "$WORKSPACE/build/boost" ./boost
+sudo mv "$WORKSPACE/build/include" ./include
+
+# Prepare for Clang-Tidy
+cd "$WORKSPACE/ceph"
+output_file="clang-tidy-result"
+file_list="files_to_check.txt"
+
+# Get list of modified files in the current commit
+git diff --name-only HEAD~1 HEAD > modified_files.txt
+
+# Filter for only C++ files in rgw and osd directories
+cat modified_files.txt | grep -E "^(src/rgw|src/osd).*\.(cpp|hpp|cc)$" > "$file_list"
+
+# Check if there are any files to analyze
+if [ ! -s "$file_list" ]; then
+    echo "No C++ files were modified in rgw or osd directories in this commit."
+    mkdir -p "$WORKSPACE/ceph/build"
+    echo "No files to analyze" > "$WORKSPACE/ceph/build/$output_file"
+    # Create empty report to avoid potential CI issues
+    echo "<?xml version='1.0' encoding='UTF-8'?><testsuites></testsuites>" > "$WORKSPACE/report.xml"
+    exit 0
+fi
+
+# Run clang-tidy only on modified files and save output
+{
+    echo "Files being checked:"
+    cat "$file_list"
+    echo
+    # Add full path to files
+    sed -i "s|^|$WORKSPACE/ceph/|" "$file_list"
+    parallel -m clang-tidy -checks="-*,bugprone-use-after-move" -p "$WORKSPACE/ceph/build" {} < "$file_list"
+} | tee "$WORKSPACE/ceph/build/$output_file"
+
+# Generate the Clang-Tidy report
+sudo chmod +x clang-tidy-to-junit.py
+./clang-tidy-to-junit.py "$WORKSPACE/ceph/src" < "$WORKSPACE/ceph/build/$output_file" > "$WORKSPACE/report.xml"
