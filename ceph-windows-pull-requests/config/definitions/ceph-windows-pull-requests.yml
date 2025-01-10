@@ -36,6 +36,7 @@
             - ceph
           white-list-target-branches:
             - main
+            - tentacle
             - squid
             - reef
           trigger-phrase: 'jenkins test windows'

@@ -29,6 +29,7 @@
             - 'origin/quincy'
             - 'origin/reef'
             - 'origin/squid'
+            - 'origin/tentacle'
           skip-tag: true
           timeout: 20
           wipe-workspace: true
@@ -83,6 +84,31 @@
       - conditional-step:
           condition-kind: regex-match
           regex: .*squid.*
+          label: '${GIT_BRANCH}'
+          on-evaluation-failure: dont-run
+          steps:
+            - shell:
+                !include-raw:
+                - ../../../scripts/build_utils.sh
+                - ../../build/notify
+            - trigger-builds:
+                - project: 'ceph-dev'
+                  predefined-parameters: |
+                    BRANCH=${GIT_BRANCH}
+                    FORCE=True
+                    DISTROS=jammy focal centos8 centos9
+                - project: 'ceph-dev'
+                  predefined-parameters: |
+                    BRANCH=${GIT_BRANCH}
+                    FORCE=True
+                    DISTROS=centos9
+                    FLAVOR=crimson
+      # build tentacle on:
+      # default: jammy focal centos8 centos9
+      # crimson: centos8 centos9
+      - conditional-step:
+          condition-kind: regex-match
+          regex: .*tentacle.*
           label: '${GIT_BRANCH}'
           on-evaluation-failure: dont-run
           steps:
