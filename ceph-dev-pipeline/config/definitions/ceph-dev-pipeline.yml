@@ -95,3 +95,16 @@
           - text:
               credential-id: shaman-api-key
               variable: SHAMAN_API_KEY
+
+    triggers:
+      - github-pull-request:
+          cancel-builds-on-update: true
+          org-list:
+            - ceph
+          white-list-labels:
+              - build-pipeline
+          github-hooks: true
+          status-context: "pipeline build"
+          started-status: "running pipeline build"
+          success-status: "pipeline build succeeded"
+          failure-status: "pipeline build failed"
