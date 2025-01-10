@@ -4,7 +4,7 @@
     defaults: global
     concurrent: true
     # We want make check to only run on Bionic b/c it has python2 and python3 and b/c all builds should build on Bionic
-    node: huge && bionic && x86_64
+    node: huge && bionic && x86_64 && !smithi
     display-name: 'ceph: Pull Requests'
     quiet-period: 5
     block-downstream: false
