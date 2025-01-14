@@ -27,114 +27,6 @@
           wipe-workspace: true
 
     builders:
-      # Build luminous on:
-      # default: centos7 bionic xenial trusty
-      - conditional-step:
-          condition-kind: regex-match
-          regex: .*luminous.*
-          label: '${GIT_BRANCH}'
-          on-evaluation-failure: dont-run
-          steps:
-            - shell:
-                !include-raw:
-                - ../../../scripts/build_utils.sh
-                - ../../build/notify
-            - trigger-builds:
-                - project: 'ceph-dev-new'
-                  predefined-parameters: |
-                    BRANCH=${GIT_BRANCH}
-                    FORCE=True
-                    DISTROS=centos7 bionic xenial trusty
-      # build mimic on:
-      # default: bionic xenial centos7
-      - conditional-step:
-          condition-kind: regex-match
-          regex: .*mimic.*
-          label: '${GIT_BRANCH}'
-          on-evaluation-failure: dont-run
-          steps:
-            - shell:
-                !include-raw:
-                - ../../../scripts/build_utils.sh
-                - ../../build/notify
-            - trigger-builds:
-                - project: 'ceph-dev-new'
-                  predefined-parameters: |
-                    BRANCH=${GIT_BRANCH}
-                    FORCE=True
-                    DISTROS=bionic xenial centos7
-      # build nautilus on:
-      # default: bionic xenial centos7 centos8
-      - conditional-step:
-          condition-kind: regex-match
-          regex: .*nautilus.*
-          label: '${GIT_BRANCH}'
-          on-evaluation-failure: dont-run
-          steps:
-            - shell:
-                !include-raw:
-                - ../../../scripts/build_utils.sh
-                - ../../build/notify
-            - trigger-builds:
-                - project: 'ceph-dev-new'
-                  predefined-parameters: |
-                    BRANCH=${GIT_BRANCH}
-                    FORCE=True
-                    DISTROS=bionic xenial centos7 centos8
-      # build octopus on:
-      # default: focal bionic centos7 centos8 leap15
-      - conditional-step:
-          condition-kind: regex-match
-          regex: .*octopus.*
-          label: '${GIT_BRANCH}'
-          on-evaluation-failure: dont-run
-          steps:
-            - shell:
-                !include-raw:
-                - ../../../scripts/build_utils.sh
-                - ../../build/notify
-            - trigger-builds:
-                - project: 'ceph-dev-new'
-                  predefined-parameters: |
-                    BRANCH=${GIT_BRANCH}
-                    FORCE=True
-                    DISTROS=focal bionic centos7 centos8 leap15
-      # build pacific on:
-      # default: focal bionic centos8
-      - conditional-step:
-          condition-kind: regex-match
-          regex: .*pacific.*
-          label: '${GIT_BRANCH}'
-          on-evaluation-failure: dont-run
-          steps:
-            - shell:
-                !include-raw:
-                - ../../../scripts/build_utils.sh
-                - ../../build/notify
-            - trigger-builds:
-                - project: 'ceph-dev-new'
-                  predefined-parameters: |
-                    BRANCH=${GIT_BRANCH}
-                    FORCE=True
-                    DISTROS=focal bionic centos8 windows
-      # build quincy on:
-      # default: focal jammy centos9 leap15
-      - conditional-step:
-          condition-kind: regex-match
-          regex: .*quincy.*
-          label: '${GIT_BRANCH}'
-          on-evaluation-failure: dont-run
-          steps:
-            - shell:
-                !include-raw:
-                - ../../../scripts/build_utils.sh
-                - ../../build/notify
-            - trigger-builds:
-                - project: 'ceph-dev-new'
-                  predefined-parameters: |
-                    BRANCH=${GIT_BRANCH}
-                    FORCE=True
-                    DISTROS=focal jammy centos9 leap15
       # build reef on:
       # default: jammy focal centos9 windows
       # crimson: centos9
@@ -192,7 +84,7 @@
       - conditional-step:
           condition-kind: shell
           condition-command: |
-            echo "${GIT_BRANCH}" | grep -v '\(luminous\|mimic\|nautilus\|octopus\|pacific\|quincy\|reef\|squid\|centos9-only\|crimson-only\|jaeger\)'
+            echo "${GIT_BRANCH}" | grep -v '\(reef\|squid\|centos9-only\|crimson-only\|jaeger\)'
           on-evaluation-failure: dont-run
           steps:
             - shell:
