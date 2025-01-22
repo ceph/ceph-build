@@ -127,6 +127,6 @@
               credential-id: shaman-api-key
               variable: SHAMAN_API_KEY
           - username-password-separated:
-              credential-id: quay-ceph-io-ceph-ci
+              credential-id: quay-ceph-io-ceph-prerelease
               username: CONTAINER_REPO_USERNAME
               password: CONTAINER_REPO_PASSWORD
