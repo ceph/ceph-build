@@ -1,0 +1,32 @@
+- job:
+    name: preserve-ceph-dev-pipeline-trigger
+    project-type: pipeline
+    quiet-period: 1
+    pipeline-scm:
+      scm:
+        - git:
+            url: https://github.com/ceph/ceph-build
+            branches:
+              - jenkinsfile-wip
+            shallow-clone: true
+            submodule:
+              disable: true
+            wipe-workspace: true
+      script-path: ceph-dev-pipeline-trigger/build/Jenkinsfile
+      lightweight-checkout: true
+      do-not-fetch-tags: true
+
+    triggers:
+      - generic-webhook-trigger:
+          token: ceph-dev-pipeline-trigger
+          token-credential-id: pipeline-trigger-token
+          print-contrib-var: true
+          post-content-params:
+            - type: JSONPath
+              key: head_commit
+              value: $.head_commit.message
+            - type: JSONPath
+              key: ref
+              value: $.ref
+          regex-filter-text: $head_commit
+          regex-filter-expression: "(?i)CI-PIPELINE: true"

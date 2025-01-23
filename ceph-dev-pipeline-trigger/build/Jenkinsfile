@@ -1,0 +1,58 @@
+JOB = "preserve-ceph-dev-pipeline"
+VALID_PARAMETERS = [
+  "ARCHS",
+  "CI_COMPILE",
+  "CI_CONTAINER",
+  "CI_PIPELINE",
+  "DISTROS",
+  "DWZ",
+  "FLAVOR",
+  "SCCACHE",
+]
+def params = []
+
+pipeline {
+  agent any
+  stages {
+    stage("Prepare parameters") {
+      steps {
+        script {
+          def trailer = sh(
+            script: "echo \"$head_commit\" | git interpret-trailers --parse",
+            returnStdout: true,
+          )
+          println("trailer: ${trailer}")
+          def paramsMap = [:]
+          for (item in trailer.split("\n")) {
+            def matcher = item =~ /(.+): (.+)/
+            if (matcher.matches()) {
+              key = matcher[0][1].replace("-", "_").toUpperCase()
+              value = matcher[0][2]
+              paramsMap[key] = value
+            }
+          }
+          def branch = env.ref.replace("refs/heads/", "")
+          params.push(string(name: "BRANCH", value: branch))
+          println("Looking for parameters: ${VALID_PARAMETERS}")
+          for (key in VALID_PARAMETERS) {
+            value = paramsMap[key]
+            if ( value ) {
+              params.push(string(name: key, value: value))
+              println("${key}=${value}")
+            }
+          }
+        }
+      }
+    }
+    stage("Trigger job") {
+      steps {
+        script {
+          build(
+            job: JOB,
+            parameters: params
+          )
+        }
+      }
+    }
+  }
+}
