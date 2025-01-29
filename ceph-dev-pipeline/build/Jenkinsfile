@@ -30,8 +30,8 @@ pipeline {
             env.SETUP_BUILD_ID = setup_build.getNumber()
           }
           println "SETUP_BUILD_ID=${env.SETUP_BUILD_ID}"
-          def setup_build_url = new URI([env.JENKINS_URL, "job", "ceph-dev-new-setup", env.SETUP_BUILD_ID].join("/")).normalize()
-          println "${setup_build_url}"
+          env.SETUP_BUILD_URL = new URI([env.JENKINS_URL, "job", "ceph-dev-new-setup", env.SETUP_BUILD_ID].join("/")).normalize()
+          println "${env.SETUP_BUILD_URL}"
         }
       }
     }
@@ -104,12 +104,18 @@ pipeline {
                   def sha1_props = readProperties file: "${WORKSPACE}/dist/sha1"
                   env.SHA1 = sha1_props.SHA1
                   println "SHA1=${env.SHA1}"
-                  env.VERSION = readFile file: "${WORKSPACE}/dist/version"
+                  env.VERSION = readFile(file: "${WORKSPACE}/dist/version").trim()
                   def shaman_url = "https://shaman.ceph.com/builds/ceph/${env.BRANCH}/${env.SHA1}"
-                  def build_description = """SHA1=${env.SHA1}<br />
+                  def build_description = """\
+                    BRANCH=${env.BRANCH}<br />
+                    SHA1=${env.SHA1}<br />
                     VERSION=${env.VERSION}<br />
+                    DISTROS=${env.DISTROS}<br />
+                    ARCHS=${env.ARCHS}<br />
+                    FLAVOR=${env.FLAVOR}<br />
+                    <a href="${env.SETUP_BUILD_URL}">SETUP_BUILD_ID=${env.SETUP_BUILD_ID}</a><br />
                     <a href="${shaman_url}">shaman builds for this branch+commit</a>
-                  """
+                  """.stripIndent()
                   buildDescription build_description
                 }
                 sh "sha256sum dist/*"
