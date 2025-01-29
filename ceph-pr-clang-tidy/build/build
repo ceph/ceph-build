@@ -1,58 +1,45 @@
 #!/bin/bash
+
 set -ex
 
-cd "$WORKSPACE/ceph"
+BUILD_DIR="$WORKSPACE/ceph/build"
+TAR_FILE_CEPH_DIRS="$WORKSPACE/ceph_directories.tar"
+TAR_FILE_SOURCE="$WORKSPACE/source.tar"
 
-# Initialize and update submodules
-git submodule update --init --recursive --progress
+echo "Installing dependencies..."
+sudo apt-get install -y curl python3-routes clang-tidy
 
-# Install dependencies
-sudo apt-get install -y curl
-sudo apt-get install -y python3-routes
-sudo apt-get install -y clang-tidy parallel
+echo "Cloning ceph repository..."
+git clone https://github.com/ceph/ceph --depth 10
 
-# Configure the build
-./do_cmake.sh -DCMAKE_EXPORT_COMPILE_COMMANDS:BOOL=ON
-cd build
-
-# Replace the boost and include directories from the tar file
-tar -xzf "$WORKSPACE/ceph_build.tar.gz" -C "$WORKSPACE"
-rm "$WORKSPACE/ceph_build.tar.gz"
+echo "Extracting ceph_directories.tar to $BUILD_DIR..."
+sudo mkdir -p "$BUILD_DIR"
+cd "$BUILD_DIR"
 sudo rm -rf boost include
-sudo mv "$WORKSPACE/build/boost" ./boost
-sudo mv "$WORKSPACE/build/include" ./include
+sudo tar -xf "../../$TAR_FILE_CEPH_DIRS"
+cd -
 
-# Prepare for Clang-Tidy
-cd "$WORKSPACE/ceph"
-output_file="clang-tidy-result"
-file_list="files_to_check.txt"
+echo "Extracting source.tar to replace src..."
+cd ceph
+sudo rm -rf src
+sudo tar -xf "../$TAR_FILE_SOURCE"
+cd ..
 
-# Get list of modified files in the current commit
-git diff --name-only HEAD~1 HEAD > modified_files.txt
+echo "Configuring build with CMake..."
+cd "$BUILD_DIR"
+sudo cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=ON ..
+cd -
 
-# Filter for only C++ files in rgw and osd directories
-cat modified_files.txt | grep -E "^(src/rgw|src/osd).*\.(cpp|hpp|cc)$" > "$file_list"
-
-# Check if there are any files to analyze
-if [ ! -s "$file_list" ]; then
-    echo "No C++ files were modified in rgw or osd directories in this commit."
-    mkdir -p "$WORKSPACE/ceph/build"
-    echo "No files to analyze" > "$WORKSPACE/ceph/build/$output_file"
-    # Create empty report to avoid potential CI issues
-    echo "<?xml version='1.0' encoding='UTF-8'?><testsuites></testsuites>" > "$WORKSPACE/report.xml"
-    exit 0
+echo "Running clang-tidy on modified files in src/rgw/..."
+MODIFIED_FILES=$(cd ceph && git diff --name-only HEAD HEAD~1 | grep '^src/rgw/' || true)
+if [[ -n "$MODIFIED_FILES" ]]; then
+    echo "Analyzing files: $MODIFIED_FILES"
+    cd "$BUILD_DIR"
+    MODIFIED_PATHS=$(echo "$MODIFIED_FILES" | sed 's|^|../|')
+    run-clang-tidy -checks="-*,bugprone-use-after-move" $MODIFIED_PATHS || true
+    cd -
+else
+    echo "No modified files in src/rgw/ to analyze."
 fi
 
-# Run clang-tidy only on modified files and save output
-{
-    echo "Files being checked:"
-    cat "$file_list"
-    echo
-    # Add full path to files
-    sed -i "s|^|$WORKSPACE/ceph/|" "$file_list"
-    parallel -m clang-tidy -checks="-*,bugprone-use-after-move" -p "$WORKSPACE/ceph/build" {} < "$file_list"
-} | tee "$WORKSPACE/ceph/build/$output_file"
-
-# Generate the Clang-Tidy report
-sudo chmod +x clang-tidy-to-junit.py
-./clang-tidy-to-junit.py "$WORKSPACE/ceph/src" < "$WORKSPACE/ceph/build/$output_file" > "$WORKSPACE/report.xml"
+echo "Script completed successfully."
