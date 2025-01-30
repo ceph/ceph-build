@@ -158,6 +158,22 @@ pipeline {
                 }
               }
             }
+            post {
+              success {
+                sh '''#!/bin/bash
+                . /etc/os-release
+                . ./scripts/build_utils.sh
+                update_build_status "completed" "ceph" $ID $VERSION_ID $ARCH
+                '''
+              }
+              unsuccessful {
+                sh '''#!/bin/bash
+                . /etc/os-release
+                . ./scripts/build_utils.sh
+                update_build_status "failed" "ceph" $ID $VERSION_ID $ARCH
+                '''
+              }
+            }
           }
           stage("container") {
             when {
