@@ -1687,8 +1687,10 @@ maybe_reset_ci_container() {
     fi
 }
 
-# NOTE: This function will only work on a Pull Request job!
-docs_pr_only() {
+# NOTE: These functions will only work on a Pull Request job!
+pr_only_for() {
+  local egrep_pattern=$1
+
   pushd .
   # Only try to cd to ceph repo if we need to.
   # The ceph-pr-commits job checks out ceph.git and ceph-build.git but most
@@ -1702,13 +1704,22 @@ docs_pr_only() {
   else
     files="$(git diff --name-only origin/${ghprbTargetBranch}...origin/pr/${ghprbPullId}/head)"
   fi
-  echo -e "changed files:\n$files"
-  if [ $(echo "$files" | egrep -v '^(doc/|admin/)' | wc -l) -gt 0 ]; then
-      DOCS_ONLY=false
-  else
-      DOCS_ONLY=true
-  fi
   popd
+  echo -e "changed files:\n$files"
+  if [ $(echo "$files" | egrep -v $egrep_pattern | wc -l) -gt 0 ]; then
+    return 1
+  fi
+  return 0
+}
+
+docs_pr_only() {
+  DOCS_ONLY=false
+  if pr_only_for '^(doc/|admin/)'; then DOCS_ONLY=true; fi
+}
+
+container_pr_only() {
+  CONTAINER_ONLY=false
+  if pr_only_for '^container/'; then CONTAINER_ONLY=true; fi
 }
 
 function ssh_exec() {

@@ -88,7 +88,8 @@ if [[ "$CI_CONTAINER" == true && $DISTRO == "centos" && "$RELEASE" =~ 8|9 ]] ; t
     loop=0
     ready=false
     while ((loop < 15)); do
-      if [[ $(curl -s "https://shaman.ceph.com/api/search/?project=ceph&distros=centos/${RELEASE}/${ARCH}&sha1=${SHA1}&ref=${BRANCH}&flavor=${FLAVOR}" | jq -r '.[0].status') == 'ready' ]] ; then ready=true; break; fi
+      curl -s "https://shaman.ceph.com/api/search/?project=ceph&distros=centos/${RELEASE}/${ARCH}&sha1=${SHA1}&ref=${BRANCH}&flavor=${FLAVOR}" > shaman.status
+      if [[ ($(jq -r '.[0].extra.build_url' < shaman.status) == ${BUILD_URL}) && ($(jq -r '.[0].status' < shaman.status) == 'ready') ]] ; then ready=true; break; fi
       ((loop = loop + 1))
       sleep 60
     done
@@ -99,12 +100,9 @@ if [[ "$CI_CONTAINER" == true && $DISTRO == "centos" && "$RELEASE" =~ 8|9 ]] ; t
       # update_build_status "failed" "ceph" $NORMAL_DISTRO $NORMAL_DISTRO_VERSION $NORMAL_ARCH
       # exit 1
     fi
-
-    cd $WORKSPACE/ceph-container
-    sudo -E CI_CONTAINER=${CI_CONTAINER} SHA1=${SHA1} OSD_FLAVOR=${FLAVOR} CONTAINER_FLAVOR=${BRANCH},${DISTRO},${RELEASE} \
-      /bin/bash ./contrib/build-push-ceph-container-imgs.sh
-    cd $WORKSPACE
-    sudo rm -rf ceph-container
+    # get into $WORKSPACE/$dist/ceph-$cephver, where the copied source tree is
+    cd ${WORKSPACE}/dist/ceph-${cephver}/container
+    CEPH_SHA1=${SHA1} ./build.sh
 fi
 
 # update shaman with the completed build status

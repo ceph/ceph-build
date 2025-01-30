@@ -86,6 +86,16 @@ SECURITY: Builds from BRANCH-release branch in ceph-private.git (private repo)."
           description: "A list of architectures to build for. Available options are: x86_64, and arm64"
           default: "x86_64 arm64"
 
+      - string:
+          name: CONTAINER_REPO_HOSTNAME
+          description: "Name of (prerelease) container repo server (i.e. 'quay.ceph.io')"
+          default: "quay.ceph.io"
+
+      - string:
+          name: CONTAINER_REPO_ORGANIZATION
+          description: "Name of (prerelease) container repo organization (i.e. 'ceph').  Container build script will add prerelease-<arch>"
+          default: "ceph"
+
     builders:
       - multijob:
           name: 'ceph setup phase'

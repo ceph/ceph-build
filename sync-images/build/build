@@ -15,4 +15,4 @@ docker.io:
 EOF
 # make sure we pull the last stable image
 podman pull quay.io/skopeo/stable
-podman run --rm --security-opt label=disable -v ./sync.yml:/sync.yml:ro quay.io/skopeo/stable sync --src yaml --dest docker /sync.yml "${DEST_REGISTRY}" --dest-username "${DEST_USERNAME}" --dest-password "${DEST_PASSWORD}"
+podman run --rm --security-opt label=disable -v ./sync.yml:/sync.yml:ro quay.io/skopeo/stable sync --all --src yaml --dest docker /sync.yml "${DEST_REGISTRY}" --dest-username "${DEST_USERNAME}" --dest-password "${DEST_PASSWORD}"

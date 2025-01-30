@@ -11,8 +11,13 @@
       - github:
           url: https://github.com/ceph/ceph-ci
       - build-discarder:
-          days-to-keep: 30
-          artifact-days-to-keep: 30
+          days-to-keep: 90
+          artifact-days-to-keep: 90
+
+    parameters:
+      - copyartifact-build-selector:
+          name: SETUP_BUILD_ID
+          which-build: multijob-build
 
     execution-strategy:
        combination-filter: |
@@ -70,7 +75,8 @@
       - copyartifact:
           project: ceph-dev-new-setup
           filter: 'dist/**'
-          which-build: multijob-build
+          which-build: build-param
+          param: SETUP_BUILD_ID
       - inject:
           properties-file: ${WORKSPACE}/dist/sha1
       - inject:
@@ -90,6 +96,7 @@
           !include-raw:
             - ../../build/validate_rpm
             - ../../../scripts/build_utils.sh
+            - ../../../scripts/setup_sccache.sh
             - ../../build/setup_rpm
             - ../../build/build_rpm
       # osc build scripts
@@ -141,5 +148,9 @@
               credential-id: dgalloway-docker-hub
               username: DOCKER_HUB_USERNAME
               password: DOCKER_HUB_PASSWORD
+          - username-password-separated:
+              credential-id: ibm-cloud-sccache-bucket
+              username: AWS_ACCESS_KEY_ID
+              password: AWS_SECRET_ACCESS_KEY
       - build-name:
           name: "#${BUILD_NUMBER} ${BRANCH}, ${SHA1}, ${DISTROS}, ${FLAVOR}"
