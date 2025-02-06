@@ -13,3 +13,8 @@ if test -f /etc/redhat-release ; then
 fi
 
 setup_pbuilder use_gcc
+
+if [ "$SCCACHE" = true ] ; then
+    setup_pbuilderrc
+    setup_sccache_pbuilder_hook
+fi

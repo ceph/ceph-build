@@ -44,10 +44,6 @@ pwd
 
 setup_rpm_build_deps
 
-if [[ $CI_CONTAINER == "true" && $DISTRO == "centos" && "$RELEASE" =~ 8|9 ]] ; then
-      podman login -u $CONTAINER_REPO_USERNAME -p $CONTAINER_REPO_PASSWORD $CONTAINER_REPO_HOSTNAME/$CONTAINER_REPO_ORGANIZATION
-fi
-
 cd $WORKSPACE
 
 pkgs=( "chacractl>=0.0.21" )
