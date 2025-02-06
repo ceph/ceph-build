@@ -32,30 +32,11 @@
             - origin/main
             - origin/squid
             - origin/reef
-            - origin/quincy
           skip-tag: true
           timeout: 20
           wipe-workspace: true
 
     builders:
-      # build quincy on:
-      # default: focal centos9 leap15
-      - conditional-step:
-          condition-kind: regex-match
-          regex: .*quincy.*
-          label: '${GIT_BRANCH}'
-          on-evaluation-failure: dont-run
-          steps:
-            - shell:
-                !include-raw:
-                - ../../../scripts/build_utils.sh
-                - ../../build/notify
-            - trigger-builds:
-                - project: 'ceph-dev'
-                  predefined-parameters: |
-                    BRANCH=${GIT_BRANCH}
-                    FORCE=True
-                    DISTROS=focal centos9 leap15
       # build reef on:
       # default: jammy focal centos9 windows
       # crimson: centos9
