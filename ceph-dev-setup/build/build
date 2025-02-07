@@ -34,7 +34,7 @@ rm -rf release
 
 # run submodule updates regardless
 echo "Running submodule update ..."
-git submodule update --init
+git submodule update --init --quiet
 
 # export args for building optional packages
 ceph_build_args_from_flavor ${FLAVOR}
