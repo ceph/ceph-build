@@ -132,50 +132,34 @@ pipeline {
               script {
                 env.AWS_ACCESS_KEY_ID = env.SCCACHE_BUCKET_CREDS_USR
                 env.AWS_SECRET_ACCESS_KEY = env.SCCACHE_BUCKET_CREDS_PSW
-                def props = readProperties file: "${WORKSPACE}/dist/other_envvars"
-                for (p in props) {
-                  env."${p.key}" = p.value
-                }
+                sh '''#!/bin/bash
+                  echo "DWZ=$DWZ" > .env
+                  echo "SCCACHE=$SCCACHE" >> .env
+                  echo "SCCACHE_CONF=/usr/local/src/sccache.conf" >> .env
+                  echo "AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID" >> .env
+                  echo "AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY" >> .env
+                '''
+                def bwc_command = "python3 src/script/build-with-container.py --env-file=${env.WORKSPACE}/.env --image-repo=${env.CEPH_BUILDER_IMAGE} --tag=${env.CEPH_BUILDER_TAG} -d ${env.DIST}"
                 if ( (debian_releases + ubuntu_releases).contains(env.DIST) ) {
                   def sccache_flag = "-DWITH_SCCACHE=ON"
                   if ( env.SCCACHE == "true" && ! env.CEPH_EXTRA_CMAKE_ARGS.contains(sccache_flag) ) {
                     env.CEPH_EXTRA_CMAKE_ARGS = "${env.CEPH_EXTRA_CMAKE_ARGS} ${sccache_flag}"
                   }
-                  sh """#!/bin/bash
-                    . ./ceph-dev-new-build/build/validate_deb
-                    . ./scripts/build_utils.sh
-                    . ./ceph-dev-new-build/build/setup_deb
-                    . ./scripts/setup_sccache.sh
-                    . ./ceph-dev-new-build/build/setup_pbuilder
-                    . ./ceph-dev-new-build/build/build_deb
-                  """
+                  bwc_command = "${bwc_command} -e debs"
                 } else if ( env.DIST =~ /^(centos|rhel|fedora).*/ ) {
-                  sh """#!/bin/bash
-                    . ./ceph-dev-new-build/build/validate_rpm
-                    . ./scripts/build_utils.sh
-                    . ./scripts/setup_sccache.sh
-                    . ./ceph-dev-new-build/build/setup_rpm
-                    [ "$CI_COMPILE" = "true" ] || exit 0
-                    reset_sccache
-                    . ./ceph-dev-new-build/build/build_rpm
-                  """
+                  bwc_command = "${bwc_command} -e rpm"
                 } else if ( env.DIST =~ /suse|sles/ ) {
-                  sh """#!/bin/bash
-                    . ./ceph-dev-new-build/build/validate_osc
-                    . ./scripts/build_utils.sh
-                    . ./ceph-dev-new-build/build/setup_osc
-                    . ./ceph-dev-new-build/build/build_osc
-                  """
+                  throw new Exception("bwc not implemented for ${env.DIST}")
                 } else if ( env.DIST =~ /windows/ ) {
-                  sh """#!/bin/bash
-                    . ./ceph-dev-new-build/build/validate_mingw
-                    . ./scripts/build_utils.sh
-                    . ./ceph-dev-new-build/build/setup_mingw
-                    . ./ceph-dev-new-build/build/build_mingw
-                  """
+                  throw new Exception("bwc not implemented for ${env.DIST}")
                 } else {
                   throw new Exception("DIST '${env.DIST}' is invalid!")
                 }
+                sh """#!/bin/bash
+                    set -ex
+                    cd ${dist_ceph_dir}
+                    ${bwc_command}
+                """
               }
             }
             post {
