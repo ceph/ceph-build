@@ -157,7 +157,14 @@ pipeline {
                     . ./ceph-dev-new-build/build/setup_rpm
                     [ "$CI_COMPILE" = "true" ] || exit 0
                     reset_sccache
-                    . ./ceph-dev-new-build/build/build_rpm
+                    cat << EOF.env > .env
+                    DWZ=$DWZ
+                    SCCACHE=$SCCACHE
+                    SCCACHE_CONF=/usr/local/src/sccache.conf
+                    AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
+                    AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
+                    EOF.env
+                    python3 src/script/build-with-container.py --env-file=.env -d ${env.DIST} -e rpm
                   """
                 } else if ( env.DIST =~ /suse|sles/ ) {
                   sh """#!/bin/bash
