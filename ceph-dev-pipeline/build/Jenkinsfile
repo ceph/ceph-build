@@ -65,27 +65,27 @@ pipeline {
           }
         }
         stages {
-            stage("node") {
-              steps {
-                script {
-                  def node_shortname = env.NODE_NAME.split('\\+')[-1]
-                  def node_url = new URI([env.JENKINS_URL, "computer", env.NODE_NAME].join("/")).normalize()
-                  echo "DIST=${env.DIST} ARCH=${env.ARCH} FLAVOR=${env.FLAVOR}\n${node_shortname}\n${node_url}"
-                }
-                sh "cat /etc/os-release"
+          stage("node") {
+            steps {
+              script {
+                def node_shortname = env.NODE_NAME.split('\\+')[-1]
+                def node_url = new URI([env.JENKINS_URL, "computer", env.NODE_NAME].join("/")).normalize()
+                echo "DIST=${env.DIST} ARCH=${env.ARCH} FLAVOR=${env.FLAVOR}\n${node_shortname}\n${node_url}"
               }
+              sh "cat /etc/os-release"
             }
-            stage("checkout ceph-build") {
-              steps {
-                checkout scmGit(
-                  branches: [[name: ceph_build_branch]],
-                  userRemoteConfigs: [[url: ceph_build_repo]],
-                  extensions: [
-                    [$class: 'CleanBeforeCheckout']
-                  ],
-                )
-              }
+          }
+          stage("checkout ceph-build") {
+            steps {
+              checkout scmGit(
+                branches: [[name: ceph_build_branch]],
+                userRemoteConfigs: [[url: ceph_build_repo]],
+                extensions: [
+                  [$class: 'CleanBeforeCheckout']
+                ],
+              )
             }
+          }
             stage("copy artifacts") {
               steps {
                 script {
