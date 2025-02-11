@@ -32,4 +32,5 @@
     builders:
       - shell:
           !include-raw:
+            - ../../../scripts/ceph-website/install-deps.sh
             - ../../build/build
