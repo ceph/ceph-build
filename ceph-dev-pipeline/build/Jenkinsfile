@@ -65,63 +65,63 @@ pipeline {
           }
         }
         stages {
-            stage("node") {
-              steps {
-                script {
-                  def node_shortname = env.NODE_NAME.split('\\+')[-1]
-                  def node_url = new URI([env.JENKINS_URL, "computer", env.NODE_NAME].join("/")).normalize()
-                  echo "DIST=${env.DIST} ARCH=${env.ARCH} FLAVOR=${env.FLAVOR}\n${node_shortname}\n${node_url}"
-                }
-                sh "cat /etc/os-release"
+          stage("node") {
+            steps {
+              script {
+                def node_shortname = env.NODE_NAME.split('\\+')[-1]
+                def node_url = new URI([env.JENKINS_URL, "computer", env.NODE_NAME].join("/")).normalize()
+                echo "DIST=${env.DIST} ARCH=${env.ARCH} FLAVOR=${env.FLAVOR}\n${node_shortname}\n${node_url}"
               }
+              sh "cat /etc/os-release"
             }
-            stage("checkout ceph-build") {
-              steps {
-                checkout scmGit(
-                  branches: [[name: ceph_build_branch]],
-                  userRemoteConfigs: [[url: ceph_build_repo]],
-                  extensions: [
-                    [$class: 'CleanBeforeCheckout']
-                  ],
-                )
-              }
+          }
+          stage("checkout ceph-build") {
+            steps {
+              checkout scmGit(
+                branches: [[name: ceph_build_branch]],
+                userRemoteConfigs: [[url: ceph_build_repo]],
+                extensions: [
+                  [$class: 'CleanBeforeCheckout']
+                ],
+              )
             }
-            stage("copy artifacts") {
-              steps {
-                script {
-                  if ( env.CI_COMPILE == "true" ) {
-                    env.ARTIFACT_FILTER = "dist/**"
-                  } else {
-                    env.ARTIFACT_FILTER = "dist/sha1,dist/version,dist/other_envvars,dist/ceph_*.orig.tar.gz"
-                  }
+          }
+          stage("copy artifacts") {
+            steps {
+              script {
+                if ( env.CI_COMPILE == "true" ) {
+                  env.ARTIFACT_FILTER = "dist/**"
+                } else {
+                  env.ARTIFACT_FILTER = "dist/sha1,dist/version,dist/other_envvars,dist/ceph_*.orig.tar.gz"
                 }
-                copyArtifacts(
-                  projectName: "ceph-dev-new-setup",
-                  selector: specific(buildNumber: env.SETUP_BUILD_ID),
-                  filter: env.ARTIFACT_FILTER,
-                )
-                script {
-                  def sha1_props = readProperties file: "${WORKSPACE}/dist/sha1"
-                  env.SHA1 = sha1_props.SHA1
-                  println "SHA1=${env.SHA1}"
-                  env.VERSION = readFile(file: "${WORKSPACE}/dist/version").trim()
-                  def shaman_url = "https://shaman.ceph.com/builds/ceph/${env.BRANCH}/${env.SHA1}"
-                  def build_description = """\
-                    BRANCH=${env.BRANCH}<br />
-                    SHA1=${env.SHA1}<br />
-                    VERSION=${env.VERSION}<br />
-                    DISTROS=${env.DISTROS}<br />
-                    ARCHS=${env.ARCHS}<br />
-                    FLAVOR=${env.FLAVOR}<br />
-                    <a href="${env.SETUP_BUILD_URL}">SETUP_BUILD_ID=${env.SETUP_BUILD_ID}</a><br />
-                    <a href="${shaman_url}">shaman builds for this branch+commit</a>
-                  """.stripIndent()
-                  buildDescription build_description
-                }
-                sh "sha256sum dist/*"
-                sh "cat dist/sha1 dist/version"
               }
+              copyArtifacts(
+                projectName: "ceph-dev-new-setup",
+                selector: specific(buildNumber: env.SETUP_BUILD_ID),
+                filter: env.ARTIFACT_FILTER,
+              )
+              script {
+                def sha1_props = readProperties file: "${WORKSPACE}/dist/sha1"
+                env.SHA1 = sha1_props.SHA1
+                println "SHA1=${env.SHA1}"
+                env.VERSION = readFile(file: "${WORKSPACE}/dist/version").trim()
+                def shaman_url = "https://shaman.ceph.com/builds/ceph/${env.BRANCH}/${env.SHA1}"
+                def build_description = """\
+                  BRANCH=${env.BRANCH}<br />
+                  SHA1=${env.SHA1}<br />
+                  VERSION=${env.VERSION}<br />
+                  DISTROS=${env.DISTROS}<br />
+                  ARCHS=${env.ARCHS}<br />
+                  FLAVOR=${env.FLAVOR}<br />
+                  <a href="${env.SETUP_BUILD_URL}">SETUP_BUILD_ID=${env.SETUP_BUILD_ID}</a><br />
+                  <a href="${shaman_url}">shaman builds for this branch+commit</a>
+                """.stripIndent()
+                buildDescription build_description
+              }
+              sh "sha256sum dist/*"
+              sh "cat dist/sha1 dist/version"
             }
+          }
           stage("build") {
             environment {
               CHACRACTL_KEY = credentials('chacractl-key')
