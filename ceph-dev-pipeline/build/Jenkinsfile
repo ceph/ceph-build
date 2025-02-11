@@ -122,6 +122,29 @@ pipeline {
               sh "cat dist/sha1 dist/version"
             }
           }
+          stage("builder container") {
+            environment {
+              CONTAINER_REPO_CREDS = credentials('quay-ceph-io-ceph-ci')
+            }
+            steps {
+              script {
+                env.CONTAINER_REPO_USERNAME = env.CONTAINER_REPO_CREDS_USR
+                env.CONTAINER_REPO_PASSWORD = env.CONTAINER_REPO_CREDS_PSW
+                def props = readProperties file: "${WORKSPACE}/dist/other_envvars"
+                for (p in props) {
+                  env."${p.key}" = p.value
+                }
+                sh """#!/bin/bash
+                  podman login -u $CONTAINER_REPO_USERNAME -p CONTAINER_REPO_PASSWORD $CONTAINER_REPO_HOSTNAME/$CONTAINER_REPO_ORGANIZATION 
+                  cd dist
+                  tar xzf *.orig.tar.gz
+                  cd ceph-*
+                  python3 src/script/build-with-container.py -d $DIST -e container
+                  podman push ceph-build:$DIST
+                """
+              }
+            }
+          }
           stage("build") {
             environment {
               CHACRACTL_KEY = credentials('chacractl-key')
@@ -132,42 +155,42 @@ pipeline {
               script {
                 env.AWS_ACCESS_KEY_ID = env.SCCACHE_BUCKET_CREDS_USR
                 env.AWS_SECRET_ACCESS_KEY = env.SCCACHE_BUCKET_CREDS_PSW
-                def props = readProperties file: "${WORKSPACE}/dist/other_envvars"
-                for (p in props) {
-                  env."${p.key}" = p.value
-                }
-                writeFile(
-                  file: ".env",
-                  text: """\
-                  DWZ=${env.DWZ}
-                  SCCACHE=${env.SCCACHE}
-                  SCCACHE_CONF=/usr/local/src/sccache.conf
-                  AWS_ACCESS_KEY_ID=${env.AWS_ACCESS_KEY_ID}
-                  AWS_SECRET_ACCESS_KEY=${env.AWS_SECRET_ACCESS_KEY}
-                  """,
-                )
+                sh """#!/bin/bash
+                  echo "DWZ=${env.DWZ}" > .env
+                  echo "SCCACHE=${env.SCCACHE}" >> .env
+                  echo "SCCACHE_CONF=/usr/local/src/sccache.conf" >> .env
+                  echo "AWS_ACCESS_KEY_ID=${env.AWS_ACCESS_KEY_ID}" >> .env
+                  echo "AWS_SECRET_ACCESS_KEY=${env.AWS_SECRET_ACCESS_KEY}" >> .env
+                """
+                sh """#!/bin/bash
+                  cd dist/ceph-*
+                  python3 src/script/build-with-container.py -d $DIST -e rpm --env-file ${env.WORKSPACE}/.env
+                """
                 if ( (debian_releases + ubuntu_releases).contains(env.DIST) ) {
                   def sccache_flag = "-DWITH_SCCACHE=ON"
                   if ( env.SCCACHE == "true" && ! env.CEPH_EXTRA_CMAKE_ARGS.contains(sccache_flag) ) {
                     env.CEPH_EXTRA_CMAKE_ARGS = "${env.CEPH_EXTRA_CMAKE_ARGS} ${sccache_flag}"
                   }
                   sh """#!/bin/bash
-                    . ./ceph-dev-new-build/build/validate_deb
-                    . ./scripts/build_utils.sh
-                    . ./ceph-dev-new-build/build/setup_deb
-                    . ./scripts/setup_sccache.sh
-                    . ./ceph-dev-new-build/build/setup_pbuilder
-                    . ./ceph-dev-new-build/build/build_deb
+                    #. ./ceph-dev-new-build/build/validate_deb
+                    #. ./scripts/build_utils.sh
+                    #. ./ceph-dev-new-build/build/setup_deb
+                    #. ./scripts/setup_sccache.sh
+                    #. ./ceph-dev-new-build/build/setup_pbuilder
+                    #. ./ceph-dev-new-build/build/build_deb
+                    cd dist/ceph-*
+                    python3 src/script/build-with-container.py --env-file=${env.WORKSPACE}/.env -d ${env.DIST} -e debs
                   """
                 } else if ( env.DIST =~ /^(centos|rhel|fedora).*/ ) {
                   sh """#!/bin/bash
-                    . ./ceph-dev-new-build/build/validate_rpm
-                    . ./scripts/build_utils.sh
-                    . ./scripts/setup_sccache.sh
-                    . ./ceph-dev-new-build/build/setup_rpm
+                    #. ./ceph-dev-new-build/build/validate_rpm
+                    #. ./scripts/build_utils.sh
+                    #. ./scripts/setup_sccache.sh
+                    #. ./ceph-dev-new-build/build/setup_rpm
                     [ "$CI_COMPILE" = "true" ] || exit 0
-                    reset_sccache
-                    python3 src/script/build-with-container.py --env-file=.env -d ${env.DIST} -e rpm
+                    #reset_sccache
+                    cd dist/ceph-*
+                    python3 src/script/build-with-container.py --env-file=${env.WORKSPACE}/.env -d ${env.DIST} -e rpm
                   """
                 } else if ( env.DIST =~ /suse|sles/ ) {
                   sh """#!/bin/bash
