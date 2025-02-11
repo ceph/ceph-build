@@ -136,6 +136,16 @@ pipeline {
                 for (p in props) {
                   env."${p.key}" = p.value
                 }
+                writeFile(
+                  file: ".env",
+                  text: """\
+                  DWZ=${env.DWZ}
+                  SCCACHE=${env.SCCACHE}
+                  SCCACHE_CONF=/usr/local/src/sccache.conf
+                  AWS_ACCESS_KEY_ID=${env.AWS_ACCESS_KEY_ID}
+                  AWS_SECRET_ACCESS_KEY=${env.AWS_SECRET_ACCESS_KEY}
+                  """,
+                )
                 if ( (debian_releases + ubuntu_releases).contains(env.DIST) ) {
                   def sccache_flag = "-DWITH_SCCACHE=ON"
                   if ( env.SCCACHE == "true" && ! env.CEPH_EXTRA_CMAKE_ARGS.contains(sccache_flag) ) {
@@ -157,13 +167,6 @@ pipeline {
                     . ./ceph-dev-new-build/build/setup_rpm
                     [ "$CI_COMPILE" = "true" ] || exit 0
                     reset_sccache
-                    cat << EOF.env > .env
-                    DWZ=$DWZ
-                    SCCACHE=$SCCACHE
-                    SCCACHE_CONF=/usr/local/src/sccache.conf
-                    AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
-                    AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
-                    EOF.env
                     python3 src/script/build-with-container.py --env-file=.env -d ${env.DIST} -e rpm
                   """
                 } else if ( env.DIST =~ /suse|sles/ ) {
