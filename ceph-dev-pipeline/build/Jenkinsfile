@@ -162,8 +162,12 @@ pipeline {
                   echo "AWS_ACCESS_KEY_ID=${env.AWS_ACCESS_KEY_ID}" >> .env
                   echo "AWS_SECRET_ACCESS_KEY=${env.AWS_SECRET_ACCESS_KEY}" >> .env
                 """
+                def ceph_dir = sh(
+                  script: "find ./dist/ -mindepth 1 -maxdepth 1 -type d -name 'ceph-*'",
+                  returnStdout: true,
+                )
                 sh """#!/bin/bash
-                  cd dist/ceph-*
+                  cd ${ceph_dir}
                   python3 src/script/build-with-container.py -d $DIST -e rpm --env-file ${env.WORKSPACE}/.env
                 """
                 def bwc_command = "python3 src/script/build-with-container.py --env-file=${env.WORKSPACE}/.env --image-repo=${env.CONTAINER_REPO_HOSTNAME}/${env.CONTAINER_REPO_ORGANIZATION}/ceph-build --tag=${env.BRANCH}.${env.DIST}.${ARCH} -d ${env.DIST}"
