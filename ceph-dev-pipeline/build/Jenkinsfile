@@ -166,7 +166,7 @@ pipeline {
                   cd dist/ceph-*
                   python3 src/script/build-with-container.py -d $DIST -e rpm --env-file ${env.WORKSPACE}/.env
                 """
-                def bwc_command = "python3 src/script/build-with-container.py --env-file=${env.WORKSPACE}/.env --image-repo=${env.crn} --tag=${env.BRANCH}.${env.DIST}.${ARCH} -d ${env.DIST}"
+                def bwc_command = "python3 src/script/build-with-container.py --env-file=${env.WORKSPACE}/.env --image-repo=${env.CONTAINER_REPO_HOSTNAME}/${env.CONTAINER_REPO_ORGANIZATION}/ceph-build --tag=${env.BRANCH}.${env.DIST}.${ARCH} -d ${env.DIST}"
                 if ( (debian_releases + ubuntu_releases).contains(env.DIST) ) {
                   def sccache_flag = "-DWITH_SCCACHE=ON"
                   if ( env.SCCACHE == "true" && ! env.CEPH_EXTRA_CMAKE_ARGS.contains(sccache_flag) ) {
