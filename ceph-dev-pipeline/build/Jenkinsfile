@@ -139,12 +139,13 @@ pipeline {
                 """
                 env.CEPH_BUILDER_IMAGE = "${env.CONTAINER_REPO_HOSTNAME}/${env.CONTAINER_REPO_ORGANIZATION}/ceph-build"
                 env.CEPH_BUILDER_TAG = "${env.BRANCH}.${env.DIST}.${ARCH}"
-                def bwc_command = "python3 src/script/build-with-container.py --env-file=${env.WORKSPACE}/.env --image-repo=${env.CEPH_BUILDER_IMAGE} --tag=${env.CEPH_BUILDER_TAG} -d ${env.DIST} -e container"
+                def bwc_command = "python3 src/script/build-with-container.py --image-repo=${env.CEPH_BUILDER_IMAGE} --tag=${env.CEPH_BUILDER_TAG} -d ${env.DIST} -e container"
                 env.dist_ceph_dir = sh(
                   script: "find ./dist/ -mindepth 1 -maxdepth 1 -type d -name 'ceph-*'",
                   returnStdout: true,
                 )
                 sh """#!/bin/bash
+                  set -ex
                   cd $dist_ceph_dir
                   ${bwc_command}
                   python3 src/script/build-with-container.py -d $DIST -e container
