@@ -148,8 +148,7 @@ pipeline {
                   set -ex
                   cd $dist_ceph_dir
                   ${bwc_command}
-                  python3 src/script/build-with-container.py -d $DIST -e container
-                  podman push ceph-build:$DIST
+                  podman push $CEPH_BUILDER_IMAGE:$CEPH_BUILDER_TAG
                 """
               }
             }
