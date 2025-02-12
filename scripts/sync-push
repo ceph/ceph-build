@@ -22,7 +22,7 @@ project=$1; shift
 prerelease_dir=/data/download.ceph.com/www/prerelease/${project}
 
 if [[ "$project" == "ceph" ]] ; then
-  releases=${*:-"reef squid"}
+  releases=${*:-"reef squid tentacle"}
 else
   releases=$*
 fi

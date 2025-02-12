@@ -2,6 +2,7 @@
     name: ceph-dashboard-cephadm-e2e-nightly
     ceph_branch:
       - main
+      - tentacle
       - squid
       - reef
     jobs:
