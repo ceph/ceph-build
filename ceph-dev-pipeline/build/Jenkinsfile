@@ -128,17 +128,25 @@ pipeline {
             }
             steps {
               script {
-                env.CONTAINER_REPO_USERNAME = env.CONTAINER_REPO_CREDS_USR
-                env.CONTAINER_REPO_PASSWORD = env.CONTAINER_REPO_CREDS_PSW
                 def props = readProperties file: "${WORKSPACE}/dist/other_envvars"
                 for (p in props) {
                   env."${p.key}" = p.value
                 }
                 sh """#!/bin/bash
-                  podman login -u $CONTAINER_REPO_USERNAME -p CONTAINER_REPO_PASSWORD $CONTAINER_REPO_HOSTNAME/$CONTAINER_REPO_ORGANIZATION 
+                  podman login -u $CONTAINER_REPO_CREDS_USR -p $CONTAINER_REPO_CREDS_PSW $CONTAINER_REPO_HOSTNAME/$CONTAINER_REPO_ORGANIZATION
                   cd dist
                   tar xzf *.orig.tar.gz
-                  cd ceph-*
+                """
+                env.CEPH_BUILDER_IMAGE = "${env.CONTAINER_REPO_HOSTNAME}/${env.CONTAINER_REPO_ORGANIZATION}/ceph-build"
+                env.CEPH_BUILDER_TAG = "${env.BRANCH}.${env.DIST}.${ARCH}"
+                def bwc_command = "python3 src/script/build-with-container.py --env-file=${env.WORKSPACE}/.env --image-repo=${env.CEPH_BUILDER_IMAGE} --tag=${env.CEPH_BUILDER_TAG} -d ${env.DIST} -e container"
+                env.dist_ceph_dir = sh(
+                  script: "find ./dist/ -mindepth 1 -maxdepth 1 -type d -name 'ceph-*'",
+                  returnStdout: true,
+                )
+                sh """#!/bin/bash
+                  cd $dist_ceph_dir
+                  ${bwc_command}
                   python3 src/script/build-with-container.py -d $DIST -e container
                   podman push ceph-build:$DIST
                 """
@@ -155,22 +163,14 @@ pipeline {
               script {
                 env.AWS_ACCESS_KEY_ID = env.SCCACHE_BUCKET_CREDS_USR
                 env.AWS_SECRET_ACCESS_KEY = env.SCCACHE_BUCKET_CREDS_PSW
-                sh """#!/bin/bash
-                  echo "DWZ=${env.DWZ}" > .env
-                  echo "SCCACHE=${env.SCCACHE}" >> .env
+                sh '''#!/bin/bash
+                  echo "DWZ=$DWZ" > .env
+                  echo "SCCACHE=$SCCACHE" >> .env
                   echo "SCCACHE_CONF=/usr/local/src/sccache.conf" >> .env
-                  echo "AWS_ACCESS_KEY_ID=${env.AWS_ACCESS_KEY_ID}" >> .env
-                  echo "AWS_SECRET_ACCESS_KEY=${env.AWS_SECRET_ACCESS_KEY}" >> .env
-                """
-                def ceph_dir = sh(
-                  script: "find ./dist/ -mindepth 1 -maxdepth 1 -type d -name 'ceph-*'",
-                  returnStdout: true,
-                )
-                sh """#!/bin/bash
-                  cd ${ceph_dir}
-                  python3 src/script/build-with-container.py -d $DIST -e rpm --env-file ${env.WORKSPACE}/.env
-                """
-                def bwc_command = "python3 src/script/build-with-container.py --env-file=${env.WORKSPACE}/.env --image-repo=${env.CONTAINER_REPO_HOSTNAME}/${env.CONTAINER_REPO_ORGANIZATION}/ceph-build --tag=${env.BRANCH}.${env.DIST}.${ARCH} -d ${env.DIST}"
+                  echo "AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID" >> .env
+                  echo "AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY" >> .env
+                '''
+                def bwc_command = "python3 src/script/build-with-container.py --env-file=${env.WORKSPACE}/.env --image-repo=${env.CEPH_BUILDER_IMAGE} --tag={env.CEPH_BUILDER_TAG} -d ${env.DIST}"
                 if ( (debian_releases + ubuntu_releases).contains(env.DIST) ) {
                   def sccache_flag = "-DWITH_SCCACHE=ON"
                   if ( env.SCCACHE == "true" && ! env.CEPH_EXTRA_CMAKE_ARGS.contains(sccache_flag) ) {
@@ -187,7 +187,8 @@ pipeline {
                   throw new Exception("DIST '${env.DIST}' is invalid!")
                 }
                 sh """#!/bin/bash
-                    cd dist/ceph-*
+                    set -ex
+                    cd ${dist_ceph_dir}
                     ${bwc_command}
                 """
               }
