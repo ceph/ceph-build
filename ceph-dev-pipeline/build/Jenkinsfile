@@ -188,11 +188,16 @@ pipeline {
                     cd dist/ceph
                     ln ../ceph-${env.VERSION}.tar.bz2 .
                     ${bwc_command}
+                    mkdir -p dist/ceph/rpmbuild/SRPMS/
+                    ln ceph-*.src.rpm ./rpmbuild/SRPMS/
                 """
               }
             }
             post {
               success {
+                sh '''#!/bin/bash
+                  if [ "$THROWAWAY" != "true" ]; then ./scripts/chacra_upload.sh; fi
+                '''
                 sh '''#!/bin/bash
                 . /etc/os-release
                 . ./scripts/build_utils.sh
