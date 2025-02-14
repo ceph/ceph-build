@@ -206,6 +206,11 @@ pipeline {
             }
             steps {
               script {
+                sh '''#!/bin/bash
+                  . /etc/os-release
+                  . ./scripts/build_utils.sh
+                  update_build_status "started" "ceph" $ID $VERSION_ID $ARCH
+                '''
                 env.AWS_ACCESS_KEY_ID = env.SCCACHE_BUCKET_CREDS_USR
                 env.AWS_SECRET_ACCESS_KEY = env.SCCACHE_BUCKET_CREDS_PSW
                 sh '''#!/bin/bash
