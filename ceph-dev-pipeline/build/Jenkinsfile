@@ -78,7 +78,7 @@ pipeline {
           stage("checkout ceph-build") {
             steps {
               checkout scmGit(
-                branches: [[name: ceph_build_branch]],
+                branches: [[name: env.CEPH_BUILD_BRANCH]],
                 userRemoteConfigs: [[url: ceph_build_repo]],
                 extensions: [
                   [$class: 'CleanBeforeCheckout']
