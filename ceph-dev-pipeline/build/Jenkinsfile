@@ -177,20 +177,18 @@ pipeline {
                   env."${p.key}" = p.value
                 }
                 sh '''#!/bin/bash
+                  set -ex
                   cd dist
-                  tar xjf ceph-$VERSION.tar.bz2
+                  mkdir ceph
+                  tar --strip-components=1 -C ceph -xjf ceph-$VERSION.tar.bz2
                 '''
                 env.CEPH_BUILDER_IMAGE = "${env.CONTAINER_REPO_HOSTNAME}/${env.CONTAINER_REPO_ORGANIZATION}/ceph-build"
                 env.CEPH_BUILDER_TAG = "${env.BRANCH}.${env.DIST}.${ARCH}"
                 def bwc_command = "python3 src/script/build-with-container.py --image-repo=${env.CEPH_BUILDER_IMAGE} --tag=${env.CEPH_BUILDER_TAG} -d ${env.DIST} -e container"
-                env.dist_ceph_dir = sh(
-                  script: "find ./dist/ -mindepth 1 -maxdepth 1 -type d -name 'ceph-*'",
-                  returnStdout: true,
-                )
                 sh """#!/bin/bash
                   set -ex
                   podman login -u $CONTAINER_REPO_CREDS_USR -p $CONTAINER_REPO_CREDS_PSW $CONTAINER_REPO_HOSTNAME/$CONTAINER_REPO_ORGANIZATION
-                  cd $dist_ceph_dir
+                  cd dist/ceph
                   ${bwc_command}
                   podman push $CEPH_BUILDER_IMAGE:$CEPH_BUILDER_TAG
                 """
@@ -235,7 +233,7 @@ pipeline {
                 }
                 sh """#!/bin/bash
                     set -ex
-                    cd ${dist_ceph_dir}
+                    cd dist/ceph
                     ln ../ceph-${env.VERSION}.tar.bz2 .
                     ${bwc_command}
                 """
