@@ -122,6 +122,37 @@ pipeline {
               sh "cat dist/sha1 dist/version"
             }
           }
+          stage("builder container") {
+            environment {
+              CONTAINER_REPO_CREDS = credentials('quay-ceph-io-ceph-ci')
+            }
+            steps {
+              script {
+                def props = readProperties file: "${WORKSPACE}/dist/other_envvars"
+                for (p in props) {
+                  env."${p.key}" = p.value
+                }
+                sh '''#!/bin/bash
+                  cd dist
+                  tar xzf *.orig.tar.gz
+                '''
+                env.CEPH_BUILDER_IMAGE = "${env.CONTAINER_REPO_HOSTNAME}/${env.CONTAINER_REPO_ORGANIZATION}/ceph-build"
+                env.CEPH_BUILDER_TAG = "${env.BRANCH}.${env.DIST}.${ARCH}"
+                def bwc_command = "python3 src/script/build-with-container.py --image-repo=${env.CEPH_BUILDER_IMAGE} --tag=${env.CEPH_BUILDER_TAG} -d ${env.DIST} -e container"
+                env.dist_ceph_dir = sh(
+                  script: "find ./dist/ -mindepth 1 -maxdepth 1 -type d -name 'ceph-*'",
+                  returnStdout: true,
+                )
+                sh """#!/bin/bash
+                  set -ex
+                  podman login -u $CONTAINER_REPO_CREDS_USR -p $CONTAINER_REPO_CREDS_PSW $CONTAINER_REPO_HOSTNAME/$CONTAINER_REPO_ORGANIZATION
+                  cd $dist_ceph_dir
+                  ${bwc_command}
+                  podman push $CEPH_BUILDER_IMAGE:$CEPH_BUILDER_TAG
+                """
+              }
+            }
+          }
           stage("build") {
             environment {
               CHACRACTL_KEY = credentials('chacractl-key')
