@@ -3,7 +3,7 @@
     block-upstream: false
     builders:
     - shell:
-        !include-raw:
+        !include-raw-verbatim:
           - ../../../scripts/build_utils.sh
           - ../../build/build
     concurrent: true
@@ -91,7 +91,7 @@
                 - ABORTED
               build-steps:
                 - shell:
-                    !include-raw:
+                    !include-raw-verbatim:
                       - ../../build/kill-tests
       - xunit:
           thresholds:

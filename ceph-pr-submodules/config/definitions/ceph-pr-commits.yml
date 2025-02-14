@@ -50,5 +50,5 @@
 
     builders:
       - shell:
-          !include-raw:
+          !include-raw-verbatim:
             - ../../build/build

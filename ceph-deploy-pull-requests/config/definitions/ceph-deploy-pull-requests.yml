@@ -77,7 +77,7 @@
 
     builders:
       - shell:
-          !include-raw:
+          !include-raw-verbatim:
             - ../../../scripts/build_utils.sh
             - ../../build/setup
             - ../../build/build

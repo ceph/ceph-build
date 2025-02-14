@@ -60,7 +60,7 @@
             - ../../build/cleanup
       - shell: "export NPROC=$(nproc); {ceph_build}"
       - shell:
-          !include-raw:
+          !include-raw-verbatim:
             -  ../../../scripts/dashboard/{test_deps_script}
       - shell: |
           export CYPRESS_ARGS="--record --key $CYPRESS_RECORD_KEY --tag $JOB_NAME" COMMIT_INFO_MESSAGE="$JOB_NAME"

@@ -42,7 +42,7 @@ If this is checked, then the binaries will be built and pushed to chacra even if
 
     builders:
       - shell:
-          !include-raw:
+          !include-raw-verbatim:
             - ../../../scripts/build_utils.sh
             - ../../build/build
 

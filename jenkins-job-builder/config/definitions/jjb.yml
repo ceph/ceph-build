@@ -45,7 +45,7 @@ If this is checked, JJB will wipe out its cache and force each job to align with
 
     builders:
       - shell:
-          !include-raw:
+          !include-raw-verbatim:
             - ../../../scripts/build_utils.sh
             - ../../build/build
 

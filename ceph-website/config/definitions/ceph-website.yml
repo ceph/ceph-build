@@ -31,6 +31,6 @@
 
     builders:
       - shell:
-          !include-raw:
+          !include-raw-verbatim:
             - ../../../scripts/ceph-website/install-deps.sh
             - ../../build/build

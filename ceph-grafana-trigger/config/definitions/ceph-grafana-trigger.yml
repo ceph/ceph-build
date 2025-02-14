@@ -43,7 +43,7 @@
               current-parameters: true
               block: true
         - shell:
-            !include-raw: ../../build/build
+            !include-raw-verbatim: ../../build/build
 
     wrappers:
       - inject-passwords:

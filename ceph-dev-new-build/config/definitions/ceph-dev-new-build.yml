@@ -85,7 +85,7 @@
           properties-file: ${WORKSPACE}/dist/other_envvars
       # debian build scripts
       - shell:
-          !include-raw:
+          !include-raw-verbatim:
             - ../../build/validate_deb
             - ../../../scripts/build_utils.sh
             - ../../build/setup_deb
@@ -94,7 +94,7 @@
             - ../../../scripts/status_completed
       # rpm build scripts
       - shell:
-          !include-raw:
+          !include-raw-verbatim:
             - ../../build/validate_rpm
             - ../../../scripts/build_utils.sh
             - ../../../scripts/setup_sccache.sh
@@ -104,7 +104,7 @@
             - ../../../scripts/status_completed
       # osc build scripts
       - shell:
-          !include-raw:
+          !include-raw-verbatim:
             - ../../build/validate_osc
             - ../../../scripts/build_utils.sh
             - ../../build/setup_osc
@@ -112,7 +112,7 @@
             - ../../../scripts/status_completed
       # mingw build scripts (targeting Windows)
       - shell:
-          !include-raw:
+          !include-raw-verbatim:
             - ../../build/validate_mingw
             - ../../../scripts/build_utils.sh
             - ../../build/setup_mingw
@@ -130,7 +130,7 @@
                 - inject:
                     properties-file: ${WORKSPACE}/build_info
                 - shell:
-                    !include-raw:
+                    !include-raw-verbatim:
                       - ../../../scripts/build_utils.sh
                       - ../../build/failure
 

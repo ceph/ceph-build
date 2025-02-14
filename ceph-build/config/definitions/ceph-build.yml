@@ -84,7 +84,7 @@
                 properties-file: ${WORKSPACE}/ceph-build/ansible/ceph/dist/other_envvars
             # debian build scripts
             - shell:
-                !include-raw:
+                !include-raw-verbatim:
                   - ../../build/validate_deb
                   - ../../../scripts/build_utils.sh
                   - ../../build/setup_deb
@@ -93,7 +93,7 @@
                   - ../../../scripts/status_completed
             # rpm build scripts
             - shell:
-                !include-raw:
+                !include-raw-verbatim:
                   - ../../build/validate_rpm
                   - ../../../scripts/build_utils.sh
                   - ../../build/setup_rpm
@@ -111,7 +111,7 @@
                 - inject:
                     properties-file: ${WORKSPACE}/build_info
                 - shell:
-                    !include-raw:
+                    !include-raw-verbatim:
                   - ../../../scripts/build_utils.sh
                   - ../../build/failure
 

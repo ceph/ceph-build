@@ -50,7 +50,7 @@
 
     builders:
       - shell:
-          !include-raw:
+          !include-raw-verbatim:
             - ../../../scripts/build_utils.sh
             - ../../setup/setup
             - ../../build/build

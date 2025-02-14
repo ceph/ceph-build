@@ -47,7 +47,7 @@
 
     builders:
       - shell:
-          !include-raw: ../../build/build
+          !include-raw-verbatim: ../../build/build
 
     wrappers:
       - credentials-binding:

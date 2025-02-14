@@ -111,7 +111,7 @@ If this is checked, then the binaries will be built and pushed to chacra even if
           rm -rf release
       # rpm build scripts
       - shell:
-          !include-raw:
+          !include-raw-verbatim:
             - ../../build/validate_rpm
             - ../../../scripts/build_utils.sh
             - ../../build/setup
@@ -128,7 +128,7 @@ If this is checked, then the binaries will be built and pushed to chacra even if
                 - inject:
                     properties-file: ${WORKSPACE}/build_info
                 - shell:
-                    !include-raw:
+                    !include-raw-verbatim:
                       - ../../../scripts/build_utils.sh
                       - ../../build/failure
 

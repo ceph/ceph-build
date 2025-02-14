@@ -68,7 +68,7 @@
             GITHUB_STATUS_FAILURE="failed"
             GITHUB_STATUS_ERROR="completed with errors"
       - shell:
-          !include-raw:
+          !include-raw-verbatim:
             - ../../../scripts/build_utils.sh
             - ../../build/build
 
@@ -86,6 +86,6 @@
                   - ABORTED
               build-steps:
                 - shell:
-                    !include-raw:
+                    !include-raw-verbatim:
                       - ../../../scripts/build_utils.sh
                       - ../../build/teardown

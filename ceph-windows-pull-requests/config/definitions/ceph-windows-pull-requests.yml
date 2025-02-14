@@ -65,7 +65,7 @@
 
     builders:
     - shell:
-        !include-raw:
+        !include-raw-verbatim:
           - ../../../scripts/build_utils.sh
           - ../../build/check_docs_pr_only
           - ../../../scripts/ceph-windows/setup_libvirt
@@ -93,7 +93,7 @@
                 - ABORTED
               build-steps:
                 - shell:
-                    !include-raw:
+                    !include-raw-verbatim:
                       - ../../../scripts/build_utils.sh
                       - ../../../scripts/ceph-windows/cleanup
 

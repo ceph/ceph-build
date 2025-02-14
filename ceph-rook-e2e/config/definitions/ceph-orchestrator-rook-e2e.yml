@@ -74,7 +74,7 @@
 
     builders:
       - shell:
-          !include-raw:
+          !include-raw-verbatim:
              - ../../../scripts/rook-orch/install-rook-e2e-deps.sh
       - shell: |
           export COMMIT_INFO_MESSAGE="$ghprbPullTitle"

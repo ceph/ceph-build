@@ -96,7 +96,7 @@ If this is checked, then the binaries will be built and pushed to chacra even if
           rm -rf release
       # rpm build scripts
       - shell:
-          !include-raw:
+          !include-raw-verbatim:
             - ../../../scripts/build_utils.sh
             - ../../build/setup
             - ../../build/build_rpm

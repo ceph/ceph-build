@@ -47,7 +47,7 @@
           on-evaluation-failure: dont-run
           steps:
             - shell:
-                !include-raw:
+                !include-raw-verbatim:
                 - ../../../scripts/build_utils.sh
                 - ../../build/notify
             - trigger-builds:
@@ -73,7 +73,7 @@
           on-evaluation-failure: dont-run
           steps:
             - shell:
-                !include-raw:
+                !include-raw-verbatim:
                 - ../../../scripts/build_utils.sh
                 - ../../build/notify
             - trigger-builds:
@@ -99,7 +99,7 @@
           on-evaluation-failure: dont-run
           steps:
             - shell:
-                !include-raw:
+                !include-raw-verbatim:
                 - ../../../scripts/build_utils.sh
                 - ../../build/notify
             - trigger-builds:

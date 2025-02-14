@@ -55,7 +55,7 @@
 
     builders:
       - shell:
-          !include-raw:
+          !include-raw-verbatim:
             - ../../../scripts/build_utils.sh
             - ../../build/build
 
@@ -68,7 +68,7 @@
                   - ABORTED
               build-steps:
                 - shell:
-                    !include-raw:
+                    !include-raw-verbatim:
                       - ../../../scripts/build_utils.sh
                       - ../../build/teardown
 

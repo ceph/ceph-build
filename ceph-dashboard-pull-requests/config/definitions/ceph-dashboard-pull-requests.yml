@@ -64,7 +64,7 @@
     builders:
       - shell: "export FOR_MAKE_CHECK=1; timeout 2h ./src/script/run-make.sh --cmake-args '-DWITH_TESTS=OFF -DENABLE_GIT_VERSION=OFF'"
       - shell:
-          !include-raw:
+          !include-raw-verbatim:
             - ../../../scripts/dashboard/install-e2e-test-deps.sh
       - shell: |
           export CYPRESS_ARGS="--record --key $CYPRESS_RECORD_KEY --tag $ghprbTargetBranch" COMMIT_INFO_MESSAGE="$ghprbPullTitle"
