@@ -42,8 +42,8 @@
         url: https://github.com/ceph/ceph.git
         name: origin
         branches:
-          - origin/pr/${ghprbPullId}/merge
-        refspec: +refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*
+          - origin/pr/${{ghprbPullId}}/merge
+        refspec: +refs/pull/${{ghprbPullId}}/*:refs/remotes/origin/pr/${{ghprbPullId}}/*
         skip-tag: true
         shallow-clone: true
         honor-refspec: true

@@ -74,5 +74,5 @@
       - trigger-builds:
         - project: 'kernel'
           predefined-parameters: |
-            BRANCH=${GIT_BRANCH}
+            BRANCH=${{GIT_BRANCH}}
             FORCE=True

@@ -84,7 +84,7 @@
                   - ABORTED
               build-steps:
                 - inject:
-                    properties-file: ${WORKSPACE}/build_info
+                    properties-file: ${{WORKSPACE}}/build_info
 
                 - shell:
                     !include-raw-verbatim:

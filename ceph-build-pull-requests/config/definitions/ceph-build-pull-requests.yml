@@ -41,8 +41,8 @@
       - git:
           url: https://github.com/ceph/ceph-build.git
           branches:
-            - ${sha1}
-          refspec: +refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*
+            - ${{sha1}}
+          refspec: +refs/pull/${{ghprbPullId}}/*:refs/remotes/origin/pr/${{ghprbPullId}}/*
           browser: auto
           timeout: 20
           skip-tag: true

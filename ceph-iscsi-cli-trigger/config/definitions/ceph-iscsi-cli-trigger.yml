@@ -33,5 +33,5 @@
       - trigger-builds:
         - project: 'ceph-iscsi-cli'
           predefined-parameters: |
-            BRANCH=${GIT_BRANCH}
+            BRANCH=${{GIT_BRANCH}}
             FORCE=True

@@ -109,7 +109,7 @@ SECURITY: Builds from BRANCH-release branch in ceph-private.git (private repo)."
           filter: ceph-build/ansible/ceph/dist/sha1
           which-build: multijob-build
       - inject:
-          properties-file: ${WORKSPACE}/ceph-build/ansible/ceph/dist/sha1
+          properties-file: ${{WORKSPACE}}/ceph-build/ansible/ceph/dist/sha1
       - multijob:
           name: 'ceph build phase'
           condition: SUCCESSFUL
@@ -130,4 +130,4 @@ SECURITY: Builds from BRANCH-release branch in ceph-private.git (private repo)."
           global: true
           mask-password-params: true
       - build-name:
-          name: "#${BUILD_NUMBER} ${BRANCH}, ${SHA1}"
+          name: "#${{BUILD_NUMBER}} ${{BRANCH}}, ${{SHA1}}"

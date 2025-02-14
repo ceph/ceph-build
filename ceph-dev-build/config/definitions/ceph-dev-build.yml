@@ -71,11 +71,11 @@
           filter: 'dist/**'
           which-build: multijob-build
       - inject:
-          properties-file: ${WORKSPACE}/dist/sha1
+          properties-file: ${{WORKSPACE}}/dist/sha1
       - inject:
-          properties-file: ${WORKSPACE}/dist/branch
+          properties-file: ${{WORKSPACE}}/dist/branch
       - inject:
-          properties-file: ${WORKSPACE}/dist/other_envvars
+          properties-file: ${{WORKSPACE}}/dist/other_envvars
       # debian build scripts
       - shell:
           !include-raw-verbatim:
@@ -120,7 +120,7 @@
                   - ABORTED
               build-steps:
                 - inject:
-                    properties-file: ${WORKSPACE}/build_info
+                    properties-file: ${{WORKSPACE}}/build_info
                 - shell:
                     !include-raw-verbatim:
                       - ../../../scripts/build_utils.sh
@@ -146,4 +146,4 @@
               username: DOCKER_HUB_USERNAME
               password: DOCKER_HUB_PASSWORD
       - build-name:
-          name: "#${BUILD_NUMBER} ${BRANCH}, ${SHA1}, ${DISTROS}, ${FLAVOR}"
+          name: "#${{BUILD_NUMBER}} ${{BRANCH}}, ${{SHA1}}, ${{DISTROS}}, ${{FLAVOR}}"

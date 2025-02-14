@@ -44,8 +44,8 @@
       - git:
           url: https://github.com/ceph/cbt
           branches:
-            - origin/pr/${ghprbPullId}/merge
-          refspec: +refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*
+            - origin/pr/${{ghprbPullId}}/merge
+          refspec: +refs/pull/${{ghprbPullId}}/*:refs/remotes/origin/pr/${{ghprbPullId}}/*
           timeout: 20
           shallow-clone: true
           wipe-workspace: true
@@ -56,7 +56,7 @@
           . venv/bin/activate
           pip install tox
           pip install git+https://github.com/ceph/githubcheck.git
-          sha1=$(git rev-parse refs/remotes/origin/pr/${ghprbPullId}/head)
+          sha1=$(git rev-parse refs/remotes/origin/pr/${{ghprbPullId}}/head)
           tox -e pep8 | github-check   \
             --lint                        \
             --lint-tox-dir=.              \

@@ -4,7 +4,7 @@
       - git:
           url: https://github.com/ceph/ceph-iscsi-cli.git
           branches:
-            - ${sha1}
+            - ${{sha1}}
           refspec: +refs/pull/*:refs/remotes/origin/pr/*
           browser: auto
           timeout: 20

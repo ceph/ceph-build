@@ -33,7 +33,7 @@
       - conditional-step:
           condition-kind: regex-match
           regex: .*reef.*
-          label: '${GIT_BRANCH}'
+          label: '${{GIT_BRANCH}}'
           on-evaluation-failure: dont-run
           steps:
             - shell:
@@ -43,12 +43,12 @@
             - trigger-builds:
                 - project: 'ceph-dev-new'
                   predefined-parameters: |
-                    BRANCH=${GIT_BRANCH}
+                    BRANCH=${{GIT_BRANCH}}
                     FORCE=True
                     DISTROS=jammy focal centos9 windows
                 - project: 'ceph-dev-new'
                   predefined-parameters: |
-                    BRANCH=${GIT_BRANCH}
+                    BRANCH=${{GIT_BRANCH}}
                     FORCE=True
                     DISTROS=centos9
                     FLAVOR=crimson
@@ -59,7 +59,7 @@
       - conditional-step:
           condition-kind: regex-match
           regex: .*squid.*
-          label: '${GIT_BRANCH}'
+          label: '${{GIT_BRANCH}}'
           on-evaluation-failure: dont-run
           steps:
             - shell:
@@ -69,12 +69,12 @@
             - trigger-builds:
                 - project: 'ceph-dev-new'
                   predefined-parameters: |
-                    BRANCH=${GIT_BRANCH}
+                    BRANCH=${{GIT_BRANCH}}
                     FORCE=True
                     DISTROS=jammy centos9 windows
                 - project: 'ceph-dev-new'
                   predefined-parameters: |
-                    BRANCH=${GIT_BRANCH}
+                    BRANCH=${{GIT_BRANCH}}
                     FORCE=True
                     DISTROS=centos9
                     FLAVOR=crimson
@@ -84,7 +84,7 @@
       - conditional-step:
           condition-kind: shell
           condition-command: |
-            echo "${GIT_BRANCH}" | grep -v '\(reef\|squid\|centos9-only\|crimson-only\|jaeger\)'
+            echo "${{GIT_BRANCH}}" | grep -v '\(reef\|squid\|centos9-only\|crimson-only\|jaeger\)'
           on-evaluation-failure: dont-run
           steps:
             - shell:
@@ -94,13 +94,13 @@
             - trigger-builds:
                 - project: 'ceph-dev-new'
                   predefined-parameters: |
-                    BRANCH=${GIT_BRANCH}
+                    BRANCH=${{GIT_BRANCH}}
                     FORCE=True
                     DISTROS=jammy centos9 windows
             - trigger-builds:
                 - project: 'ceph-dev-new'
                   predefined-parameters: |
-                    BRANCH=${GIT_BRANCH}
+                    BRANCH=${{GIT_BRANCH}}
                     FORCE=True
                     DISTROS=centos9
                     FLAVOR=crimson
@@ -109,7 +109,7 @@
       - conditional-step:
           condition-kind: regex-match
           regex: .*centos9-only.*
-          label: '${GIT_BRANCH}'
+          label: '${{GIT_BRANCH}}'
           on-evaluation-failure: dont-run
           steps:
             - shell:
@@ -119,7 +119,7 @@
             - trigger-builds:
                 - project: 'ceph-dev-new'
                   predefined-parameters: |
-                    BRANCH=${GIT_BRANCH}
+                    BRANCH=${{GIT_BRANCH}}
                     FORCE=True
                     DISTROS=centos9
                     ARCHS=x86_64
@@ -129,7 +129,7 @@
       - conditional-step:
           condition-kind: regex-match
           regex: .*crimson-only.*
-          label: '${GIT_BRANCH}'
+          label: '${{GIT_BRANCH}}'
           on-evaluation-failure: dont-run
           steps:
             - shell:
@@ -139,7 +139,7 @@
             - trigger-builds:
                 - project: 'ceph-dev-new'
                   predefined-parameters: |
-                    BRANCH=${GIT_BRANCH}
+                    BRANCH=${{GIT_BRANCH}}
                     FORCE=True
                     DISTROS=centos9
                     FLAVOR=crimson
@@ -150,7 +150,7 @@
       - conditional-step:
           condition-kind: regex-match
           regex: .*jaeger.*
-          label: '${GIT_BRANCH}'
+          label: '${{GIT_BRANCH}}'
           on-evaluation-failure: dont-run
           steps:
             - shell:
@@ -160,7 +160,7 @@
             - trigger-builds:
                 - project: 'ceph-dev-new'
                   predefined-parameters: |
-                    BRANCH=${GIT_BRANCH}
+                    BRANCH=${{GIT_BRANCH}}
                     FORCE=True
                     DISTROS=centos8 focal
                     FLAVOR=jaeger
@@ -169,7 +169,7 @@
       - conditional-step:
           condition-kind: regex-match
           regex: .*sccache.*
-          label: '${GIT_BRANCH}'
+          label: '${{GIT_BRANCH}}'
           on-evaluation-failure: dont-run
           steps:
             - shell: echo skipping

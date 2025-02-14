@@ -177,7 +177,7 @@ If this is checked, then the binaries will be built and pushed to chacra even if
                   - ABORTED
               build-steps:
                 - inject:
-                    properties-file: ${WORKSPACE}/build_info
+                    properties-file: ${{WORKSPACE}}/build_info
                 - shell:
                     !include-raw-verbatim:
                       - ../../../scripts/build_utils.sh

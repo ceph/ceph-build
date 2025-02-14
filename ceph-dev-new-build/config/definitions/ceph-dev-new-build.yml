@@ -78,11 +78,11 @@
           which-build: build-param
           param: SETUP_BUILD_ID
       - inject:
-          properties-file: ${WORKSPACE}/dist/sha1
+          properties-file: ${{WORKSPACE}}/dist/sha1
       - inject:
-          properties-file: ${WORKSPACE}/dist/branch
+          properties-file: ${{WORKSPACE}}/dist/branch
       - inject:
-          properties-file: ${WORKSPACE}/dist/other_envvars
+          properties-file: ${{WORKSPACE}}/dist/other_envvars
       # debian build scripts
       - shell:
           !include-raw-verbatim:
@@ -128,7 +128,7 @@
                   - ABORTED
               build-steps:
                 - inject:
-                    properties-file: ${WORKSPACE}/build_info
+                    properties-file: ${{WORKSPACE}}/build_info
                 - shell:
                     !include-raw-verbatim:
                       - ../../../scripts/build_utils.sh
@@ -158,4 +158,4 @@
               username: AWS_ACCESS_KEY_ID
               password: AWS_SECRET_ACCESS_KEY
       - build-name:
-          name: "#${BUILD_NUMBER} ${BRANCH}, ${SHA1}, ${DISTROS}, ${FLAVOR}"
+          name: "#${{BUILD_NUMBER}} ${{BRANCH}}, ${{SHA1}}, ${{DISTROS}}, ${{FLAVOR}}"

@@ -43,7 +43,7 @@
       - conditional-step:
           condition-kind: regex-match
           regex: .*reef.*
-          label: '${GIT_BRANCH}'
+          label: '${{GIT_BRANCH}}'
           on-evaluation-failure: dont-run
           steps:
             - shell:
@@ -53,12 +53,12 @@
             - trigger-builds:
                 - project: 'ceph-dev'
                   predefined-parameters: |
-                    BRANCH=${GIT_BRANCH}
+                    BRANCH=${{GIT_BRANCH}}
                     FORCE=True
                     DISTROS=jammy focal centos9 windows
                 - project: 'ceph-dev'
                   predefined-parameters: |
-                    BRANCH=${GIT_BRANCH}
+                    BRANCH=${{GIT_BRANCH}}
                     FORCE=True
                     DISTROS=centos9
                     FLAVOR=crimson
@@ -69,7 +69,7 @@
       - conditional-step:
           condition-kind: regex-match
           regex: .*squid.*
-          label: '${GIT_BRANCH}'
+          label: '${{GIT_BRANCH}}'
           on-evaluation-failure: dont-run
           steps:
             - shell:
@@ -79,12 +79,12 @@
             - trigger-builds:
                 - project: 'ceph-dev'
                   predefined-parameters: |
-                    BRANCH=${GIT_BRANCH}
+                    BRANCH=${{GIT_BRANCH}}
                     FORCE=True
                     DISTROS=jammy centos9 windows
                 - project: 'ceph-dev'
                   predefined-parameters: |
-                    BRANCH=${GIT_BRANCH}
+                    BRANCH=${{GIT_BRANCH}}
                     FORCE=True
                     DISTROS=centos9
                     FLAVOR=crimson
@@ -95,7 +95,7 @@
       - conditional-step:
           condition-kind: regex-match
           regex: .*main.*
-          label: '${GIT_BRANCH}'
+          label: '${{GIT_BRANCH}}'
           on-evaluation-failure: dont-run
           steps:
             - shell:
@@ -105,12 +105,12 @@
             - trigger-builds:
                 - project: 'ceph-dev'
                   predefined-parameters: |
-                    BRANCH=${GIT_BRANCH}
+                    BRANCH=${{GIT_BRANCH}}
                     FORCE=True
                     DISTROS=jammy centos9 windows
                 - project: 'ceph-dev'
                   predefined-parameters: |
-                    BRANCH=${GIT_BRANCH}
+                    BRANCH=${{GIT_BRANCH}}
                     FORCE=True
                     DISTROS=centos9
                     FLAVOR=crimson

@@ -32,7 +32,7 @@
           basedir: ceph-build
 
     builders:
-      - shell: "${WORKSPACE}/ceph-build/ceph-windows-image-build/build/build"
+      - shell: "${{WORKSPACE}}/ceph-build/ceph-windows-image-build/build/build"
 
     wrappers:
       - credentials-binding:
@@ -53,4 +53,4 @@
                 - FAILURE
                 - ABORTED
               build-steps:
-                - shell: "${WORKSPACE}/ceph-build/ceph-windows-image-build/build/cleanup"
+                - shell: "${{WORKSPACE}}/ceph-build/ceph-windows-image-build/build/cleanup"

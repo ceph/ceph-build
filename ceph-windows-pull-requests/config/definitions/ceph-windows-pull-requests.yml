@@ -53,8 +53,8 @@
       - git:
           url: https://github.com/ceph/ceph.git
           branches:
-            - origin/pr/${ghprbPullId}/merge
-          refspec: +refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*
+            - origin/pr/${{ghprbPullId}}/merge
+          refspec: +refs/pull/${{ghprbPullId}}/*:refs/remotes/origin/pr/${{ghprbPullId}}/*
           browser: auto
           timeout: 20
           do-not-fetch-tags: true
