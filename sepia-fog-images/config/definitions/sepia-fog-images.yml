@@ -47,7 +47,7 @@
 
     builders:
       - shell:
-          !include-raw:
+          !include-raw-verbatim:
             - ../../build/build
 
     publishers:
@@ -59,7 +59,7 @@
                   - ABORTED
               build-steps:
                 - shell:
-                    !include-raw:
+                    !include-raw-verbatim:
                       - ../../build/failure
 
     wrappers:

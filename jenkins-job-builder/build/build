@@ -8,8 +8,15 @@
 
 set -euxo pipefail
 
-# the following two methods exist in scripts/build_utils.sh
-pkgs=( "dataclasses" "jenkins-job-builder>=3.5.0,<6.0.0" )
+# the jjb version is an unreleased patch from dmick to add support for 'ancestry' build choosers
+# for ceph-dev-new-trigger, to allow it to be configured to only look at branches up to N days
+# old.  This is just arguably better, but also useful when jenkins (or that plugin) decides it
+# needs to build every branch.
+#
+# when jenkins-job-builder 6.5 or later is released, this requirement should change to
+# jenkins-job-builder>=6.5
+
+pkgs=( "dataclasses" "git+https://opendev.org/jjb/jenkins-job-builder@60f0316389" )
 TEMPVENV=$(create_venv_dir)
 VENV=${TEMPVENV}/bin
 install_python_packages $TEMPVENV "pkgs[@]" latest

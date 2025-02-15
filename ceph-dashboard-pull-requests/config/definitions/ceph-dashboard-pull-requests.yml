@@ -53,8 +53,8 @@
       - git:
           url: https://github.com/ceph/ceph.git
           branches:
-            - origin/pr/${ghprbPullId}/merge
-          refspec: +refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*
+            - origin/pr/${{ghprbPullId}}/merge
+          refspec: +refs/pull/${{ghprbPullId}}/*:refs/remotes/origin/pr/${{ghprbPullId}}/*
           browser: auto
           timeout: 20
           skip-tag: true
@@ -64,12 +64,12 @@
     builders:
       - shell: "export FOR_MAKE_CHECK=1; timeout 2h ./src/script/run-make.sh --cmake-args '-DWITH_TESTS=OFF -DENABLE_GIT_VERSION=OFF'"
       - shell:
-          !include-raw:
+          !include-raw-verbatim:
             - ../../../scripts/dashboard/install-e2e-test-deps.sh
       - shell: |
           export CYPRESS_ARGS="--record --key $CYPRESS_RECORD_KEY --tag $ghprbTargetBranch" COMMIT_INFO_MESSAGE="$ghprbPullTitle"
-          export APPLITOOLS_BATCH_ID="PR-${ghprbPullId}_${BUILD_TAG}"
-          export APPLITOOLS_BATCH_NAME="PR-${ghprbPullId}"
+          export APPLITOOLS_BATCH_ID="PR-${{ghprbPullId}}_${{BUILD_TAG}}"
+          export APPLITOOLS_BATCH_NAME="PR-${{ghprbPullId}}"
           export APPLITOOLS_BRANCH_NAME="$ghprbSourceBranch"
           export APPLITOOLS_PARENT_BRANCH_NAME="$ghprbTargetBranch"
           mkdir -p .applitools

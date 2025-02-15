@@ -58,8 +58,8 @@
       - git:
           url: https://github.com/ceph/ceph.git
           branches:
-            - origin/pr/${ghprbPullId}/merge
-          refspec: +refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*
+            - origin/pr/${{ghprbPullId}}/merge
+          refspec: +refs/pull/${{ghprbPullId}}/*:refs/remotes/origin/pr/${{ghprbPullId}}/*
           browser: auto
           timeout: 20
           skip-tag: true
@@ -74,7 +74,7 @@
 
     builders:
       - shell:
-          !include-raw:
+          !include-raw-verbatim:
              - ../../../scripts/rook-orch/install-rook-e2e-deps.sh
       - shell: |
           export COMMIT_INFO_MESSAGE="$ghprbPullTitle"
@@ -96,4 +96,4 @@
                 - FAILURE
                 - ABORTED
               build-steps:
-                - shell: "${WORKSPACE}/ceph-build/ceph-rook-e2e/build/cleanup"
+                - shell: "${{WORKSPACE}}/ceph-build/ceph-rook-e2e/build/cleanup"

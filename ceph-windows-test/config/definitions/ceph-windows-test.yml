@@ -53,7 +53,7 @@
 
     builders:
       - shell:
-          !include-raw:
+          !include-raw-verbatim:
             - ../../../scripts/build_utils.sh
             - ../../../scripts/ceph-windows/setup_libvirt
             - ../../../scripts/ceph-windows/setup_libvirt_ubuntu_vm
@@ -86,6 +86,6 @@
                 - ABORTED
               build-steps:
                 - shell:
-                    !include-raw:
+                    !include-raw-verbatim:
                       - ../../../scripts/build_utils.sh
                       - ../../../scripts/ceph-windows/cleanup

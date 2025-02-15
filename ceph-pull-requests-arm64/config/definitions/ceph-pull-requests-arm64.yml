@@ -3,7 +3,7 @@
     block-upstream: false
     builders:
     - shell:
-        !include-raw:
+        !include-raw-verbatim:
           - ../../../scripts/build_utils.sh
           - ../../build/build
     concurrent: true
@@ -42,8 +42,8 @@
         url: https://github.com/ceph/ceph.git
         name: origin
         branches:
-          - origin/pr/${ghprbPullId}/merge
-        refspec: +refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*
+          - origin/pr/${{ghprbPullId}}/merge
+        refspec: +refs/pull/${{ghprbPullId}}/*:refs/remotes/origin/pr/${{ghprbPullId}}/*
         skip-tag: true
         shallow-clone: true
         honor-refspec: true
@@ -91,7 +91,7 @@
                 - ABORTED
               build-steps:
                 - shell:
-                    !include-raw:
+                    !include-raw-verbatim:
                       - ../../build/kill-tests
       - xunit:
           thresholds:

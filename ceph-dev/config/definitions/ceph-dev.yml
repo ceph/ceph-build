@@ -85,13 +85,13 @@ If this is checked, then the binaries will be built and pushed to chacra even if
           filter: dist/sha1
           which-build: multijob-build
       - inject:
-          properties-file: ${WORKSPACE}/dist/sha1
+          properties-file: ${{WORKSPACE}}/dist/sha1
       - copyartifact:
           project: ceph-dev-setup
           filter: dist/branch
           which-build: multijob-build
       - inject:
-          properties-file: ${WORKSPACE}/dist/branch
+          properties-file: ${{WORKSPACE}}/dist/branch
       - multijob:
           name: 'ceph dev build phase'
           condition: SUCCESSFUL
@@ -105,4 +105,4 @@ If this is checked, then the binaries will be built and pushed to chacra even if
           global: true
           mask-password-params: true
       - build-name:
-          name: "#${BUILD_NUMBER} ${BRANCH}, ${SHA1}, ${DISTROS}, ${FLAVOR}"
+          name: "#${{BUILD_NUMBER}} ${{BRANCH}}, ${{SHA1}}, ${{DISTROS}}, ${{FLAVOR}}"

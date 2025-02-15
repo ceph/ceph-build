@@ -86,14 +86,14 @@ If this is checked, then the binaries will be built and pushed to chacra even if
           rm -rf release
       # debian build scripts
       - shell:
-          !include-raw:
+          !include-raw-verbatim:
             - ../../build/validate_deb
             - ../../../scripts/build_utils.sh
             - ../../build/setup
             - ../../build/build_deb
       # rpm build scripts
       - shell:
-          !include-raw:
+          !include-raw-verbatim:
             - ../../build/validate_rpm
             - ../../../scripts/build_utils.sh
             - ../../build/setup

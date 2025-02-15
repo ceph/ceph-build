@@ -52,7 +52,7 @@
           url: https://github.com/ceph/ceph
           browser: auto
           branches:
-            - ${sha1}
+            - ${{sha1}}
           refspec: +refs/pull/*:refs/remotes/origin/pr/*
           skip-tag: true
           timeout: 20
@@ -68,7 +68,7 @@
             GITHUB_STATUS_FAILURE="failed"
             GITHUB_STATUS_ERROR="completed with errors"
       - shell:
-          !include-raw:
+          !include-raw-verbatim:
             - ../../../scripts/build_utils.sh
             - ../../build/build
 
@@ -86,6 +86,6 @@
                   - ABORTED
               build-steps:
                 - shell:
-                    !include-raw:
+                    !include-raw-verbatim:
                       - ../../../scripts/build_utils.sh
                       - ../../build/teardown

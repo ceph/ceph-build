@@ -34,5 +34,5 @@
       - trigger-builds:
         - project: 'rtslib-fb'
           predefined-parameters: |
-            BRANCH=${GIT_BRANCH}
+            BRANCH=${{GIT_BRANCH}}
             FORCE=True

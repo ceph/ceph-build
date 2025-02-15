@@ -39,7 +39,7 @@
 
     builders:
       - shell:
-          !include-raw:
+          !include-raw-verbatim:
             - ../../../scripts/build_utils.sh
             - ../../build/setup
             - ../../../scripts/ceph-windows/setup_libvirt
@@ -72,7 +72,7 @@
                 - ABORTED
               build-steps:
                 - shell:
-                    !include-raw:
+                    !include-raw-verbatim:
                       - ../../../scripts/build_utils.sh
                       - ../../../scripts/ceph-windows/cleanup
 
@@ -84,9 +84,9 @@
                   - ABORTED
               build-steps:
                 - inject:
-                    properties-file: ${WORKSPACE}/build_info
+                    properties-file: ${{WORKSPACE}}/build_info
 
                 - shell:
-                    !include-raw:
+                    !include-raw-verbatim:
                       - ../../../scripts/build_utils.sh
                       - ../../build/failure

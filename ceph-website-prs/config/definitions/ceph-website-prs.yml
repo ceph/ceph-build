@@ -36,14 +36,14 @@
           success-status: "Site compiled successfully!"
           failure-status: "Site compilation failed"
 #         This is kinda noisy if there's lots of force pushes
-#         success-comment: "Site built successfully!  https://${GIT_BRANCH}.ceph.io"
+#         success-comment: "Site built successfully!  https://${{GIT_BRANCH}}.ceph.io"
 
     scm:
       - git:
           url: https://github.com/ceph/ceph.io
           branches:
-            - origin/pr/${ghprbPullId}/merge
-          refspec: +refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*
+            - origin/pr/${{ghprbPullId}}/merge
+          refspec: +refs/pull/${{ghprbPullId}}/*:refs/remotes/origin/pr/${{ghprbPullId}}/*
           browser: auto
           skip-tag: true
           timeout: 20
@@ -51,6 +51,6 @@
 
     builders:
       - shell:
-          !include-raw:
+          !include-raw-verbatim:
             - ../../../scripts/ceph-website/install-deps.sh
             - ../../build/build

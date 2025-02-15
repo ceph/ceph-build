@@ -56,8 +56,8 @@
       - git:
           url: https://github.com/ceph/ceph.git
           branches:
-            - origin/pr/${ghprbPullId}/merge
-          refspec: +refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*
+            - origin/pr/${{ghprbPullId}}/merge
+          refspec: +refs/pull/${{ghprbPullId}}/*:refs/remotes/origin/pr/${{ghprbPullId}}/*
           browser: auto
           timeout: 20
           skip-tag: true
@@ -72,7 +72,7 @@
 
     builders:
       - shell:
-          !include-raw:
+          !include-raw-verbatim:
             - ../../../scripts/dashboard/install-e2e-test-deps.sh
             - ../../../scripts/dashboard/install-cephadm-e2e-deps.sh
       - shell: |
@@ -108,4 +108,4 @@
                 - FAILURE
                 - ABORTED
               build-steps:
-                - shell: "${WORKSPACE}/ceph-build/ceph-dashboard-cephadm-e2e/build/cleanup"
+                - shell: "${{WORKSPACE}}/ceph-build/ceph-dashboard-cephadm-e2e/build/cleanup"

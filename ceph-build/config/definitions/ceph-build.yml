@@ -63,10 +63,10 @@
               condition-operands:
                 - condition-kind: regex-match
                   regex: (reef|squid)
-                  label: '${BRANCH}'
+                  label: '${{BRANCH}}'
                 - condition-kind: regex-match
                   regex: (focal|jammy|centos9|buster|bullseye|bookworm)
-                  label: '${DIST}'
+                  label: '${{DIST}}'
           on-evaluation-failure: dont-run
           steps:
             - shell: |
@@ -79,12 +79,12 @@
                 filter: 'ceph-build/ansible/ceph/dist/**'
                 which-build: multijob-build
             - inject:
-                properties-file: ${WORKSPACE}/ceph-build/ansible/ceph/dist/sha1
+                properties-file: ${{WORKSPACE}}/ceph-build/ansible/ceph/dist/sha1
             - inject:
-                properties-file: ${WORKSPACE}/ceph-build/ansible/ceph/dist/other_envvars
+                properties-file: ${{WORKSPACE}}/ceph-build/ansible/ceph/dist/other_envvars
             # debian build scripts
             - shell:
-                !include-raw:
+                !include-raw-verbatim:
                   - ../../build/validate_deb
                   - ../../../scripts/build_utils.sh
                   - ../../build/setup_deb
@@ -93,7 +93,7 @@
                   - ../../../scripts/status_completed
             # rpm build scripts
             - shell:
-                !include-raw:
+                !include-raw-verbatim:
                   - ../../build/validate_rpm
                   - ../../../scripts/build_utils.sh
                   - ../../build/setup_rpm
@@ -109,9 +109,9 @@
                   - ABORTED
               build-steps:
                 - inject:
-                    properties-file: ${WORKSPACE}/build_info
+                    properties-file: ${{WORKSPACE}}/build_info
                 - shell:
-                    !include-raw:
+                    !include-raw-verbatim:
                   - ../../../scripts/build_utils.sh
                   - ../../build/failure
 

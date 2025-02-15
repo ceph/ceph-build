@@ -37,8 +37,8 @@
           url: https://github.com/ceph/ceph
           browser: auto
           branches:
-            - ${sha1}
-          refspec: +refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*
+            - ${{sha1}}
+          refspec: +refs/pull/${{ghprbPullId}}/*:refs/remotes/origin/pr/${{ghprbPullId}}/*
           skip-tag: true
           shallow-clone: true
           honor-refspec: true
@@ -47,7 +47,7 @@
 
     builders:
       - shell:
-          !include-raw: ../../build/build
+          !include-raw-verbatim: ../../build/build
 
     wrappers:
       - credentials-binding:
