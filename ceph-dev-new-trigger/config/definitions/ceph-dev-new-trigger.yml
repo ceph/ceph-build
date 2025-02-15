@@ -25,6 +25,8 @@
           skip-tag: true
           timeout: 20
           wipe-workspace: true
+          choosing-strategy: ancestry
+          maximum-age: 7
 
     builders:
       # build reef on:
@@ -175,6 +177,8 @@
             - shell: echo skipping
 
     wrappers:
+      - build-name:
+          name: "#${{BUILD_NUMBER}} ${{GIT_BRANCH}}"
       - inject-passwords:
           global: true
           mask-password-params: true
