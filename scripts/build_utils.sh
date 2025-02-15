@@ -1686,10 +1686,12 @@ maybe_reset_ci_container() {
 
 # NOTE: These functions will only work on a Pull Request job!
 pr_only_for() {
-  local egrep_pattern=$1
-
+  # $1 is passed by reference to avoid having to call with ${array[@]} and
+  # receive by creating another local array ("$@")
+  local -n local_patterns=$1
+  local files
   pushd .
-  # Only try to cd to ceph repo if we need to.
+  # cd to ceph repo if we need to.
   # The ceph-pr-commits job checks out ceph.git and ceph-build.git but most
   # other jobs do not.
   if ! [[ "$(git config --get remote.origin.url)" =~ "ceph/ceph.git" ]]; then
@@ -1703,20 +1705,38 @@ pr_only_for() {
   fi
   popd
   echo -e "changed files:\n$files"
-  if [ $(echo "$files" | egrep -v $egrep_pattern | wc -l) -gt 0 ]; then
-    return 1
-  fi
-  return 0
+  local match=false
+  for p in "${local_patterns[@]}"; do
+    for f in $files; do
+      if [[ $f == $p ]]; then match=true; break; fi
+    done
+  done
+  if [[ $match == "true" ]] ; then return 0; else return 1; fi
 }
 
 docs_pr_only() {
   DOCS_ONLY=false
-  if pr_only_for '^(doc/|admin/)'; then DOCS_ONLY=true; fi
+  local patterns=(
+    'doc/*'
+    'admin/*'
+    'src/sample.ceph.conf'
+    'CodingStyle'
+    '*.rst'
+    '*.md'
+    'COPYING*'
+    'README.*'
+    'SubmittingPatches'
+    '.readthedocs.yml'
+  )
+  if pr_only_for patterns; then DOCS_ONLY=true; fi
 }
 
 container_pr_only() {
   CONTAINER_ONLY=false
-  if pr_only_for '^container/'; then CONTAINER_ONLY=true; fi
+  local patterns=(
+    'container/*'
+  )
+  if pr_only_for patterns; then CONTAINER_ONLY=true; fi
 }
 
 function ssh_exec() {
