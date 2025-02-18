@@ -25,8 +25,8 @@
 
       - string:
           name: DISTROS
-          description: "A list of distros to build for. Available options are: centos9, centos8, centos7, centos6, jammy, focal, bionic, xenial, trusty, precise, wheezy, jessie, and windows"
-          default: "jammy centos9 windows"
+          description: "A list of distros to build for. Available options are: centos9, centos8, centos7, centos6, jammy, focal, bionic, xenial, trusty, precise, bookworm, bullseye, buster, and windows"
+          default: "jammy bookworm centos9 windows"
 
       - string:
           name: ARCHS
