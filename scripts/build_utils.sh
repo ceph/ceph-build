@@ -1741,6 +1741,9 @@ container_pr_only() {
   CONTAINER_ONLY=false
   local patterns=(
     'container/*'
+    'Dockerfile.build'
+    'src/script/buildcontainer-setup.sh'
+    'src/script/build-with-container.py'
   )
   if pr_only_for patterns; then CONTAINER_ONLY=true; fi
 }
