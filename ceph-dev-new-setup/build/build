@@ -103,20 +103,44 @@ echo current version $cephver
 
 srcdir=`pwd`
 
-if command -v podman; then
+if command -v podman &>/dev/null; then
     PODMAN=podman
     PODMAN_STORAGE_DIR="$HOME/.local/share/containers/storage/"
-    test -d $PODMAN_STORAGE_DIR && sudo chgrp -R $(groups | cut -d' ' -f1) $PODMAN_STORAGE_DIR
-else
+    test -d "$PODMAN_STORAGE_DIR" && sudo chgrp -R "$(groups | cut -d' ' -f1)" "$PODMAN_STORAGE_DIR"
+elif command -v docker &>/dev/null; then
     PODMAN="sudo docker"
+else
+    if [[ -f /etc/os-release ]]; then
+        . /etc/os-release
+        if [[ "$ID" == "ubuntu" ]]; then
+            echo "Neither Docker nor Podman are installed. Performing Ubuntu-specific action..."
+            PACKAGE_MANAGER=apt
+        elif [[ "$ID" == "centos" || "$ID" == "rhel" ]]; then
+            echo "Neither Docker nor Podman are installed. Performing CentOS-specific action..."
+            PACKAGE_MANAGER=dnf
+        else
+            echo "Neither Docker nor Podman are installed, and OS is not recognized."
+        fi
+    else
+        echo "Neither Docker nor Podman are installed, and OS information is unavailable."
+    fi
+    PODMAN=false
 fi
 
 if [ -d "$releasedir/$cephver" ]; then
     echo "$releasedir/$cephver already exists; reuse that release tarball"
 else
-    # Create a container image to provide debian-specific utilities, so that this job can run on any container-capable host
-    printf "FROM ubuntu:24.04\nRUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y dpkg-dev devscripts && apt-get clean && rm -rf /var/lib/apt/lists/*" | $PODMAN build -t ubuntu_builder -
-    $PODMAN run --rm -v $PWD:/ceph:z ubuntu_builder:latest bash -c "cd /ceph && dch -v $cephver-1 'autobuilder'"
+    # Check for podman/docker.  Use legacy tools if neither are installed.
+    if [[ "$PODMAN" == "false" && "$PACKAGE_MANAGER" == "apt" ]]; then
+        dch -v $cephver-1 'autobuilder'
+    elif [[ -n "$PODMAN" && "$PODMAN" != "false" ]]; then
+        # Create a container image to provide debian-specific utilities, so that this job can run on any container-capable host
+        printf "FROM ubuntu:24.04\nRUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y dpkg-dev devscripts && apt-get clean && rm -rf /var/lib/apt/lists/*" | $PODMAN build -t ubuntu_builder -
+        $PODMAN run --rm -v $PWD:/ceph:z ubuntu_builder:latest bash -c "cd /ceph && dch -v $cephver-1 'autobuilder'"
+    else
+        echo "Unsupported distro/container platform detected.  Can not continue."
+        exit 1
+    fi
 
     # declare an associative array to map file extensions to tar flags
     declare -A compression=( ["bz2"]="j" ["gz"]="z" ["xz"]="J" )
@@ -171,7 +195,16 @@ vers=`cat release/version`
     cd release/$vers
     mkdir -p ceph-$vers/debian
     cp -r debian/* ceph-$vers/debian/
-    $PODMAN run --rm -v $PWD:/ceph:z ubuntu_builder:latest bash -c "cd /ceph && dpkg-source -b ceph-$vers"
+
+    # Check for podman/docker.  Use legacy tools if neither are installed.
+    # We don't need to check for other distro/container platforms since we
+    # should have exited 1 above if podman/docker are not installed and
+    # we're not running on Ubuntu.
+    if [[ "$PODMAN" == "false" && "$PACKAGE_MANAGER" == "apt" ]]; then
+        dpkg-source -b ceph-$vers
+    else
+        $PODMAN run --rm -v $PWD:/ceph:z ubuntu_builder:latest bash -c "cd /ceph && dpkg-source -b ceph-$vers"
+    fi
 )
 
 mkdir -p dist
