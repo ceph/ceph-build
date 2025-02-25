@@ -34,7 +34,8 @@ if [[ $CI_CONTAINER == "true" && $DISTRO == "centos" && "$RELEASE" =~ 8|9 ]] ; t
       # update_build_status "failed" "ceph" $NORMAL_DISTRO $NORMAL_DISTRO_VERSION $NORMAL_ARCH
       # exit 1
     fi
-    # get into $WORKSPACE/$dist/ceph-$cephver, where the copied source tree is
-    cd ${WORKSPACE}/dist/ceph-${cephver}/container
+    cd ${WORKSPACE}
+    # older jobs used a versioned directory; ceph-dev-pipeline uses an unversioned dir.
+    [[ -d ./dist/ceph/container ]] && cd ./dist/ceph/container || cd dist/ceph-${cephver}/container
     CEPH_SHA1=${SHA1} ./build.sh
 fi
