@@ -874,6 +874,7 @@ ceph_build_args_from_flavor() {
         ;;
     crimson)
         CEPH_EXTRA_RPMBUILD_ARGS="--with seastar"
+        CEPH_EXTRA_RPMBUILD_ARGS="${CEPH_EXTRA_RPMBUILD_ARGS} --with crimson"
         CEPH_EXTRA_CMAKE_ARGS+=" -DCMAKE_BUILD_TYPE=Debug"
         DEB_BUILD_PROFILES="pkg.ceph.crimson"
         ;;
@@ -1490,6 +1491,7 @@ setup_rpm_build_deps() {
     case "${FLAVOR}" in
     crimson)
       sed -i -e 's/%bcond_with seastar/%bcond_without seastar/g' $DIR/ceph.spec
+      sed -i -e 's/%bcond_with crimson/%bcond_without crimson/g' $DIR/ceph.spec
         ;;
     jaeger)
       sed -i -e 's/%bcond_with jaeger/%bcond_without jaeger/g' $DIR/ceph.spec
