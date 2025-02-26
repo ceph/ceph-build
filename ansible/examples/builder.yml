@@ -64,10 +64,6 @@
           # jenkins-job-builder job:
           - libyaml-dev
           - jq
-          # ceph-docs job:
-          - doxygen
-          - ditaa
-          - ant
           - tmpreaper
         tmp_cleaner_name: tmpreaper
         tmp_cleaner_args: "--runtime=0 14d /tmp/"
