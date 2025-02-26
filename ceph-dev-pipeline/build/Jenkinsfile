@@ -278,9 +278,23 @@ pipeline {
                     cd dist/ceph
                     ln ../ceph-${env.VERSION}.tar.bz2 .
                     ${bwc_command}
-                    mkdir -p dist/ceph/rpmbuild/SRPMS/
-                    ln ceph-*.src.rpm ./rpmbuild/SRPMS/
                 """
+                if ( env.OS_PKG_TYPE == "rpm" ) {
+                  sh """#!/bin/bash
+                      set -ex
+                      cd ./dist/ceph
+                      mkdir -p ./rpmbuild/SRPMS/
+                      ln ceph-*.src.rpm ./rpmbuild/SRPMS/
+                  """
+                  sh """#!/bin/bash
+                      . ./scripts/build_utils.sh
+                      export chacra_url=${CHACRA_URL}
+                      export chacra_ref=${BRANCH}
+                      export DISTRO=${OS_NAME}
+                      export RELEASE=${OS_VERSION}
+                      build_ceph_release_rpm ${WORKSPACE}/dist/ceph/rpmbuild true
+                  """
+                }
               }
             }
             post {
