@@ -123,17 +123,18 @@ pipeline {
           stage("copy artifacts") {
             steps {
               script {
-                if ( env.CI_COMPILE == "true" ) {
-                  env.ARTIFACT_FILTER = "dist/**"
-                } else {
-                  env.ARTIFACT_FILTER = "dist/sha1,dist/version,dist/other_envvars,dist/ceph_*.orig.tar.gz"
+                def artifact_filter = "dist/sha1,dist/version,dist/other_envvars,dist/ceph-*.tar.bz2"
+                def os = get_os_info(env.DIST)
+                if ( env.CI_COMPILE && os.pkg_type == "deb" ) {
+                  artifact_filter += ",dist/ceph_*.orig.tar.gz,dist/ceph_*.diff.gz,dist/ceph_*.dsc"
                 }
+                println artifact_filter
+                copyArtifacts(
+                  projectName: "ceph-dev-new-setup",
+                  selector: specific(buildNumber: env.SETUP_BUILD_ID),
+                  filter: artifact_filter,
+                )
               }
-              copyArtifacts(
-                projectName: "ceph-dev-new-setup",
-                selector: specific(buildNumber: env.SETUP_BUILD_ID),
-                filter: env.ARTIFACT_FILTER,
-              )
               script {
                 def sha1_props = readProperties file: "${WORKSPACE}/dist/sha1"
                 env.SHA1 = sha1_props.SHA1
