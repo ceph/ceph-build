@@ -112,11 +112,11 @@ pipeline {
           stage("copy artifacts") {
             steps {
               script {
-                if ( env.CI_COMPILE == "true" ) {
-                  env.ARTIFACT_FILTER = "dist/**"
-                } else {
-                  env.ARTIFACT_FILTER = "dist/sha1,dist/version,dist/other_envvars,dist/ceph_*.orig.tar.gz"
+                env.ARTIFACT_FILTER = "dist/sha1,dist/version,dist/other_envvars,dist/ceph-*.tar.bz2"
+                if ( env.CI_COMPILE && env.OS_PKG_TYPE == "deb" ) {
+                  env.ARTIFACT_FILTER += ",dist/ceph_*.orig.tar.gz,dist/ceph_*.diff.gz,dist/ceph_*.dsc"
                 }
+                println env.ARTIFACT_FILTER
               }
               copyArtifacts(
                 projectName: "ceph-dev-new-setup",
