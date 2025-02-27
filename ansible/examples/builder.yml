@@ -64,11 +64,8 @@
           # jenkins-job-builder job:
           - libyaml-dev
           - jq
-          # ceph-docs job:
-          - doxygen
-          - ditaa
-          - ant
           - tmpreaper
+          - podman
         tmp_cleaner_name: tmpreaper
         tmp_cleaner_args: "--runtime=0 14d /tmp/"
       when: ansible_os_family == "Debian"
@@ -489,6 +486,43 @@
         state: latest
         update_cache: yes
       when: ansible_os_family == "Suse"
+
+    ## PODMAN TASKS
+    - name: Check if jenkins-build exists in /etc/subuid
+      command: grep '^jenkins-build:' /etc/subuid
+      register: subuid_check
+      ignore_errors: yes
+      changed_when: false
+
+    - name: Check if jenkins-build exists in /etc/subgid
+      command: grep '^jenkins-build:' /etc/subgid
+      register: subgid_check
+      ignore_errors: yes
+      changed_when: false
+
+    - name: Find highest used subuid
+      command: "awk -F: '{print $2+$3}' /etc/subuid | sort -n | tail -1"
+      register: highest_subuid
+      when: subuid_check.rc != 0 or subgid_check.rc != 0
+      changed_when: false
+
+    - name: Set next available UID range
+      set_fact:
+        new_uid: "{{ (highest_subuid.stdout | int + 1) if highest_subuid is defined else 100000 }}"
+
+    - name: Add jenkins-build to /etc/subuid
+      lineinfile:
+        path: /etc/subuid
+        line: "jenkins-build:{{ new_uid }}:65536"
+        create: yes
+      when: subuid_check.rc != 0
+
+    - name: Add jenkins-build to /etc/subgid
+      lineinfile:
+        path: /etc/subgid
+        line: "jenkins-build:{{ new_uid }}:65536"
+        create: yes
+      when: subgid_check.rc != 0
 
     ## JENKINS USER TASKS
     - set_fact:
