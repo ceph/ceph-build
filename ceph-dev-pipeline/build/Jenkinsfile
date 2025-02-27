@@ -290,7 +290,7 @@ pipeline {
                       export chacra_url=${CHACRA_URL}
                       export chacra_ref=${BRANCH}
                       . ./scripts/build_utils.sh
-                      build_ceph_release_rpm ./dist/ceph/rpmbuild true
+                      build_ceph_release_rpm ${WORKSPACE}/dist/ceph/rpmbuild true
                   """
                 }
               }
