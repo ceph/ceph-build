@@ -282,8 +282,8 @@ pipeline {
                 if ( env.OS_PKG_TYPE == "rpm" ) {
                   sh """#!/bin/bash
                       set -ex
-                      cd dist/ceph
-                      mkdir -p dist/ceph/rpmbuild/SRPMS/
+                      cd ./dist/ceph
+                      mkdir -p ./rpmbuild/SRPMS/
                       ln ceph-*.src.rpm ./rpmbuild/SRPMS/
                   """
                   sh """#!/bin/bash
