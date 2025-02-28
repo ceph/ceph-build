@@ -501,9 +501,9 @@
       changed_when: false
 
     - name: Find highest used subuid
-      command: "awk -F: '{print $2+$3}' /etc/subuid | sort -n | tail -1"
+      shell: "awk -F: '{print $2+$3}' /etc/subuid | sort -n | tail -1"
       register: highest_subuid
-      when: subuid_check.rc != 0 or subgid_check.rc != 0
+      when: subuid_check.rc == 0 or subgid_check.rc == 0
       changed_when: false
 
     - name: Set next available UID range
