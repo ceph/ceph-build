@@ -201,6 +201,7 @@ pipeline {
           stage("builder container") {
             environment {
               CONTAINER_REPO_CREDS = credentials('quay-ceph-io-ceph-ci')
+              DOCKER_HUB_CREDS = credentials('dgalloway-docker-hub')
             }
             when {
               environment name: 'CI_COMPILE', value: 'true'
@@ -212,6 +213,7 @@ pipeline {
                 sh '''#!/bin/bash
                   set -ex
                   podman login -u ${CONTAINER_REPO_CREDS_USR} -p ${CONTAINER_REPO_CREDS_PSW} ${CONTAINER_REPO_HOSTNAME}/${CONTAINER_REPO_ORGANIZATION}
+                  podman login -u ${DOCKER_HUB_CREDS_USR} -p ${DOCKER_HUB_CREDS_PSW} docker.io
                 '''
                 def os = get_os_info(env.DIST)
                 sh """#!/bin/bash
