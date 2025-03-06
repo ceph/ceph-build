@@ -219,6 +219,7 @@ pipeline {
                 sh """#!/bin/bash
                   set -ex
                   cd dist/ceph
+                  sed -i'' -e 's/\\(apt-get install .*\\)/\\1 curl/' ./src/script/buildcontainer-setup.sh
                   python3 src/script/build-with-container.py --image-repo=${env.CEPH_BUILDER_IMAGE} --tag=${ceph_builder_tag} -d ${os.name}${os.version} -e build-container
                   podman push ${env.CEPH_BUILDER_IMAGE}:${ceph_builder_tag}
                 """
