@@ -362,6 +362,8 @@ pipeline {
                   sh '''#!/bin/bash
                     echo "SCCACHE=$SCCACHE" >> .env
                     echo "SCCACHE_CONF=/ceph/sccache.conf" >> .env
+                    echo "SCCACHE_ERROR_LOG=/ceph/sccache_log.txt" >> .env
+                    echo "SCCACHE_LOG=debug" >> .env
                     echo "AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID" >> .env
                     echo "AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY" >> .env
                   '''
@@ -411,6 +413,20 @@ pipeline {
               }
             }
             post {
+              always {
+                script {
+                  sh """
+                    if [ -f "${env.WORKSPACE}/dist/ceph/sccache_log.txt" ]; then
+                      ln dist/ceph/sccache_log.txt sccache_log_${env.DIST}_${env.ARCH}.txt
+                    fi
+                  """
+                  archiveArtifacts(
+                    artifacts: 'sccache_log*.txt',
+                    allowEmptyArchive: true,
+                    fingerprint: true,
+                  )
+                }
+              }
               unsuccessful {
                 script {
                   def os = get_os_info(env.DIST)
