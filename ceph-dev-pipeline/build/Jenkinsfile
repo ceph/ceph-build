@@ -64,7 +64,7 @@ pipeline {
     stage("parallel build") {
       matrix {
         agent {
-          label "${DIST}&&${ARCH}&&${base_node_label}"
+          label "centos9&&${ARCH}&&${base_node_label}"
         }
         when {
           beforeAgent true
