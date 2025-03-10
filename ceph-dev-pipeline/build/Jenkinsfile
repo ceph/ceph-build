@@ -220,7 +220,7 @@ pipeline {
                   set -ex
                   cd dist/ceph
                   sed -i'' -e 's/\\(apt-get install .*\\)/\\1 curl/' ./src/script/buildcontainer-setup.sh
-                  python3 src/script/build-with-container.py --image-repo=${env.CEPH_BUILDER_IMAGE} --tag=${ceph_builder_tag} -d ${os.name}${os.version} -e build-container
+                  python3 src/script/build-with-container.py --image-repo=${env.CEPH_BUILDER_IMAGE} --tag=${ceph_builder_tag} -d ${DIST} -e build-container
                   podman push ${env.CEPH_BUILDER_IMAGE}:${ceph_builder_tag}
                 """
               }
@@ -278,7 +278,7 @@ pipeline {
                   bwc_cmd_sccache_flags = "--env-file=${env.WORKSPACE}/.env";
                 }
                 def ceph_builder_tag = "${env.BRANCH}.${env.DIST}.${ARCH}"
-                def bwc_command = "python3 src/script/build-with-container.py ${bwc_cmd_sccache_flags} --image-repo=${env.CEPH_BUILDER_IMAGE} --tag=${ceph_builder_tag} -d ${os.name}${os.version} --ceph-version ${env.VERSION}"
+                def bwc_command = "python3 src/script/build-with-container.py ${bwc_cmd_sccache_flags} --image-repo=${env.CEPH_BUILDER_IMAGE} --tag=${ceph_builder_tag} -d ${DIST} --ceph-version ${env.VERSION}"
                 if ( os.pkg_type == "deb" ) {
                   def sccache_flag = "-DWITH_SCCACHE=ON"
                   if ( env.SCCACHE == "true" && ! env.CEPH_EXTRA_CMAKE_ARGS.contains(sccache_flag) ) {
