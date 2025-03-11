@@ -69,7 +69,7 @@
               export WITH_SEASTAR=true
               # TODO use clang-10 on ubuntu/focal
               timeout 7200 src/script/run-make.sh \
-                --cmake-args "-DCMAKE_CXX_COMPILER=$cxx_compiler -DCMAKE_C_COMPILER=$c_compiler -DCMAKE_BUILD_TYPE=Release -DWITH_SEASTAR=ON -DWITH_TESTS=OFF" \
+                --cmake-args "-DCMAKE_CXX_COMPILER=$cxx_compiler -DCMAKE_C_COMPILER=$c_compiler -DCMAKE_BUILD_TYPE=Release -DWITH_SEASTAR=ON -DWITH_CRIMSON=ON -DWITH_TESTS=OFF" \
                 vstart-base crimson-osd
               src/script/run-cbt.sh --build-dir $PWD/build --source-dir $PWD --cbt ${{WORKSPACE}}/cbt -a $archive_dir src/test/crimson/cbt/radosbench_4K_read.yaml
           else

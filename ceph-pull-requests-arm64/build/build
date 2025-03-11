@@ -12,6 +12,7 @@ n_test_jobs=${n_build_jobs}
 export CHECK_MAKEOPTS="-j${n_test_jobs}"
 export BUILD_MAKEOPTS="-j${n_build_jobs}"
 export WITH_SEASTAR=true
+export WITH_CRIMSON=true
 export WITH_RBD_RWL=true
 timeout 4h ./run-make-check.sh
 sleep 5
