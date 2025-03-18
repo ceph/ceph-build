@@ -13,6 +13,9 @@ function create_venv_dir() {
 function release_from_version() {
     local ver=$1
     case $ver in
+    20.*)
+        rel="tentacle"
+        ;;
     19.*)
         rel="squid"
         ;;
