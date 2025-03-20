@@ -35,7 +35,7 @@ cd $WORKSPACE
 
 source $WORKSPACE/teuthology/virtualenv/bin/activate
 
-allhosts=$(teuthology-lock --brief | grep "Locked to capture FOG image for Jenkins build $BUILD_NUMBER" | cut -d '.' -f1 | tr "\n" " ")
+allhosts=$(teuthology-lock --brief -a --status down | grep "Locked to capture FOG image for Jenkins build $BUILD_NUMBER" | cut -d '.' -f1 | tr "\n" " ")
 # Set DHCP server back to FOG
 for machine in $allhosts; do
   ssh ubuntu@store01.front.sepia.ceph.com "sudo /usr/local/sbin/set-next-server.sh $machine fog"
@@ -64,7 +64,7 @@ fi
 if [ "$use_teuthologylock" = true ]; then
   # Unlock all machines after all capture images are finished
   for host in $allhosts; do
-    teuthology-lock --unlock $host
+    teuthology-lock --update --status up $host
   done
 else
   deactivate
