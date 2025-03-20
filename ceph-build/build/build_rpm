@@ -60,25 +60,6 @@ EOF
     $VENV/chacractl repo update ${chacra_repo_endpoint}
 fi
 
-# XXX perhaps use job parameters instead of literals; then
-# later stages can also use them to compare etc.
-if [[ $DISTRO == "centos" && "$RELEASE" =~ 8|9 ]] ; then
-    loop=0
-    ready=false
-    while ((loop < 15)); do
-      curl -s "https://shaman.ceph.com/api/search/?project=ceph&distros=centos/${RELEASE}/${ARCH}&sha1=${SHA1}&ref=${BRANCH}&flavor=${FLAVOR}" > shaman.status
-      if [[ ($(jq -r '.[0].extra.build_url' < shaman.status) == ${BUILD_URL}) && ($(jq -r '.[0].status' < shaman.status) == 'ready') ]] ; then ready=true; break; fi
-      ((loop = loop + 1))
-      sleep 60
-    done
-
-    if [[ "$ready" == "false" ]] ; then
-      echo "FAIL: timed out waiting for shaman repo to be built:  https://shaman.ceph.com/api/repos/${chacra_endpoint}/flavors/${FLAVOR}/"
-      # don't fail the build here on purpose
-      # update_build_status "failed" "ceph" $NORMAL_DISTRO $NORMAL_DISTRO_VERSION $NORMAL_ARCH
-      # exit 1
-    fi
-    # get into $WORKSPACE/$dist/ceph-$cephver, where the copied source tree is
-    cd ${WORKSPACE}/dist/ceph-${cephver}/container
-    CEPH_SHA1=${SHA1} ./build.sh
-fi
+# unlike ceph-dev-*, ceph-build can't really build containers inline; the containers need
+# to be built from signed packages, and the signing is a semi-manual process when a build
+# is vetted. See the Ceph Release Process documentation on docs.ceph.com.
