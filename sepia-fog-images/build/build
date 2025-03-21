@@ -110,18 +110,17 @@ if [ "$use_teuthologylock" = true ]; then
   numdistros=$(echo $DISTROS | wc -w)
   # Keep trying to lock machines
   for type in $MACHINETYPES; do
-    numlocked=$(teuthology-lock --brief --machine-type $type | grep "Locked to capture FOG image for Jenkins build $BUILD_NUMBER" | wc -l)
+    numlocked=$(teuthology-lock --brief -a --machine-type $type --status down | grep "Locked to capture FOG image for Jenkins build $BUILD_NUMBER" | wc -l)
     currentretries=0
     while [ $numlocked -lt $numdistros ]; do
-      # Lock one at a time since we have a better shot of getting one instead of all at once.
-      # Setting the BUILD_NUMBER in the description makes sure each Jenkins job uses the right machines.
-      # This is useful for when a job is aborted and another is started while the previous job's machines are debugged/cleaned up.
-      teuthology-lock --lock-many 1 --machine-type $type --desc "Locked to capture FOG image for Jenkins build $BUILD_NUMBER"
+      # We have to mark the system down and set its desc instead of locking because locking attempts to reimage using FOG.
+      # This could be worked around by copying /etc/teuthology.yaml to /home/jenkins-build/.teuthology.yaml and removing `machine_types:`
+      teuthology-lock --update --status down --desc "Locked to capture FOG image for Jenkins build $BUILD_NUMBER" $(teuthology-lock --brief -a --machine-type $type --status up --locked false | head -n 1 | awk '{ print $1 }')
       # Sleep for a bit so we don't hammer the lock server
       if [ $? -ne 0 ]; then
         sleep 5
       fi
-      numlocked=$(teuthology-lock --brief --machine-type $type | grep "Locked to capture FOG image for Jenkins build $BUILD_NUMBER" | wc -l)
+      numlocked=$(teuthology-lock --brief -a --machine-type $type --status down | grep "Locked to capture FOG image for Jenkins build $BUILD_NUMBER" | wc -l)
       ((++currentretries))
       # Retry for 1hr
       funRetry $currentretries 720
@@ -130,7 +129,7 @@ if [ "$use_teuthologylock" = true ]; then
 
   set -e
 
-  allhosts=$(teuthology-lock --brief | grep "Locked to capture FOG image for Jenkins build $BUILD_NUMBER" | cut -d '.' -f1 | tr "\n" " ")
+  allhosts=$(teuthology-lock --brief -a --status down | grep "Locked to capture FOG image for Jenkins build $BUILD_NUMBER" | cut -d '.' -f1 | tr "\n" " ")
 else
   allhosts="$DEFINEDHOSTS"
   set -e
@@ -150,7 +149,7 @@ fogcaptureid=$(curl -f -s -k -H "fog-api-token: ${FOG_API_TOKEN}" -H "fog-user-t
 # Set cobbler profile and FOG image ID for each locked machine
 for type in $MACHINETYPES; do
   if [ "$use_teuthologylock" = true ]; then
-    lockedhosts=$(teuthology-lock --brief --machine-type $type | grep "Locked to capture FOG image for Jenkins build $BUILD_NUMBER" | cut -d '.' -f1 | sort)
+    lockedhosts=$(teuthology-lock --brief -a --machine-type $type --status down | grep "Locked to capture FOG image for Jenkins build $BUILD_NUMBER" | cut -d '.' -f1 | sort)
   else
     lockedhosts=$(echo $DEFINEDHOSTS | grep -o "\w*${type}\w*")
   fi
@@ -273,7 +272,7 @@ fi
 if [ "$use_teuthologylock" = true ]; then
   # Unlock all machines after all capture images are finished
   for host in $allhosts; do
-    teuthology-lock --unlock $host
+    teuthology-lock --update --status up $host
   done
 else
   deactivate
