@@ -62,7 +62,7 @@
             - condition-kind: and
               condition-operands:
                 - condition-kind: regex-match
-                  regex: (reef|squid)
+                  regex: (reef|squid|tentacle)
                   label: '${{BRANCH}}'
                 - condition-kind: regex-match
                   regex: (focal|jammy|centos9|buster|bullseye|bookworm)

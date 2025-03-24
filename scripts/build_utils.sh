@@ -13,6 +13,9 @@ function create_venv_dir() {
 function release_from_version() {
     local ver=$1
     case $ver in
+    20.*)
+        rel="tentacle"
+        ;;
     19.*)
         rel="squid"
         ;;
@@ -1180,7 +1183,7 @@ start_tox() {
         # dev runs will need to be set to the release
         # that matches what the current ceph main
         # branch is at
-        local release="squid"
+        local release="tentacle"
     fi
     TOX_RUN_ENV=("timeout 3h")
     if [ -n "$ceph_docker_image_tag" ]; then
