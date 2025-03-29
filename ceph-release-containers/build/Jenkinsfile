@@ -1,0 +1,105 @@
+// vim: ts=2 sw=2 expandtab
+ceph_repo = "https://github.com/ceph/ceph.git"
+
+pipeline {
+  agent any
+  stages {
+    stage("build arch-specific images") {
+      matrix {
+        axes {
+          axis {
+            name 'ARCH'
+            values 'x86_64', 'arm64'
+          }
+        }
+        stages {
+          stage("arch-specific image") {
+            agent {
+              label "centos9&&${ARCH}"
+            }
+            environment {
+              // set up env the way build.sh expects it
+              // BRANCH, VERSION, REMOVE_LOCAL_IMAGES, NO_PUSH already set
+              FLAVOR = 'default'
+              CEPH_SHA1 = "${SHA1}"
+              ARCH = "${ARCH}"
+              CONTAINER_REPO_HOSTNAME = 'quay.ceph.io'
+              CONTAINER_REPO_ORGANIZATION = 'ceph'
+              CONTAINER_REPO_CREDS = credentials('quay.ceph.io-ceph-prerelease')
+              DOWNLOAD_PRERELEASE_CREDS = credentials('download.ceph.com-prerelease')
+              // keep all the podman/skopeo auths in the same place
+              REGISTRY_AUTH_FILE = '/home/jenkins-build/manifest.auth.json'
+              // the one variant value.  If I try to do this with conditional code in the steps,
+              // manipulating 'env.CONTAINER_REPO', it appears as if the env instance is somehow
+              // shared between the two executors, *even across different builders*.  Yes, I know
+              // it sounds nuts.  I don't know how it does it, but I've got a test case that shows
+              // one builder setting it, another builder setting it, and the first builder getting
+              // the second builder's value.  *I KNOW*.
+              //
+              // this, however, seems to set it privately to the builder.
+              CONTAINER_REPO = "${(env.ARCH == 'x86_64') ? 'prerelease-amd64' : 'prerelease-arm64'}"
+            }
+            steps {
+              buildDescription "${env.CONTAINER_REPO} image build"
+              dir('ceph') {
+                checkout scmGit(
+                  branches: [[ name: env.SHA1 ]],
+                  userRemoteConfigs: [[ url: ceph_repo ]],
+                  sparseCheckout: [[ path: 'container' ]],
+                  extensions: [
+                    [ $class: 'WipeWorkspace' ],
+                  ],
+                )
+              }
+              dir('ceph') {
+                script {
+                  // translate to the names build.sh wants
+                  env.PRERELEASE_USERNAME = env.DOWNLOAD_PRERELEASE_CREDS_USR
+                  env.PRERELEASE_PASSWORD = env.DOWNLOAD_PRERELEASE_CREDS_PSW
+                  env.CONTAINER_REPO_USERNAME = env.CONTAINER_REPO_CREDS_USR
+                  env.CONTAINER_REPO_PASSWORD = env.CONTAINER_REPO_CREDS_PSW
+                  sh '''#!/bin/bash -ex
+                    podman login -u ${CONTAINER_REPO_CREDS_USR} -p ${CONTAINER_REPO_CREDS_PSW} ${CONTAINER_REPO_HOSTNAME}/${CONTAINER_REPO_ORGANIZATION}
+                    cd container;
+                    ./build.sh
+                  '''
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+    stage("make manifest-list image") {
+      agent {
+        label "centos9"
+      }
+      environment {
+        CONTAINER_REPO_HOSTNAME = 'quay.ceph.io'
+        CONTAINER_REPO_ORGANIZATION = 'ceph'
+        CONTAINER_REPO_CREDS = credentials('quay.ceph.io-ceph-prerelease')
+        REGISTRY_AUTH_FILE = '/home/jenkins-build/manifest.auth.json'
+      }
+      steps {
+        dir('ceph') {
+          checkout scmGit(
+            branches: [[ name: env.SHA1 ]],
+            userRemoteConfigs: [[ url: ceph_repo ]],
+            sparseCheckout: [[ path: 'container' ]],
+            extensions: [
+              [ $class: 'WipeWorkspace' ],
+            ],
+          )
+          script {
+            sh '''#!/bin/bash -ex
+              podman login -u ${CONTAINER_REPO_CREDS_USR} -p ${CONTAINER_REPO_CREDS_PSW} ${CONTAINER_REPO_HOSTNAME}/${CONTAINER_REPO_ORGANIZATION}
+              skopeo login -u ${CONTAINER_REPO_CREDS_USR} -p ${CONTAINER_REPO_CREDS_PSW} ${CONTAINER_REPO_HOSTNAME}/${CONTAINER_REPO_ORGANIZATION}
+              cd container;
+              ./make-manifest-list.py
+              '''
+          }
+        }
+      }
+    }
+  }
+}

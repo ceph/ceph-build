@@ -1,0 +1,72 @@
+- job:
+    name: ceph-release-containers
+    description: Build ceph release containers from download.ceph.com and push to quay.ceph.io/prerelease*
+    project-type: pipeline
+    quiet-period: 1
+    concurrent: true
+    pipeline-scm:
+      scm:
+        - git:
+            url: https://github.com/ceph/ceph-build
+            branches:
+              - main
+            shallow-clone: true
+            submodule:
+              disable: true
+            wipe-workspace: true
+      script-path: ceph-release-containers/build/Jenkinsfile
+      lightweight-checkout: true
+      do-not-fetch-tags: true
+
+    parameters:
+      - string:
+          name: BRANCH
+          description: "The git branch (or tag) to build"
+          default: main
+
+      - string:
+          name: SHA1
+          description: "SHA1 of the commit to build"
+
+      - string:
+          name: VERSION
+          description: "Ceph version string (e.g. 19.2.0)"
+
+      - string:
+          name: NO_PUSH
+          description: "Set to true if you want to skip pushing images to container repo"
+          default: false
+
+      - string:
+          name: REMOVE_LOCAL_IMAGES
+          description: "Set to false if you want to keep local container images on the build host (for debug)"
+          default: false
+
+      - string:
+          name: CONTAINER_REPO_HOSTNAME
+          description: "FQDN of prerelease container repo server"
+          default: "quay.ceph.io"
+
+      - string:
+          name: CONTAINER_REPO_ORGANIZATION
+          description: "Name of container repo organization (e.g. 'ceph-ci')"
+          default: "ceph"
+
+      - string:
+          name: CEPH_BUILD_BRANCH
+          description: "Use the Jenkinsfile from this ceph-build branch"
+          default: main
+
+    wrappers:
+      - inject-passwords:
+          global: true
+          mask-password-params: true
+      - credentials-binding:
+          - username-password-separated:
+              credential-id: quay.ceph.io-ceph-prerelease
+              username: PRERELEASE_CONTAINER_REPO_USERNAME
+              password: PRERELEASE_CONTAINER_REPO_PASSWORD
+          - username-password-separated:
+              credential-id: download.ceph.com-prerelease
+              username: PRERELEASE_DOWNLOAD_CEPH_COM_USERNAME
+              password: PRERELEASE_DOWNLOAD_CEPH_COM_PASSWORD
