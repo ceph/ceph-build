@@ -2,6 +2,7 @@
     name: ceph-api-nightly
     ceph_branch:
       - main
+      - tentacle
       - squid
       - reef
     test_suite:

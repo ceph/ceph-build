@@ -12,6 +12,7 @@
       - dmcrypt
     ceph_branch:
       - main
+      - tentacle
       - squid
       - reef
 

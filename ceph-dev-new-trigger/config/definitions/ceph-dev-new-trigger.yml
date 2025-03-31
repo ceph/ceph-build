@@ -81,12 +81,38 @@
                     DISTROS=centos9
                     FLAVOR=crimson
                     ARCHS=x86_64
+      # build tentacle on:
+      # default: jammy centos9 windows
+      # crimson: centos9
+      - conditional-step:
+          condition-kind: regex-match
+          regex: .*tentacle.*
+          label: '${GIT_BRANCH}'
+          on-evaluation-failure: dont-run
+          steps:
+            - shell:
+                !include-raw:
+                - ../../../scripts/build_utils.sh
+                - ../../build/notify
+            - trigger-builds:
+                - project: 'ceph-dev-new'
+                  predefined-parameters: |
+                    BRANCH=${GIT_BRANCH}
+                    FORCE=True
+                    DISTROS=jammy centos9 windows
+                - project: 'ceph-dev-new'
+                  predefined-parameters: |
+                    BRANCH=${GIT_BRANCH}
+                    FORCE=True
+                    DISTROS=centos9
+                    FLAVOR=crimson
+                    ARCHS=x86_64
       # If no release name is found in branch, build on all possible distro/flavor combos (except xenial, bionic, focal).
       # regex matching and 'on-evaluation-failure: run' doesn't work here so triple negative it is.
       - conditional-step:
           condition-kind: shell
           condition-command: |
-            echo "${{GIT_BRANCH}}" | grep -v '\(reef\|squid\|centos9-only\|crimson-only\|jaeger\)'
+            echo "${{GIT_BRANCH}}" | grep -v '\(reef\|squid\|tentacle\|centos9-only\|crimson-only\|jaeger\)'
           on-evaluation-failure: dont-run
           steps:
             - shell:
