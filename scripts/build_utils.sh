@@ -131,7 +131,7 @@ install_python_packages_no_binary () {
     # the virtualenv exists it will get re-used since this function can be used
     # along with install_python_packages
     #
-    # Usage (with pip==20.3.4 [the default]):
+    # Usage (with pip==24.0 [the default]):
     #
     #   to_install=( "ansible" "chacractl>=0.0.21" )
     #   install_python_packages_no_binary $TEMPVENV "to_install[@]"
@@ -152,10 +152,6 @@ install_python_packages_no_binary () {
     PIP_SDIST_INDEX="$HOME/.cache/pip"
     mkdir -p $PIP_SDIST_INDEX
 
-    # We started pinning pip to 10.0.0 as the default to prevent mismatching
-    # versions on non-ephemeral Jenkins builders.  Some jobs require different or latest
-    # pip though so these if statements allow for that.
-    # Updated to 20.3.4 in March 2021 because 10.0.0 is just too old.
     if [ "$2" == "latest" ]; then
         echo "Ensuring latest pip is installed"
         $venv/pip install -U pip
@@ -165,8 +161,8 @@ install_python_packages_no_binary () {
     else
         # This is the default for most jobs.
         # See ff01d2c5 and fea10f52
-        echo "Installing pip 20.3.4"
-        $venv/pip install "pip==20.3.4"
+        echo "Installing pip 24.0"
+        $venv/pip install "pip==24.0"
     fi
 
     echo "Ensuring latest wheel is installed"
@@ -193,7 +189,7 @@ install_python_packages () {
     # Use this function to create a virtualenv and install
     # python packages. Pass a list of package names.
     #
-    # Usage (with pip 20.3.4 [the default]):
+    # Usage (with pip 24.0 [the default]):
     #
     #   to_install=( "ansible" "chacractl>=0.0.21" )
     #   install_python_packages $TEMPVENV "to_install[@]"
@@ -218,10 +214,6 @@ install_python_packages () {
     # See https://github.com/ceph/ceph/pull/42811
     export LC_ALL=en_US.UTF-8
 
-    # We started pinning pip to 10.0.0 as the default to prevent mismatching
-    # versions on non-ephemeral Jenkins builders.  Some jobs require different or latest
-    # pip though so these if statements allow for that.
-    # Updated to 20.3.4 in March 2021 because 10.0.0 is just too old.
     if [ "$2" == "latest" ]; then
         echo "Ensuring latest pip is installed"
         $venv/pip install -U pip
@@ -231,8 +223,8 @@ install_python_packages () {
     else
         # This is the default for most jobs.
         # See ff01d2c5 and fea10f52
-        echo "Installing pip 20.3.4"
-        $venv/pip install "pip==20.3.4"
+        echo "Installing pip 24.0"
+        $venv/pip install "pip==24.0"
     fi
 
     echo "Ensuring latest wheel is installed"
