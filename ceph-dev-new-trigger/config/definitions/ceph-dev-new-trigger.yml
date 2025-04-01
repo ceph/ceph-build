@@ -82,7 +82,7 @@
                     FLAVOR=crimson
                     ARCHS=x86_64
       # build tentacle on:
-      # default: jammy centos9 windows
+      # default: noble jammy centos9 windows
       # crimson: centos9
       - conditional-step:
           condition-kind: regex-match
@@ -99,7 +99,7 @@
                   predefined-parameters: |
                     BRANCH=${GIT_BRANCH}
                     FORCE=True
-                    DISTROS=jammy centos9 windows
+                    DISTROS=noble jammy centos9 windows
                 - project: 'ceph-dev-new'
                   predefined-parameters: |
                     BRANCH=${GIT_BRANCH}
@@ -124,7 +124,7 @@
                   predefined-parameters: |
                     BRANCH=${{GIT_BRANCH}}
                     FORCE=True
-                    DISTROS=jammy centos9 windows
+                    DISTROS=noble jammy centos9 windows
             - trigger-builds:
                 - project: 'ceph-dev-new'
                   predefined-parameters: |

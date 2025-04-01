@@ -441,6 +441,10 @@ get_distro_and_target() {
             DIST=wheezy
             DISTRO="debian"
             ;;
+        noble*)
+            DIST=noble
+            DISTRO="ubuntu"
+            ;;
         jammy*)
             DIST=jammy
             DISTRO="ubuntu"
@@ -556,6 +560,7 @@ setup_pbuilder() {
     [ "$DIST" = "bionic" ] && os="ubuntu"
     [ "$DIST" = "focal" ] && os="ubuntu"
     [ "$DIST" = "jammy" ] && os="ubuntu"
+    [ "$DIST" = "noble" ] && os="ubuntu"
 
     if [ $os = "debian" ]; then
         # this mirror seems to have been decommissioned.
@@ -833,6 +838,7 @@ get_bptag() {
     [ "$dist" = "wheezy" ] && dver="~bpo70+1"
     [ "$dist" = "squeeze" ] && dver="~bpo60+1"
     [ "$dist" = "lenny" ] && dver="~bpo50+1"
+    [ "$dist" = "noble" ] && dver="$dist"
     [ "$dist" = "jammy" ] && dver="$dist"
     [ "$dist" = "focal" ] && dver="$dist"
     [ "$dist" = "bionic" ] && dver="$dist"
