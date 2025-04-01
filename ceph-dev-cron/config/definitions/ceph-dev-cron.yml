@@ -96,22 +96,22 @@
       - conditional-step:
           condition-kind: regex-match
           regex: .*tentacle.*
-          label: '${GIT_BRANCH}'
+          label: '${{GIT_BRANCH}}'
           on-evaluation-failure: dont-run
           steps:
             - shell:
-                !include-raw:
+                !include-raw-verbatim:
                 - ../../../scripts/build_utils.sh
                 - ../../build/notify
             - trigger-builds:
                 - project: 'ceph-dev'
                   predefined-parameters: |
-                    BRANCH=${GIT_BRANCH}
+                    BRANCH=${{GIT_BRANCH}}
                     FORCE=True
                     DISTROS=jammy centos9 windows
                 - project: 'ceph-dev'
                   predefined-parameters: |
-                    BRANCH=${GIT_BRANCH}
+                    BRANCH=${{GIT_BRANCH}}
                     FORCE=True
                     DISTROS=centos9
                     FLAVOR=crimson
