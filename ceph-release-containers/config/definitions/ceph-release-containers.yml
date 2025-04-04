@@ -34,13 +34,13 @@
 
       - string:
           name: NO_PUSH
-          description: "Set to true if you want to skip pushing images to container repo"
-          default: false
+          description: "Set to non-empty if you want to skip pushing images to container repo"
+          default:
 
       - string:
           name: REMOVE_LOCAL_IMAGES
           description: "Set to false if you want to keep local container images on the build host (for debug)"
-          default: false
+          default: true
 
       - string:
           name: CONTAINER_REPO_HOSTNAME
