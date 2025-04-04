@@ -8,7 +8,6 @@ if [[ "$DOCS_ONLY" = true || "$CONTAINER_ONLY" = true ]]; then
 fi
 
 export NPROC=$(nproc)
-export WITH_SEASTAR=true
 export WITH_CRIMSON=true
 export WITH_RBD_RWL=true
 timeout 3h ./run-make-check.sh
