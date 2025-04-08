@@ -55,7 +55,6 @@
                     DISTROS=focal centos8 leap15
       # build reef on:
       # default: jammy focal centos8 centos9
-      # crimson: centos9
       - conditional-step:
           condition-kind: regex-match
           regex: .*reef.*
@@ -72,15 +71,8 @@
                     BRANCH=${GIT_BRANCH}
                     FORCE=True
                     DISTROS=jammy focal centos8 centos9
-                - project: 'ceph-dev'
-                  predefined-parameters: |
-                    BRANCH=${GIT_BRANCH}
-                    FORCE=True
-                    DISTROS=centos8 centos9
-                    FLAVOR=crimson
       # build squid on:
       # default: jammy focal centos8 centos9
-      # crimson: centos8 centos9
       - conditional-step:
           condition-kind: regex-match
           regex: .*squid.*
@@ -97,12 +89,6 @@
                     BRANCH=${GIT_BRANCH}
                     FORCE=True
                     DISTROS=jammy focal centos8 centos9
-                - project: 'ceph-dev'
-                  predefined-parameters: |
-                    BRANCH=${GIT_BRANCH}
-                    FORCE=True
-                    DISTROS=centos9
-                    FLAVOR=crimson
       # build tentacle on:
       # default: jammy focal centos8 centos9
       # crimson: centos8 centos9
