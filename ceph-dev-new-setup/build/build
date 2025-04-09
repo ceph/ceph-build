@@ -106,7 +106,14 @@ srcdir=`pwd`
 if command -v podman; then
     PODMAN=podman
     PODMAN_STORAGE_DIR="$HOME/.local/share/containers/storage/"
-    test -d $PODMAN_STORAGE_DIR && sudo chgrp -R $(groups | cut -d' ' -f1) $PODMAN_STORAGE_DIR
+    if [ -d $PODMAN_STORAGE_DIR ]; then
+        sudo chgrp -R $(groups | cut -d' ' -f1) $PODMAN_STORAGE_DIR
+        MAX_STORAGE_SIZE=$(echo '50 * 1000 ^ 3')
+        if [ $(du -s $PODMAN_STORAGE_DIR | cut -d'    ' -f1) -ge $MAX_STORAGE_SIZE ]; then
+            time $PODMAN system prune --force
+            time $PODMAN system check --repair --quick
+        fi
+    fi
 else
     PODMAN="sudo docker"
 fi
