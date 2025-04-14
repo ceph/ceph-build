@@ -1,5 +1,6 @@
 JOB = "ceph-dev-pipeline"
 VALID_PARAMETERS = [
+  "CEPH_BUILD_BRANCH",
   "ARCHS",
   "CI_COMPILE",
   "CI_CONTAINER",
