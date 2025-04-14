@@ -1,0 +1,80 @@
+pipeline {
+  agent {
+    label "huge"
+  }
+  stages {
+    // stage("") {
+    //   steps {
+    //     script {
+    //     }
+    //   }
+    // }
+    stage("setup container runtime") {
+      steps {
+        script {
+          sh './scripts/setup_container_runtime.sh'
+        }
+      }
+    }
+    stage("repository") {
+      steps {
+        dir("ceph") {
+          checkout scmGit(
+            branches: [[name: env.BRANCH]],
+            userRemoteConfigs: [[
+              url: env.CEPH_REPO,
+              credentialsId: 'jenkins-build'
+            ]],
+            extensions: [
+              [$class: 'CleanBeforeCheckout'],
+              [
+                $class: 'CloneOption',
+                shallow: true,
+                depth:   100,
+                timeout: 90
+              ],
+            ],
+          )
+        }
+      }
+    }
+    stage("tarball") {
+      steps {
+        script {
+          switch (env.FLAVOR) {
+            case "default":
+              env.CEPH_EXTRA_RPMBUILD_ARGS="--with tcmalloc"
+              env.CEPH_EXTRA_CMAKE_ARGS+=" -DALLOCATOR=tcmalloc"
+              env.CEPH_EXTRA_CMAKE_ARGS+=" -DWITH_SYSTEM_BOOST=OFF -DWITH_BOOST_VALGRIND=ON"
+              env.DEB_BUILD_PROFILES=""
+              break
+            case "crimson":
+              env.CEPH_EXTRA_RPMBUILD_ARGS="--with seastar"
+              env.CEPH_EXTRA_CMAKE_ARGS+=" -DCMAKE_BUILD_TYPE=Debug"
+              env.DEB_BUILD_PROFILES="pkg.ceph.crimson"
+              break
+            case "jaeger":
+              env.CEPH_EXTRA_RPMBUILD_ARGS="--with jaeger"
+              env.DEB_BUILD_PROFILES="pkg.ceph.jaeger"
+              break
+            default:
+              println "FLAVOR={env.FLAVOR} is invalid"
+              assert false
+          }
+          dir("ceph") {
+            sh 'git fetch --tags https://github.com/ceph/ceph.git'
+            sh '''
+              ../scripts/make_source_dist.sh
+              mv dist ..
+            '''
+          }
+        }
+      }
+    }
+  }
+  post {
+    always {
+      archiveArtifacts artifacts: 'dist/**', fingerprint: true
+    }
+  }
+}
