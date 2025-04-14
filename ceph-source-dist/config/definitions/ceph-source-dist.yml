@@ -1,0 +1,70 @@
+- job:
+    name: ceph-source-dist
+    project-type: pipeline
+    concurrent: true
+    pipeline-scm:
+      scm:
+        - git:
+            url: https://github.com/ceph/ceph-build
+            branches:
+              - ${{CEPH_BUILD_BRANCH}}
+            shallow-clone: true
+            submodule:
+              disable: true
+            wipe-workspace: true
+      script-path: ceph-source-dist/build/Jenkinsfile
+      lightweight-checkout: true
+      do-not-fetch-tags: true
+    properties:
+      - build-discarder:
+          days-to-keep: -1
+          num-to-keep: 100
+          artifact-days-to-keep: -1
+          artifact-num-to-keep: 50
+      - copyartifact:
+          projects: ceph-dev-pipeline,ceph-dev,ceph-dev-build,ceph-dev-new,ceph-dev-new-build
+
+    parameters:
+      - choice:
+          name: CEPH_REPO
+          choices:
+            - git@github.com:ceph/ceph-ci.git
+            - git@github.com:ceph/ceph.git
+            - https://github.com/ceph/ceph-ci
+            - https://github.com/ceph/ceph
+
+      - string:
+          name: BRANCH
+          description: "The Ceph branch to build"
+
+      - choice:
+          name: FLAVOR
+          choices:
+            - default
+            - crimson
+            - jaeger
+
+      - string:
+          name: CEPH_BUILD_BRANCH
+          description: "Use the Jenkinsfile from this ceph-build branch"
+          default: main
+
+    scm:
+      - git:
+          url: ${{CEPH_REPO}}
+          # Use the SSH key attached to the ceph-jenkins GitHub account.
+          credentials-id: "jenkins-build"
+          branches:
+            - $BRANCH
+          timeout: 20
+          skip-tag: true
+          wipe-workspace: true
+
+    wrappers:
+      - inject-passwords:
+          global: true
+          mask-password-params: true
+      - credentials-binding:
+          - text:
+              credential-id: shaman-api-key
+              variable: SHAMAN_API_KEY
