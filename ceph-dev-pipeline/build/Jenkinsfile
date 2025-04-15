@@ -106,6 +106,7 @@ pipeline {
                 println("OS_VERSION=${os.version}")
                 println("OS_VERSION_NAME=${os.version_name}")
               }
+              sh './scripts/setup_container_runtime.sh'
               sh "cat /etc/os-release"
             }
           }
