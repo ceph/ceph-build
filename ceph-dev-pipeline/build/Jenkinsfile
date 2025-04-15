@@ -1,6 +1,6 @@
 ceph_build_repo = "https://github.com/ceph/ceph-build"
 ceph_build_branch = "main"
-base_node_label = "gigantic"
+base_node_label = "(huge || gigantic)"
 ubuntu_releases = [
   "noble": "24.04",
   "jammy": "22.04",
@@ -64,7 +64,7 @@ pipeline {
     stage("parallel build") {
       matrix {
         agent {
-          label "centos9&&${ARCH}&&${base_node_label}"
+          label "(installed-os-centos9||installed-os-noble)&&${ARCH}&&${base_node_label}"
         }
         when {
           beforeAgent true
