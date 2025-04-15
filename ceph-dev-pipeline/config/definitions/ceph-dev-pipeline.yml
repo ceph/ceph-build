@@ -94,6 +94,12 @@
           description: "Use the source distribution from this ceph-dev-new-setup build instead of creating a new one"
           default: ""
 
+      - choice:
+          name: SETUP_JOB
+          choices:
+            - ceph-source-dist
+            - ceph-dev-new-setup
+
       - string:
           name: CEPH_BUILD_BRANCH
           description: "Use the Jenkinsfile from this ceph-build branch"
