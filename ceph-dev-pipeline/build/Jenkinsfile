@@ -45,18 +45,21 @@ pipeline {
         script {
           if ( ! env.SETUP_BUILD_ID ) {
             def setup_build = build(
-              job: "ceph-dev-new-setup",
+              job: env.SETUP_JOB,
               parameters: [
                 string(name: "BRANCH", value: env.BRANCH),
                 string(name: "FLAVOR", value: env.FLAVOR),
                 string(name: "SCCACHE", value: env.SCCACHE),
                 string(name: "DWZ", value: env.DWZ),
+                // Below are just for ceph-source-dist
+                string(name: "CEPH_REPO", value: env.CEPH_REPO),
+                string(name: "CEPH_BUILD_BRANCH", value: env.CEPH_BUILD_BRANCH),
               ]
             )
             env.SETUP_BUILD_ID = setup_build.getNumber()
           }
           println "SETUP_BUILD_ID=${env.SETUP_BUILD_ID}"
-          env.SETUP_BUILD_URL = new URI([env.JENKINS_URL, "job", "ceph-dev-new-setup", env.SETUP_BUILD_ID].join("/")).normalize()
+          env.SETUP_BUILD_URL = new URI([env.JENKINS_URL, "job", env.SETUP_JOB, env.SETUP_BUILD_ID].join("/")).normalize()
           println "${env.SETUP_BUILD_URL}"
         }
       }
@@ -131,7 +134,7 @@ pipeline {
                 }
                 println artifact_filter
                 copyArtifacts(
-                  projectName: "ceph-dev-new-setup",
+                  projectName: env.SETUP_JOB,
                   selector: specific(buildNumber: env.SETUP_BUILD_ID),
                   filter: artifact_filter,
                 )
