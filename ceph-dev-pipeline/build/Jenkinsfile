@@ -188,7 +188,7 @@ pipeline {
                 def os = get_os_info(env.DIST)
                 def chacra_endpoint = "ceph/${env.BRANCH}/${env.SHA1}/${os.name}/${os.version_name}/${env.ARCH}/flavors/${env.FLAVOR}/"
                 def chacractl_rc = sh(
-                  script: "$WORKSPACE/.venv/bin/chacractl exists binaries/${chacra_endpoint}",
+                  script: "$HOME/.local/bin/chacractl exists binaries/${chacra_endpoint}",
                   returnStatus: true,
                 )
                 if ( chacractl_rc == 0 && env.FORCE != "true" ) {

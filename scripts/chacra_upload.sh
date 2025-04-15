@@ -4,6 +4,7 @@ set -ex
 
 cd "$WORKSPACE"
 VENV="${WORKSPACE}/.venv"
+PATH=$PATH:$HOME/.local/bin
 chacra_endpoint="ceph/${BRANCH}/${SHA1}/${OS_NAME}/${OS_VERSION_NAME}"
 [ "$FORCE" = true ] && chacra_flags="--force" || chacra_flags=""
 if [ "$OS_PKG_TYPE" = "rpm" ]; then
@@ -11,22 +12,22 @@ if [ "$OS_PKG_TYPE" = "rpm" ]; then
   RPM_VERSION=`grep Version dist/ceph/ceph.spec | sed 's/Version:[ \t]*//g'`
   PACKAGE_MANAGER_VERSION="$RPM_VERSION-$RPM_RELEASE"
   BUILDAREA="${WORKSPACE}/dist/ceph/rpmbuild"
-  find dist/ceph/rpmbuild/SRPMS | grep rpm | $VENV/bin/chacractl binary ${chacra_flags} create ${chacra_endpoint}/source/flavors/${FLAVOR}
-  find dist/ceph/rpmbuild/RPMS/* | grep rpm | $VENV/bin/chacractl binary ${chacra_flags} create ${chacra_endpoint}/${ARCH}/flavors/${FLAVOR}
+  find dist/ceph/rpmbuild/SRPMS | grep rpm | chacractl binary ${chacra_flags} create ${chacra_endpoint}/source/flavors/${FLAVOR}
+  find dist/ceph/rpmbuild/RPMS/* | grep rpm | chacractl binary ${chacra_flags} create ${chacra_endpoint}/${ARCH}/flavors/${FLAVOR}
   if [ -f ${BUILDAREA}/RPMS/noarch/cephadm-*.rpm ] ; then
       rpm2cpio ${BUILDAREA}/RPMS/noarch/cephadm-*.rpm  | cpio -i --to-stdout *sbin/cephadm > cephadm
-      echo cephadm | $VENV/bin/chacractl binary ${chacra_flags} create ${chacra_endpoint}/${ARCH}/flavors/${FLAVOR}
+      echo cephadm | chacractl binary ${chacra_flags} create ${chacra_endpoint}/${ARCH}/flavors/${FLAVOR}
   fi
 elif [ "$OS_PKG_TYPE" = "deb" ]; then
   PACKAGE_MANAGER_VERSION="${VERSION}-1${OS_VERSION_NAME}"
   find ${WORKSPACE}/dist/ceph/ | \
     egrep "*(\.changes|\.deb|\.ddeb|\.dsc|ceph[^/]*\.gz)$" | \
     egrep -v "(Packages|Sources|Contents)" | \
-    $VENV/bin/chacractl binary ${chacra_flags} create ${chacra_endpoint}/${ARCH}/flavors/${FLAVOR}
+    chacractl binary ${chacra_flags} create ${chacra_endpoint}/${ARCH}/flavors/${FLAVOR}
   # FIXME need the real path here
   if [ -f release/${VERSION}/cephadm_${VERSION}*.deb ] ; then
     dpkg-deb --fsys-tarfile release/${VERSION}/cephadm_${VERSION}*.deb | tar -x -f - --strip-components=3 ./usr/sbin/cephadm
-    echo cephadm | $VENV/bin/chacractl binary ${chacra_flags} create ${chacra_endpoint}/${ARCH}/flavors/${FLAVOR}
+    echo cephadm | chacractl binary ${chacra_flags} create ${chacra_endpoint}/${ARCH}/flavors/${FLAVOR}
   fi
 fi
 # write json file with build info
@@ -44,6 +45,6 @@ chacra_repo_endpoint="${chacra_endpoint}/flavors/${FLAVOR}"
 # post the json to repo-extra json to chacra
 curl -X POST -H "Content-Type:application/json" --data "@$WORKSPACE/repo-extra.json" -u $CHACRACTL_USER:$CHACRACTL_KEY ${CHACRA_URL}repos/${chacra_repo_endpoint}/extra/
 # start repo creation
-$VENV/bin/chacractl repo update ${chacra_repo_endpoint}
+chacractl repo update ${chacra_repo_endpoint}
 
 echo Check the status of the repo at: https://shaman.ceph.com/api/repos/${chacra_endpoint}/flavors/${FLAVOR}/

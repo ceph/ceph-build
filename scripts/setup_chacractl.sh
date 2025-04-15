@@ -1,14 +1,18 @@
-#!/bin/bash
+#!/bin/bash -ex
 # vim: ts=4 sw=4 expandtab
-set -ex
-. $(dirname ${0})/build_utils.sh
-
-cd "$WORKSPACE"
-VENV="${WORKSPACE}/.venv"
-python3 -m venv $VENV
-pkgs=( "chacractl>=0.0.21" )
-install_python_packages $VENV "pkgs[@]"
+command -v pipx || (
+  command -v apt && sudo apt install -y pipx
+  command -v dnf && sudo dnf install -y pipx
+)
+pipx ensurepath
+pipx install uv
+~/.local/bin/uv tool install chacractl
 
 chacra_url=`curl -u $SHAMAN_API_USER:$SHAMAN_API_KEY https://shaman.ceph.com/api/nodes/next/`
-make_chacractl_config $chacra_url
+cat > $HOME/.chacractl << EOF
+url = "$chacra_url"
+user = "$CHACRACTL_USER"
+key = "$CHACRACTL_KEY"
+ssl_verify = True
+EOF
 echo $chacra_url
