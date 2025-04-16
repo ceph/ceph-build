@@ -10,6 +10,7 @@ debian_releases = [
   "bookworm": "12",
   "bullseye": "11",
 ]
+build_matrix = [:]
 
 def get_os_info(dist) {
   def os = [
@@ -97,6 +98,7 @@ pipeline {
           stage("node") {
             steps {
               script {
+                build_matrix["${DIST}_${ARCH}"] = env.CI_COMPILE.toBoolean()
                 sh "hostname -f"
                 def node_shortname = env.NODE_NAME.split('\\+')[-1]
                 def node_url = new URI([env.JENKINS_URL, "computer", env.NODE_NAME].join("/")).normalize()
@@ -176,7 +178,7 @@ pipeline {
           stage("check for built packages") {
             when {
               environment name: 'THROWAWAY', value: 'false'
-              environment name: 'CI_COMPILE', value: 'true'
+              expression { return build_matrix["${DIST}_${ARCH}"] == true }
             }
             environment {
               CHACRACTL_KEY = credentials('chacractl-key')
@@ -197,7 +199,7 @@ pipeline {
                 )
                 if ( chacractl_rc == 0 && env.FORCE != "true" ) {
                   println("Skipping compilation since chacra already has artifacts. To override, use THROWAWAY=true (to skip this check) or FORCE=true (to re-upload artifacts).")
-                  env.CI_COMPILE = "false"
+                  build_matrix["${DIST}_${ARCH}"] = false
                 }
               }
             }
@@ -208,7 +210,7 @@ pipeline {
               DOCKER_HUB_CREDS = credentials('dgalloway-docker-hub')
             }
             when {
-              environment name: 'CI_COMPILE', value: 'true'
+              expression { return build_matrix["${DIST}_${ARCH}"] == true }
             }
             steps {
               script {
@@ -236,7 +238,7 @@ pipeline {
               SCCACHE_BUCKET_CREDS = credentials('ibm-cloud-sccache-bucket')
             }
             when {
-              environment name: 'CI_COMPILE', value: 'true'
+              expression { return build_matrix["${DIST}_${ARCH}"] == true }
             }
             steps {
               script {
