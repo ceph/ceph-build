@@ -14,7 +14,7 @@ function setup_container_runtime () {
     if command -v dnf; then
       sudo dnf install -y podman
     elif command -v apt-cache; then
-      apt-get update -q
+      sudo apt-get update -q
       VERSION=$(apt-cache show podman | grep Version: | sort -r | awk '/^Version:/{print $2; exit}')
       if [[ "${VERSION:0:1}" -ge 4 ]]; then
         DEBIAN_FRONTEND=noninteractive sudo apt-get install -y podman
