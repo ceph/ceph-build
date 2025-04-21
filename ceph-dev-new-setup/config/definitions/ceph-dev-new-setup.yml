@@ -36,6 +36,7 @@
     builders:
       - shell:
           !include-raw-verbatim:
+            - ../../../scripts/setup_container_runtime.sh
             - ../../../scripts/build_utils.sh
             - ../../build/build
 
