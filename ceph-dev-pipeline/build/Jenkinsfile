@@ -351,11 +351,13 @@ pipeline {
                 }
               }
               unsuccessful {
-                def os = get_os_info(env.DIST)
-                sh """#!/bin/bash
-                . ./scripts/build_utils.sh
-                update_build_status "failed" "ceph" ${os.name} ${os.version_name} $ARCH
-                """
+                script {
+                  def os = get_os_info(env.DIST)
+                  sh """#!/bin/bash
+                  . ./scripts/build_utils.sh
+                  update_build_status "failed" "ceph" ${os.name} ${os.version_name} $ARCH
+                  """
+                }
               }
             }
           }
