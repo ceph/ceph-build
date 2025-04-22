@@ -33,7 +33,7 @@ function setup_container_runtime () {
       if [ -d $PODMAN_STORAGE_DIR ]; then
         sudo chgrp -R $(groups | cut -d' ' -f1) $PODMAN_STORAGE_DIR
         if [ $(podman unshare du -s --block-size=1G $PODMAN_STORAGE_DIR | awk '{print $1}') -ge 50 ]; then
-          time podman image prune --filter=until="$(echo '24*7*2' | bc)h" --all --force
+          time podman image prune --filter=until="$(echo '24*7' | bc)h" --all --force
           time podman system prune --force
           test "$PODMAN_MAJOR_VERSION" -ge 5 && time podman system check --repair --quick
         fi
