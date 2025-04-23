@@ -1728,6 +1728,7 @@ docs_pr_only() {
     'README.*'
     'SubmittingPatches'
     '.readthedocs.yml'
+    'PendingReleaseNotes'
   )
   if pr_only_for patterns; then DOCS_ONLY=true; fi
 }
