@@ -38,6 +38,102 @@ def get_os_info(dist) {
   return os
 }
 
+ceph_release_spec_template = '''
+Name:           ceph-release
+Version:        1
+Release:        0%{?dist}
+Summary:        Ceph Development repository configuration
+Group:          System Environment/Base
+License:        GPLv2
+URL:            ${project_url}
+Source0:        ceph.repo
+BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
+BuildArch:      noarch
+
+%description
+This package contains the Ceph repository GPG key as well as configuration
+for yum and up2date.
+
+%prep
+
+%setup -q  -c -T
+install -pm 644 %{SOURCE0} .
+
+%build
+
+%install
+rm -rf %{buildroot}
+%if 0%{defined suse_version}
+install -dm 755 %{buildroot}/%{_sysconfdir}/zypp
+install -dm 755 %{buildroot}/%{_sysconfdir}/zypp/repos.d
+install -pm 644 %{SOURCE0} \
+    %{buildroot}/%{_sysconfdir}/zypp/repos.d
+%else
+install -dm 755 %{buildroot}/%{_sysconfdir}/yum.repos.d
+install -pm 644 %{SOURCE0} \
+    %{buildroot}/%{_sysconfdir}/yum.repos.d
+%endif
+
+%clean
+
+%post
+
+%postun
+
+%files
+%defattr(-,root,root,-)
+%if 0%{defined suse_version}
+/etc/zypp/repos.d/*
+%else
+/etc/yum.repos.d/*
+%endif
+
+%changelog
+* Mon Apr 28 2025 Zack Cerza <zack@cerza.org> 1-1
+'''
+
+ceph_release_repo_template = '''
+[Ceph]
+name=Ceph packages for \\$basearch
+baseurl=${repo_base_url}/\\$basearch
+enabled=1
+gpgcheck=0
+type=rpm-md
+gpgkey=https://download.ceph.com/keys/autobuild.asc
+
+[Ceph-noarch]
+name=Ceph noarch packages
+baseurl=${repo_base_url}/noarch
+enabled=1
+gpgcheck=0
+type=rpm-md
+gpgkey=https://download.ceph.com/keys/autobuild.asc
+
+[ceph-source]
+name=Ceph source packages
+baseurl=${repo_base_url}/SRPMS
+enabled=1
+gpgcheck=0
+type=rpm-md
+gpgkey=https://download.ceph.com/keys/autobuild.asc
+'''
+
+@NonCPS
+def get_ceph_release_spec_text(project_url) {
+  def engine = new groovy.text.SimpleTemplateEngine()
+  def template = engine.createTemplate(ceph_release_spec_template)
+  def text = template.make(["project_url": project_url])
+  return text.toString()
+}
+
+@NonCPS
+def get_ceph_release_repo_text(base_url) {
+  def engine = new groovy.text.SimpleTemplateEngine()
+  def template = engine.createTemplate(ceph_release_repo_template)
+  def text = template.make(["repo_base_url": base_url])
+  return text.toString()
+}
+
 pipeline {
   agent any
   stages {
@@ -281,7 +377,8 @@ pipeline {
                   bwc_cmd_sccache_flags = "--env-file=${env.WORKSPACE}/.env";
                 }
                 def ceph_builder_tag = "${env.BRANCH}.${env.DIST}.${ARCH}"
-                def bwc_command = "python3 src/script/build-with-container.py ${bwc_cmd_sccache_flags} --image-repo=${env.CEPH_BUILDER_IMAGE} --tag=${ceph_builder_tag} -d ${DIST} --ceph-version ${env.VERSION}"
+                def bwc_command_base = "python3 src/script/build-with-container.py ${bwc_cmd_sccache_flags} --image-repo=${env.CEPH_BUILDER_IMAGE} --tag=${ceph_builder_tag} -d ${DIST} --ceph-version ${env.VERSION}"
+                def bwc_command = bwc_command_base
                 if ( os.pkg_type == "deb" ) {
                   def sccache_flag = "-DWITH_SCCACHE=ON"
                   if ( env.SCCACHE == "true" && ! env.CEPH_EXTRA_CMAKE_ARGS.contains(sccache_flag) ) {
@@ -317,13 +414,21 @@ pipeline {
                     script: '''grep url ~/.chacractl | cut -d'"' -f2''',
                     returnStdout: true,
                   ).trim()
+                  def spec_text = get_ceph_release_spec_text("${chacra_url}r/ceph/${env.BRANCH}/${env.SHA1}/${os.name}/${os.version_name}/flavors/${env.FLAVOR}/")
+                  writeFile(
+                    file: "dist/ceph/rpmbuild/SPECS/ceph-release.spec",
+                    text: spec_text,
+                  )
+                  def repo_text = get_ceph_release_repo_text("${chacra_url}/r/ceph/${env.BRANCH}/${env.SHA1}/${os.name}/${os.version_name}/flavors/${env.FLAVOR}")
+                  writeFile(
+                    file: "dist/ceph/rpmbuild/SOURCES/ceph.repo",
+                    text: repo_text,
+                  )
+                  bwc_command = "${bwc_command_base} -e custom -- rpmbuild -bb --define \'_topdir /ceph/rpmbuild\' /ceph/rpmbuild/SPECS/ceph-release.spec"
                   sh """#!/bin/bash
-                      . ./scripts/build_utils.sh
-                      export chacra_url=${chacra_url}
-                      export chacra_ref=${BRANCH}
-                      export DISTRO=${os.name}
-                      export RELEASE=${os.version_name}
-                      build_ceph_release_rpm ${WORKSPACE}/dist/ceph/rpmbuild true
+                    set -ex
+                    cd dist/ceph
+                    ${bwc_command}
                   """
                 }
               }
