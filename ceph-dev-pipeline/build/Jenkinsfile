@@ -1,6 +1,6 @@
 ceph_build_repo = "https://github.com/ceph/ceph-build"
 ceph_build_branch = "main"
-base_node_label = "(huge || gigantic)"
+base_node_label = "gigantic"
 ubuntu_releases = [
   "noble": "24.04",
   "jammy": "22.04",
