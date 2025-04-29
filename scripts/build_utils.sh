@@ -1697,6 +1697,70 @@ pr_filenames_changed() {
   popd > /dev/null
 }
 
+# construct a regex pattern that matches the CODEOWNERS syntax rules
+# for ? * and **. these rules use a subset of the gitignore pattern format
+# https://git-scm.com/docs/gitignore#_pattern_format
+codeowners_pattern_to_regex() {
+  # first escape any regex characters like \^()[]|.+ before we add more
+  local escape='s/[\\\^\(\)\[\]\|\.\+]/\\&/g'
+  # add leading slash if missing when pattern is absolute (has a non-trailing slash)
+  local add_leading_slash='s/^[^\/].*\/.\+$/\/&/'
+  # leading slash must match at front
+  local slash_makes_absolute='s/^\/.*/^&/'
+  # without trailing slash, must either match the end or be followed by /
+  local not_directory_only='s/^.*[^\/]$/&($|\/)/'
+  # trailing slash can only match files under a directory
+  local directory_only='s/^.*\/$/&.\+/'
+  # replace ** patterns with ++ until we replace single *s
+  # /**/ -> /++
+  local slash_double_asterisk_slash='s/\/\*\*\//\/++/g'
+  # /** -> /++
+  local slash_double_asterisk='s/\/\*\*/\/++/g'
+  # **/ -> ++/
+  local double_asterisk_slash='s/\*\*\//++\//g'
+  # * matches any characters except slashes: [^/]*
+  local asterisk='s/\*/[^\/]*/g'
+  # ? matches any character except slash: [^/]
+  local question='s/\?/[^\/]/g'
+  # ++ (aka **) matches anything: .*
+  local double_plus='s/++/.*/g'
+  # relative matches must still come after a /
+  local relative_to_absolute='s/^[^^].*/^.*\/&/'
+  echo "$1" | sed \
+      -e $escape \
+      -e $add_leading_slash \
+      -e $slash_makes_absolute \
+      -e $not_directory_only \
+      -e $directory_only \
+      -e $slash_double_asterisk_slash \
+      -e $double_asterisk_slash \
+      -e $slash_double_asterisk \
+      -e $asterisk \
+      -e $question \
+      -e $double_plus \
+      -e $relative_to_absolute
+}
+
+codeowners_patterns_to_regex() {
+  for p in $1; do
+    # skip comments
+    if [[ $p == \#* ]]; then continue; fi
+    codeowners_pattern_to_regex "$p"
+  done
+}
+
+no_filenames_match() {
+  local files=$1
+  local patterns=$(codeowners_patterns_to_regex "$2")
+  for f in $files; do
+    for p in $patterns; do
+      # add leading slash to simplify matching
+      if [[ "/$f" =~ $p ]]; then return 1; fi
+    done
+  done
+  return 0
+}
+
 pr_only_for() {
   # $1 is passed by reference to avoid having to call with ${array[@]} and
   # receive by creating another local array ("$@")
@@ -1745,6 +1809,23 @@ container_pr_only() {
     'src/script/build-with-container.py'
   )
   if pr_only_for patterns; then CONTAINER_ONLY=true; fi
+}
+
+# given a CODEOWNERS file whose lines look like this:
+#   /doc/dev/rbd*    @ceph/rbd @ceph/doc-writers
+#
+# return the pattern string of all lines matching the given codeowner
+patterns_for_codeowner() {
+  grep -w "$1" .github/CODEOWNERS | cut -f 1 -d " "
+}
+
+# return success (0) if the pr changes filenames that match the given codeowner
+pr_matches_codeowner() {
+  local owner=$1
+  local filenames=$(pr_filenames_changed)
+  local patterns=$(patterns_for_codeowner "$owner")
+  if no_filenames_match "$filenames" "$patterns"; then return 1; fi
+  return 0
 }
 
 function ssh_exec() {
