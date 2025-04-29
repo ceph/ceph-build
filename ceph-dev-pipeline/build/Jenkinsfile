@@ -339,10 +339,7 @@ pipeline {
             steps {
               script {
                 def os = get_os_info(env.DIST)
-                sh """#!/bin/bash
-                  . ./scripts/build_utils.sh
-                  update_build_status "started" "ceph" ${os.name} ${os.version_name} $ARCH
-                """
+                sh "./scripts/update_shaman.sh started ceph ${os.name} ${os.version_name} $ARCH"
                 env.AWS_ACCESS_KEY_ID = env.SCCACHE_BUCKET_CREDS_USR
                 env.AWS_SECRET_ACCESS_KEY = env.SCCACHE_BUCKET_CREDS_PSW
                 sh 'echo > .env'
@@ -455,19 +452,13 @@ pipeline {
                     export OS_PKG_TYPE="${os.pkg_type}"
                     if [ "$THROWAWAY" != "true" ]; then ./scripts/chacra_upload.sh; fi
                   """
-                  sh """#!/bin/bash
-                  . ./scripts/build_utils.sh
-                  update_build_status "completed" "ceph" ${os.name} ${os.version_name} $ARCH
-                  """
+                  sh "./scripts/update_shaman.sh completed ceph ${os.name} ${os.version_name} $ARCH"
                 }
               }
               unsuccessful {
                 script {
                   def os = get_os_info(env.DIST)
-                  sh """#!/bin/bash
-                  . ./scripts/build_utils.sh
-                  update_build_status "failed" "ceph" ${os.name} ${os.version_name} $ARCH
-                  """
+                sh "./scripts/update_shaman.sh failed ceph ${os.name} ${os.version_name} $ARCH"
                 }
               }
             }
