@@ -1761,19 +1761,17 @@ no_filenames_match() {
   return 0
 }
 
-pr_only_for() {
-  # $1 is passed by reference to avoid having to call with ${array[@]} and
-  # receive by creating another local array ("$@")
-  local -n local_patterns=$1
-  local files=$(pr_filenames_changed)
-  echo -e "changed files:\n$files"
+all_filenames_match() {
+  local files=$1
+  local patterns=$(codeowners_patterns_to_regex "$2")
   # 0 is true, 1 is false
   local all_match=0
   for f in $files; do
     local match=1
-    for p in "${local_patterns[@]}"; do
+    for p in $patterns; do
       # pattern loop: if one pattern matches, skip the others
-      if [[ $f == $p ]]; then match=0; break; fi
+      # add leading slash to simplify matching
+      if [[ "/$f" =~ $p ]]; then match=0; break; fi
     done
     # file loop: if this file matched no patterns, the group fails
     # (one mismatch spoils the whole bushel)
@@ -1784,31 +1782,30 @@ pr_only_for() {
 
 docs_pr_only() {
   DOCS_ONLY=false
-  local patterns=(
-    'doc/*'
-    'admin/*'
-    'src/sample.ceph.conf'
-    'CodingStyle'
-    '*.rst'
-    '*.md'
-    'COPYING*'
-    'README.*'
-    'SubmittingPatches'
-    '.readthedocs.yml'
-    'PendingReleaseNotes'
-  )
-  if pr_only_for patterns; then DOCS_ONLY=true; fi
+  local filenames=$(pr_filenames_changed)
+  echo -e "changed files:\n$filenames"
+  local patterns='doc/
+admin/
+src/sample.ceph.conf
+CodingStyle
+*.rst
+*.md
+COPYING*
+README.*
+SubmittingPatches
+.readthedocs.yml
+PendingReleaseNotes'
+  if all_filenames_match "$filenames" "$patterns"; then DOCS_ONLY=true; fi
 }
 
 container_pr_only() {
   CONTAINER_ONLY=false
-  local patterns=(
-    'container/*'
-    'Dockerfile.build'
-    'src/script/buildcontainer-setup.sh'
-    'src/script/build-with-container.py'
-  )
-  if pr_only_for patterns; then CONTAINER_ONLY=true; fi
+  local filenames=$(pr_filenames_changed)
+  local patterns='container/
+Dockerfile.build
+src/script/buildcontainer-setup.sh
+src/script/build-with-container.py'
+  if all_filenames_match "$filenames" "$patterns"; then CONTAINER_ONLY=true; fi
 }
 
 # given a CODEOWNERS file whose lines look like this:
