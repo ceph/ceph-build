@@ -1,0 +1,57 @@
+pipeline {
+  agent any
+  stages {
+    stage("parallel") {
+      matrix {
+        agent {
+          label "(huge || gigantic) && $DIST"
+        }
+        axes {
+          axis {
+            name 'DIST'
+            values 'centos9', 'jammy'
+          }
+        }
+        stages {
+          stage("gather") {
+            steps {
+              script {
+                sh 'shuf -i 1-10 -n 1'
+                sh 'cp /etc/os-release os-release_$(hostname -s)'
+              }
+            }
+            post {
+              always {
+                script {
+                  stash(
+                    name: "artifacts-test",
+                    includes: 'os-release_*',
+                    allowEmpty: true,
+                  )
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+    // stage("after parallel") {
+    //   steps {
+    //     script {
+    //     }
+    //   }
+    // }
+  }
+  post {
+    always {
+      unstash(
+        name: "artifacts-test",
+      )
+      archiveArtifacts(
+        artifacts: 'os-release_*',
+        allowEmptyArchive: true,
+        fingerprint: true,
+      )
+    }
+  }
+}

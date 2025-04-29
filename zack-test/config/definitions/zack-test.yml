@@ -1,0 +1,35 @@
+- job:
+    name: zack-test
+    node: built-in
+    project-type: freestyle
+    quiet-period: 0
+    parameters:
+      - string:
+          name: BRANCH
+          description: "The git branch (or tag) to build"
+          default: sccache_main
+
+      - string:
+          name: DISTROS
+          description: "A list of distros to build for. Available options are: centos9, centos8, noble, jammy, focal, and windows"
+          default: "centos9"
+
+      - string:
+          name: ARCHS
+          description: "A list of architectures to build for. Available options are: x86_64 and arm64"
+          default: "x86_64"
+
+    triggers:
+      - generic-webhook-trigger:
+          token: zack-test
+          print-contrib-var: true
+          post-content-params:
+            - type: JSONPath
+              key: labels
+              value: $.pull_request.labels[*].name
+          regex-filter-text: $labels
+          regex-filter-expression: '"rgw"'
+    builders:
+      - shell: |
+          echo $DISTROS
+          echo $ARCHS
