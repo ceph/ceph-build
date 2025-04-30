@@ -1768,7 +1768,10 @@ no_filenames_match() {
   for f in $files; do
     for p in $patterns; do
       # add leading slash to simplify matching
-      if match_filename "/$f" "$p"; then return 1; fi
+      if match_filename "/$f" "$p"; then
+        echo "filename '$f' matched pattern '$p'"
+        return 1
+      fi
     done
   done
   return 0
@@ -1777,9 +1780,8 @@ no_filenames_match() {
 all_filenames_match() {
   local files=$1
   local patterns=$(codeowners_patterns_to_regex "$2")
-  # 0 is true, 1 is false
-  local all_match=0
   for f in $files; do
+    # 0 is true, 1 is false
     local match=1
     for p in $patterns; do
       # pattern loop: if one pattern matches, skip the others
@@ -1788,9 +1790,12 @@ all_filenames_match() {
     done
     # file loop: if this file matched no patterns, the group fails
     # (one mismatch spoils the whole bushel)
-    if [[ $match -eq 1 ]] ; then all_match=1; break; fi
+    if [[ $match -eq 1 ]] ; then
+      echo "filename '$f' matched no patterns"
+      return 1
+    fi
   done
-  return $all_match
+  return 0
 }
 
 docs_pr_only() {
