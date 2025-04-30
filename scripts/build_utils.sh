@@ -1680,12 +1680,8 @@ maybe_reset_ci_container() {
 }
 
 # NOTE: These functions will only work on a Pull Request job!
-pr_only_for() {
-  # $1 is passed by reference to avoid having to call with ${array[@]} and
-  # receive by creating another local array ("$@")
-  local -n local_patterns=$1
-  local files
-  pushd .
+pr_filenames_changed() {
+  pushd . > /dev/null
   # cd to ceph repo if we need to.
   # The ceph-pr-commits job checks out ceph.git and ceph-build.git but most
   # other jobs do not.
@@ -1694,11 +1690,18 @@ pr_only_for() {
   fi
   if [ -f $(git rev-parse --git-dir)/shallow ]; then
     # We can't do a regular `git diff` in a shallow clone.  There is no other way to check files changed.
-    files="$(curl -s -u ${GITHUB_USER}:${GITHUB_PASS} https://api.github.com/repos/${ghprbGhRepository}/pulls/${ghprbPullId}/files | jq '.[].filename' | tr -d '"')"
+    curl -s -u ${GITHUB_USER}:${GITHUB_PASS} https://api.github.com/repos/${ghprbGhRepository}/pulls/${ghprbPullId}/files | jq '.[].filename' | tr -d '"'
   else
-    files="$(git diff --name-only origin/${ghprbTargetBranch}...origin/pr/${ghprbPullId}/head)"
+    git diff --name-only origin/${ghprbTargetBranch}...origin/pr/${ghprbPullId}/head
   fi
-  popd
+  popd > /dev/null
+}
+
+pr_only_for() {
+  # $1 is passed by reference to avoid having to call with ${array[@]} and
+  # receive by creating another local array ("$@")
+  local -n local_patterns=$1
+  local files=$(pr_filenames_changed)
   echo -e "changed files:\n$files"
   # 0 is true, 1 is false
   local all_match=0
