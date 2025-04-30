@@ -10,6 +10,11 @@ fi
 export NPROC=$(nproc)
 export WITH_CRIMSON=true
 export WITH_RBD_RWL=true
+# exclude run-rbd-unit-tests* for non-rbd pull requests
+if ! pr_matches_codeowner "@ceph/rbd"; then
+    echo "No rbd files changed. No need to run rbd unit tests."
+    export CHECK_MAKEOPTS="-E run-rbd-unit-tests"
+fi
 timeout 3h ./run-make-check.sh
 sleep 5
 ps -ef | grep -v jnlp | grep ceph || true
