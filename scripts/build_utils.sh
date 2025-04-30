@@ -1830,6 +1830,16 @@ pr_matches_codeowner() {
   return 0
 }
 
+# return success (0) if the pr has the given label
+pr_matches_label() {
+  local target=$1
+  local labels=$(curl -s -u ${GITHUB_USER}:${GITHUB_PASS} https://api.github.com/repos/${ghprbGhRepository}/issues/${ghprbPullId}/labels | jq '.[].name' | tr -d '"')
+  for label in $labels; do
+    if [ $label = $target ]; then return 0; fi
+  done
+  return 1
+}
+
 function ssh_exec() {
     if [[ -z $SSH_ADDRESS ]]; then
         echo "ERROR: Env variable SSH_ADDRESS is not set"
