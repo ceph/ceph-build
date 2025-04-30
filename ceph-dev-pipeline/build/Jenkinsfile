@@ -489,8 +489,7 @@ pipeline {
             post {
               always {
                 script {
-                  // Jenkins does not use sudo to wipe the workspace, so fix the owner before we finish
-                  sh 'sudo chown -R $USER $WORKSPACE/dist/ceph'
+                  sh 'podman unshare chown -R 0 $WORKSPACE/dist/ceph'
                 }
               }
               success {
