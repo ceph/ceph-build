@@ -1703,6 +1703,14 @@ pr_filenames_changed() {
 codeowners_pattern_to_regex() {
   # first escape any regex characters like \^()[]|.+ before we add more
   local escape='s/[\\\^\(\)\[\]\|\.\+]/\\&/g'
+  # add leading slash if missing when pattern is absolute (has a non-trailing slash)
+  local add_leading_slash='s/^[^\/].*\/.\+$/\/&/'
+  # leading slash must match at front
+  local slash_makes_absolute='s/^\/.*/^&/'
+  # without trailing slash, must either match the end or be followed by /
+  local not_directory_only='s/^.*[^\/]$/&($|\/)/'
+  # trailing slash can only match files under a directory
+  local directory_only='s/^.*\/$/&.\+/'
   # replace ** patterns with ++ until we replace single *s
   # /**/ -> /++
   local slash_double_asterisk_slash='s/\/\*\*\//\/++/g'
@@ -1715,51 +1723,30 @@ codeowners_pattern_to_regex() {
   # ? matches any character except slash: [^/]
   local question='s/\?/[^\/]/g'
   # ++ (aka **) matches anything: .*
-  local double_plus='s/\+\+/.*/g'
-  echo $1 | sed \
+  local double_plus='s/++/.*/g'
+  # relative matches must still come after a /
+  local relative_to_absolute='s/^[^^].*/^.*\/&/'
+  echo "$1" | sed \
       -e $escape \
+      -e $add_leading_slash \
+      -e $slash_makes_absolute \
+      -e $not_directory_only \
+      -e $directory_only \
       -e $slash_double_asterisk_slash \
       -e $double_asterisk_slash \
       -e $slash_double_asterisk \
       -e $asterisk \
       -e $question \
-      -e $double_plus
+      -e $double_plus \
+      -e $relative_to_absolute
 }
 
 codeowners_patterns_to_regex() {
   for p in $1; do
     # skip comments
-    if [[ $p == \#* ]]; then continue; fi
+    if [[ $p == ^\#* ]]; then continue; fi
     codeowners_pattern_to_regex "$p"
   done
-}
-
-match_file_or_directory() {
-  local f=$1
-  local p=$2
-  if [[ $p == */ ]]; then
-    # trailing slash can only match directories
-    if [[ $f =~ $p.+ ]]; then return 0; fi
-  fi
-  # either match exact filenames
-  if [[ $f =~ $p ]]; then return 0; fi
-  # or filenames under this directory
-  if [[ $f =~ $p/.+ ]]; then return 0; fi
-  return 1
-}
-
-match_filename() {
-  local f=$1
-  local p=$2
-  if [[ $p =~ .*/.+ ]]; then
-    # patterns with / in front or middle are absolute matches
-    if match_file_or_directory "$f" "$p"; then return 0; fi
-  else
-    # otherwise we can match under subdirectories too
-    if match_file_or_directory "$f" "$p"; then return 0; fi
-    if match_file_or_directory "$f" ".+/$p"; then return 0; fi
-  fi
-  return 1
 }
 
 no_filenames_match() {
@@ -1768,7 +1755,7 @@ no_filenames_match() {
   for f in $files; do
     for p in $patterns; do
       # add leading slash to simplify matching
-      if match_filename "/$f" "$p"; then
+      if [[ "/$f" =~ $p ]]; then
         echo "filename '$f' matched pattern '$p'"
         return 1
       fi
@@ -1786,7 +1773,7 @@ all_filenames_match() {
     for p in $patterns; do
       # pattern loop: if one pattern matches, skip the others
       # add leading slash to simplify matching
-      if match_filename "/$f" "$p"; then match=0; break; fi
+      if [[ "/$f" =~ $p ]]; then match=0; break; fi
     done
     # file loop: if this file matched no patterns, the group fails
     # (one mismatch spoils the whole bushel)
