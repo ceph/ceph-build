@@ -130,7 +130,7 @@ pipeline {
                 def artifact_filter = "dist/sha1,dist/version,dist/other_envvars,dist/ceph-*.tar.bz2"
                 def os = get_os_info(env.DIST)
                 if ( env.CI_COMPILE && os.pkg_type == "deb" ) {
-                  artifact_filter += ",dist/ceph_*.orig.tar.gz,dist/ceph_*.diff.gz,dist/ceph_*.dsc"
+                  artifact_filter += ",dist/ceph_*.diff.gz,dist/ceph_*.dsc"
                 }
                 println artifact_filter
                 copyArtifacts(
