@@ -329,7 +329,6 @@ pipeline {
           }
           stage("build") {
             environment {
-              CHACRACTL_KEY = credentials('chacractl-key')
               SHAMAN_API_KEY = credentials('shaman-api-key')
               SCCACHE_BUCKET_CREDS = credentials('ibm-cloud-sccache-bucket')
             }
@@ -400,6 +399,32 @@ pipeline {
                     ln ../ceph-${env.VERSION}.tar.bz2 .
                     ${bwc_command}
                 """
+              }
+            }
+            post {
+              unsuccessful {
+                script {
+                  def os = get_os_info(env.DIST)
+                  sh "./scripts/update_shaman.sh failed ceph ${os.name} ${os.version_name} $ARCH"
+                }
+              }
+            }
+          }
+          stage("upload packages") {
+            environment {
+              CHACRACTL_KEY = credentials('chacractl-key')
+              SHAMAN_API_KEY = credentials('shaman-api-key')
+            }
+            when {
+              expression { return build_matrix["${DIST}_${ARCH}"] == true }
+            }
+            steps {
+              script {
+                def chacra_url = sh(
+                  script: '''grep url ~/.chacractl | cut -d'"' -f2''',
+                  returnStdout: true,
+                ).trim()
+                def os = get_os_info(env.DIST)
                 if ( os.pkg_type == "rpm" ) {
                   sh """#!/bin/bash
                       set -ex
@@ -407,10 +432,6 @@ pipeline {
                       mkdir -p ./rpmbuild/SRPMS/
                       ln ceph-*.src.rpm ./rpmbuild/SRPMS/
                   """
-                  def chacra_url = sh(
-                    script: '''grep url ~/.chacractl | cut -d'"' -f2''',
-                    returnStdout: true,
-                  ).trim()
                   def spec_text = get_ceph_release_spec_text("${chacra_url}r/ceph/${env.BRANCH}/${env.SHA1}/${os.name}/${os.version_name}/flavors/${env.FLAVOR}/")
                   writeFile(
                     file: "dist/ceph/rpmbuild/SPECS/ceph-release.spec",
@@ -421,13 +442,23 @@ pipeline {
                     file: "dist/ceph/rpmbuild/SOURCES/ceph.repo",
                     text: repo_text,
                   )
-                  bwc_command = "${bwc_command_base} -e custom -- rpmbuild -bb --define \'_topdir /ceph/rpmbuild\' /ceph/rpmbuild/SPECS/ceph-release.spec"
+                  def ceph_builder_tag = "${env.SHA1[0..6]}.${env.BRANCH}.${env.DIST}.${ARCH}"
+                  def bwc_command_base = "python3 src/script/build-with-container.py --image-repo=${env.CEPH_BUILDER_IMAGE} --tag=${ceph_builder_tag} -d ${DIST} --ceph-version ${env.VERSION}"
+                  bwc_command = "${bwc_command_base} -e custom -- rpmbuild -bb --define \\'_topdir /ceph/rpmbuild\\' /ceph/rpmbuild/SPECS/ceph-release.spec"
                   sh """#!/bin/bash
                     set -ex
-                    cd dist/ceph
+                    cd $WORKSPACE/dist/ceph
                     ${bwc_command}
                   """
                 }
+                sh """#!/bin/bash
+                  export CHACRA_URL="${chacra_url}"
+                  export OS_NAME="${os.name}"
+                  export OS_VERSION="${os.version}"
+                  export OS_VERSION_NAME="${os.version_name}"
+                  export OS_PKG_TYPE="${os.pkg_type}"
+                  if [ "$THROWAWAY" != "true" ]; then ./scripts/chacra_upload.sh; fi
+                """
               }
             }
             post {
@@ -439,26 +470,14 @@ pipeline {
               }
               success {
                 script {
-                  def chacra_url = sh(
-                    script: '''grep url ~/.chacractl | cut -d'"' -f2''',
-                    returnStdout: true,
-                  ).trim()
                   def os = get_os_info(env.DIST)
-                  sh """#!/bin/bash
-                    export CHACRA_URL="${chacra_url}"
-                    export OS_NAME="${os.name}"
-                    export OS_VERSION="${os.version}"
-                    export OS_VERSION_NAME="${os.version_name}"
-                    export OS_PKG_TYPE="${os.pkg_type}"
-                    if [ "$THROWAWAY" != "true" ]; then ./scripts/chacra_upload.sh; fi
-                  """
                   sh "./scripts/update_shaman.sh completed ceph ${os.name} ${os.version_name} $ARCH"
                 }
               }
               unsuccessful {
                 script {
                   def os = get_os_info(env.DIST)
-                sh "./scripts/update_shaman.sh failed ceph ${os.name} ${os.version_name} $ARCH"
+                  sh "./scripts/update_shaman.sh failed ceph ${os.name} ${os.version_name} $ARCH"
                 }
               }
             }
