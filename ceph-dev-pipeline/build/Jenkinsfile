@@ -351,6 +351,9 @@ pipeline {
                 env.AWS_ACCESS_KEY_ID = env.SCCACHE_BUCKET_CREDS_USR
                 env.AWS_SECRET_ACCESS_KEY = env.SCCACHE_BUCKET_CREDS_PSW
                 sh 'echo > .env'
+                def ceph_builder_tag = "${env.SHA1[0..6]}.${env.BRANCH}.${env.DIST}.${ARCH}"
+                def bwc_command_base = "python3 src/script/build-with-container.py --image-repo=${env.CEPH_BUILDER_IMAGE} --tag=${ceph_builder_tag} -d ${DIST} --ceph-version ${env.VERSION}"
+                def bwc_command = bwc_command_base
                 def bwc_cmd_sccache_flags = ""
                 if ( env.DWZ == "false" ) {
                   sh '''#!/bin/bash
@@ -383,9 +386,7 @@ pipeline {
                   )
                   bwc_cmd_sccache_flags = "--env-file=${env.WORKSPACE}/.env";
                 }
-                def ceph_builder_tag = "${env.SHA1[0..6]}.${env.BRANCH}.${env.DIST}.${ARCH}"
-                def bwc_command_base = "python3 src/script/build-with-container.py ${bwc_cmd_sccache_flags} --image-repo=${env.CEPH_BUILDER_IMAGE} --tag=${ceph_builder_tag} -d ${DIST} --ceph-version ${env.VERSION}"
-                def bwc_command = bwc_command_base
+                bwc_command = "${bwc_command} ${bwc_cmd_sccache_flags}"
                 if ( os.pkg_type == "deb" ) {
                   def sccache_flag = "-DWITH_SCCACHE=ON"
                   if ( env.SCCACHE == "true" && ! env.CEPH_EXTRA_CMAKE_ARGS.contains(sccache_flag) ) {
@@ -404,12 +405,24 @@ pipeline {
                 } else {
                   throw new Exception("DIST '${env.DIST}' is invalid!")
                 }
-                sh """#!/bin/bash
-                    set -ex
-                    cd dist/ceph
-                    ln ../ceph-${env.VERSION}.tar.bz2 .
-                    ${bwc_command}
+                sh """#!/bin/bash -ex
+                  cd dist/ceph
+                  ln ../ceph-${env.VERSION}.tar.bz2 .
+                  ${bwc_command}
                 """
+                if ( os.pkg_type == "deb" ) {
+                  sh """#!/bin/bash -ex
+                    cd dist/ceph
+                    ${bwc_command_base} -e custom -- "dpkg-deb --fsys-tarfile /ceph/debs/*/pool/main/c/ceph/cephadm_${VERSION}*.deb | tar -x -f - --strip-components=3 ./usr/sbin/cephadm"
+                    ln ./cephadm ../../
+                  """
+                } else if ( env.DIST =~ /^(centos|rhel|fedora).*/ ) {
+                  sh """#!/bin/bash -ex
+                    cd dist/ceph
+                    ${bwc_command_base} -e custom -- "rpm2cpio /ceph/rpmbuild/RPMS/noarch/cephadm-*.rpm | cpio -i --to-stdout *sbin/cephadm > cephadm"
+                    ln ./cephadm ../../
+                  """
+                }
               }
             }
             post {
