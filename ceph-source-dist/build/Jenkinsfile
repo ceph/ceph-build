@@ -1,0 +1,111 @@
+pipeline {
+  agent {
+    label "gigantic"
+  }
+  stages {
+    stage("set environment variables") {
+      steps {
+        script {
+          switch (env.FLAVOR) {
+            case "default":
+              env.CEPH_EXTRA_RPMBUILD_ARGS="--with tcmalloc"
+              env.CEPH_EXTRA_CMAKE_ARGS+=" -DALLOCATOR=tcmalloc"
+              env.CEPH_EXTRA_CMAKE_ARGS+=" -DWITH_SYSTEM_BOOST=OFF -DWITH_BOOST_VALGRIND=ON"
+              env.DEB_BUILD_PROFILES=""
+              break
+            case "crimson":
+              env.CEPH_EXTRA_RPMBUILD_ARGS="--with seastar"
+              env.CEPH_EXTRA_CMAKE_ARGS+=" -DCMAKE_BUILD_TYPE=Debug"
+              env.DEB_BUILD_PROFILES="pkg.ceph.crimson"
+              break
+            case "jaeger":
+              env.CEPH_EXTRA_RPMBUILD_ARGS="--with jaeger"
+              env.DEB_BUILD_PROFILES="pkg.ceph.jaeger"
+              break
+            default:
+              println "FLAVOR={env.FLAVOR} is invalid"
+              assert false
+          }
+        }
+      }
+    }
+    stage("repository") {
+      steps {
+        dir("ceph") {
+          checkout scmGit(
+            branches: [[name: env.BRANCH]],
+            userRemoteConfigs: [[
+              url: env.CEPH_REPO,
+              credentialsId: 'jenkins-build'
+            ]],
+            extensions: [
+              [$class: 'CleanBeforeCheckout'],
+              [
+                $class: 'CloneOption',
+                shallow: true,
+                depth:   100,
+                timeout: 90
+              ],
+            ],
+          )
+          script {
+            sh 'git fetch --tags https://github.com/ceph/ceph.git'
+          }
+        }
+      }
+    }
+    stage("tarball") {
+      steps {
+        script {
+          dir("ceph") {
+            def ceph_version_git = sh(
+                  script: "git describe --abbrev=8 --match 'v*' | sed s/^v//",
+                  returnStdout: true,
+            ).trim()
+            sh """
+              mkdir dist
+              echo ${ceph_version_git} > dist/version
+              rm -f ceph-*.tar.*
+            """
+            sh """#!/bin/bash
+              ./make-dist ${ceph_version_git}
+            """
+            sh '''#!/bin/bash -ex
+              declare -A compression=( ["bz2"]="j" ["gz"]="z" ["xz"]="J" )
+              for cmp in "${!compression[@]}"; do
+                extension="tar.$cmp"
+                ceph_version_tarball=$(ls ceph-*.$extension | cut -c 6- | sed "s/.$extension//" || true)
+                flag="${compression[$cmp]}"
+                extract_flags="${flag}xf"
+                compress_flags="${flag}cf"
+                if [ "$ceph_version_tarball" != "" ]; then break; fi
+              done
+              echo tarball vers $ceph_version_tarball
+
+              ln ceph.spec dist/
+              ln ceph-$ceph_version_tarball.$extension dist/
+
+              echo "SHA1=$(git rev-parse HEAD)" > dist/sha1
+              echo "BRANCH=${BRANCH}" > dist/branch
+
+              # - CEPH_EXTRA_RPMBUILD_ARGS are consumed by build_rpm before
+              #   the switch to cmake;
+              # - CEPH_EXTRA_CMAKE_ARGS is for after cmake
+              # - DEB_BUILD_PROFILES is consumed by build_debs()
+              echo > dist/other_envvars
+              echo "CEPH_EXTRA_RPMBUILD_ARGS=${CEPH_EXTRA_RPMBUILD_ARGS}" >> dist/other_envvars
+              echo "CEPH_EXTRA_CMAKE_ARGS=${CEPH_EXTRA_CMAKE_ARGS}" >> dist/other_envvars
+              echo "DEB_BUILD_PROFILES=${DEB_BUILD_PROFILES}" >> dist/other_envvars
+              mv dist ..
+            '''
+          }
+        }
+      }
+    }
+  }
+  post {
+    always {
+      archiveArtifacts artifacts: 'dist/**', fingerprint: true
+    }
+  }
+}
