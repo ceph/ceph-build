@@ -14,8 +14,7 @@ if [ "$OS_PKG_TYPE" = "rpm" ]; then
   BUILDAREA="${WORKSPACE}/dist/ceph/rpmbuild"
   find dist/ceph/rpmbuild/SRPMS | grep rpm | chacractl binary ${chacra_flags} create ${chacra_endpoint}/source/flavors/${FLAVOR}
   find dist/ceph/rpmbuild/RPMS/* | grep rpm | chacractl binary ${chacra_flags} create ${chacra_endpoint}/${ARCH}/flavors/${FLAVOR}
-  if [ -f ${BUILDAREA}/RPMS/noarch/cephadm-*.rpm ] ; then
-      rpm2cpio ${BUILDAREA}/RPMS/noarch/cephadm-*.rpm  | cpio -i --to-stdout *sbin/cephadm > cephadm
+  if [ -f ./cephadm ] ; then
       echo cephadm | chacractl binary ${chacra_flags} create ${chacra_endpoint}/${ARCH}/flavors/${FLAVOR}
   fi
 elif [ "$OS_PKG_TYPE" = "deb" ]; then
@@ -24,9 +23,8 @@ elif [ "$OS_PKG_TYPE" = "deb" ]; then
     egrep "*(\.changes|\.deb|\.ddeb|\.dsc|ceph[^/]*\.gz)$" | \
     egrep -v "(Packages|Sources|Contents)" | \
     chacractl binary ${chacra_flags} create ${chacra_endpoint}/${ARCH}/flavors/${FLAVOR}
-  # FIXME need the real path here
-  if [ -f release/${VERSION}/cephadm_${VERSION}*.deb ] ; then
-    dpkg-deb --fsys-tarfile release/${VERSION}/cephadm_${VERSION}*.deb | tar -x -f - --strip-components=3 ./usr/sbin/cephadm
+  BUILDAREA="${WORKSPACE}/dist/ceph/debs"
+  if [ -f ./cephadm ] ; then
     echo cephadm | chacractl binary ${chacra_flags} create ${chacra_endpoint}/${ARCH}/flavors/${FLAVOR}
   fi
 fi

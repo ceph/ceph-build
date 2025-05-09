@@ -1,6 +1,6 @@
 ceph_build_repo = "https://github.com/ceph/ceph-build"
 ceph_build_branch = "main"
-base_node_label = "(huge || gigantic)"
+base_node_label = "gigantic"
 ubuntu_releases = [
   "noble": "24.04",
   "jammy": "22.04",
@@ -10,6 +10,7 @@ debian_releases = [
   "bookworm": "12",
   "bullseye": "11",
 ]
+build_matrix = [:]
 
 def get_os_info(dist) {
   def os = [
@@ -37,6 +38,102 @@ def get_os_info(dist) {
   return os
 }
 
+ceph_release_spec_template = '''
+Name:           ceph-release
+Version:        1
+Release:        0%{?dist}
+Summary:        Ceph Development repository configuration
+Group:          System Environment/Base
+License:        GPLv2
+URL:            ${project_url}
+Source0:        ceph.repo
+BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
+BuildArch:      noarch
+
+%description
+This package contains the Ceph repository GPG key as well as configuration
+for yum and up2date.
+
+%prep
+
+%setup -q  -c -T
+install -pm 644 %{SOURCE0} .
+
+%build
+
+%install
+rm -rf %{buildroot}
+%if 0%{defined suse_version}
+install -dm 755 %{buildroot}/%{_sysconfdir}/zypp
+install -dm 755 %{buildroot}/%{_sysconfdir}/zypp/repos.d
+install -pm 644 %{SOURCE0} \
+    %{buildroot}/%{_sysconfdir}/zypp/repos.d
+%else
+install -dm 755 %{buildroot}/%{_sysconfdir}/yum.repos.d
+install -pm 644 %{SOURCE0} \
+    %{buildroot}/%{_sysconfdir}/yum.repos.d
+%endif
+
+%clean
+
+%post
+
+%postun
+
+%files
+%defattr(-,root,root,-)
+%if 0%{defined suse_version}
+/etc/zypp/repos.d/*
+%else
+/etc/yum.repos.d/*
+%endif
+
+%changelog
+* Mon Apr 28 2025 Zack Cerza <zack@cerza.org> 1-1
+'''
+
+ceph_release_repo_template = '''
+[Ceph]
+name=Ceph packages for \\$basearch
+baseurl=${repo_base_url}/\\$basearch
+enabled=1
+gpgcheck=0
+type=rpm-md
+gpgkey=https://download.ceph.com/keys/autobuild.asc
+
+[Ceph-noarch]
+name=Ceph noarch packages
+baseurl=${repo_base_url}/noarch
+enabled=1
+gpgcheck=0
+type=rpm-md
+gpgkey=https://download.ceph.com/keys/autobuild.asc
+
+[ceph-source]
+name=Ceph source packages
+baseurl=${repo_base_url}/SRPMS
+enabled=1
+gpgcheck=0
+type=rpm-md
+gpgkey=https://download.ceph.com/keys/autobuild.asc
+'''
+
+@NonCPS
+def get_ceph_release_spec_text(project_url) {
+  def engine = new groovy.text.SimpleTemplateEngine()
+  def template = engine.createTemplate(ceph_release_spec_template)
+  def text = template.make(["project_url": project_url])
+  return text.toString()
+}
+
+@NonCPS
+def get_ceph_release_repo_text(base_url) {
+  def engine = new groovy.text.SimpleTemplateEngine()
+  def template = engine.createTemplate(ceph_release_repo_template)
+  def text = template.make(["repo_base_url": base_url])
+  return text.toString()
+}
+
 pipeline {
   agent any
   stages {
@@ -45,18 +142,21 @@ pipeline {
         script {
           if ( ! env.SETUP_BUILD_ID ) {
             def setup_build = build(
-              job: "ceph-dev-new-setup",
+              job: env.SETUP_JOB,
               parameters: [
                 string(name: "BRANCH", value: env.BRANCH),
                 string(name: "FLAVOR", value: env.FLAVOR),
                 string(name: "SCCACHE", value: env.SCCACHE),
                 string(name: "DWZ", value: env.DWZ),
+                // Below are just for ceph-source-dist
+                string(name: "CEPH_REPO", value: env.CEPH_REPO),
+                string(name: "CEPH_BUILD_BRANCH", value: env.CEPH_BUILD_BRANCH),
               ]
             )
             env.SETUP_BUILD_ID = setup_build.getNumber()
           }
           println "SETUP_BUILD_ID=${env.SETUP_BUILD_ID}"
-          env.SETUP_BUILD_URL = new URI([env.JENKINS_URL, "job", "ceph-dev-new-setup", env.SETUP_BUILD_ID].join("/")).normalize()
+          env.SETUP_BUILD_URL = new URI([env.JENKINS_URL, "job", env.SETUP_JOB, env.SETUP_BUILD_ID].join("/")).normalize()
           println "${env.SETUP_BUILD_URL}"
         }
       }
@@ -94,6 +194,7 @@ pipeline {
           stage("node") {
             steps {
               script {
+                build_matrix["${DIST}_${ARCH}"] = env.CI_COMPILE.toBoolean()
                 sh "hostname -f"
                 def node_shortname = env.NODE_NAME.split('\\+')[-1]
                 def node_url = new URI([env.JENKINS_URL, "computer", env.NODE_NAME].join("/")).normalize()
@@ -106,6 +207,7 @@ pipeline {
                 println("OS_VERSION=${os.version}")
                 println("OS_VERSION_NAME=${os.version_name}")
               }
+              sh './scripts/setup_container_runtime.sh'
               sh "cat /etc/os-release"
             }
           }
@@ -126,11 +228,11 @@ pipeline {
                 def artifact_filter = "dist/sha1,dist/version,dist/other_envvars,dist/ceph-*.tar.bz2"
                 def os = get_os_info(env.DIST)
                 if ( env.CI_COMPILE && os.pkg_type == "deb" ) {
-                  artifact_filter += ",dist/ceph_*.orig.tar.gz,dist/ceph_*.diff.gz,dist/ceph_*.dsc"
+                  artifact_filter += ",dist/ceph_*.diff.gz,dist/ceph_*.dsc"
                 }
                 println artifact_filter
                 copyArtifacts(
-                  projectName: "ceph-dev-new-setup",
+                  projectName: env.SETUP_JOB,
                   selector: specific(buildNumber: env.SETUP_BUILD_ID),
                   filter: artifact_filter,
                 )
@@ -172,7 +274,7 @@ pipeline {
           stage("check for built packages") {
             when {
               environment name: 'THROWAWAY', value: 'false'
-              environment name: 'CI_COMPILE', value: 'true'
+              expression { return build_matrix["${DIST}_${ARCH}"] == true }
             }
             environment {
               CHACRACTL_KEY = credentials('chacractl-key')
@@ -193,7 +295,7 @@ pipeline {
                 )
                 if ( chacractl_rc == 0 && env.FORCE != "true" ) {
                   println("Skipping compilation since chacra already has artifacts. To override, use THROWAWAY=true (to skip this check) or FORCE=true (to re-upload artifacts).")
-                  env.CI_COMPILE = "false"
+                  build_matrix["${DIST}_${ARCH}"] = false
                 }
               }
             }
@@ -204,22 +306,31 @@ pipeline {
               DOCKER_HUB_CREDS = credentials('dgalloway-docker-hub')
             }
             when {
-              environment name: 'CI_COMPILE', value: 'true'
+              expression { return build_matrix["${DIST}_${ARCH}"] == true }
             }
             steps {
               script {
                 env.CEPH_BUILDER_IMAGE = "${env.CONTAINER_REPO_HOSTNAME}/${env.CONTAINER_REPO_ORGANIZATION}/ceph-build"
-                def ceph_builder_tag = "${env.BRANCH}.${env.DIST}.${ARCH}"
                 sh '''#!/bin/bash
                   set -ex
                   podman login -u ${CONTAINER_REPO_CREDS_USR} -p ${CONTAINER_REPO_CREDS_PSW} ${CONTAINER_REPO_HOSTNAME}/${CONTAINER_REPO_ORGANIZATION}
                   podman login -u ${DOCKER_HUB_CREDS_USR} -p ${DOCKER_HUB_CREDS_PSW} docker.io
                 '''
-                def os = get_os_info(env.DIST)
+                def ceph_builder_tag_short = "${env.BRANCH}.${env.DIST}.${ARCH}"
+                def ceph_builder_tag = "${env.SHA1[0..6]}.${ceph_builder_tag_short}"
+                sh """#!/bin/bash -ex
+                  podman pull ${env.CEPH_BUILDER_IMAGE}:${ceph_builder_tag} || \
+                  podman pull ${env.CEPH_BUILDER_IMAGE}:${ceph_builder_tag_short} || \
+                  true
+                """
                 sh """#!/bin/bash
                   set -ex
                   cd dist/ceph
                   python3 src/script/build-with-container.py --image-repo=${env.CEPH_BUILDER_IMAGE} --tag=${ceph_builder_tag} -d ${DIST} -e build-container
+                  podman tag ${env.CEPH_BUILDER_IMAGE}:${ceph_builder_tag} ${env.CEPH_BUILDER_IMAGE}:${ceph_builder_tag_short}
+                """
+                sh """#!/bin/bash -ex
+                  podman push ${env.CEPH_BUILDER_IMAGE}:${ceph_builder_tag_short}
                   podman push ${env.CEPH_BUILDER_IMAGE}:${ceph_builder_tag}
                 """
               }
@@ -227,23 +338,22 @@ pipeline {
           }
           stage("build") {
             environment {
-              CHACRACTL_KEY = credentials('chacractl-key')
               SHAMAN_API_KEY = credentials('shaman-api-key')
               SCCACHE_BUCKET_CREDS = credentials('ibm-cloud-sccache-bucket')
             }
             when {
-              environment name: 'CI_COMPILE', value: 'true'
+              expression { return build_matrix["${DIST}_${ARCH}"] == true }
             }
             steps {
               script {
                 def os = get_os_info(env.DIST)
-                sh """#!/bin/bash
-                  . ./scripts/build_utils.sh
-                  update_build_status "started" "ceph" ${os.name} ${os.version_name} $ARCH
-                """
+                sh "./scripts/update_shaman.sh started ceph ${os.name} ${os.version_name} $ARCH"
                 env.AWS_ACCESS_KEY_ID = env.SCCACHE_BUCKET_CREDS_USR
                 env.AWS_SECRET_ACCESS_KEY = env.SCCACHE_BUCKET_CREDS_PSW
                 sh 'echo > .env'
+                def ceph_builder_tag = "${env.SHA1[0..6]}.${env.BRANCH}.${env.DIST}.${ARCH}"
+                def bwc_command_base = "python3 src/script/build-with-container.py --image-repo=${env.CEPH_BUILDER_IMAGE} --tag=${ceph_builder_tag} -d ${DIST} --ceph-version ${env.VERSION}"
+                def bwc_command = bwc_command_base
                 def bwc_cmd_sccache_flags = ""
                 if ( env.DWZ == "false" ) {
                   sh '''#!/bin/bash
@@ -255,6 +365,8 @@ pipeline {
                   sh '''#!/bin/bash
                     echo "SCCACHE=$SCCACHE" >> .env
                     echo "SCCACHE_CONF=/ceph/sccache.conf" >> .env
+                    echo "SCCACHE_ERROR_LOG=/ceph/sccache_log.txt" >> .env
+                    echo "SCCACHE_LOG=debug" >> .env
                     echo "AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID" >> .env
                     echo "AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY" >> .env
                   '''
@@ -274,8 +386,7 @@ pipeline {
                   )
                   bwc_cmd_sccache_flags = "--env-file=${env.WORKSPACE}/.env";
                 }
-                def ceph_builder_tag = "${env.BRANCH}.${env.DIST}.${ARCH}"
-                def bwc_command = "python3 src/script/build-with-container.py ${bwc_cmd_sccache_flags} --image-repo=${env.CEPH_BUILDER_IMAGE} --tag=${ceph_builder_tag} -d ${DIST} --ceph-version ${env.VERSION}"
+                bwc_command = "${bwc_command} ${bwc_cmd_sccache_flags}"
                 if ( os.pkg_type == "deb" ) {
                   def sccache_flag = "-DWITH_SCCACHE=ON"
                   if ( env.SCCACHE == "true" && ! env.CEPH_EXTRA_CMAKE_ARGS.contains(sccache_flag) ) {
@@ -294,30 +405,22 @@ pipeline {
                 } else {
                   throw new Exception("DIST '${env.DIST}' is invalid!")
                 }
-                sh """#!/bin/bash
-                    set -ex
-                    cd dist/ceph
-                    ln ../ceph-${env.VERSION}.tar.bz2 .
-                    ${bwc_command}
+                sh """#!/bin/bash -ex
+                  cd dist/ceph
+                  ln ../ceph-${env.VERSION}.tar.bz2 .
+                  ${bwc_command}
                 """
-                if ( os.pkg_type == "rpm" ) {
-                  sh """#!/bin/bash
-                      set -ex
-                      cd ./dist/ceph
-                      mkdir -p ./rpmbuild/SRPMS/
-                      ln ceph-*.src.rpm ./rpmbuild/SRPMS/
+                if ( os.pkg_type == "deb" ) {
+                  sh """#!/bin/bash -ex
+                    cd dist/ceph
+                    ${bwc_command_base} -e custom -- "dpkg-deb --fsys-tarfile /ceph/debs/*/pool/main/c/ceph/cephadm_${VERSION}*.deb | tar -x -f - --strip-components=3 ./usr/sbin/cephadm"
+                    ln ./cephadm ../../
                   """
-                  def chacra_url = sh(
-                    script: '''grep url ~/.chacractl | cut -d'"' -f2''',
-                    returnStdout: true,
-                  ).trim()
-                  sh """#!/bin/bash
-                      . ./scripts/build_utils.sh
-                      export chacra_url=${chacra_url}
-                      export chacra_ref=${BRANCH}
-                      export DISTRO=${os.name}
-                      export RELEASE=${os.version_name}
-                      build_ceph_release_rpm ${WORKSPACE}/dist/ceph/rpmbuild true
+                } else if ( env.DIST =~ /^(centos|rhel|fedora).*/ ) {
+                  sh """#!/bin/bash -ex
+                    cd dist/ceph
+                    ${bwc_command_base} -e custom -- "rpm2cpio /ceph/rpmbuild/RPMS/noarch/cephadm-*.rpm | cpio -i --to-stdout *sbin/cephadm > cephadm"
+                    ln ./cephadm ../../
                   """
                 }
               }
@@ -325,38 +428,93 @@ pipeline {
             post {
               always {
                 script {
-                  // Jenkins does not use sudo to wipe the workspace, so fix the owner before we finish
-                  sh 'sudo chown -R $USER $WORKSPACE/dist/ceph'
-                }
-              }
-              success {
-                script {
-                  def chacra_url = sh(
-                    script: '''grep url ~/.chacractl | cut -d'"' -f2''',
-                    returnStdout: true,
-                  ).trim()
-                  def os = get_os_info(env.DIST)
-                  sh """#!/bin/bash
-                    export CHACRA_URL="${chacra_url}"
-                    export OS_NAME="${os.name}"
-                    export OS_VERSION="${os.version}"
-                    export OS_VERSION_NAME="${os.version_name}"
-                    export OS_PKG_TYPE="${os.pkg_type}"
-                    if [ "$THROWAWAY" != "true" ]; then ./scripts/chacra_upload.sh; fi
+                  sh """
+                    if [ -f "${env.WORKSPACE}/dist/ceph/sccache_log.txt" ]; then
+                      ln dist/ceph/sccache_log.txt sccache_log_${env.DIST}_${env.ARCH}.txt
+                    fi
                   """
-                  sh """#!/bin/bash
-                  . ./scripts/build_utils.sh
-                  update_build_status "completed" "ceph" ${os.name} ${os.version_name} $ARCH
-                  """
+                  archiveArtifacts(
+                    artifacts: 'sccache_log*.txt',
+                    allowEmptyArchive: true,
+                    fingerprint: true,
+                  )
                 }
               }
               unsuccessful {
                 script {
                   def os = get_os_info(env.DIST)
+                  sh "./scripts/update_shaman.sh failed ceph ${os.name} ${os.version_name} $ARCH"
+                }
+              }
+            }
+          }
+          stage("upload packages") {
+            environment {
+              CHACRACTL_KEY = credentials('chacractl-key')
+              SHAMAN_API_KEY = credentials('shaman-api-key')
+            }
+            when {
+              expression { return build_matrix["${DIST}_${ARCH}"] == true }
+            }
+            steps {
+              script {
+                def chacra_url = sh(
+                  script: '''grep url ~/.chacractl | cut -d'"' -f2''',
+                  returnStdout: true,
+                ).trim()
+                def os = get_os_info(env.DIST)
+                if ( os.pkg_type == "rpm" ) {
                   sh """#!/bin/bash
-                  . ./scripts/build_utils.sh
-                  update_build_status "failed" "ceph" ${os.name} ${os.version_name} $ARCH
+                      set -ex
+                      cd ./dist/ceph
+                      mkdir -p ./rpmbuild/SRPMS/
+                      ln ceph-*.src.rpm ./rpmbuild/SRPMS/
                   """
+                  def spec_text = get_ceph_release_spec_text("${chacra_url}r/ceph/${env.BRANCH}/${env.SHA1}/${os.name}/${os.version_name}/flavors/${env.FLAVOR}/")
+                  writeFile(
+                    file: "dist/ceph/rpmbuild/SPECS/ceph-release.spec",
+                    text: spec_text,
+                  )
+                  def repo_text = get_ceph_release_repo_text("${chacra_url}/r/ceph/${env.BRANCH}/${env.SHA1}/${os.name}/${os.version_name}/flavors/${env.FLAVOR}")
+                  writeFile(
+                    file: "dist/ceph/rpmbuild/SOURCES/ceph.repo",
+                    text: repo_text,
+                  )
+                  def ceph_builder_tag = "${env.SHA1[0..6]}.${env.BRANCH}.${env.DIST}.${ARCH}"
+                  def bwc_command_base = "python3 src/script/build-with-container.py --image-repo=${env.CEPH_BUILDER_IMAGE} --tag=${ceph_builder_tag} -d ${DIST} --ceph-version ${env.VERSION}"
+                  bwc_command = "${bwc_command_base} -e custom -- rpmbuild -bb --define \\'_topdir /ceph/rpmbuild\\' /ceph/rpmbuild/SPECS/ceph-release.spec"
+                  sh """#!/bin/bash
+                    set -ex
+                    cd $WORKSPACE/dist/ceph
+                    ${bwc_command}
+                  """
+                }
+                sh """#!/bin/bash
+                  export CHACRA_URL="${chacra_url}"
+                  export OS_NAME="${os.name}"
+                  export OS_VERSION="${os.version}"
+                  export OS_VERSION_NAME="${os.version_name}"
+                  export OS_PKG_TYPE="${os.pkg_type}"
+                  if [ "$THROWAWAY" != "true" ]; then ./scripts/chacra_upload.sh; fi
+                """
+              }
+            }
+            post {
+              always {
+                script {
+                  sh 'podman unshare chown -R 0 $WORKSPACE/dist/ceph'
+                }
+              }
+              success {
+                script {
+                  def os = get_os_info(env.DIST)
+                  sh "./scripts/update_shaman.sh completed ceph ${os.name} ${os.version_name} $ARCH"
+                }
+              }
+              unsuccessful {
+                script {
+                  def os = get_os_info(env.DIST)
+                  sh "./scripts/update_shaman.sh failed ceph ${os.name} ${os.version_name} $ARCH"
                 }
               }
             }
