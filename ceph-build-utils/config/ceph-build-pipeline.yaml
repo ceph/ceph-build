@@ -1,0 +1,25 @@
+- job:
+    name: preserve-adarsha-test
+    description: ceph-build-utils-pipeline
+    project-type: pipeline
+    quiet-period: 1
+    concurrent: true
+    pipeline-scm:
+      scm:
+        - git:
+            url: https://github.com/ceph/ceph-build
+            branches:
+              - ${{CEPH_BUILD_BRANCH}}
+            shallow-clone: true
+            submodule:
+              disable: true
+            wipe-workspace: true
+      script-path: ceph-build-utils/build/Jenkinsfile
+      lightweight-checkout: true
+      do-not-fetch-tags: true
+
+    parameters:
+      - string:
+          name: CEPH_BUILD_BRANCH
+          description: "Use the Jenkinsfile from this ceph-build branch"
+          default: build_utils_refactor

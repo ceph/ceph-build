@@ -1,0 +1,37 @@
+ceph_build_repo = "https://github.com/ceph/ceph-build"
+ceph_build_branch = "build_utils_refactor"
+pipeline {
+    agent any
+    stages {
+        stage('Checkout') {
+            steps {
+              checkout scmGit(
+                branches: [[name: env.CEPH_BUILD_BRANCH]],
+                userRemoteConfigs: [[url: ceph_build_repo]],
+                extensions: [
+                  [$class: 'CleanBeforeCheckout']
+                ],
+              )
+            }
+        }
+
+        stage('Source and Execute Script') {
+            steps {
+                script {
+                    // Source the script and run it in the current shell session
+                    sh '''
+                        ls -lrt ./scripts
+                        echo "Sourcing the script..."
+                        source ./scripts/build_utils.sh
+                    '''
+                }
+            }
+        }
+
+        stage('Post Execution') {
+            steps {
+                echo "Execution completed"
+            }
+        }
+    }
+}
