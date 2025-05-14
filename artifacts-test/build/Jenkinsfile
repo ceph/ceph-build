@@ -22,13 +22,18 @@ pipeline {
             }
             post {
               always {
-                script {
-                  stash(
-                    name: "artifacts-test",
-                    includes: 'os-release_*',
-                    allowEmpty: true,
-                  )
-                }
+                archiveArtifacts(
+                  artifacts: 'os-release_*',
+                  allowEmptyArchive: true,
+                  fingerprint: true,
+                )
+                // script {
+                //   stash(
+                //     name: "artifacts-test",
+                //     includes: 'os-release_*',
+                //     allowEmpty: true,
+                //   )
+                // }
               }
             }
           }
@@ -42,16 +47,16 @@ pipeline {
     //   }
     // }
   }
-  post {
-    always {
-      unstash(
-        name: "artifacts-test",
-      )
-      archiveArtifacts(
-        artifacts: 'os-release_*',
-        allowEmptyArchive: true,
-        fingerprint: true,
-      )
-    }
-  }
+  // post {
+  //   always {
+  //     unstash(
+  //       name: "artifacts-test",
+  //     )
+  //     archiveArtifacts(
+  //       artifacts: 'os-release_*',
+  //       allowEmptyArchive: true,
+  //       fingerprint: true,
+  //     )
+  //   }
+  // }
 }
