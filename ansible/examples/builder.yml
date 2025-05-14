@@ -33,8 +33,10 @@
       tags:
         always
 
+    # get appropriate secret (clumsy variable names because you can't start
+    # a variable with a digit
     - set_fact:
-        token: "{{ jenkins_api_token }}"
+        token: "{{ ('2' in api_uri) | ternary(api_token_2_jenkins, api_token_jenkins)}}"
       no_log: true
       tags:
         always
