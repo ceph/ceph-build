@@ -27,14 +27,9 @@
 
 
   tasks:
-    - name: "Include secrets"
-      include_vars: "{{ secrets_path | mandatory }}/jenkins_api_token.yml"
-      no_log: true
-      tags:
-        always
-
-    - set_fact:
-        token: "{{ jenkins_api_token }}"
+    - name: "Include appropriate jenkins API token"
+      # sets 'token'
+      include_vars: "{{ secrets_path | mandatory }}/{{ api_uri | replace('https://', '')}}.apitoken.yml"
       no_log: true
       tags:
         always
