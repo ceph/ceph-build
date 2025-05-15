@@ -4,7 +4,12 @@
 ## Tested on: CentOS 7, CentOS 8, Xenial, Bionic, Focal, Leap 15.1 using ansible 2.8.5
 ##
 ## Example:
-## ansible-playbook -vvv -M ./library/ builder.yml -e '{"labels": "x86_64 xenial etc", "token": "XXXXX", "jenkins_credentials_uuid": "jenkins-build", "api_uri": "https://jenkins.ceph.com"}' -e permanent=true -e ansible_ssh_user=ubuntu --limit braggi01*
+## define labels in inventory "jenkins_labels" dict, keyed by fqdn
+##
+## ansible-playbook -vvv -M ./library/ builder.yml, "api_uri": "https://jenkins.ceph.com"}' --limit braggi01*
+##
+## secrets files jenkins.ceph.com.apitoken.yml and 2.jenkins.ceph.com.apitoken.yml must
+## exist in ANSIBLE_SECRETS_PATH
 
 - hosts: all
   become: true
@@ -27,14 +32,9 @@
 
 
   tasks:
-    - name: "Include secrets"
-      include_vars: "{{ secrets_path | mandatory }}/jenkins_api_token.yml"
-      no_log: true
-      tags:
-        always
-
-    - set_fact:
-        token: "{{ jenkins_api_token }}"
+    - name: "Include appropriate jenkins API token"
+      # sets 'token'
+      include_vars: "{{ secrets_path | mandatory }}/{{ api_uri | replace('https://', '')}}.apitoken.yml"
       no_log: true
       tags:
         always
@@ -503,12 +503,11 @@
     - name: Find highest used subuid
       shell: "awk -F: '{print $2+$3}' /etc/subuid | sort -n | tail -1"
       register: highest_subuid
-      when: subuid_check.rc == 0 or subgid_check.rc == 0
       changed_when: false
 
     - name: Set next available UID range
       set_fact:
-        new_uid: "{{ (highest_subuid.stdout | int + 1) if highest_subuid is defined else 100000 }}"
+        new_uid: "{{ (highest_subuid.stdout | int + 1)  | default(100000) }}"
 
     - name: Add jenkins-build to /etc/subuid
       lineinfile:
