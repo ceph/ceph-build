@@ -4,7 +4,12 @@
 ## Tested on: CentOS 7, CentOS 8, Xenial, Bionic, Focal, Leap 15.1 using ansible 2.8.5
 ##
 ## Example:
-## ansible-playbook -vvv -M ./library/ builder.yml -e '{"labels": "x86_64 xenial etc", "token": "XXXXX", "jenkins_credentials_uuid": "jenkins-build", "api_uri": "https://jenkins.ceph.com"}' -e permanent=true -e ansible_ssh_user=ubuntu --limit braggi01*
+## define labels in inventory "jenkins_labels" dict, keyed by fqdn
+##
+## ansible-playbook -vvv -M ./library/ builder.yml, "api_uri": "https://jenkins.ceph.com"}' --limit braggi01*
+##
+## secrets files jenkins.ceph.com.apitoken.yml and 2.jenkins.ceph.com.apitoken.yml must
+## exist in ANSIBLE_SECRETS_PATH
 
 - hosts: all
   become: true
