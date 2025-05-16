@@ -50,6 +50,30 @@ reef)
     DISTRO=opensuse
     RELEASE="15.3"
     ;;
+quincy)
+    DISTRO=opensuse
+    RELEASE="15.3"
+    ;;
+pacific)
+    DISTRO=opensuse
+    RELEASE="15.3"
+    ;;
+octopus)
+    DISTRO=opensuse
+    RELEASE="15.2"
+    ;;
+nautilus)
+    DISTRO=opensuse
+    RELEASE="15.1"
+    ;;
+mimic)
+    DISTRO=opensuse
+    RELEASE="15.0"
+    ;;
+luminous)
+    DISTRO=opensuse
+    RELEASE="42.3"
+    ;;
 *)
     echo Not supported release '$RELEASE_BRANCH' by openSUSE
     exit 1

@@ -5,6 +5,7 @@
       - tentacle
       - squid
       - reef
+      - quincy
     test_suite:
       - backend:
           test_suite_script: run-backend-api-tests.sh
