@@ -11,6 +11,24 @@ squid)
 reef)
     OBSREPO="openSUSE_Leap_15.3"
     ;;
+quincy)
+    OBSREPO="openSUSE_Leap_15.3"
+    ;;
+pacific)
+    OBSREPO="openSUSE_Leap_15.3"
+    ;;
+octopus)
+    OBSREPO="openSUSE_Leap_15.2"
+    ;;
+nautilus)
+    OBSREPO="openSUSE_Leap_15.1"
+    ;;
+mimic)
+    OBSREPO="openSUSE_Leap_15.0"
+    ;;
+luminous)
+    OBSREPO="openSUSE_Leap_42.3"
+    ;;
 *)
     echo Not supported release '$RELEASE_BRANCH' by openSUSE
     exit 1

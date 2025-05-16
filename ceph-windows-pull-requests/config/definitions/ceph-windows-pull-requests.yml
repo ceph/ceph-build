@@ -39,6 +39,7 @@
             - tentacle
             - squid
             - reef
+            - quincy
           trigger-phrase: 'jenkins test windows'
           skip-build-phrase: '^jenkins do not test.*'
           only-trigger-phrase: false

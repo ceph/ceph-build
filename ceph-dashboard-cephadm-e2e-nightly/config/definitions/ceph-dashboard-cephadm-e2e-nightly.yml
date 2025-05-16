@@ -5,6 +5,7 @@
       - tentacle
       - squid
       - reef
+      - quincy
     jobs:
       - '{name}-{ceph_branch}'
 

@@ -59,14 +59,17 @@
       - conditional-step:
           condition-kind: or
           condition-operands:
+            - condition-kind: regex-match
+              regex: (jewel|kraken|luminous)
+              label: '${BRANCH}'
             - condition-kind: and
               condition-operands:
                 - condition-kind: regex-match
-                  regex: (reef|squid|tentacle)
-                  label: '${{BRANCH}}'
+                  regex: (mimic|nautilus|octopus|pacific|quincy|reef|squid)
+                  label: '${BRANCH}'
                 - condition-kind: regex-match
-                  regex: (focal|jammy|centos9|buster|bullseye|bookworm)
-                  label: '${{DIST}}'
+                  regex: (xenial|bionic|focal|jammy|centos7|centos8|centos9|buster|bullseye|bookworm)
+                  label: '${DIST}'
           on-evaluation-failure: dont-run
           steps:
             - shell: |
