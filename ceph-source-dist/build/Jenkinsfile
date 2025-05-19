@@ -14,8 +14,7 @@ pipeline {
               env.DEB_BUILD_PROFILES=""
               break
             case "crimson":
-              env.CEPH_EXTRA_RPMBUILD_ARGS="--with seastar"
-              env.CEPH_EXTRA_CMAKE_ARGS+=" -DCMAKE_BUILD_TYPE=Debug"
+              env.CEPH_EXTRA_RPMBUILD_ARGS="--with crimson"
               env.DEB_BUILD_PROFILES="pkg.ceph.crimson"
               break
             case "jaeger":
