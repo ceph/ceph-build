@@ -98,7 +98,6 @@
                   - ../../../scripts/build_utils.sh
                   - ../../build/setup_rpm
                   - ../../build/build_rpm
-                  - ../../../scripts/build_container
                   - ../../../scripts/status_completed
     publishers:
       - postbuildscript:
