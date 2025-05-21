@@ -61,6 +61,9 @@ pipeline {
                   sh '''#!/bin/bash -ex
                     podman login -u ${CONTAINER_REPO_CREDS_USR} -p ${CONTAINER_REPO_CREDS_PSW} ${CONTAINER_REPO_HOSTNAME}/${CONTAINER_REPO_ORGANIZATION}
                     cd container;
+                    rm -f build.sh;
+                    curl -O https://raw.githubusercontent.com/ceph/ceph/refs/heads/main/container/build.sh;
+                    chmod +x build.sh;
                     ./build.sh
                   '''
                 }
