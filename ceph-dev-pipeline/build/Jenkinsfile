@@ -369,6 +369,7 @@ pipeline {
                     echo "SCCACHE_LOG=debug" >> .env
                     echo "AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID" >> .env
                     echo "AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY" >> .env
+                    echo "CEPH_BUILD_NORMALIZE_PATHS=true" >> .env
                   '''
                   // TODO: un-hardcode this
                   writeFile(
