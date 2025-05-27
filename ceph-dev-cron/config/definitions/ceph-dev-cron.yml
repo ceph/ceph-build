@@ -98,7 +98,7 @@
                     BRANCH=${{GIT_BRANCH}}
                     FORCE=True
                     DISTROS=centos9
-                    FLAVOR=crimson
+                    FLAVOR=crimson-debug
                     ARCHS=x86_64
       # build main on:
       # default: jammy centos9 windows
@@ -124,7 +124,7 @@
                     BRANCH=${{GIT_BRANCH}}
                     FORCE=True
                     DISTROS=centos9
-                    FLAVOR=crimson
+                    FLAVOR=crimson-debug
                     ARCHS=x86_64
 
     wrappers:

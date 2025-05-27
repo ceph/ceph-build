@@ -867,7 +867,11 @@ ceph_build_args_from_flavor() {
         CEPH_EXTRA_CMAKE_ARGS+=" -DWITH_SYSTEM_BOOST=OFF -DWITH_BOOST_VALGRIND=ON"
         DEB_BUILD_PROFILES=""
         ;;
-    crimson)
+    crimson-debug)
+        CEPH_EXTRA_RPMBUILD_ARGS="--with crimson"
+        DEB_BUILD_PROFILES="pkg.ceph.crimson"
+        CEPH_EXTRA_CMAKE_ARGS+=" -DCMAKE_BUILD_TYPE=Debug"
+    crimson-release)
         CEPH_EXTRA_RPMBUILD_ARGS="--with crimson"
         DEB_BUILD_PROFILES="pkg.ceph.crimson"
         ;;
@@ -1019,7 +1023,7 @@ EOF
 
 extra_cmake_args() {
     # statically link against libstdc++ for building new releases on old distros
-    if [ "${FLAVOR}" = "crimson" ]; then
+    if [ "${FLAVOR}" = "crimson-debug" ] || [ "${FLAVOR}" = "crimson-release" ] ; then
         # seastar's exception hack assums dynamic linkage against libgcc. as
         # otherwise _Unwind_RaiseException will conflict with its counterpart
         # defined in libgcc_eh.a, when the linker comes into play. and more
@@ -1482,7 +1486,10 @@ setup_rpm_build_deps() {
 
     # enable more build depends required by build flavor(jaeger, crimson)
     case "${FLAVOR}" in
-    crimson)
+    crimson-debug)
+      sed -i -e 's/%bcond_with crimson/%bcond_without crimson/g' $DIR/ceph.spec
+        ;;
+    crimson-release)
       sed -i -e 's/%bcond_with crimson/%bcond_without crimson/g' $DIR/ceph.spec
         ;;
     jaeger)

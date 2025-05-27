@@ -113,7 +113,7 @@
                     BRANCH=${GIT_BRANCH}
                     FORCE=True
                     DISTROS=centos9
-                    FLAVOR=crimson
+                    FLAVOR=crimson-debug
       # build main on:
       # default: jammy focal centos8 centos9
       # crimson: centos9
@@ -138,7 +138,7 @@
                     BRANCH=${GIT_BRANCH}
                     FORCE=True
                     DISTROS=centos9
-                    FLAVOR=crimson
+                    FLAVOR=crimson-debug
 
     wrappers:
       - inject-passwords:
