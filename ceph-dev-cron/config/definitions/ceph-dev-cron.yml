@@ -102,7 +102,8 @@
                     ARCHS=x86_64
       # build main on:
       # default: jammy centos9 windows
-      # crimson: centos9
+      # crimson-debug: centos9
+      # crimson-release: centos9
       - conditional-step:
           condition-kind: regex-match
           regex: .*main.*
@@ -125,6 +126,13 @@
                     FORCE=True
                     DISTROS=centos9
                     FLAVOR=crimson-debug
+                    ARCHS=x86_64
+                - project: 'ceph-dev'
+                  predefined-parameters: |
+                    BRANCH=${{GIT_BRANCH}}
+                    FORCE=True
+                    DISTROS=centos9
+                    FLAVOR=crimson-release
                     ARCHS=x86_64
 
     wrappers:
