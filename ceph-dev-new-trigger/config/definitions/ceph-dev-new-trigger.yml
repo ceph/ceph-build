@@ -91,7 +91,7 @@
                     BRANCH=${{GIT_BRANCH}}
                     FORCE=True
                     DISTROS=centos9
-                    FLAVOR=crimson
+                    FLAVOR=crimson-debug
                     ARCHS=x86_64
       # If no release name is found in branch, build on all possible distro/flavor combos (except xenial, bionic, focal).
       # regex matching and 'on-evaluation-failure: run' doesn't work here so triple negative it is.
@@ -117,7 +117,7 @@
                     BRANCH=${{GIT_BRANCH}}
                     FORCE=True
                     DISTROS=centos9
-                    FLAVOR=crimson
+                    FLAVOR=crimson-debug
                     ARCHS=x86_64
       # build only centos9, no crimson, no jaeger
       - conditional-step:
@@ -139,7 +139,8 @@
                     ARCHS=x86_64
       # Build only the `crimson` flavour, don't waste resources on the default one.
       # Useful for the crimson's bug-hunt at Sepia
-      # crimson: centos9
+      # crimson-debug: centos9
+      # crimson-release: centos9
       - conditional-step:
           condition-kind: regex-match
           regex: .*crimson-only.*
@@ -156,7 +157,15 @@
                     BRANCH=${{GIT_BRANCH}}
                     FORCE=True
                     DISTROS=centos9
-                    FLAVOR=crimson
+                    FLAVOR=crimson-debug
+                    ARCHS=x86_64
+            - trigger-builds:
+                - project: 'ceph-dev-new'
+                  predefined-parameters: |
+                    BRANCH=${{GIT_BRANCH}}
+                    FORCE=True
+                    DISTROS=centos9
+                    FLAVOR=crimson-release
                     ARCHS=x86_64
       # Build jaegertracing branch on needed env,  don't waste resources on the default one.
       # Useful for testing specific builds failure

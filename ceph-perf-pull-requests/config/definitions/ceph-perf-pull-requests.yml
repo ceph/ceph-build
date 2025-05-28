@@ -65,8 +65,8 @@
                   break
               fi
           done
-          if test {osd-flavor} = "crimson" ; then
-              export WITH_SEASTAR=true
+          if test {osd-flavor} = "crimson-release" ; then
+              export WITH_CRIMSON=true
               # TODO use clang-10 on ubuntu/focal
               timeout 7200 src/script/run-make.sh \
                 --cmake-args "-DCMAKE_CXX_COMPILER=$cxx_compiler -DCMAKE_C_COMPILER=$c_compiler -DCMAKE_BUILD_TYPE=Release -DWITH_CRIMSON=ON -DWITH_TESTS=OFF" \
@@ -246,7 +246,8 @@
 - project:
     name: ceph-perf
     osd-flavor:
-      - crimson
+      - crimson-debug
+      - crimson-release
       - classic
     jobs:
       - ceph-perf-{osd-flavor}

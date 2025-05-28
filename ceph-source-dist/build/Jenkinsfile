@@ -13,7 +13,12 @@ pipeline {
               env.CEPH_EXTRA_CMAKE_ARGS+=" -DWITH_SYSTEM_BOOST=OFF -DWITH_BOOST_VALGRIND=ON"
               env.DEB_BUILD_PROFILES=""
               break
-            case "crimson":
+            case "crimson-debug":
+              env.CEPH_EXTRA_RPMBUILD_ARGS="--with crimson"
+              env.DEB_BUILD_PROFILES="pkg.ceph.crimson"
+              env.CEPH_EXTRA_CMAKE_ARGS+=" -DCMAKE_BUILD_TYPE=Debug"
+              break
+            case "crimson-release":
               env.CEPH_EXTRA_RPMBUILD_ARGS="--with crimson"
               env.DEB_BUILD_PROFILES="pkg.ceph.crimson"
               break
