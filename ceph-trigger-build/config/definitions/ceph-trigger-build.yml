@@ -1,0 +1,195 @@
+- job:
+    name: preserve-ceph-trigger-build
+    description: "this is a proof-of-concept and will not actually trigger builds."
+    node: built-in
+    project-type: freestyle
+    defaults: global
+    concurrent: true
+    quiet-period: 0
+    block-downstream: false
+    block-upstream: false
+    properties:
+      - build-discarder:
+          num-to-keep: 500
+          artifact-days-to-keep: -1
+          artifact-num-to-keep: -1
+      - github:
+          url: https://github.com/ceph/ceph-ci
+
+    triggers:
+      - generic-webhook-trigger:
+          token: ceph-trigger-build
+          token-credential-id: ceph-trigger-build-token
+          print-contrib-var: true
+          header-params:
+            - key: X-GitHub-Event
+            - key: X-GitHub-Hook-ID
+            - key: X-GitHub-Delivery
+          post-content-params:
+            - type: JSONPath
+              key: head_commit_message
+              value: $.head_commit.message
+            - type: JSONPath
+              key: head_commit_id
+              value: $.head_commit.id
+            - type: JSONPath
+              key: ref
+              value: $.ref
+            - type: JSONPath
+              key: pusher
+              value: $.pusher.name
+            - type: JSONPath
+              key: is_delete
+              value: $.deleted
+          cause: "Push to $ref by $pusher"
+
+    builders:
+      # If the commit requests ceph-dev-pipeline, trigger that
+      - conditional-step:
+          condition-kind: regex-match
+          label: "${{head_commit_message}}"
+          regex: "(?i)CI-BUILD-JOB: ceph-dev-pipeline"
+          on-evaluation-failure: dont-run
+          steps:
+            - shell: "echo TRIGGERING ceph-dev-pipeline"
+
+      - conditional-step:
+          condition-kind: and
+          condition-operands:
+            - condition-kind: not
+              condition-operand:
+                condition-kind: regex-match
+                label: "${{head_commit_message}}"
+                regex: "(?i)CI-BUILD-JOB: ceph-dev-pipeline"
+              on-evaluation-failure: dont-run
+            # the following condition may not be necessary, as the delete
+            # events observed so far do not have a head_commit field, causing
+            # earlier evaluation failures. but rather than depend on that
+            # behavior, let's explicitly skip delete events.
+            - condition-kind: not
+              condition-operand:
+                condition-kind: regex-match
+                label: "${{is_delete}}"
+                regex: "(?i)true"
+              on-evaluation-failure: dont-run
+          on-evaluation-failure: dont-run
+          steps:
+            # build reef on:
+            # default: jammy focal centos9 windows
+            - conditional-step:
+                condition-kind: regex-match
+                regex: refs/heads/.*reef.*
+                label: "${{ref}}"
+                on-evaluation-failure: dont-run
+                steps:
+                  - shell: |
+                      echo TRIGGERING ceph-dev-new
+                      echo ---
+                      echo ARCHS=x86_64 arm64
+                      echo DISTROS=jammy centos9 windows
+
+            # build squid on:
+            # default: jammy centos9 windows
+            - conditional-step:
+                condition-kind: regex-match
+                regex: refs/heads/.*squid.*
+                label: "${{ref}}"
+                on-evaluation-failure: dont-run
+                steps:
+                  - shell: |
+                      echo TRIGGERING ceph-dev-new
+                      echo ---
+                      echo ARCHS=x86_64 arm64
+                      echo DISTROS=jammy centos9 windows
+                      echo FLAVOR=default
+
+            # build tentacle on:
+            # default: jammy centos9 windows
+            # crimson: centos9
+            - conditional-step:
+                condition-kind: regex-match
+                regex: .*tentacle.*
+                label: "${{ref}}"
+                on-evaluation-failure: dont-run
+                steps:
+                  - shell: |
+                      echo TRIGGERING ceph-dev-new
+                      echo ---
+                      echo ARCHS=x86_64 arm64
+                      echo DISTROS=jammy centos9 windows
+                      echo FLAVOR=default
+                      echo ---
+                      echo DISTROS=centos9
+                      echo ARCHS=x86_64
+                      echo FLAVOR=crimson
+
+            # If no release name is found in branch, build on all possible distro/flavor combos (except xenial, bionic, focal).
+            - conditional-step:
+                condition-kind: not
+                condition-operand:
+                  condition-kind: regex-match
+                  label: "${{ref}}"
+                  regex: "(reef|squid|tentacle|centos9-only|crimson-only|jaeger)"
+                on-evaluation-failure: dont-run
+                steps:
+                  - shell: |
+                      echo TRIGGERING ceph-dev-new
+                      echo ---
+                      echo ARCHS=x86_64 arm64
+                      echo DISTROS=jammy centos9 windows
+                      echo FLAVOR=default
+                      echo ---
+                      echo DISTROS=centos9
+                      echo ARCHS=x86_64
+                      echo FLAVOR=crimson
+
+            # build only centos9, no crimson, no jaeger
+            - conditional-step:
+                condition-kind: regex-match
+                regex: refs/heads/.*centos9-only.*
+                label: "${{ref}}"
+                on-evaluation-failure: dont-run
+                steps:
+                  - shell: |
+                      echo TRIGGERING ceph-dev-new
+                      echo ---
+                      echo ARCHS=x86_64 arm64
+                      echo DISTROS=centos9
+                      echo FLAVOR=default
+
+            # Build only the `crimson` flavour, don't waste resources on the default one.
+            # Useful for the crimson's bug-hunt at Sepia
+            # crimson: centos9
+            - conditional-step:
+                condition-kind: regex-match
+                regex: refs/heads/.*crimson-only.*
+                label: "${{ref}}"
+                on-evaluation-failure: dont-run
+                steps:
+                  - shell: |
+                      echo TRIGGERING ceph-dev-new
+                      echo ---
+                      echo DISTROS=centos9
+                      echo ARCHS=x86_64
+                      echo FLAVOR=crimson
+
+            # Build jaegertracing branch on needed env,  don't waste resources on the default one.
+            # Useful for testing specific builds failure
+            # default: focal, centos8
+            - conditional-step:
+                condition-kind: regex-match
+                regex: refs/heads/.*jaeger.*
+                label: "${{ref}}"
+                on-evaluation-failure: dont-run
+                steps:
+                  - shell: |
+                      echo TRIGGERING ceph-dev-new
+                      echo ---
+                      echo ARCHS=x86_64
+                      echo DISTROS=centos8 focal
+                      echo FLAVOR=jaeger
+
+    wrappers:
+      - inject-passwords:
+          global: true
+          mask-password-params: true
