@@ -42,7 +42,6 @@
           choices:
             - default
             - crimson
-            - jaeger
 
       - string:
           name: CEPH_BUILD_BRANCH

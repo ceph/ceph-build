@@ -60,9 +60,8 @@
           choices:
             - default
             - crimson
-            - jaeger
           default: "default"
-          description: "Type of Ceph build, choices are: crimson, jaeger, default. Defaults to: 'default'"
+          description: "Type of Ceph build, choices are: crimson, default. Defaults to: 'default'"
 
       - bool:
           name: CI_CONTAINER
