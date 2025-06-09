@@ -62,14 +62,6 @@ pipeline {
               echo "SHA1=$(git rev-parse HEAD)" > dist/sha1
               echo "BRANCH=${BRANCH}" > dist/branch
 
-              # - CEPH_EXTRA_RPMBUILD_ARGS are consumed by build_rpm before
-              #   the switch to cmake;
-              # - CEPH_EXTRA_CMAKE_ARGS is for after cmake
-              # - DEB_BUILD_PROFILES is consumed by build_debs()
-              echo > dist/other_envvars
-              echo "CEPH_EXTRA_RPMBUILD_ARGS=${CEPH_EXTRA_RPMBUILD_ARGS}" >> dist/other_envvars
-              echo "CEPH_EXTRA_CMAKE_ARGS=${CEPH_EXTRA_CMAKE_ARGS}" >> dist/other_envvars
-              echo "DEB_BUILD_PROFILES=${DEB_BUILD_PROFILES}" >> dist/other_envvars
               mv dist ..
             '''
           }
