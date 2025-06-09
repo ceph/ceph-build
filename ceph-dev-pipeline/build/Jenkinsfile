@@ -168,6 +168,7 @@ pipeline {
           allOf {
             expression { env.DISTROS.contains(env.DIST) }
             expression { env.ARCHS.contains(env.ARCH) }
+            expression { env.FLAVORS.contains(env.FLAVOR) }
             anyOf {
               environment name: "CI_COMPILE", value: "true"
               allOf {
@@ -185,6 +186,33 @@ pipeline {
           axis {
             name 'ARCH'
             values 'x86_64', 'arm64'
+          }
+          axes {
+            name 'FLAVOR'
+            values 'default', 'crimson'
+          }
+        }
+        // crimson is only supported on centos9 x86_64
+        excludes {
+          exclude {
+            axis {
+              name 'FLAVOR'
+              values 'crimson'
+            }
+            axis {
+              name 'DIST'
+              notValues 'centos9'
+            }
+          }
+          exclude {
+            axis {
+              name 'FLAVOR'
+              values 'crimson'
+            }
+            axis {
+              name 'ARCH'
+              notValues 'x86_64'
+            }
           }
         }
         stages {
@@ -246,7 +274,7 @@ pipeline {
                   VERSION=${env.VERSION}<br />
                   DISTROS=${env.DISTROS}<br />
                   ARCHS=${env.ARCHS}<br />
-                  FLAVOR=${env.FLAVOR}<br />
+                  FLAVORS=${env.FLAVORS}<br />
                   <a href="${env.SETUP_BUILD_URL}">SETUP_BUILD_ID=${env.SETUP_BUILD_ID}</a><br />
                   <a href="${shaman_url}">shaman builds for this branch+commit</a>
                 """.stripIndent()
