@@ -37,13 +37,6 @@
           name: BRANCH
           description: "The Ceph branch to build"
 
-      - choice:
-          name: FLAVOR
-          choices:
-            - default
-            - crimson-debug
-            - crimson-release
-
       - string:
           name: CEPH_BUILD_BRANCH
           description: "Use the Jenkinsfile from this ceph-build branch"
