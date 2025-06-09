@@ -145,9 +145,6 @@ pipeline {
               job: env.SETUP_JOB,
               parameters: [
                 string(name: "BRANCH", value: env.BRANCH),
-                string(name: "FLAVOR", value: env.FLAVOR),
-                string(name: "SCCACHE", value: env.SCCACHE),
-                string(name: "DWZ", value: env.DWZ),
                 // Below are just for ceph-source-dist
                 string(name: "CEPH_REPO", value: env.CEPH_REPO),
                 string(name: "CEPH_BUILD_BRANCH", value: env.CEPH_BUILD_BRANCH),
