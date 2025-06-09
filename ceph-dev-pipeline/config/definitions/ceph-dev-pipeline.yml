@@ -40,6 +40,11 @@
           description: "A list of architectures to build for. Available options are: x86_64 and arm64"
           default: "x86_64 arm64"
 
+      - string:
+          name: FLAVORS
+          description: "A list of flavors to build. Available options are: default and crimson"
+          default: "default"
+
       - bool:
           name: CI_COMPILE
           description: "Whether to compile and build packages"
