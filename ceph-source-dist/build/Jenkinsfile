@@ -22,10 +22,6 @@ pipeline {
               env.CEPH_EXTRA_RPMBUILD_ARGS="--with crimson"
               env.DEB_BUILD_PROFILES="pkg.ceph.crimson"
               break
-            case "jaeger":
-              env.CEPH_EXTRA_RPMBUILD_ARGS="--with jaeger"
-              env.DEB_BUILD_PROFILES="pkg.ceph.jaeger"
-              break
             default:
               println "FLAVOR={env.FLAVOR} is invalid"
               assert false
