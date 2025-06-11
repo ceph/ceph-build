@@ -134,26 +134,59 @@ def get_ceph_release_repo_text(base_url) {
   return text.toString()
 }
 
+@NonCPS
+def find_last_successful_build_for_branch(build_data, target_branch) {
+    def build_data_json = new groovy.json.JsonSlurper().parseText(build_data)
+    def builds = build_data_json.builds ?: []
+    for (build in builds) {
+        if (build.result != "SUCCESS") continue
+        def matched_build = build.actions.find { action ->
+            if (action?.parameters) {
+                def found_build = action.parameters.find { param ->
+                    def normalize = { it?.tokenize('/')?.last() }
+                    param?.name == "BRANCH" && normalize(param?.value) == normalize(target_branch)
+                }
+                return found_build != null
+            }
+            return false
+        }
+        if (matched_build) {
+            return [matched: true, build_number: build.number.toString()]
+        }
+    }
+    return [matched: false, build_number: null]
+}
+
 pipeline {
   agent any
   stages {
     stage("source distribution") {
       steps {
         script {
-          if ( ! env.SETUP_BUILD_ID ) {
-            def setup_build = build(
-              job: env.SETUP_JOB,
-              parameters: [
-                string(name: "BRANCH", value: env.BRANCH),
-                string(name: "FLAVOR", value: env.FLAVOR),
-                string(name: "SCCACHE", value: env.SCCACHE),
-                string(name: "DWZ", value: env.DWZ),
-                // Below are just for ceph-source-dist
-                string(name: "CEPH_REPO", value: env.CEPH_REPO),
-                string(name: "CEPH_BUILD_BRANCH", value: env.CEPH_BUILD_BRANCH),
-              ]
-            )
-            env.SETUP_BUILD_ID = setup_build.getNumber()
+          if (!env.SETUP_BUILD_ID) {
+            def build_data = sh (
+                script: "curl -s ${env.JENKINS_URL}/job/${env.SETUP_JOB}/api/json?tree=builds%5Bnumber,result,actions%5Bparameters%5Bname,value%5D%5D%5D",
+                returnStdout: true
+            ).trim()
+            def build_result = find_last_successful_build_for_branch(build_data, env.BRANCH)
+            if (build_result.matched) {
+                env.SETUP_BUILD_ID = build_result.build_number
+            }
+            if (!env.SETUP_BUILD_ID) {
+              def setup_build = build(
+                job: env.SETUP_JOB,
+                parameters: [
+                  string(name: "BRANCH", value: env.BRANCH),
+                  string(name: "FLAVOR", value: env.FLAVOR),
+                  string(name: "SCCACHE", value: env.SCCACHE),
+                  string(name: "DWZ", value: env.DWZ),
+                  // Below are just for ceph-source-dist
+                  string(name: "CEPH_REPO", value: env.CEPH_REPO),
+                  string(name: "CEPH_BUILD_BRANCH", value: env.CEPH_BUILD_BRANCH),
+                ]
+              )
+              env.SETUP_BUILD_ID = setup_build.getNumber()
+            }
           }
           println "SETUP_BUILD_ID=${env.SETUP_BUILD_ID}"
           env.SETUP_BUILD_URL = new URI([env.JENKINS_URL, "job", env.SETUP_JOB, env.SETUP_BUILD_ID].join("/")).normalize()
@@ -235,6 +268,7 @@ pipeline {
                   projectName: env.SETUP_JOB,
                   selector: specific(buildNumber: env.SETUP_BUILD_ID),
                   filter: artifact_filter,
+                  fingerprintArtifacts: true,
                 )
               }
               script {
