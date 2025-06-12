@@ -1,4 +1,8 @@
 ---
+# NOTE: there are references to relative paths here, and if you want
+# them to work, this playbook must be in the parent of examples/, so, symlink
+# it or something.  (files/, templates/ are two such paths)
+#
 ## Instead of trying to keep 4 separate playbooks up to date, let's do it all here.
 ## The only difference from using multiple playbooks is we need to specify `-e libvirt=true` and/or `-e permanent=true` if the builder will be permanent/static.
 ## Tested on: CentOS 7, CentOS 8, Xenial, Bionic, Focal, Leap 15.1 using ansible 2.8.5
@@ -6,7 +10,8 @@
 ## Example:
 ## define labels in inventory "jenkins_labels" dict, keyed by fqdn
 ##
-## ansible-playbook -vvv -M ./library/ builder.yml, "api_uri": "https://jenkins.ceph.com"}' --limit braggi01*
+## ansible-playbook -vvv -M ./library/ builder.yml, -e '{"api_uri": "https://jenkins.ceph.com"}' --limit braggi01*
+#
 ##
 ## secrets files jenkins.ceph.com.apitoken.yml and 2.jenkins.ceph.com.apitoken.yml must
 ## exist in ANSIBLE_SECRETS_PATH
