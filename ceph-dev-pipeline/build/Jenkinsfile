@@ -189,7 +189,7 @@ pipeline {
           }
           axes {
             name 'FLAVOR'
-            values 'default', 'crimson'
+            values 'default', 'crimson-release', 'crimson-debug'
           }
         }
         // crimson is only supported on centos9 x86_64
@@ -197,7 +197,7 @@ pipeline {
           exclude {
             axis {
               name 'FLAVOR'
-              values 'crimson'
+              values 'crimson-release', 'crimson-debug'
             }
             axis {
               name 'DIST'
@@ -207,7 +207,7 @@ pipeline {
           exclude {
             axis {
               name 'FLAVOR'
-              values 'crimson'
+              values 'crimson-release', 'crimson-debug'
             }
             axis {
               name 'ARCH'
@@ -416,7 +416,7 @@ pipeline {
                     env.CEPH_EXTRA_CMAKE_ARGS+=" -DALLOCATOR=tcmalloc"
                     env.CEPH_EXTRA_CMAKE_ARGS+=" -DWITH_SYSTEM_BOOST=OFF -DWITH_BOOST_VALGRIND=ON"
                     break
-                  case "crimson":
+                  case ~/crimson.*/:
                     env.DEB_BUILD_PROFILES="pkg.ceph.crimson"
                     sh '''#!/bin/bash
                       echo "WITH_CRIMSON=true" >> .env
@@ -441,7 +441,7 @@ pipeline {
                   if ( env.SCCACHE == "true" ) rpmbuild_args += " -R--with=sccache"
                   if ( env.DWZ == "false" ) rpmbuild_args += " -R--without=dwz"
                   if ( env.FLAVOR == "default" ) rpmbuild_args += " -R--with=tcmalloc"
-                  if ( env.FLAVOR == "crimson" ) rpmbuild_args += " -R--with=crimson"
+                  if ( env.FLAVOR.startsWith("crimson") ) rpmbuild_args += " -R--with=crimson"
                   bwc_command = "${bwc_command}${rpmbuild_args} -e rpm"
                 } else if ( env.DIST =~ /suse|sles/ ) {
                   throw new Exception("bwc not implemented for ${env.DIST}")

@@ -42,7 +42,7 @@
 
       - string:
           name: FLAVORS
-          description: "A list of flavors to build. Available options are: default and crimson"
+          description: "A list of flavors to build. Available options are: default, crimson-release, crimson-debug"
           default: "default"
 
       - bool:
