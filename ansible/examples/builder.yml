@@ -1,4 +1,8 @@
 ---
+# NOTE: there are references to relative paths here, and if you want
+# them to work, this playbook must be in the parent of examples/, so, symlink
+# it or something.  (files/, templates/ are two such paths)
+#
 ## Instead of trying to keep 4 separate playbooks up to date, let's do it all here.
 ## The only difference from using multiple playbooks is we need to specify `-e libvirt=true` and/or `-e permanent=true` if the builder will be permanent/static.
 ## Tested on: CentOS 7, CentOS 8, Xenial, Bionic, Focal, Leap 15.1 using ansible 2.8.5
@@ -6,7 +10,8 @@
 ## Example:
 ## define labels in inventory "jenkins_labels" dict, keyed by fqdn
 ##
-## ansible-playbook -vvv -M ./library/ builder.yml, "api_uri": "https://jenkins.ceph.com"}' --limit braggi01*
+## ansible-playbook -vvv -M ./library/ builder.yml, -e '{"api_uri": "https://jenkins.ceph.com"}' --limit braggi01*
+#
 ##
 ## secrets files jenkins.ceph.com.apitoken.yml and 2.jenkins.ceph.com.apitoken.yml must
 ## exist in ANSIBLE_SECRETS_PATH
@@ -583,17 +588,27 @@
     # On a mita/prado provisioned builder, everything gets put into a 'playbook' dir.
     # Otherwise it can be found in files/ssh/...
     - set_fact:
-        jenkins_key: "{{ lookup('first_found', key_locations) }}"
+        jenkins_key_file: "{{ lookup('first_found', key_locations, errors='ignore') }}"
       vars:
         key_locations:
           - "playbook/files/ssh/keys/jenkins_build.pub"
           - "files/ssh/keys/jenkins_build.pub"
 
+    - name: get jenkins_key from key file if found
+      set_fact:
+        jenkins_key: "{{ lookup('file', jenkins_key_file) }}"
+      when: jenkins_key_file != ""
+
     # And worst case scenario, we just pull the key from github.
+    - name: Set the jenkins key string from github if necessary
+      set_fact:
+        jenkins_key: " {{ lookup('url', 'https://raw.githubusercontent.com/ceph/ceph-build/main/ansible/files/ssh/keys/jenkins_build.pub') }}"
+      when: not jenkins_key is defined
+
     - name: Set the authorized keys
       authorized_key:
         user: "{{ jenkins_user }}"
-        key: "{{ lookup('file', '{{ jenkins_key }}')|default('https://raw.githubusercontent.com/ceph/ceph-build/main/ansible/files/ssh/keys/jenkins_build.pub') }}"
+        key: "{{ jenkins_key }}"
 
     - name: "Ensure {{ jenkins_user }} can sudo without a prompt"
       lineinfile:
@@ -795,31 +810,37 @@
     ## GITCONFIG TASKS
     - name: Ensure the gitconfig file exists
       shell: printf "[user]\name=Ceph CI\nemail=ceph-release-team@redhat.com\n" > /home/{{ jenkins_user }}/.gitconfig
-      tags: github
 
     - name: Ensure the gitconfig file has right permissions
       file:
         path: "/home/{{ jenkins_user }}/.gitconfig"
         owner: "{{ jenkins_user }}"
-      tags: github
 
     # On a mita/prado provisioned builder, everything gets put into a 'playbook' dir.
     # If all else fails, get it from github (using the |default)
     - set_fact:
-        github_key: "{{ lookup('first_found', key_locations) }}"
+        github_host_key_file: "{{ lookup('first_found', key_locations, errors='ignore') }}"
       vars:
         key_locations:
           # github.com.pub is the output of `ssh-keyscan github.com`
           - "playbook/files/ssh/hostkeys/github.com.pub"
           - "files/ssh/hostkeys/github.com.pub"
-      tags: github
+
+    - name: get github host key from file
+      set_fact:
+        github_host_key: "{{ lookup('file', github_host_key_file) }}"
+      when: github_host_key_file != ""
+
+    - name: get github host key from github if necessary
+      set_fact:
+        github_host_key: "{{ lookup('url', 'https://raw.githubusercontent.com/ceph/ceph-build/main/ansible/files/ssh/hostkeys/github.com.pub') }}"
+      when: github_host_key == ""
 
     - name: Add github.com host key
       known_hosts:
         name: github.com
         path: '/etc/ssh/ssh_known_hosts'
-        key: "{{ lookup('file', '{{ github_key }}')|default('https://raw.githubusercontent.com/ceph/ceph-build/main/ansible/files/ssh/hostkeys/github.com.pub') }}"
-      tags: github
+        key: "{{ github_host_key }}"
 
     ## PIP TASKS
     - set_fact:
