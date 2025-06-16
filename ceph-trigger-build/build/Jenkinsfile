@@ -51,9 +51,9 @@ def params_from_branch(initialParams) {
         params << params[0].clone()
         params[-1]['ARCHS'] = 'x86_64'
         params[-1]['DISTROS'] = 'centos9'
-        params[-1]['FLAVOR'] = 'crimson'
+        params[-1]['FLAVOR'] = 'crimson-debug'
       } else {
-        params[0]['FLAVOR'] += ' crimson'
+        params[0]['FLAVOR'] += ' crimson-debug'
       }
       break
     case ~/.*centos9-only.*/:
@@ -62,16 +62,21 @@ def params_from_branch(initialParams) {
     case ~/.*crimson-only.*/:
       params[0]['ARCHS'] = 'x86_64'
       params[0]['DISTROS'] = 'centos9'
-      params[0]['FLAVOR'] = 'crimson'
+      if ( !singleSet ) {
+        params << params[0].clone()
+        params[1]['FLAVOR'] = 'crimson-release'
+      } else {
+        params[0]['FLAVOR'] = 'crimson-debug crimson-release'
+      }
       break
     default:
       if ( !singleSet ) {
         params << params[0].clone()
         params[-1]['ARCHS'] = 'x86_64'
         params[-1]['DISTROS'] = 'centos9'
-        params[-1]['FLAVOR'] = 'crimson'
+        params[-1]['FLAVOR'] = 'crimson-debug'
       } else {
-        params[0]['FLAVOR'] += ' crimson'
+        params[0]['FLAVOR'] += ' crimson-debug'
       }
   }
   if ( singleSet ) {
