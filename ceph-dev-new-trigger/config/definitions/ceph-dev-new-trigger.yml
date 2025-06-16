@@ -98,7 +98,7 @@
       - conditional-step:
           condition-kind: shell
           condition-command: |
-            echo "${{GIT_BRANCH}}" | grep -v '\(reef\|squid\|tentacle\|centos9-only\|crimson-only\|jaeger\)'
+            echo "${{GIT_BRANCH}}" | grep -v '\(reef\|squid\|tentacle\|centos9-only\|crimson-only\)'
           on-evaluation-failure: dont-run
           steps:
             - shell:
@@ -119,7 +119,7 @@
                     DISTROS=centos9
                     FLAVOR=crimson-debug
                     ARCHS=x86_64
-      # build only centos9, no crimson, no jaeger
+      # build only centos9, no crimson
       - conditional-step:
           condition-kind: regex-match
           regex: .*centos9-only.*
@@ -166,27 +166,6 @@
                     FORCE=True
                     DISTROS=centos9
                     FLAVOR=crimson-release
-                    ARCHS=x86_64
-      # Build jaegertracing branch on needed env,  don't waste resources on the default one.
-      # Useful for testing specific builds failure
-      # default: focal, centos8
-      - conditional-step:
-          condition-kind: regex-match
-          regex: .*jaeger.*
-          label: '${{GIT_BRANCH}}'
-          on-evaluation-failure: dont-run
-          steps:
-            - shell:
-                !include-raw-verbatim:
-                - ../../../scripts/build_utils.sh
-                - ../../build/notify
-            - trigger-builds:
-                - project: 'ceph-dev-new'
-                  predefined-parameters: |
-                    BRANCH=${{GIT_BRANCH}}
-                    FORCE=True
-                    DISTROS=centos8 focal
-                    FLAVOR=jaeger
                     ARCHS=x86_64
       # sccache
       - conditional-step:

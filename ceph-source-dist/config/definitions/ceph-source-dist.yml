@@ -43,7 +43,6 @@
             - default
             - crimson-debug
             - crimson-release
-            - jaeger
 
       - string:
           name: CEPH_BUILD_BRANCH

@@ -876,10 +876,6 @@ ceph_build_args_from_flavor() {
         CEPH_EXTRA_RPMBUILD_ARGS="--with crimson"
         DEB_BUILD_PROFILES="pkg.ceph.crimson"
         ;;
-    jaeger)
-        CEPH_EXTRA_RPMBUILD_ARGS="--with jaeger"
-        DEB_BUILD_PROFILES="pkg.ceph.jaeger"
-        ;;
     *)
         echo "unknown FLAVOR: ${FLAVOR}" >&2
         exit 1
@@ -1485,16 +1481,13 @@ setup_rpm_build_deps() {
 
     sed -e 's/@//g' < ceph.spec.in > $DIR/ceph.spec
 
-    # enable more build depends required by build flavor(jaeger, crimson)
+    # enable more build depends required by build flavor(crimson)
     case "${FLAVOR}" in
     crimson-debug)
       sed -i -e 's/%bcond_with crimson/%bcond_without crimson/g' $DIR/ceph.spec
         ;;
     crimson-release)
       sed -i -e 's/%bcond_with crimson/%bcond_without crimson/g' $DIR/ceph.spec
-        ;;
-    jaeger)
-      sed -i -e 's/%bcond_with jaeger/%bcond_without jaeger/g' $DIR/ceph.spec
         ;;
     esac
 

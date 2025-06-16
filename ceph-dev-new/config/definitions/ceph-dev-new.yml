@@ -53,9 +53,8 @@
             - default
             - crimson-debug
             - crimson-release
-            - jaeger
           default: "default"
-          description: "Type of Ceph build, choices are: crimson-debug, crimson-release, jaeger, default. Defaults to: 'default'"
+          description: "Type of Ceph build, choices are: crimson-debug, crimson-release, default. Defaults to: 'default'"
 
       - string:
           name: CI_CONTAINER
