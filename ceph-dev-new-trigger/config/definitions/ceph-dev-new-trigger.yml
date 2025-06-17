@@ -47,8 +47,6 @@
                     BRANCH=${{GIT_BRANCH}}
                     FORCE=True
                     DISTROS=jammy focal centos9 windows
-                - project: 'ceph-dev-new'
-
       # build squid on:
       # default: jammy centos9 windows
       - conditional-step:
