@@ -433,6 +433,10 @@ get_distro_and_target() {
             DIST=wheezy
             DISTRO="debian"
             ;;
+        noble*)
+            DIST=noble
+            DISTRO="ubuntu"
+            ;;
         jammy*)
             DIST=jammy
             DISTRO="ubuntu"
@@ -548,6 +552,7 @@ setup_pbuilder() {
     [ "$DIST" = "bionic" ] && os="ubuntu"
     [ "$DIST" = "focal" ] && os="ubuntu"
     [ "$DIST" = "jammy" ] && os="ubuntu"
+    [ "$DIST" = "noble" ] && os="ubuntu"
 
     if [ $os = "debian" ]; then
         # this mirror seems to have been decommissioned.
@@ -798,6 +803,8 @@ setup_pbuilder_for_old_gcc() {
             old=9;;
         jammy)
             old=11;;
+        noble)
+            old=13;;
     esac
     setup_gcc_hook $old > $hookdir/D10update-gcc-alternatives
     chmod +x $hookdir/D10update-gcc-alternatives
@@ -825,6 +832,7 @@ get_bptag() {
     [ "$dist" = "wheezy" ] && dver="~bpo70+1"
     [ "$dist" = "squeeze" ] && dver="~bpo60+1"
     [ "$dist" = "lenny" ] && dver="~bpo50+1"
+    [ "$dist" = "noble" ] && dver="$dist"
     [ "$dist" = "jammy" ] && dver="$dist"
     [ "$dist" = "focal" ] && dver="$dist"
     [ "$dist" = "bionic" ] && dver="$dist"
