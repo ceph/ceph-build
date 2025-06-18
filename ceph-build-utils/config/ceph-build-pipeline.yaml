@@ -1,0 +1,92 @@
+- job:
+    name: preserve-adarsha-test
+    description: ceph-build-utils-pipeline
+    project-type: pipeline
+    quiet-period: 1
+    concurrent: true
+    pipeline-scm:
+      scm:
+        - git:
+            url: https://github.com/ceph/ceph-build
+            branches:
+              - ${{CEPH_BUILD_BRANCH}}
+            shallow-clone: true
+            submodule:
+              disable: true
+            wipe-workspace: true
+      script-path: ceph-build-utils/build/Jenkinsfile
+      lightweight-checkout: true
+      do-not-fetch-tags: true
+
+    parameters:
+      - string:
+          name: BRANCH
+          description: "The git branch (or tag) to build"
+          default: main
+
+      - string:
+          name: DISTROS
+          description: "A list of distros to build for. Available options are: centos9, centos8, noble, jammy, focal, and windows"
+          default: "centos9 jammy"
+
+      - string:
+          name: ARCHS
+          description: "A list of architectures to build for. Available options are: x86_64 and arm64"
+          default: "x86_64 arm64"
+
+      - bool:
+          name: THROWAWAY
+          description: "Whether to push any binaries to Chacra"
+          default: false
+
+      - bool:
+          name: FORCE
+          description: "Whether to push new binaries to Chacra if some are already present"
+          default: false
+
+      - choice:
+          name: FLAVOR
+          choices:
+            - default
+            - crimson
+            - jaeger
+          default: "default"
+          description: "Type of Ceph build, choices are: crimson, jaeger, default. Defaults to: 'default'"
+
+      - bool:
+          name: DWZ
+          description: "Use dwz to make debuginfo packages smaller"
+          default: false
+
+      - bool:
+          name: SCCACHE
+          description: "Use sccache to speed up compilation"
+          default: true
+
+      - string:
+          name: SETUP_BUILD_ID
+          description: "Use the source distribution from this ceph-dev-new-setup build instead of creating a new one"
+          default: ""
+
+      - string:
+          name: CEPH_BUILD_BRANCH
+          description: "Use the Jenkinsfile from this ceph-build branch"
+          default: build_utils_refactor
+
+      - choice:
+          name: SETUP_JOB
+          choices:
+            - ceph-dev-setup
+
+    wrappers:
+      - inject-passwords:
+          global: true
+          mask-password-params: true
+      - credentials-binding:
+          - text:
+              credential-id: shaman-api-key
+              variable: SHAMAN_API_KEY
+          - username-password-separated:
+              credential-id: quay.ceph.io-ceph-prerelease
+              username: CONTAINER_REPO_USERNAME
+              password: CONTAINER_REPO_PASSWORD
