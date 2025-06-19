@@ -181,7 +181,7 @@ pipeline {
         axes {
           axis {
             name 'DIST'
-            values 'centos9', 'jammy'
+            values 'centos9', 'centos10', 'rocky10', 'jammy', 'noble'
           }
           axis {
             name 'ARCH'
