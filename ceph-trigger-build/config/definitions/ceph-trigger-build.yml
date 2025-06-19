@@ -1,0 +1,62 @@
+- job:
+    name: preserve-ceph-trigger-build
+    description: "this is a proof-of-concept and will not actually trigger builds."
+    node: built-in
+    project-type: pipeline
+    defaults: global
+    concurrent: true
+    quiet-period: 0
+    block-downstream: false
+    block-upstream: false
+    pipeline-scm:
+      scm:
+        - git:
+            url: https://github.com/ceph/ceph-build
+            branches:
+              - ceph-trigger-build
+            shallow-clone: true
+            submodule:
+              disable: true
+            wipe-workspace: true
+      script-path: ceph-trigger-build/build/Jenkinsfile
+      lightweight-checkout: true
+      do-not-fetch-tags: true
+    properties:
+      - build-discarder:
+          num-to-keep: 500
+          artifact-days-to-keep: -1
+          artifact-num-to-keep: -1
+      - github:
+          url: https://github.com/ceph/ceph-ci
+
+    triggers:
+      - generic-webhook-trigger:
+          token: ceph-trigger-build
+          token-credential-id: ceph-trigger-build-token
+          print-contrib-var: true
+          header-params:
+            - key: X-GitHub-Event
+            - key: X-GitHub-Hook-ID
+            - key: X-GitHub-Delivery
+          post-content-params:
+            - type: JSONPath
+              key: head_commit_message
+              value: $.head_commit.message
+            - type: JSONPath
+              key: head_commit_id
+              value: $.head_commit.id
+            - type: JSONPath
+              key: ref
+              value: $.ref
+            - type: JSONPath
+              key: pusher
+              value: $.pusher.name
+            # github sends push events for branch deletion, and those events
+            # are missing commit-related fields, so we must special-case
+            # them to prevent failures
+            - type: JSONPath
+              key: is_delete
+              value: $.deleted
+          regex-filter-text: $is_delete
+          regex-filter-expression: "(?i)false"
+          cause: "Push to $ref by $pusher"

@@ -1,0 +1,195 @@
+import groovy.json.JsonBuilder
+
+def pretty(obj) {
+  return new JsonBuilder(obj).toPrettyString()
+}
+
+// These parameters are able to be parsed from git trailers
+def gitTrailerParameterNames = [
+  "ARCHS",
+  "CEPH_BUILD_BRANCH",
+  "CEPH_BUILD_JOB",
+  "CI_COMPILE",
+  "CI_CONTAINER",
+  "DISTROS",
+  "DWZ",
+  "FLAVORS",
+  "SCCACHE",
+]
+// These are the default parameter values for the pipeline
+def defaults = [
+  'CEPH_BUILD_JOB': 'ceph-dev-new',
+  'DISTROS': 'centos9 jammy windows',
+  'ARCHS': 'x86_64 arm64',
+  'FLAVOR': 'default',
+]
+// This will later hold the initial set of parameters, before any branch-based
+// values are inserted.
+def initialParams = [:]
+// this will later hold parameters parsed from git trailers
+def trailerParams = [:]
+// This will later hold one or more parameter sets. Each parameter set will
+// result in a triggered job.
+def paramMaps = []
+// This will later hold the build's description; we need to store it so that
+// we can append to it later, as there is no way to read it.
+def description = "";
+
+// This encodes the same logic as the ceph-dev-new-trigger job.
+// It returns a list of one or more parameter sets.
+// For ceph-dev-pipeline, only one set is returned.
+def params_from_branch(initialParams) {
+  def singleSet = ( initialParams['CEPH_BUILD_JOB'].contains('ceph-dev-pipeline') )
+  def params = [initialParams.clone()]
+  switch (initialParams.BRANCH) {
+    case ~/.*reef.*/:
+      break
+    case ~/.*squid.*/:
+      break
+    case ~/.*tentacle.*/:
+      if ( !singleSet ) {
+        params << params[0].clone()
+        params[-1]['ARCHS'] = 'x86_64'
+        params[-1]['DISTROS'] = 'centos9'
+        params[-1]['FLAVOR'] = 'crimson-debug'
+      } else {
+        params[0]['FLAVOR'] += ' crimson-debug'
+      }
+      break
+    case ~/.*centos9-only.*/:
+      params[0]['DISTROS'] = 'centos9'
+      break
+    case ~/.*crimson-only.*/:
+      params[0]['ARCHS'] = 'x86_64'
+      params[0]['DISTROS'] = 'centos9'
+      if ( !singleSet ) {
+        params << params[0].clone()
+        params[1]['FLAVOR'] = 'crimson-release'
+      } else {
+        params[0]['FLAVOR'] = 'crimson-debug crimson-release'
+      }
+      break
+    default:
+      if ( !singleSet ) {
+        params << params[0].clone()
+        params[-1]['ARCHS'] = 'x86_64'
+        params[-1]['DISTROS'] = 'centos9'
+        params[-1]['FLAVOR'] = 'crimson-debug'
+      } else {
+        params[0]['FLAVOR'] += ' crimson-debug'
+      }
+  }
+  if ( singleSet ) {
+    params[0]['FLAVORS'] = params[0]['FLAVOR']
+    params[0].remove('FLAVOR')
+  }
+  return params
+}
+
+pipeline {
+  agent any
+  stages {
+    stage("Prepare parameters") {
+      steps {
+        script {
+          initialParams.BRANCH = env.ref.replace("refs/heads/", "")
+          initialParams.putAll(defaults)
+          println("BRANCH=${initialParams.BRANCH}")
+        }
+        script {
+          println("SHA1=${env.head_commit_id}")
+        }
+        script {
+          println("pusher=${env.pusher}")
+        }
+        script {
+          println("Looking for git trailer parameters: ${gitTrailerParameterNames}")
+          writeFile(
+            file: "head_commit_message.txt",
+            text: env.head_commit_message,
+          )
+          def trailer = sh(
+            script: "git interpret-trailers --parse head_commit_message.txt",
+            returnStdout: true,
+          )
+          println("trailer: ${trailer}")
+          for (item in trailer.split("\n")) {
+            def matcher = item =~ /(.+): (.+)/
+            if (matcher.matches()) {
+              key = matcher[0][1].replace("-", "_").toUpperCase()
+              value = matcher[0][2]
+              if ( key in gitTrailerParameterNames && value ) {
+                trailerParams[key] = value
+              }
+            }
+          }
+        }
+        script {
+          if ( trailerParams.containsKey('CEPH_BUILD_JOB') ) {
+            initialParams['CEPH_BUILD_JOB'] = trailerParams['CEPH_BUILD_JOB']
+          }
+          paramMaps = params_from_branch(initialParams)
+          if ( initialParams['CEPH_BUILD_JOB'].contains('ceph-dev-pipeline') ) {
+            paramMaps[0].putAll(trailerParams)
+          }
+        }
+        script {
+          println("Final parameters: ${pretty(paramMaps)}")
+        }
+        script {
+          paramMaps.each { paramMap ->
+            paramMap.each { key, value -> description += "${key}=${value}<br />" }
+            description += "---\n"
+          }
+          buildDescription description.trim()
+        }
+      }
+    }
+    stage("Trigger job") {
+      steps {
+        script {
+          for (paramsMap in paramMaps) {
+            // Before we trigger, we need to transform the parameter sets from
+            // the base Groovy types into the types expected by Jenkins
+            def paramsList = []
+            paramsMap.each {
+              entry -> paramsList.push(string(name: entry.key, value: entry.value))
+            }
+            def job = paramsMap.CEPH_BUILD_JOB
+            def buildId = "_ID_"
+            if ( job.contains("ceph-dev-pipeline") ) {
+              triggeredBuild = build(
+                job: job,
+                parameters: paramsList,
+                wait: false,
+                waitForStart: true,
+              )
+              buildId = triggeredBuild.getId()
+              println("triggered pipeline: ${pretty(paramsMap)}")
+            } else {
+              legacy_trigger_enabled = Jenkins.instance.getItem("ceph-dev-new-trigger").isBuildable();
+              if ( legacy_trigger_enabled ) {
+                println("skipped triggering since legacy trigger is enabled: ${pretty(paramsMap)}")
+              } else {
+                triggeredBuild = build(
+                  job: job,
+                  parameters: paramsList,
+                  wait: false,
+                  waitForStart: true,
+                )
+                buildId = triggeredBuild.getId()
+                println("triggered legacy: ${pretty(paramsMap)}")
+              }
+            }
+            def buildUrl = new URI([env.JENKINS_URL, "job", job, buildId].join("/")).normalize()
+            description = """\
+              ${description}<br />
+              <a href="${buildUrl}">${job} ${buildId}</a>
+            """.trim()
+            buildDescription(description)
+          }
+        }
+      }
+    }
+  }
+}

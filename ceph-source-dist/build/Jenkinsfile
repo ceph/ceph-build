@@ -3,32 +3,6 @@ pipeline {
     label "gigantic"
   }
   stages {
-    stage("set environment variables") {
-      steps {
-        script {
-          switch (env.FLAVOR) {
-            case "default":
-              env.CEPH_EXTRA_RPMBUILD_ARGS="--with tcmalloc"
-              env.CEPH_EXTRA_CMAKE_ARGS+=" -DALLOCATOR=tcmalloc"
-              env.CEPH_EXTRA_CMAKE_ARGS+=" -DWITH_SYSTEM_BOOST=OFF -DWITH_BOOST_VALGRIND=ON"
-              env.DEB_BUILD_PROFILES=""
-              break
-            case "crimson-debug":
-              env.CEPH_EXTRA_RPMBUILD_ARGS="--with crimson"
-              env.DEB_BUILD_PROFILES="pkg.ceph.crimson"
-              env.CEPH_EXTRA_CMAKE_ARGS+=" -DCMAKE_BUILD_TYPE=Debug"
-              break
-            case "crimson-release":
-              env.CEPH_EXTRA_RPMBUILD_ARGS="--with crimson"
-              env.DEB_BUILD_PROFILES="pkg.ceph.crimson"
-              break
-            default:
-              println "FLAVOR={env.FLAVOR} is invalid"
-              assert false
-          }
-        }
-      }
-    }
     stage("repository") {
       steps {
         dir("ceph") {
@@ -88,14 +62,6 @@ pipeline {
               echo "SHA1=$(git rev-parse HEAD)" > dist/sha1
               echo "BRANCH=${BRANCH}" > dist/branch
 
-              # - CEPH_EXTRA_RPMBUILD_ARGS are consumed by build_rpm before
-              #   the switch to cmake;
-              # - CEPH_EXTRA_CMAKE_ARGS is for after cmake
-              # - DEB_BUILD_PROFILES is consumed by build_debs()
-              echo > dist/other_envvars
-              echo "CEPH_EXTRA_RPMBUILD_ARGS=${CEPH_EXTRA_RPMBUILD_ARGS}" >> dist/other_envvars
-              echo "CEPH_EXTRA_CMAKE_ARGS=${CEPH_EXTRA_CMAKE_ARGS}" >> dist/other_envvars
-              echo "DEB_BUILD_PROFILES=${DEB_BUILD_PROFILES}" >> dist/other_envvars
               mv dist ..
             '''
           }

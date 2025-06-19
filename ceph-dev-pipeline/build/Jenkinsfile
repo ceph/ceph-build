@@ -145,9 +145,6 @@ pipeline {
               job: env.SETUP_JOB,
               parameters: [
                 string(name: "BRANCH", value: env.BRANCH),
-                string(name: "FLAVOR", value: env.FLAVOR),
-                string(name: "SCCACHE", value: env.SCCACHE),
-                string(name: "DWZ", value: env.DWZ),
                 // Below are just for ceph-source-dist
                 string(name: "CEPH_REPO", value: env.CEPH_REPO),
                 string(name: "CEPH_BUILD_BRANCH", value: env.CEPH_BUILD_BRANCH),
@@ -171,6 +168,7 @@ pipeline {
           allOf {
             expression { env.DISTROS.contains(env.DIST) }
             expression { env.ARCHS.contains(env.ARCH) }
+            expression { env.FLAVORS.contains(env.FLAVOR) }
             anyOf {
               environment name: "CI_COMPILE", value: "true"
               allOf {
@@ -183,11 +181,38 @@ pipeline {
         axes {
           axis {
             name 'DIST'
-            values 'centos9', 'jammy'
+            values 'centos9', 'centos10', 'rocky10', 'jammy', 'noble'
           }
           axis {
             name 'ARCH'
             values 'x86_64', 'arm64'
+          }
+          axes {
+            name 'FLAVOR'
+            values 'default', 'crimson-release', 'crimson-debug'
+          }
+        }
+        // crimson is only supported on centos9 x86_64
+        excludes {
+          exclude {
+            axis {
+              name 'FLAVOR'
+              values 'crimson-release', 'crimson-debug'
+            }
+            axis {
+              name 'DIST'
+              notValues 'centos9'
+            }
+          }
+          exclude {
+            axis {
+              name 'FLAVOR'
+              values 'crimson-release', 'crimson-debug'
+            }
+            axis {
+              name 'ARCH'
+              notValues 'x86_64'
+            }
           }
         }
         stages {
@@ -249,7 +274,7 @@ pipeline {
                   VERSION=${env.VERSION}<br />
                   DISTROS=${env.DISTROS}<br />
                   ARCHS=${env.ARCHS}<br />
-                  FLAVOR=${env.FLAVOR}<br />
+                  FLAVORS=${env.FLAVORS}<br />
                   <a href="${env.SETUP_BUILD_URL}">SETUP_BUILD_ID=${env.SETUP_BUILD_ID}</a><br />
                   <a href="${shaman_url}">shaman builds for this branch+commit</a>
                 """.stripIndent()
@@ -386,17 +411,37 @@ pipeline {
                   )
                   bwc_cmd_sccache_flags = "--env-file=${env.WORKSPACE}/.env";
                 }
+                switch (env.FLAVOR) {
+                  case "default":
+                    env.CEPH_EXTRA_CMAKE_ARGS+=" -DALLOCATOR=tcmalloc"
+                    env.CEPH_EXTRA_CMAKE_ARGS+=" -DWITH_SYSTEM_BOOST=OFF -DWITH_BOOST_VALGRIND=ON"
+                    break
+                  case ~/crimson.*/:
+                    env.DEB_BUILD_PROFILES="pkg.ceph.crimson"
+                    sh '''#!/bin/bash
+                      echo "WITH_CRIMSON=true" >> .env
+                    '''
+                    break
+                  default:
+                    println "FLAVOR=${env.FLAVOR} is invalid"
+                    assert false
+                }
                 bwc_command = "${bwc_command} ${bwc_cmd_sccache_flags}"
                 if ( os.pkg_type == "deb" ) {
                   def sccache_flag = "-DWITH_SCCACHE=ON"
                   if ( env.SCCACHE == "true" && ! env.CEPH_EXTRA_CMAKE_ARGS.contains(sccache_flag) ) {
                     env.CEPH_EXTRA_CMAKE_ARGS = "${env.CEPH_EXTRA_CMAKE_ARGS} ${sccache_flag}"
                   }
+                  sh '''#!/bin/bash
+                    echo "DEB_BUILD_PROFILES${DEB_BUILD_PROFILES}" >> .env
+                  '''
                   bwc_command = "${bwc_command} -e debs"
                 } else if ( env.DIST =~ /^(centos|rhel|fedora).*/ ) {
                   def rpmbuild_args = ""
                   if ( env.SCCACHE == "true" ) rpmbuild_args += " -R--with=sccache"
                   if ( env.DWZ == "false" ) rpmbuild_args += " -R--without=dwz"
+                  if ( env.FLAVOR == "default" ) rpmbuild_args += " -R--with=tcmalloc"
+                  if ( env.FLAVOR.startsWith("crimson") ) rpmbuild_args += " -R--with=crimson"
                   bwc_command = "${bwc_command}${rpmbuild_args} -e rpm"
                 } else if ( env.DIST =~ /suse|sles/ ) {
                   throw new Exception("bwc not implemented for ${env.DIST}")
@@ -405,6 +450,9 @@ pipeline {
                 } else {
                   throw new Exception("DIST '${env.DIST}' is invalid!")
                 }
+                sh '''#!/bin/bash
+                  echo "CEPH_EXTRA_CMAKE_ARGS=${CEPH_EXTRA_CMAKE_ARGS}" >> .env
+                '''
                 sh """#!/bin/bash -ex
                   cd dist/ceph
                   ln ../ceph-${env.VERSION}.tar.bz2 .
@@ -430,7 +478,7 @@ pipeline {
                 script {
                   sh """
                     if [ -f "${env.WORKSPACE}/dist/ceph/sccache_log.txt" ]; then
-                      ln dist/ceph/sccache_log.txt sccache_log_${env.DIST}_${env.ARCH}.txt
+                      ln dist/ceph/sccache_log.txt sccache_log_${env.DIST}_${env.ARCH}_${env.FLAVOR}.txt
                     fi
                   """
                   archiveArtifacts(
