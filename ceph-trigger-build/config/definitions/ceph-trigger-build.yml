@@ -1,5 +1,5 @@
 - job:
-    name: preserve-ceph-trigger-build
+    name: ceph-trigger-build
     description: "this is a proof-of-concept and will not actually trigger builds."
     node: built-in
     project-type: pipeline
