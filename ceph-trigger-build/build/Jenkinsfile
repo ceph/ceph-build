@@ -116,8 +116,8 @@ pipeline {
           for (item in trailer.split("\n")) {
             def matcher = item =~ /(.+): (.+)/
             if (matcher.matches()) {
-              key = matcher[0][1].replace("-", "_").toUpperCase()
-              value = matcher[0][2]
+              def key = matcher[0][1].replace("-", "_").toUpperCase()
+              def value = matcher[0][2]
               if ( key in gitTrailerParameterNames && value ) {
                 trailerParams[key] = value
               }
@@ -167,11 +167,11 @@ pipeline {
               buildId = triggeredBuild.getId()
               println("triggered pipeline: ${pretty(paramsMap)}")
             } else {
-              legacy_trigger_enabled = Jenkins.instance.getItem("ceph-dev-new-trigger").isBuildable();
+              def legacy_trigger_enabled = Jenkins.instance.getItem("ceph-dev-new-trigger").isBuildable();
               if ( legacy_trigger_enabled ) {
                 println("skipped triggering since legacy trigger is enabled: ${pretty(paramsMap)}")
               } else {
-                triggeredBuild = build(
+                def triggeredBuild = build(
                   job: job,
                   parameters: paramsList,
                   wait: false,
