@@ -183,8 +183,7 @@ pipeline {
             }
             def buildUrl = new URI([env.JENKINS_URL, "job", job, buildId].join("/")).normalize()
             description = """\
-              ${description}<br />
-              <a href="${buildUrl}">${job} ${buildId}</a>
+              ${description}<a href="${buildUrl}">${job} ${buildId}</a>
             """.trim()
             buildDescription(description)
           }
