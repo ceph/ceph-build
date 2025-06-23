@@ -43,6 +43,7 @@ def params_from_branch(initialParams) {
   def params = [initialParams.clone()]
   switch (initialParams.BRANCH) {
     case ~/.*reef.*/:
+      params[-1]['DISTROS'] = 'centos9 jammy focal windows'
       break
     case ~/.*squid.*/:
       break
