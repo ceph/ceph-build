@@ -138,8 +138,8 @@ pipeline {
         }
         script {
           paramMaps.each { paramMap ->
-            paramMap.each { key, value -> description += "${key}=${value}<br />" }
-            description += "---\n"
+            paramMap.each { key, value -> description += "${key}=${value}\n<br />" }
+            description += "---\n<br />"
           }
           buildDescription description.trim()
         }
