@@ -65,6 +65,7 @@ def params_from_branch(initialParams) {
       params[0]['DISTROS'] = 'centos9'
       if ( !singleSet ) {
         params << params[0].clone()
+        params[0]['FLAVOR'] = 'crimson-debug'
         params[1]['FLAVOR'] = 'crimson-release'
       } else {
         params[0]['FLAVOR'] = 'crimson-debug crimson-release'
