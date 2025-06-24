@@ -1,25 +1,52 @@
+
 # ceph-trigger-build
 
 This pipeline's role is to:
-  1. Be triggered by a git push event
-  2. Determine which job or pipeline to use for the actual compile and
-     packaging
-  3. Build one or more sets of parameters
-  4. For each set, trigger a second job or pipeline with those parameters
 
-Parameter sets are constructed in this way:
-  1. A set of default values is constructed based on the branch name
-  2. The head commit is examined for git trailers
-    a. See https://git-scm.com/docs/git-interpret-trailers
-  3. If a "CEPH-BUILD-JOB: ceph-dev-pipeline" trailer is found, other parameter
-     values are overridden by any trailers matching them
+1. Be triggered by a git push event to [ceph-ci.git](https://github.com/ceph/ceph-ci)
+2. Determine which Jenkins job or pipeline to use for the source creation, compilation, and packaging.
+3. Trigger the appropriate Jenkins job/pipeline using default parameters based on the branch name, defined parameters via [git trailers](https://git-scm.com/docs/git-interpret-trailers), or a combination of both.
 
-An example set of trailers:
 
-    CEPH-BUILD-JOB: ceph-dev-pipeline
-    DISTROS: jammy centos9
-    ARCHS: x86_64 arm64
+### Git Trailer Parameters
 
-NOTE: During a transitional period, before this can fully replace the legacy
-trigger jobs, it will *not* trigger the legacy build jobs if the legacy triggers
-are enabled.
+- All parameters are optional.  For example, if you only want to build packages on `x86_64` for a branch targeted at `tentacle`, tentacle's default distros are `jammy centos9 windows` so a pipeline would be triggered to build x86_64 packages of each distro.
+- Only the head commit's trailers will be evaluated.
+
+|Parameter|Description|Available Options|Default|
+|--|--|--|--|
+|DISTROS|Space-sparated list of Linux distributions to build for|focal, jammy, noble, centos9, windows|Depends on keywords in branch name|
+|ARCHS|Space-separated list of architectures to build on|x86_64, arm64|`x86_64 arm64`|
+|FLAVORS|Crimson or non-Crimson|default, crimson-debug, crimson-release|`default`|
+|CI_COMPILE|Compile binaries and packages[^1]|Boolean|`true`|
+|CI_CONTAINER|Build a dev container using the packages built|Boolean|`true`|
+|DWZ|Use [DWZ](https://sourceware.org/dwz/) to make debuginfo packages smaller|Boolean|`true` when using ceph-dev-new<br>`false` when using ceph-dev-pipeline[^2]|
+|SCCACHE|Use [sccache](https://github.com/mozilla/sccache) to reduce compilation time|Boolean|`false` when using ceph-dev-new<br>`true` when using ceph-dev-pipeline[^3]|
+|CEPH_BUILD_JOB|Which Jenkins job to trigger. Generally useful for the infra team.|ceph-dev-pipeline, ceph-dev-new|`ceph-dev-new`|
+|CEPH_BUILD_BRANCH|Which ceph-build.git branch to use. Useful for testing.|N/A|`main`|
+
+
+[^1]: You might set this to `false` if you know packages already exist and you only want to build a container using them.
+[^2]: DWZ adds a lot of time to builds for a small decrease in disk usage.  The default behavior is changing with the switch to the ceph-dev-pipeline job.
+[^3]: This is new functionality provided in the ceph-dev-pipeline job.
+
+### Git Trailer Examples
+"I only want to build x86 packages for Ubuntu 22.04.  I don't care about containers."
+
+    DISTROS: jammy
+    ARCHS: x86_64
+    CI_CONTAINER: false
+
+"I only want to build packages and a container for CentOS 9."
+
+    DISTROS: centos9
+
+"My container build failed but I know the package build succeeded.  Let's try again."
+
+    DISTROS: centos9
+    CI_COMPILE: false
+
+"I don't trust sccache."
+
+    SCCACHE: false
+
