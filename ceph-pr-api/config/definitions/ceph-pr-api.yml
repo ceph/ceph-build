@@ -50,6 +50,9 @@
           started-status: "running API tests"
           success-status: "ceph API tests succeeded"
           failure-status: "ceph API tests failed"
+          excluded-regions:
+            - ^doc/*
+            - ^container/.*
 
     scm:
       - git:
