@@ -1,13 +1,8 @@
 #!/bin/bash -e
 
-docs_pr_only
-container_pr_only
-if [[ "$DOCS_ONLY" = true || "$CONTAINER_ONLY" = true ]]; then
-    echo "Only the doc/ or container/ dir changed.  No need to run make check or API tests."
-    mkdir -p $WORKSPACE/build/out
-    echo "File created to avoid Jenkins' Artifact Archiving plugin from hanging" > $WORKSPACE/build/out/mgr.foo.log
-    exit 0
-fi
+echo "This job was triggered by $TRIGGER_METHOD via $TRIGGERED_BY"
+
+report_github_check_status pending "ceph API tests" "ceph API tests running" $GH_PULL_REQUEST_SHA $BUILD_URL
 
 n_build_jobs=$(get_nr_build_jobs)
 n_test_jobs=$(($(nproc) / 4))
@@ -16,5 +11,8 @@ export BUILD_MAKEOPTS="-j${n_build_jobs}"
 export FOR_MAKE_CHECK=1
 timeout 2h ./src/script/run-make.sh \
         --cmake-args '-DWITH_TESTS=OFF -DENABLE_GIT_VERSION=OFF'
+
+report_github_check_status success "ceph API tests" "ceph API tests passed" $GH_PULL_REQUEST_SHA $BUILD_URL
+
 sleep 5
 ps -ef | grep ceph || true
