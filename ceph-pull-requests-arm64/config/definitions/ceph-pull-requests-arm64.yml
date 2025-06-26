@@ -5,16 +5,27 @@
     - shell:
         !include-raw-verbatim:
           - ../../../scripts/build_utils.sh
+          - ../../../scripts/report_github_check_status.sh
           - ../../build/build
     concurrent: true
     disabled: false
     name: ceph-pull-requests-arm64
     node: 'arm64 && !centos7 && !centos8 && !centos9'
+
     parameters:
-    - string:
-        name: ghprbPullId
-        description: "the GitHub pull id, like '72' in 'ceph/pull/72'"
-        default: origin/main
+      - string:
+          name: GH_PULL_REQUEST_ID
+          description: "The GitHub PR number, like '72' in 'ceph/pull/72'"
+      - string:
+          name: GH_PULL_REQUEST_SHA
+          description: "The GitHub PR SHA1, like 'c816207c3130c67e5bcc56766a530e881e2c0181'"
+      - string:
+          name: TRIGGERED_BY
+          description: "The GitHub Action Workflow that called this job"
+      - string:
+          name: TRIGGER_METHOD
+          description: "The method by which this job was triggered (e.g., comment or push)"
+
     project-type: freestyle
     properties:
     - build-discarder:
@@ -42,31 +53,13 @@
         url: https://github.com/ceph/ceph.git
         name: origin
         branches:
-          - origin/pr/${{ghprbPullId}}/merge
-        refspec: +refs/pull/${{ghprbPullId}}/*:refs/remotes/origin/pr/${{ghprbPullId}}/*
+          - origin/pr/${{GH_PULL_REQUEST_ID}}/merge
+        refspec: +refs/pull/${{GH_PULL_REQUEST_ID}}/*:refs/remotes/origin/pr/${{GH_PULL_REQUEST_ID}}/*
         skip-tag: true
         shallow-clone: true
         honor-refspec: true
         timeout: 20
         wipe-workspace: true
-    triggers:
-    - github-pull-request:
-        cancel-builds-on-update: true
-        allow-whitelist-orgs-as-admins: true
-        org-list:
-        - ceph
-        trigger-phrase: 'jenkins test make check arm64'
-        skip-build-phrase: '^jenkins do not test.*'
-        only-trigger-phrase: false
-        github-hooks: true
-        permit-all: true
-        auto-close-on-fail: false
-        status-context: "make check (arm64)"
-        started-status: "running make check"
-        success-status: "make check succeeded"
-        failure-status: "make check failed"
-        white-list-target-branches:
-        - main
     publishers:
       - cobertura:
           report-file: "src/pybind/mgr/dashboard/frontend/coverage/cobertura-coverage.xml"
@@ -110,3 +103,6 @@
               credential-id: github-readonly-token
               username: GITHUB_USER
               password: GITHUB_PASS
+          - text:
+              credential-id: github-ceph-jenkins-pr-checks
+              variable: GITHUB_TOKEN
