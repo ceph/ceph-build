@@ -39,6 +39,7 @@
             - bionic
             - focal
             - jammy
+            - noble
             - centos7
             - centos8
             - centos9

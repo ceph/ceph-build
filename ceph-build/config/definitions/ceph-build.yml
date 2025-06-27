@@ -12,7 +12,7 @@
     execution-strategy:
        combination-filter: |
          DIST == AVAILABLE_DIST && ARCH == AVAILABLE_ARCH &&
-         (ARCH == "x86_64" || (ARCH == "arm64" && ["bionic", "focal", "jammy", "centos9"].contains(DIST)))
+         (ARCH == "x86_64" || (ARCH == "arm64" && ["bionic", "focal", "jammy", "noble", "centos9"].contains(DIST)))
     axes:
       - axis:
           type: label-expression
@@ -34,6 +34,7 @@
             - bionic
             - focal
             - jammy
+            - noble
             - centos7
             - centos8
             - centos9
@@ -65,7 +66,7 @@
                   regex: (reef|squid|tentacle)
                   label: '${{BRANCH}}'
                 - condition-kind: regex-match
-                  regex: (focal|jammy|centos9|buster|bullseye|bookworm)
+                  regex: (focal|jammy|noble|centos9|buster|bullseye|bookworm)
                   label: '${{DIST}}'
           on-evaluation-failure: dont-run
           steps:

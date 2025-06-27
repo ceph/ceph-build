@@ -57,7 +57,7 @@
                     FORCE=True
                     DISTROS=jammy focal centos9 windows
       # build squid on:
-      # default: jammy centos9 windows
+      # default: noble jammy centos9 windows
       - conditional-step:
           condition-kind: regex-match
           regex: .*squid.*
@@ -73,9 +73,9 @@
                   predefined-parameters: |
                     BRANCH=${{GIT_BRANCH}}
                     FORCE=True
-                    DISTROS=jammy centos9 windows
+                    DISTROS=noble jammy centos9 windows
       # build tentacle on:
-      # default: jammy centos9 windows
+      # default: noble jammy centos9 windows
       # crimson: centos9
       - conditional-step:
           condition-kind: regex-match
@@ -92,7 +92,7 @@
                   predefined-parameters: |
                     BRANCH=${{GIT_BRANCH}}
                     FORCE=True
-                    DISTROS=jammy centos9 windows
+                    DISTROS=noble jammy centos9 windows
                 - project: 'ceph-dev'
                   predefined-parameters: |
                     BRANCH=${{GIT_BRANCH}}
@@ -101,7 +101,7 @@
                     FLAVOR=crimson-debug
                     ARCHS=x86_64
       # build main on:
-      # default: jammy centos9 windows
+      # default: noble jammy centos9 windows
       # crimson-debug: centos9
       # crimson-release: centos9
       - conditional-step:
@@ -119,7 +119,7 @@
                   predefined-parameters: |
                     BRANCH=${{GIT_BRANCH}}
                     FORCE=True
-                    DISTROS=jammy centos9 windows
+                    DISTROS=noble jammy centos9 windows
                 - project: 'ceph-dev'
                   predefined-parameters: |
                     BRANCH=${{GIT_BRANCH}}

@@ -33,7 +33,7 @@
       - string:
           name: DISTROS
           description: "A list of distros to build for. Available options are: centos9, centos8, noble, jammy, focal, and windows"
-          default: "centos9 jammy"
+          default: "centos9 noble jammy"
 
       - string:
           name: ARCHS
