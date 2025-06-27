@@ -19,7 +19,7 @@ def gitTrailerParameterNames = [
 // These are the default parameter values for the pipeline
 def defaults = [
   'CEPH_BUILD_JOB': 'ceph-dev-new',
-  'DISTROS': 'centos9 jammy windows',
+  'DISTROS': 'centos9 jammy noble windows',
   'ARCHS': 'x86_64 arm64',
   'FLAVOR': 'default',
 ]
