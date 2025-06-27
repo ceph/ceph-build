@@ -18,12 +18,12 @@ This pipeline's role is to:
 |DISTROS|Space-sparated list of Linux distributions to build for|focal, jammy, noble, centos9, windows|Depends on keywords in branch name|
 |ARCHS|Space-separated list of architectures to build on|x86_64, arm64|`x86_64 arm64`|
 |FLAVORS|Crimson or non-Crimson|default, crimson-debug, crimson-release|`default`|
-|CI_COMPILE|Compile binaries and packages[^1]|Boolean|`true`|
-|CI_CONTAINER|Build a dev container using the packages built|Boolean|`true`|
+|CI-COMPILE|Compile binaries and packages[^1]|Boolean|`true`|
+|CI-CONTAINER|Build a dev container using the packages built|Boolean|`true`|
 |DWZ|Use [DWZ](https://sourceware.org/dwz/) to make debuginfo packages smaller|Boolean|`true` when using ceph-dev-new<br>`false` when using ceph-dev-pipeline[^2]|
 |SCCACHE|Use [sccache](https://github.com/mozilla/sccache) to reduce compilation time|Boolean|`false` when using ceph-dev-new<br>`true` when using ceph-dev-pipeline[^3]|
-|CEPH_BUILD_JOB|Which Jenkins job to trigger. Generally useful for the infra team.|ceph-dev-pipeline, ceph-dev-new|`ceph-dev-new`|
-|CEPH_BUILD_BRANCH|Which ceph-build.git branch to use. Useful for testing.|N/A|`main`|
+|CEPH-BUILD-JOB|Which Jenkins job to trigger. Generally useful for the infra team.|ceph-dev-pipeline, ceph-dev-new|`ceph-dev-new`|
+|CEPH-BUILD-BRANCH|Which ceph-build.git branch to use. Useful for testing.|N/A|`main`|
 
 
 [^1]: You might set this to `false` if you know packages already exist and you only want to build a container using them.
@@ -35,7 +35,7 @@ This pipeline's role is to:
 
     DISTROS: jammy
     ARCHS: x86_64
-    CI_CONTAINER: false
+    CI-CONTAINER: false
 
 "I only want to build packages and a container for CentOS 9."
 
@@ -44,7 +44,7 @@ This pipeline's role is to:
 "My container build failed but I know the package build succeeded.  Let's try again."
 
     DISTROS: centos9
-    CI_COMPILE: false
+    CI-COMPILE: false
 
 "I don't trust sccache."
 
