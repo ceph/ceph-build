@@ -44,6 +44,7 @@
             - bionic
             - focal
             - jammy
+            - noble
             - jessie
             - precise
             - centos6
