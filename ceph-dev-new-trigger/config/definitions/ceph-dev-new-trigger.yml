@@ -1,6 +1,7 @@
 - job:
     name: ceph-dev-new-trigger
     node: built-in
+    disabled: true
     project-type: freestyle
     defaults: global
     quiet-period: 5
