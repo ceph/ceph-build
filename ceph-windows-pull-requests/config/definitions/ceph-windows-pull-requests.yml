@@ -25,37 +25,24 @@
 
     parameters:
       - string:
-          name: ghprbPullId
-          description: "The GitHub pull request id, like '72' in 'ceph/pull/72'"
-
-    triggers:
-      - github-pull-request:
-          cancel-builds-on-update: true
-          allow-whitelist-orgs-as-admins: true
-          org-list:
-            - ceph
-          white-list-target-branches:
-            - main
-            - tentacle
-            - squid
-            - reef
-          trigger-phrase: 'jenkins test windows'
-          skip-build-phrase: '^jenkins do not test.*'
-          only-trigger-phrase: false
-          github-hooks: true
-          permit-all: true
-          auto-close-on-fail: false
-          status-context: "ceph windows tests"
-          started-status: "running ceph windows tests"
-          success-status: "ceph windows tests succeeded"
-          failure-status: "ceph windows tests failed"
+          name: GH_PULL_REQUEST_ID
+          description: "The GitHub PR number, like '72' in 'ceph/pull/72'"
+      - string:
+          name: GH_PULL_REQUEST_SHA
+          description: "The GitHub PR SHA1, like 'c816207c3130c67e5bcc56766a530e881e2c0181'"
+      - string:
+          name: TRIGGERED_BY
+          description: "The GitHub Action Workflow that called this job"
+      - string:
+          name: TRIGGER_METHOD
+          description: "The method by which this job was triggered (e.g., comment or push)"
 
     scm:
       - git:
           url: https://github.com/ceph/ceph.git
           branches:
-            - origin/pr/${{ghprbPullId}}/merge
-          refspec: +refs/pull/${{ghprbPullId}}/*:refs/remotes/origin/pr/${{ghprbPullId}}/*
+            - origin/pr/${{GH_PULL_REQUEST_ID}}/merge
+          refspec: +refs/pull/${{GH_PULL_REQUEST_ID}}/*:refs/remotes/origin/pr/${{GH_PULL_REQUEST_ID}}/*
           browser: auto
           timeout: 20
           do-not-fetch-tags: true
@@ -65,10 +52,13 @@
           basedir: ceph
 
     builders:
+    - shell: |
+        . ../../../scripts/report_github_check_status.sh
+        report_github_check_status pending "ceph windows tests" "ceph windows tests failed" ${{GH_PULL_REQUEST_SHA}} ${{BUILD_URL}}
+
     - shell:
         !include-raw-verbatim:
           - ../../../scripts/build_utils.sh
-          - ../../build/check_docs_pr_only
           - ../../../scripts/ceph-windows/setup_libvirt
           - ../../../scripts/ceph-windows/setup_libvirt_ubuntu_vm
           - ../../../scripts/ceph-windows/win32_build
@@ -77,6 +67,10 @@
           - ../../../scripts/ceph-windows/setup_libvirt_windows_vm
           - ../../../scripts/ceph-windows/setup_ceph_vstart
           - ../../../scripts/ceph-windows/run_tests
+
+    - shell: |
+        . ../../../scripts/report_github_check_status.sh
+        report_github_check_status success "ceph windows tests" "ceph windows tests passed" ${{GH_PULL_REQUEST_SHA}} ${{BUILD_URL}}
 
     publishers:
       - archive:
@@ -97,6 +91,14 @@
                     !include-raw-verbatim:
                       - ../../../scripts/build_utils.sh
                       - ../../../scripts/ceph-windows/cleanup
+            - role: SLAVE
+              build-on:
+                - FAILURE
+                - ABORTED
+              build-steps:
+                - shell: |
+                    . ../../../scripts/report_github_check_status.sh
+                    report_github_check_status failure "ceph windows tests" "ceph windows tests failed" ${{GH_PULL_REQUEST_SHA}} ${{BUILD_URL}}
 
     wrappers:
       - ansicolor
@@ -108,3 +110,6 @@
               credential-id: github-readonly-token
               username: GITHUB_USER
               password: GITHUB_PASS
+          - text:
+              credential-id: github-ceph-jenkins-pr-checks
+              variable: GITHUB_TOKEN
