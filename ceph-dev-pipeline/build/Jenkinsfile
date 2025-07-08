@@ -596,6 +596,13 @@ pipeline {
             }
           }
         }
+        post {
+          always {
+            script {
+              sh 'podman unshare chown -R 0 $WORKSPACE/dist/ceph'
+            }
+          }
+        }
       }
     }
   }
