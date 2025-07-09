@@ -11,10 +11,12 @@ This pipeline's role is to:
 ### Git Trailer Parameters
 
 - All parameters are optional.  For example, if you only want to build packages on `x86_64` for a branch targeted at `tentacle`, tentacle's default distros are `jammy centos9 windows` so a pipeline would be triggered to build x86_64 packages of each distro.
+- The use of git trailers is only supported in combination with CEPH-BUILD-JOB: ceph-dev-pipeline.
 - Only the head commit's trailers will be evaluated.
 
 |Parameter|Description|Available Options|Default|
 |--|--|--|--|
+|CEPH-BUILD-JOB|Which Jenkins job to trigger. Only ceph-dev-pipeline supports the options below.|ceph-dev-pipeline, ceph-dev-new|`ceph-dev-new`|
 |DISTROS|Space-sparated list of Linux distributions to build for|focal, jammy, noble, centos9, windows|Depends on keywords in branch name|
 |ARCHS|Space-separated list of architectures to build on|x86_64, arm64|`x86_64 arm64`|
 |FLAVORS|Crimson or non-Crimson|default, crimson-debug, crimson-release|`default`|
@@ -22,7 +24,6 @@ This pipeline's role is to:
 |CI-CONTAINER|Build a dev container using the packages built|Boolean|`true`|
 |DWZ|Use [DWZ](https://sourceware.org/dwz/) to make debuginfo packages smaller|Boolean|`true` when using ceph-dev-new<br>`false` when using ceph-dev-pipeline[^2]|
 |SCCACHE|Use [sccache](https://github.com/mozilla/sccache) to reduce compilation time|Boolean|`false` when using ceph-dev-new<br>`true` when using ceph-dev-pipeline[^3]|
-|CEPH-BUILD-JOB|Which Jenkins job to trigger. Generally useful for the infra team.|ceph-dev-pipeline, ceph-dev-new|`ceph-dev-new`|
 |CEPH-BUILD-BRANCH|Which ceph-build.git branch to use. Useful for testing.|N/A|`main`|
 
 
@@ -33,20 +34,24 @@ This pipeline's role is to:
 ### Git Trailer Examples
 "I only want to build x86 packages for Ubuntu 22.04.  I don't care about containers."
 
+    CEPH-BUILD-JOB: ceph-dev-pipeline
     DISTROS: jammy
     ARCHS: x86_64
     CI-CONTAINER: false
 
 "I only want to build packages and a container for CentOS 9."
 
+    CEPH-BUILD-JOB: ceph-dev-pipeline
     DISTROS: centos9
 
 "My container build failed but I know the package build succeeded.  Let's try again."
 
+    CEPH-BUILD-JOB: ceph-dev-pipeline
     DISTROS: centos9
     CI-COMPILE: false
 
 "I don't trust sccache."
 
+    CEPH-BUILD-JOB: ceph-dev-pipeline
     SCCACHE: false
 
