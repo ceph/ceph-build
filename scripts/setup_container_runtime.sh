@@ -2,6 +2,9 @@
 # vim: ts=4 sw=4 expandtab
 function setup_container_runtime () {
   if command -v podman; then
+    if ! [ -d /run/user/$(id -u) -a -w /run/user/$(id -u) ]; then
+      sudo loginctl enable-linger $(id -nu)
+    fi
     PODMAN_MAJOR_VERSION=$(podman version -f json | jq -r '.Client.Version|split(".")[0]')
     if [ "$PODMAN_MAJOR_VERSION" -lt 4 ]; then
       echo "Found a very old podman; removing"
@@ -25,9 +28,6 @@ function setup_container_runtime () {
   fi
 
   if command -v podman; then
-    if ! [ -d /run/user/$(id -u) -a -w /run/user/$(id -u) ]; then
-      sudo loginctl enable-linger $(id -nu)
-    fi
     PODMAN_MAJOR_VERSION=$(podman version -f json | jq -r '.Client.Version|split(".")[0]')
     if [ "$PODMAN_MAJOR_VERSION" -ge 4 ]; then
       PODMAN_DIR="$HOME/.local/share/containers"
