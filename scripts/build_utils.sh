@@ -804,7 +804,7 @@ setup_pbuilder_for_old_gcc() {
         jammy)
             old=11;;
         noble)
-            old=13;;
+            old=14;;
     esac
     setup_gcc_hook $old > $hookdir/D10update-gcc-alternatives
     chmod +x $hookdir/D10update-gcc-alternatives
