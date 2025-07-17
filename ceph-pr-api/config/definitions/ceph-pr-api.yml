@@ -66,7 +66,7 @@
     builders:
       - shell:
           !include-raw-verbatim:
-            - ../../../scripts/build_utils.sh
+            - ../../../scripts/pr_checks.sh
             - ../../build/build
             - ../../../scripts/dashboard/install-backend-api-test-deps.sh
             - ../../build/api
