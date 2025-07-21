@@ -40,6 +40,8 @@ pipeline {
               CONTAINER_REPO = "${(env.ARCH == 'x86_64') ? 'prerelease-amd64' : 'prerelease-arm64'}"
             }
             steps {
+              sh './scripts/setup_container_runtime.sh'
+              sh 'echo "Building on $(hostname)"'
               buildDescription "${env.CONTAINER_REPO} image build"
               dir('ceph') {
                 checkout scmGit(
