@@ -19,7 +19,7 @@ def get_os_info(dist) {
     "version_name": dist,
     "pkg_type": "NONE",
   ]
-  def matcher = dist =~ /^(centos|rhel|fedora)(\d+)/
+  def matcher = dist =~ /^(centos|rhel|fedora|rocky)(\d+)/
   if ( matcher.find() ) {
     os.name = matcher.group(1)
     os.version = os.version_name = matcher.group(2)
@@ -437,7 +437,7 @@ pipeline {
                     echo "DEB_BUILD_PROFILES${DEB_BUILD_PROFILES}" >> .env
                   '''
                   bwc_command = "${bwc_command} -e debs"
-                } else if ( env.DIST =~ /^(centos|rhel|fedora).*/ ) {
+                } else if ( env.DIST =~ /^(centos|rhel|fedora|rocky).*/ ) {
                   def rpmbuild_args = ""
                   if ( env.SCCACHE == "true" ) rpmbuild_args += " -R--with=sccache"
                   if ( env.DWZ == "false" ) rpmbuild_args += " -R--without=dwz"
@@ -465,7 +465,7 @@ pipeline {
                     ${bwc_command_base} -e custom -- "dpkg-deb --fsys-tarfile /ceph/debs/*/pool/main/c/ceph/cephadm_${VERSION}*.deb | tar -x -f - --strip-components=3 ./usr/sbin/cephadm"
                     ln ./cephadm ../../
                   """
-                } else if ( env.DIST =~ /^(centos|rhel|fedora).*/ ) {
+                } else if ( env.DIST =~ /^(centos|rhel|fedora|rocky).*/ ) {
                   sh """#!/bin/bash -ex
                     cd dist/ceph
                     ${bwc_command_base} -e custom -- "rpm2cpio /ceph/rpmbuild/RPMS/noarch/cephadm-*.rpm | cpio -i --to-stdout *sbin/cephadm > cephadm"
