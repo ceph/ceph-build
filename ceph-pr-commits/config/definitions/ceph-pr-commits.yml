@@ -73,6 +73,7 @@
       - shell:
           !include-raw-verbatim:
             - ../../../scripts/build_utils.sh
+            - ../../../scripts/pr_checks.sh
             - ../../build/build
 
     publishers:
