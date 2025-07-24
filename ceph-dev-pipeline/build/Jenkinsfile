@@ -267,10 +267,18 @@ pipeline {
                 env.SHA1 = sha1_props.SHA1
                 println "SHA1=${env.SHA1}"
                 env.VERSION = readFile(file: "${WORKSPACE}/dist/version").trim()
+                def branch_ui_value = env.BRANCH
+                def sha1_ui_value = env.SHA1
+                if ( env.CEPH_REPO.find(/https?:\/\/github.com\//) ) {
+                  def branch_url = "${env.CEPH_REPO}/tree/${env.BRANCH}"
+                  branch_ui_value = "<a href=\"${branch_url}\">${env.BRANCH}</a>"
+                  def commit_url = "${env.CEPH_REPO}/commit/${env.SHA1}"
+                  sha1_ui_value = "<a href=\"${commit_url}\">${env.SHA1}</a>"
+                }
                 def shaman_url = "https://shaman.ceph.com/builds/ceph/${env.BRANCH}/${env.SHA1}"
                 def build_description = """\
-                  BRANCH=${env.BRANCH}<br />
-                  SHA1=${env.SHA1}<br />
+                  BRANCH=${branch_ui_value}<br />
+                  SHA1=${sha1_ui_value}<br />
                   VERSION=${env.VERSION}<br />
                   DISTROS=${env.DISTROS}<br />
                   ARCHS=${env.ARCHS}<br />
