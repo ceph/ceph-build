@@ -192,8 +192,8 @@ pipeline {
             values 'default', 'crimson-release', 'crimson-debug'
           }
         }
-        // crimson is only supported on centos9 x86_64
         excludes {
+          // crimson is only supported on centos9 x86_64
           exclude {
             axis {
               name 'FLAVOR'
@@ -212,6 +212,17 @@ pipeline {
             axis {
               name 'ARCH'
               notValues 'x86_64'
+            }
+          }
+          // Only build arm64 for centos9
+          exclude {
+            axis {
+              name 'ARCH'
+              values 'arm64'
+            }
+            axis {
+              name 'DIST'
+              notValues 'centos9'
             }
           }
         }
