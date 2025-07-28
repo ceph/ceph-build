@@ -806,6 +806,13 @@ setup_pbuilder_for_old_gcc() {
         noble)
             old=14;;
     esac
+
+    # make sure the requested version is installed. this isn't the case by default on noble
+    cat > $hookdir/D05install-old-gcc <<EOF
+env DEBIAN_FRONTEND=noninteractive apt-get install -y g++-$old
+EOF
+    chmod +x $hookdir/D05install-old-gcc
+
     setup_gcc_hook $old > $hookdir/D10update-gcc-alternatives
     chmod +x $hookdir/D10update-gcc-alternatives
 }
