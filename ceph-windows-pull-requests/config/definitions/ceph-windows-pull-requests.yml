@@ -67,7 +67,7 @@
     builders:
     - shell:
         !include-raw-verbatim:
-          - ../../../scripts/build_utils.sh
+          - ../../../scripts/pr_checks.sh
           - ../../build/check_docs_pr_only
           - ../../../scripts/ceph-windows/setup_libvirt
           - ../../../scripts/ceph-windows/setup_libvirt_ubuntu_vm
