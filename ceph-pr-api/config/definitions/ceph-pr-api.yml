@@ -25,38 +25,24 @@
 
     parameters:
       - string:
-          name: sha1
-          description: "commit id or a refname, like 'origin/pr/72/head'"
-
-    triggers:
-      - github-pull-request:
-          cancel-builds-on-update: true
-          allow-whitelist-orgs-as-admins: true
-          org-list:
-            - ceph
-          white-list-target-branches:
-            - main
-            - tentacle
-            - squid
-            - reef
-            - "feature-.*"
-          trigger-phrase: 'jenkins test api'
-          skip-build-phrase: '^jenkins do not test.*'
-          only-trigger-phrase: false
-          github-hooks: true
-          permit-all: true
-          auto-close-on-fail: false
-          status-context: "ceph API tests"
-          started-status: "running API tests"
-          success-status: "ceph API tests succeeded"
-          failure-status: "ceph API tests failed"
+          name: GH_PULL_REQUEST_ID
+          description: "The GitHub PR number, like '72' in 'ceph/pull/72'"
+      - string:
+          name: GH_PULL_REQUEST_SHA
+          description: "The GitHub PR SHA1, like 'c816207c3130c67e5bcc56766a530e881e2c0181'"
+      - string:
+          name: TRIGGERED_BY
+          description: "The GitHub Action Workflow that called this job"
+      - string:
+          name: TRIGGER_METHOD
+          description: "The method by which this job was triggered (e.g., comment or push)"
 
     scm:
       - git:
           url: https://github.com/ceph/ceph.git
           branches:
-            - origin/pr/${{ghprbPullId}}/merge
-          refspec: +refs/pull/${{ghprbPullId}}/*:refs/remotes/origin/pr/${{ghprbPullId}}/*
+            - origin/pr/${{GH_PULL_REQUEST_ID}}/merge
+          refspec: +refs/pull/${{GH_PULL_REQUEST_ID}}/*:refs/remotes/origin/pr/${{GH_PULL_REQUEST_ID}}/*
           browser: auto
           timeout: 20
           skip-tag: true
@@ -79,6 +65,14 @@
           builders:
             - role: SLAVE
               build-on:
+                - FAILURE
+                - ABORTED
+              build-steps:
+                - shell: |
+                    . ../../../scripts/report_github_check_status.sh
+                    report_github_check_status failure "ceph API tests" "ceph API tests failed" ${{GH_PULL_REQUEST_SHA}} ${{BUILD_URL}}
+            - role: SLAVE
+              build-on:
                   - ABORTED
               build-steps:
                 - shell: "sudo dpkg --configure -a"
@@ -95,3 +89,6 @@
               credential-id: github-readonly-token
               username: GITHUB_USER
               password: GITHUB_PASS
+          - text:
+              credential-id: github-ceph-jenkins-pr-checks
+              variable: GITHUB_TOKEN
