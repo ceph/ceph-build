@@ -62,7 +62,7 @@
     builders:
     - shell:
         !include-raw-verbatim:
-          - ../../../scripts/pr_checks.sh
+          - ../../../scripts/build_utils.sh
           - ../../build/build
 
     publishers:
