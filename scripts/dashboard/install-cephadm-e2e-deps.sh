@@ -8,7 +8,7 @@ on_error() {
         printf "\n\nCollecting info...\n\n"
         sudo journalctl --since "10 min ago" --no-tail --no-pager -x
         printf "\n\nERROR: displaying containers' logs:\n\n"
-        docker ps -aq | xargs docker logs
+        docker ps -aq | xargs -r docker logs
         printf "\n\nTEST FAILED.\n\n"
     fi
 }
@@ -32,8 +32,9 @@ if [[ ! $(command -v nvm) ]]; then
     [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
 fi
 
-echo "Installing nodejs from nvm with version $(cat .nvmrc)"
 pushd src/pybind/mgr/dashboard/frontend
+
+echo "Installing nodejs from nvm with version $(cat .nvmrc)"
 nvm install
 nvm use
 popd
