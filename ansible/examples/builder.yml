@@ -198,6 +198,7 @@
     # Universal RPMs
     - set_fact:
         universal_rpms:
+          - wget
           - createrepo
           - java-21-openjdk
           - git
