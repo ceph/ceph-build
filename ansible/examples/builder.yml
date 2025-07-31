@@ -1,8 +1,4 @@
 ---
-# NOTE: there are references to relative paths here, and if you want
-# them to work, this playbook must be in the parent of examples/, so, symlink
-# it or something.  (files/, templates/ are two such paths)
-#
 ## Instead of trying to keep 4 separate playbooks up to date, let's do it all here.
 ## The only difference from using multiple playbooks is we need to specify `-e libvirt=true` and/or `-e permanent=true` if the builder will be permanent/static.
 ## Tested on: CentOS 7, CentOS 8, Xenial, Bionic, Focal, Leap 15.1 using ansible 2.8.5
@@ -33,8 +29,7 @@
     osc_pass: 'password'
     container_mirror: 'docker-mirror.front.sepia.ceph.com:5000'
     secrets_path: "{{ lookup('env', 'ANSIBLE_SECRETS_PATH') | default('/etc/ansible/secrets', true) }}"
-    java_version: 'java-17'
-
+    java_version: 'java-21'
 
   tasks:
     - name: "Include appropriate jenkins API token"
@@ -43,6 +38,62 @@
       no_log: true
       tags:
         always
+
+    # Sometimes, builders would connect to Jenkins and try to run an apt transaction right away.  Except apt-daily/unattended-upgrades has the dpkg lock so the Jenkins job would fail.
+    - name: Uninstall unattended-upgrades to avoid conflicts
+      package:
+        name: unattended-upgrades
+        state: absent
+      when: ansible_os_family == "Debian"
+      ignore_errors: yes
+
+    - name: Update package cache (Debian)
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600
+        dpkg_options: "force-confold,force-confdef"
+        lock_timeout: 300
+      when: ansible_os_family == "Debian"
+      timeout: 300
+      register: apt_update
+
+    - name: Upgrade all packages (Debian)
+      apt:
+        upgrade: yes
+        autoclean: yes
+        autoremove: yes
+        dpkg_options: "force-confold,force-confdef"
+        lock_timeout: 300
+      when: ansible_os_family == "Debian"
+      timeout: 600
+
+    - name: Update and upgrade all packages (RedHat EL8)
+      yum:
+        name: '*'
+        state: latest
+        update_cache: yes
+      when:
+        - ansible_os_family == "RedHat"
+        - ansible_distribution_major_version|int <= 8
+      tags: always
+
+    - name: Update and upgrade all packages (RedHat EL9)
+      dnf:
+        name: '*'
+        state: latest
+        update_cache: yes
+      when:
+        - ansible_os_family == "RedHat"
+        - ansible_distribution_major_version|int == 9
+      tags: always
+
+    - name: Update and upgrade all packages (Suse)
+      zypper:
+        name: '*'
+        state: latest
+        update_cache: yes
+      when: ansible_os_family == "Suse"
+      tags: always
 
     ## DEFINE PACKAGE LISTS BELOW
     # Universal DEBs
@@ -62,7 +113,7 @@
           - libffi-dev
           - default-jdk
           - default-jre
-          - openjdk-17-jdk
+          - openjdk-21-jdk
           - debian-keyring
           - debian-archive-keyring
           - software-properties-common
@@ -148,7 +199,7 @@
     - set_fact:
         universal_rpms:
           - createrepo
-          - java-17-openjdk
+          - java-21-openjdk
           - git
           - libtool
           #- rpm-sign
@@ -456,13 +507,6 @@
         update_cache: yes
       when: ansible_os_family == "Debian"
 
-    # Sometimes, builders would connect to Jenkins and try to run an apt transaction right away.  Except apt-daily/unattended-upgrades has the dpkg lock so the Jenkins job would fail.
-    - name: Uninstall unattended-upgrades
-      package:
-        name: unattended-upgrades
-        state: absent
-      when: ansible_os_family == "Debian"
-
     - name: Install EPEL repo
       yum:
         name: epel-release
@@ -591,8 +635,7 @@
         jenkins_key_file: "{{ lookup('first_found', key_locations, errors='ignore') }}"
       vars:
         key_locations:
-          - "playbook/files/ssh/keys/jenkins_build.pub"
-          - "files/ssh/keys/jenkins_build.pub"
+          - "{{ playbook_dir }}/../files/ssh/keys/jenkins_build.pub"
 
     - name: get jenkins_key from key file if found
       set_fact:
@@ -823,18 +866,20 @@
       vars:
         key_locations:
           # github.com.pub is the output of `ssh-keyscan github.com`
-          - "playbook/files/ssh/hostkeys/github.com.pub"
-          - "files/ssh/hostkeys/github.com.pub"
+          - "{{ playbook_dir }}/../files/ssh/hostkeys/github.com.pub"
+      tags: always
 
     - name: get github host key from file
       set_fact:
         github_host_key: "{{ lookup('file', github_host_key_file) }}"
       when: github_host_key_file != ""
+      tags: always
 
     - name: get github host key from github if necessary
       set_fact:
         github_host_key: "{{ lookup('url', 'https://raw.githubusercontent.com/ceph/ceph-build/main/ansible/files/ssh/hostkeys/github.com.pub') }}"
-      when: github_host_key == ""
+      when: github_host_key_file == ""
+      tags: always
 
     - name: Add github.com host key
       known_hosts:
@@ -1016,7 +1061,7 @@
 
         - name: Install the systemd unit files for jenkins
           ansible.builtin.template:
-            src: "templates/systemd/jenkins.{{ item }}.j2"
+            src: "{{ playbook_dir }}/../templates/systemd/jenkins.{{ item }}.j2"
             dest: "/etc/systemd/system/jenkins.{{ item }}"
             force: yes
           with_items:
