@@ -2,11 +2,13 @@
 
 set -e
 
-# the following two methods exist in scripts/build_utils.sh
+"$WORKSPACE/scripts/setup_uv.sh"
+PATH=$PATH:$HOME/.local/bin
+uv venv
+
 pkgs=( "ansible" "ansible-core" "git+https://opendev.org/jjb/jenkins-job-builder@60f0316389" "urllib3==1.26.1" "pyopenssl" "ndg-httpsclient" "pyasn1" "xmltodict" )
-TEMPVENV=$(create_venv_dir)
-VENV=${TEMPVENV}/bin
-install_python_packages $TEMPVENV "pkgs[@]"
+VENV=./.venv/bin
+uv pip install "${pkgs[@]}"
 
 rm -rf xml
 # Test every definition if available in the current repository and update the jobs
