@@ -1,3 +1,5 @@
+def checkout_ref = ""
+
 pipeline {
   agent {
     label "gigantic"
@@ -6,8 +8,15 @@ pipeline {
     stage("repository") {
       steps {
         dir("ceph") {
+          script {
+            if ( env.SHA1 ) {
+              checkout_ref = env.SHA1
+            } else {
+              checkout_ref = env.BRANCH
+            }
+          }
           checkout scmGit(
-            branches: [[name: env.BRANCH]],
+            branches: [[name: checkout_ref]],
             userRemoteConfigs: [[
               url: env.CEPH_REPO,
               credentialsId: 'jenkins-build'

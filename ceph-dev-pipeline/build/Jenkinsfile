@@ -146,6 +146,7 @@ pipeline {
               parameters: [
                 string(name: "BRANCH", value: env.BRANCH),
                 // Below are just for ceph-source-dist
+                string(name: "SHA1", value: env.SHA1),
                 string(name: "CEPH_REPO", value: env.CEPH_REPO),
                 string(name: "CEPH_BUILD_BRANCH", value: env.CEPH_BUILD_BRANCH),
               ]
@@ -263,9 +264,13 @@ pipeline {
                 )
               }
               script {
+                def sha1_trimmed = env.SHA1.trim().toLowerCase()
                 def sha1_props = readProperties file: "${WORKSPACE}/dist/sha1"
-                env.SHA1 = sha1_props.SHA1
-                println "SHA1=${env.SHA1}"
+                sha1_from_artifact = sha1_props.SHA1.trim().toLowerCase()
+                if ( env.SHA1 && sha1_from_artifact != sha1_trimmed ) {
+                  error message: "SHA1 from artifact (${sha1_from_artifact}) does not match parameter value (${sha1_trimmed})"
+                }
+                println "SHA1=${sha1_trimmed}"
                 env.VERSION = readFile(file: "${WORKSPACE}/dist/version").trim()
                 def branch_ui_value = env.BRANCH
                 def sha1_ui_value = env.SHA1
