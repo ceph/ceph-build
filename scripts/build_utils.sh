@@ -172,7 +172,7 @@ install_python_packages_no_binary () {
     pip_download $VENV setuptools
 
     pkgs=("${!1}")
-    for package in ${pkgs[@]}; do
+    for package in "${pkgs[@]}"; do
         echo $package
         # download packages to the local pip cache
         pip_download $VENV $package --no-binary=:all:
@@ -234,7 +234,7 @@ install_python_packages () {
     pip_download $venv setuptools
 
     pkgs=("${!1}")
-    for package in ${pkgs[@]}; do
+    for package in "${pkgs[@]}"; do
         echo $package
         # download packages to the local pip cache
         pip_download $venv $package
@@ -1004,10 +1004,11 @@ build_debs() {
             $venv/chacractl binary ${chacra_flags} create ${chacra_endpoint}
 
         # extract cephadm if it exists
-        if [ -f release/${vers}/cephadm_${vers}*.deb ] ; then
-            dpkg-deb --fsys-tarfile release/${vers}/cephadm_${vers}*.deb | tar -x -f - --strip-components=3 ./usr/sbin/cephadm
+        for file in release/${vers}/cephadm_${vers}*.deb; do
+            dpkg-deb --fsys-tarfile "$file" | tar -x -f - --strip-components=3 ./usr/sbin/cephadm
             echo cephadm | $venv/chacractl binary ${chacra_flags} create ${chacra_endpoint}
-        fi
+            break
+        done
 
         # write json file with build info
         cat > $WORKSPACE/repo-extra.json << EOF
@@ -1772,7 +1773,7 @@ function ssh_exec() {
     if [[ ! -z $SSH_KNOWN_HOSTS_FILE ]]; then
         SSH_OPTS="$SSH_OPTS -o UserKnownHostsFile=$SSH_KNOWN_HOSTS_FILE"
     fi
-    timeout ${SSH_TIMEOUT:-"30s"} ssh -i ${SSH_KEY:-"$HOME/.ssh/id_rsa"} $SSH_OPTS ${SSH_USER}@${SSH_ADDRESS} ${@} || {
+    timeout ${SSH_TIMEOUT:-"30s"} ssh -i ${SSH_KEY:-"$HOME/.ssh/id_rsa"} $SSH_OPTS ${SSH_USER}@${SSH_ADDRESS} "${@}" || {
         EXIT_CODE=$?
         # By default, the "timeout" CLI tool always exits with 124 when the
         # timeout is exceeded. Unless "--preserve-status" argument is used, the
