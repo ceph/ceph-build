@@ -2,8 +2,8 @@
 # vim: ts=4 sw=4 expandtab
 function setup_container_runtime () {
   if command -v podman; then
-    if ! [ -d /run/user/$(id -u) -a -w /run/user/$(id -u) ]; then
-      sudo loginctl enable-linger $(id -nu)
+    if ! [ -d "/run/user/$(id -u)" ] && [ -w "/run/user/$(id -u)" ]; then
+      sudo loginctl enable-linger "$(id -nu)"
     fi
     PODMAN_MAJOR_VERSION=$(podman version -f json | jq -r '.Client.Version|split(".")[0]')
     if [ "$PODMAN_MAJOR_VERSION" -lt 4 ]; then
@@ -31,11 +31,11 @@ function setup_container_runtime () {
     PODMAN_MAJOR_VERSION=$(podman version -f json | jq -r '.Client.Version|split(".")[0]')
     if [ "$PODMAN_MAJOR_VERSION" -ge 4 ]; then
       PODMAN_DIR="$HOME/.local/share/containers"
-      test -d $PODMAN_DIR && command -v restorecon && sudo restorecon -R -T0 -x $PODMAN_DIR
+      test -d "$PODMAN_DIR" && command -v restorecon && sudo restorecon -R -T0 -x "$PODMAN_DIR"
       PODMAN_STORAGE_DIR="$PODMAN_DIR/storage"
-      if [ -d $PODMAN_STORAGE_DIR ]; then
-        sudo chgrp -R $(groups | cut -d' ' -f1) $PODMAN_STORAGE_DIR
-        if [ $(podman unshare du -s --block-size=1G $PODMAN_STORAGE_DIR | awk '{print $1}') -ge 50 ]; then
+      if [ -d "$PODMAN_STORAGE_DIR" ]; then
+        sudo chgrp -R "$(groups | cut -d' ' -f1)" "$PODMAN_STORAGE_DIR"
+        if [ "$(podman unshare du -s --block-size=1G "$PODMAN_STORAGE_DIR" | awk '{print $1}')" -ge 50 ]; then
           time podman image prune --filter=until="$((24*7))h" --all --force
           time podman system prune --force
           test "$PODMAN_MAJOR_VERSION" -ge 5 && time podman system check --repair --quick
@@ -46,6 +46,6 @@ function setup_container_runtime () {
 }
 
 # If the script is executed (as opposed to sourced), run the function now
-if [ "$(basename -- "${0#-}")" = "$(basename -- "${BASH_SOURCE}")" ]; then
+if [ "$(basename -- "${0#-}")" = "$(basename -- "${BASH_SOURCE[0]}")" ]; then
   setup_container_runtime
 fi
