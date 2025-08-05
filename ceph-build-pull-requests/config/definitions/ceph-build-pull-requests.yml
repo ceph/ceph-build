@@ -25,10 +25,6 @@
 
     triggers:
       - github-pull-request:
-          admin-list:
-            - alfredodeza
-            - ktdreyer
-            - andrewschoen
           org-list:
             - ceph
           trigger-phrase: '.*retest.*'

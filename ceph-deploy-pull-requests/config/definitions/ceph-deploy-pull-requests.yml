@@ -54,15 +54,6 @@
 
     triggers:
       - github-pull-request:
-          admin-list:
-            - alfredodeza
-            - ktdreyer
-          white-list:
-            - xarses
-            - angdraug
-            - mbroz
-            - ddiss
-            - osynge
           org-list:
             - ceph
           trigger-phrase: ''
