@@ -42,11 +42,6 @@
 
     triggers:
       - github-pull-request:
-          admin-list:
-            - alfredodeza
-            - dmick
-            - ktdreyer
-            - andrewschoen
           org-list:
             - ceph
           only-trigger-phrase: false
