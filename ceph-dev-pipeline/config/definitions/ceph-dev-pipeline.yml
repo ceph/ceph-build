@@ -24,6 +24,10 @@
           description: "The git branch (or tag) to build"
           default: main
 
+      - string:
+          name: SHA1
+          description: "The specific commit to build"
+
       - choice:
           name: CEPH_REPO
           choices:

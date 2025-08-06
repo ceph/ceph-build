@@ -38,6 +38,10 @@
           description: "The Ceph branch to build"
 
       - string:
+          name: SHA1
+          description: "The specific commit to build"
+
+      - string:
           name: CEPH_BUILD_BRANCH
           description: "Use the Jenkinsfile from this ceph-build branch"
           default: main

@@ -95,6 +95,7 @@ pipeline {
       steps {
         script {
           initialParams.BRANCH = env.ref.replace("refs/heads/", "")
+          initialParams.SHA1 = env.head_commit_id
           initialParams.putAll(defaults)
           println("BRANCH=${initialParams.BRANCH}")
         }
