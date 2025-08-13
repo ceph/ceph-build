@@ -1,5 +1,5 @@
 - job:
-    name: ceph-source-dist
+    name: preserve-ceph-source-dist-dgalloway
     project-type: pipeline
     concurrent: true
     pipeline-scm:
@@ -22,7 +22,7 @@
           artifact-days-to-keep: -1
           artifact-num-to-keep: 50
       - copyartifact:
-          projects: ceph-dev-pipeline,ceph-dev,ceph-dev-build,ceph-dev-new,ceph-dev-new-build
+          projects: ceph-dev-pipeline,ceph-dev,ceph-dev-build,ceph-dev-new,ceph-dev-new-build,preserve-ceph-dev-pipeline-dgalloway
 
     parameters:
       - choice:

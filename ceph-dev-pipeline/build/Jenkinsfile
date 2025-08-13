@@ -136,7 +136,37 @@ def get_ceph_release_repo_text(base_url) {
 
 pipeline {
   agent any
+  // environment {
+    // release builds must use ceph-releases; ignore any user-provided value
+    // CEPH_REPO        = "${ params.RELEASE_BUILD?.trim() ? 'git@github.com:ceph/ceph-releases.git' : (params.CEPH_REPO ?: 'https://github.com/ceph/ceph') }"
+    // CEPH_REPO_LOCKED = "${ params.RELEASE_BUILD?.trim() ? 'true' : 'false' }"
+  // }
   stages {
+    stage('create ceph release tag') {
+      when {
+        expression { return params.RELEASE_BUILD?.trim() }   // only run if defined & true
+      }
+      steps {
+        script {
+          def createTagJob = build(
+            job: 'preserve-ceph-tag-dgalloway',
+            parameters: [
+              string(name: 'VERSION',       value: env.VERSION ?: ''),
+              string(name: 'BRANCH',        value: env.BRANCH ?: ''),
+              string(name: 'FORCE_VERSION', value: env.FORCE_VERSION ?: ''),
+              string(name: 'RELEASE_TYPE',  value: env.RELEASE_TYPE ?: ''),
+              string(name: 'RELEASE_BUILD', value: env.RELEASE_BUILD ?: ''),
+              string(name: 'TAG',           value: env.TAG ?: ''),
+              string(name: 'TAG_PHASE',     value: 'create')
+            ],
+          )
+          env.CEPH_TAG_CREATE_JOB_ID = createTagJob.getNumber()
+          println "CEPH_TAG_CREATE_JOB_ID=${env.CEPH_TAG_CREATE_JOB_ID}"
+          env.CEPH_TAG_CREATE_JOB_URL = new URI([env.JENKINS_URL, "job", "preserve-ceph-tag-dgalloway", env.CEPH_TAG_CREATE_JOB_ID].join("/")).normalize()
+          println "${env.SETUP_BUILD_URL}"
+        }
+      }
+    }
     stage("source distribution") {
       steps {
         script {
@@ -148,6 +178,10 @@ pipeline {
                 // Below are just for ceph-source-dist
                 string(name: "CEPH_REPO", value: env.CEPH_REPO),
                 string(name: "CEPH_BUILD_BRANCH", value: env.CEPH_BUILD_BRANCH),
+                // Below are only for actual releases
+                string(name: 'RELEASE_TYPE',  value: env.RELEASE_TYPE ?: ''),
+                string(name: 'RELEASE_BUILD', value: env.RELEASE_BUILD ?: ''),
+                string(name: 'VERSION',       value: env.VERSION ?: '')
               ]
             )
             env.SETUP_BUILD_ID = setup_build.getNumber()
@@ -219,6 +253,7 @@ pipeline {
           stage("node") {
             steps {
               script {
+                sh "env"
                 build_matrix["${DIST}_${ARCH}"] = env.CI_COMPILE.toBoolean()
                 sh "hostname -f"
                 def node_shortname = env.NODE_NAME.split('\\+')[-1]
@@ -263,6 +298,7 @@ pipeline {
                 )
               }
               script {
+                sh "env"
                 def sha1_props = readProperties file: "${WORKSPACE}/dist/sha1"
                 env.SHA1 = sha1_props.SHA1
                 println "SHA1=${env.SHA1}"
@@ -276,6 +312,12 @@ pipeline {
                   sha1_ui_value = "<a href=\"${commit_url}\">${env.SHA1}</a>"
                 }
                 def shaman_url = "https://shaman.ceph.com/builds/ceph/${env.BRANCH}/${env.SHA1}"
+                script {
+                  def props = readProperties file: "${WORKSPACE}/dist/other_envvars"
+                  for (p in props) {
+                    env."${p.key}" = p.value
+                  }
+                }
                 def build_description = """\
                   BRANCH=${branch_ui_value}<br />
                   SHA1=${sha1_ui_value}<br />
@@ -290,12 +332,7 @@ pipeline {
               }
               sh "sha256sum dist/*"
               sh "cat dist/sha1 dist/version"
-              script {
-                def props = readProperties file: "${WORKSPACE}/dist/other_envvars"
-                for (p in props) {
-                  env."${p.key}" = p.value
-                }
-              }
+
               sh '''#!/bin/bash
                 set -ex
                 cd dist
@@ -315,6 +352,9 @@ pipeline {
             }
             steps {
               script {
+                if (env.RELEASE_BUILD?.trim()) {
+                  def chacra_url = "https://chacra.ceph.com/"
+                }
                 sh './scripts/setup_chacractl.sh'
                 def chacra_url = sh(
                   script: '''grep url ~/.chacractl | cut -d'"' -f2''',

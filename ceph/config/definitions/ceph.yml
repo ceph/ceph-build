@@ -1,9 +1,9 @@
 - job:
-    name: ceph
+    name: preserve-ceph-release-dgalloway
     description: 'This is the main ceph build task which uses chacra.ceph.com.'
     project-type: multijob
     defaults: global
-    display-name: 'ceph'
+    display-name: 'preserve-ceph-release-dgalloway'
     block-downstream: false
     block-upstream: false
     concurrent: true
@@ -21,6 +21,10 @@
           name: BRANCH
           description: "The git branch (or tag) to build (e.g., pacific) DO NOT INCLUDE '-release'"
           default: main
+
+      - string:
+          name: VERSION
+          description: "The version for release, e.g. 0.94.4"
 
       - bool:
           name: TEST
@@ -54,10 +58,6 @@ If this is unchecked, then then nothing is built or pushed if they already exist
 
 If this is checked, then the binaries will be built and pushed to chacra even if they already exist in chacra."
 
-      - string:
-          name: VERSION
-          description: "The version for release, e.g. 0.94.4"
-
       - choice:
           name: RELEASE_TYPE
           description: "
@@ -72,62 +72,31 @@ SECURITY: Builds from BRANCH-release branch in ceph-private.git (private repo)."
             - SECURITY
 
       - string:
-          name: CEPH_BUILD_VIRTUALENV
-          description: "Base parent path for virtualenv locations, set to avoid issues with extremely long paths that are incompatible with tools like pip. Defaults to '/tmp/' (note the trailing slash, which is required)."
-          default: "/tmp/"
-
-      - string:
           name: DISTROS
           description: "A list of distros to build for. Available options are: centos9, centos8, centos7, centos6, noble, jammy, focal, bionic, xenial, trusty, precise, wheezy, jessie, buster, bullseye, bookworm"
-          default: "noble jammy focal centos8 centos9 bookworm"
+          default: "noble jammy centos8 centos9 bookworm"
 
       - string:
           name: ARCHS
           description: "A list of architectures to build for. Available options are: x86_64, and arm64"
           default: "x86_64 arm64"
 
-      - string:
-          name: CONTAINER_REPO_HOSTNAME
-          description: "Name of (prerelease) container repo server (i.e. 'quay.ceph.io')"
-          default: "quay.ceph.io"
-
-      - string:
-          name: CONTAINER_REPO_ORGANIZATION
-          description: "Name of (prerelease) container repo organization (i.e. 'ceph').  Container build script will add prerelease-<arch>"
-          default: "ceph"
-
-    builders:
-      - multijob:
-          name: 'ceph setup phase'
-          condition: SUCCESSFUL
-          projects:
-            - name: ceph-setup
-              current-parameters: true
-              exposed-scm: false
-      - copyartifact:
-          project: ceph-setup
-          filter: ceph-build/ansible/ceph/dist/sha1
-          which-build: multijob-build
-      - inject:
-          properties-file: ${{WORKSPACE}}/ceph-build/ansible/ceph/dist/sha1
-      - multijob:
-          name: 'ceph build phase'
-          condition: SUCCESSFUL
-          projects:
-            - name: ceph-build
-              current-parameters: true
-              exposed-scm: false
-      - multijob:
-          name: 'ceph tag phase'
-          condition: SUCCESSFUL
-          projects:
-            - name: ceph-tag
-              current-parameters: true
-              exposed-scm: false
+    publishers:
+      - trigger-parameterized-builds:
+          - project: "preserve-ceph-dev-pipeline-dgalloway"
+            condition: SUCCESS
+            trigger-with-no-params: false
+            current-parameters: true
+            predefined-parameters: |
+              FLAVOR=default
+              CI_COMPILE=true
+              CI_CONTAINER=false
+              DWZ=false
+              SCCACHE=false
+              SETUP_JOB=preserve-ceph-source-dist-dgalloway
+              RELEASE_BUILD=true
+            block: true
 
     wrappers:
-      - inject-passwords:
-          global: true
-          mask-password-params: true
       - build-name:
-          name: "#${{BUILD_NUMBER}} ${{BRANCH}}, ${{SHA1}}"
+          name: "#${{BUILD_NUMBER}} ${{BRANCH}}, ${{VERSION}}"

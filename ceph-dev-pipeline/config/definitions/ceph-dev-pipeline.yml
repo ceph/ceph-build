@@ -1,6 +1,6 @@
 - job:
-    name: ceph-dev-pipeline
-    description: ceph-dev-pipeline
+    name: preserve-ceph-dev-pipeline-dgalloway
+    description: preserve-ceph-dev-pipeline-dgalloway
     project-type: pipeline
     quiet-period: 1
     concurrent: true
@@ -102,13 +102,13 @@
       - choice:
           name: SETUP_JOB
           choices:
-            - ceph-source-dist
+            - preserve-ceph-source-dist-dgalloway
             - ceph-dev-new-setup
 
       - string:
           name: CEPH_BUILD_BRANCH
           description: "Use the Jenkinsfile from this ceph-build branch"
-          default: main
+          default: release-with-pipeline
 
     wrappers:
       - inject-passwords:

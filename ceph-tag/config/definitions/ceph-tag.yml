@@ -1,6 +1,6 @@
 - job:
-    name: ceph-tag
-    node: bionic
+    name: preserve-ceph-tag-dgalloway
+    node: 'bionic&&!arm64'
     description: "This job checks out the version commit previously pushed to ceph-releases.git and pushes it to ceph.git."
     display-name: 'ceph-tag'
     block-downstream: false

@@ -8,7 +8,9 @@ pipx ensurepath
 pipx install uv
 ~/.local/bin/uv tool install chacractl
 
-chacra_url=`curl -u $SHAMAN_API_USER:$SHAMAN_API_KEY https://shaman.ceph.com/api/nodes/next/`
+if [ -n "$chacra_url" ]; then
+  chacra_url=$(curl -u "$SHAMAN_API_USER:$SHAMAN_API_KEY" https://shaman.ceph.com/api/nodes/next/)
+fi
 cat > $HOME/.chacractl << EOF
 url = "$chacra_url"
 user = "$CHACRACTL_USER"
