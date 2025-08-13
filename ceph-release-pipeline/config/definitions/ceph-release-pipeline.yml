@@ -1,0 +1,94 @@
+- job:
+    name: ceph-release-pipeline
+    description: 'This Jenkins pipeline creates upstream release tags, and packages.'
+    project-type: pipeline
+    quiet-period: 1
+    concurrent: true
+    pipeline-scm:
+      scm:
+        - git:
+            url: https://github.com/ceph/ceph-build
+            branches:
+              - ${{CEPH_BUILD_BRANCH}}
+            shallow-clone: true
+            submodule:
+              disable: true
+            wipe-workspace: true
+      script-path: ceph/build/Jenkinsfile
+      lightweight-checkout: true
+      do-not-fetch-tags: true
+
+    parameters:
+      - string:
+          name: BRANCH
+          description: "The release branch to build (e.g., pacific)"
+          default: main
+
+      - string:
+          name: VERSION
+          description: "The version for release, e.g. 0.94.4"
+
+      - bool:
+          name: TEST
+          description: "
+If this is unchecked, then the builds will be pushed to chacra with the correct ref. This is the default.
+
+If this is checked, then the builds will be pushed to chacra under the 'test' ref."
+      - bool:
+          name: TAG
+          description: "When this is checked, Jenkins will remove the previous private tag and recreate it again, changing the control files and committing again. When this is unchecked, Jenkins will not do any commit or tag operations. If you've already created the private tag separately or are re-running a build, leave this unchecked.
+Defaults to checked."
+          default: true
+
+      - bool:
+          name: THROWAWAY
+          description: "
+Default: False. When True it will not POST binaries to chacra. Artifacts will not be around for long. Useful to test builds."
+          default: false
+
+      - bool:
+          name: FORCE_VERSION
+          description: "
+Default: False. When True it will force the Debian version (when wanting to release older versions after newer ones have been released.
+Mostly useful for DEBs to append the `-b` flag for dhc."
+          default: false
+
+      - bool:
+          name: FORCE
+          description: "
+If this is unchecked, then then nothing is built or pushed if they already exist in chacra. This is the default.
+
+If this is checked, then the binaries will be built and pushed to chacra even if they already exist in chacra."
+
+      - choice:
+          name: RELEASE_TYPE
+          description: "
+STABLE: A normal release. Builds from BRANCH branch and pushed to BRANCH-release branch.
+RELEASE_CANDIDATE: A normal release except the binaries will be pushed to chacra using the $BRANCH-rc name
+HOTFIX: Builds from BRANCH-release branch.  BRANCH-release will be git merged back into BRANCH.
+SECURITY: Builds from BRANCH-release branch in ceph-private.git (private repo)."
+          choices:
+            - STABLE
+            - RELEASE_CANDIDATE
+            - HOTFIX
+            - SECURITY
+
+      - string:
+          name: DISTROS
+          description: "A list of distros to build for. Available options are: centos9, centos8, centos7, centos6, noble, jammy, focal, bionic, xenial, trusty, precise, wheezy, jessie, buster, bullseye, bookworm"
+          default: "noble jammy centos8 centos9 bookworm"
+
+      - string:
+          name: ARCHS
+          description: "A list of architectures to build for. Available options are: x86_64, and arm64"
+          default: "x86_64 arm64"
+
+      - string:
+          name: CEPH_BUILD_BRANCH
+          description: "Use the Jenkinsfile from this ceph-build branch"
+          ## TODO: Change to main
+          default: release-with-pipeline
+
+    wrappers:
+      - build-name:
+          name: "#${{BUILD_NUMBER}} ${{BRANCH}}, ${{VERSION}}"

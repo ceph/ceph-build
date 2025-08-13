@@ -36,10 +36,30 @@
   args:
     chdir: ceph
 
+# The next three tasks are mainly so the Archive Artifacts plugin doesn't hang.
+# We do these in create.yml and the SHA1 actually gets consumed there so we don't
+# want to pass the job if the artifact is missing there.
+- name: record commit sha1
+  command: git rev-parse HEAD
+  args:
+    chdir: ceph
+  register: commit_sha
+
+- name: ensure ceph/dist dir exists
+  file:
+    path: ceph/dist
+    state: directory
+
+- name: save commit sha1 to file
+  copy:
+    content: "{{ commit_sha.stdout }}"
+    dest: ceph/dist/sha1.txt
+
 - name: push version commit to BRANCH-release branch
   command: git push upstream {{ branch }}-release
   args:
     chdir: ceph
+  when: tag|bool is true
 
 - name: "create pull request to merge {{ branch }}-release back into {{ branch }}"
   uri:
@@ -57,8 +77,10 @@
     body_format: json
   tags: pr
   no_log: true
+  when: tag|bool is true
 
 - name: push the newly created tag
   command: git push upstream v{{ version }}
   args:
     chdir: ceph
+  when: tag|bool is true

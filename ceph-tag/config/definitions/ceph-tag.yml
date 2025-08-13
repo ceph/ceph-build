@@ -13,6 +13,8 @@
           artifact-num-to-keep: -1
       - github:
           url: https://github.com/ceph/ceph
+      - copyartifact:
+          projects: ceph-dev-pipeline,ceph-dev,ceph-dev-build,ceph-dev-new,ceph-dev-new-build,ceph-release-pipeline
 
     parameters:
       - string:
@@ -48,6 +50,11 @@ SECURITY: Builds from BRANCH-release branch in ceph-private.git (private repo)."
             - RELEASE_CANDIDATE
             - HOTFIX
             - SECURITY
+
+      - string:
+          name: CEPH_BUILD_BRANCH
+          description: "The ceph-build.git branch to use.  Useful for testing changes to the ceph-tag job"
+          default: main
     scm:
       - git:
           url: https://github.com/ceph/ceph-build.git
@@ -57,8 +64,7 @@ SECURITY: Builds from BRANCH-release branch in ceph-private.git (private repo)."
           wipe-workspace: true
           basedir: "ceph-build"
           branches:
-            - origin/main
-
+            - ${{CEPH_BUILD_BRANCH}}
 
     builders:
       - shell:
@@ -66,15 +72,24 @@ SECURITY: Builds from BRANCH-release branch in ceph-private.git (private repo)."
             - ../../../scripts/build_utils.sh
             - ../../build/build
 
+    publishers:
+      - archive:
+          artifacts: 'ceph-build/ansible/ceph/dist/sha1.txt'
+          allow-empty: false
+          latest-only: false
+
     wrappers:
       - inject-passwords:
           global: true
           mask-password-params: true
       - ssh-agent-credentials:
           # "jenkins-build" SSH key, needed so we can push/pull to/from private repos
-          user: 'jenkins-build'
+          # TODO: Change back to 'jenkins-build' for 1.jenkins
+          user: 'e6fe76fe-c6bf-455a-89d5-6e2aae790a28'
       - credentials-binding:
           - username-password-separated:
-              credential-id: 8cffdeb4-283c-4d96-a190-05d5645bcc2f
+              # TODO: Change back to 8cff for 1.jenkins
+              #credential-id: 8cffdeb4-283c-4d96-a190-05d5645bcc2f
+              credential-id: 3a22e627-7818-4c3d-957d-854811545a86
               username: GITHUB_USER
               password: GITHUB_TOKEN
