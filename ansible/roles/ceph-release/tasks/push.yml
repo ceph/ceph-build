@@ -40,6 +40,7 @@
   command: git push upstream {{ branch }}-release
   args:
     chdir: ceph
+  when: tag|bool is true
 
 - name: "create pull request to merge {{ branch }}-release back into {{ branch }}"
   uri:
@@ -57,8 +58,10 @@
     body_format: json
   tags: pr
   no_log: true
+  when: tag|bool is true
 
 - name: push the newly created tag
   command: git push upstream v{{ version }}
   args:
     chdir: ceph
+  when: tag|bool is true

@@ -47,7 +47,6 @@
   when:
     - "release != 'SECURITY'"
     - tag|bool is false
-    - throwaway|bool is false
 
 # SECURITY
 - name: "git checkout security {{ branch }}-release branch"
@@ -106,6 +105,22 @@
   args:
     chdir: ceph
   when: tag|bool is true
+
+- name: record commit sha1
+  command: git rev-parse HEAD
+  args:
+    chdir: ceph
+  register: commit_sha
+
+- name: ensure ceph/dist dir exists
+  file:
+    path: ceph/dist
+    state: directory
+
+- name: save commit sha1 to file
+  copy:
+    content: "{{ commit_sha.stdout }}"
+    dest: ceph/dist/sha1.txt
 
 - name: tag the version
   command: git tag -f "v{{ version }}" -m "v{{ version }}"

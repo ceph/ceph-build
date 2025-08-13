@@ -96,7 +96,7 @@
 
       - string:
           name: SETUP_BUILD_ID
-          description: "Use the source distribution from this ceph-dev-new-setup build instead of creating a new one"
+          description: "Use the source distribution from this ceph-source-dist job instead of creating a new one"
           default: ""
 
       - choice:
@@ -108,7 +108,8 @@
       - string:
           name: CEPH_BUILD_BRANCH
           description: "Use the Jenkinsfile from this ceph-build branch"
-          default: main
+          # TODO: main
+          default: release-with-pipeline
 
     wrappers:
       - inject-passwords:
