@@ -1696,12 +1696,8 @@ maybe_reset_ci_container() {
 }
 
 # NOTE: These functions will only work on a Pull Request job!
-pr_only_for() {
-  # $1 is passed by reference to avoid having to call with ${array[@]} and
-  # receive by creating another local array ("$@")
-  local -n local_patterns=$1
-  local files
-  pushd .
+pr_filenames_changed() {
+  pushd . > /dev/null
   # cd to ceph repo if we need to.
   # The ceph-pr-commits job checks out ceph.git and ceph-build.git but most
   # other jobs do not.
@@ -1710,54 +1706,154 @@ pr_only_for() {
   fi
   if [ -f $(git rev-parse --git-dir)/shallow ]; then
     # We can't do a regular `git diff` in a shallow clone.  There is no other way to check files changed.
-    files="$(curl -s -u ${GITHUB_USER}:${GITHUB_PASS} https://api.github.com/repos/${ghprbGhRepository}/pulls/${ghprbPullId}/files | jq '.[].filename' | tr -d '"')"
+    curl -s -u ${GITHUB_USER}:${GITHUB_PASS} https://api.github.com/repos/${ghprbGhRepository}/pulls/${ghprbPullId}/files | jq '.[].filename' | tr -d '"'
   else
-    files="$(git diff --name-only origin/${ghprbTargetBranch}...origin/pr/${ghprbPullId}/head)"
+    git diff --name-only origin/${ghprbTargetBranch}...origin/pr/${ghprbPullId}/head
   fi
-  popd
-  echo -e "changed files:\n$files"
-  # 0 is true, 1 is false
-  local all_match=0
+  popd > /dev/null
+}
+
+# construct a regex pattern that matches the CODEOWNERS syntax rules
+# for ? * and **. these rules use a subset of the gitignore pattern format
+# https://git-scm.com/docs/gitignore#_pattern_format
+codeowners_pattern_to_regex() {
+  # first escape any regex characters like \^()[]|.+ before we add more
+  local escape='s/[\\\^\(\)\[\]\|\.\+]/\\&/g'
+  # add leading slash if missing when pattern is absolute (has a non-trailing slash)
+  local add_leading_slash='s/^[^\/].*\/.\+$/\/&/'
+  # leading slash must match at front
+  local slash_makes_absolute='s/^\/.*/^&/'
+  # without trailing slash, must either match the end or be followed by /
+  local not_directory_only='s/^.*[^\/]$/&($|\/)/'
+  # trailing slash can only match files under a directory
+  local directory_only='s/^.*\/$/&.\+/'
+  # replace ** patterns with ++ until we replace single *s
+  # /**/ -> /++
+  local slash_double_asterisk_slash='s/\/\*\*\//\/++/g'
+  # /** -> /++
+  local slash_double_asterisk='s/\/\*\*/\/++/g'
+  # **/ -> ++/
+  local double_asterisk_slash='s/\*\*\//++\//g'
+  # * matches any characters except slashes: [^/]*
+  local asterisk='s/\*/[^\/]*/g'
+  # ? matches any character except slash: [^/]
+  local question='s/\?/[^\/]/g'
+  # ++ (aka **) matches anything: .*
+  local double_plus='s/++/.*/g'
+  # relative matches must still come after a /
+  local relative_to_absolute='s/^[^^].*/^.*\/&/'
+  echo "$1" | sed \
+      -e $escape \
+      -e $add_leading_slash \
+      -e $slash_makes_absolute \
+      -e $not_directory_only \
+      -e $directory_only \
+      -e $slash_double_asterisk_slash \
+      -e $double_asterisk_slash \
+      -e $slash_double_asterisk \
+      -e $asterisk \
+      -e $question \
+      -e $double_plus \
+      -e $relative_to_absolute
+}
+
+codeowners_patterns_to_regex() {
+  for p in $1; do
+    # skip comments
+    if [[ $p == \#* ]]; then continue; fi
+    codeowners_pattern_to_regex "$p"
+  done
+}
+
+no_filenames_match() {
+  local files=$1
+  local patterns=$(codeowners_patterns_to_regex "$2")
   for f in $files; do
+    for p in $patterns; do
+      # add leading slash to simplify matching
+      if [[ "/$f" =~ $p ]]; then
+        echo "filename '$f' matched pattern '$p'"
+        return 1
+      fi
+    done
+  done
+  return 0
+}
+
+all_filenames_match() {
+  local files=$1
+  local patterns=$(codeowners_patterns_to_regex "$2")
+  for f in $files; do
+    # 0 is true, 1 is false
     local match=1
-    for p in "${local_patterns[@]}"; do
+    for p in $patterns; do
       # pattern loop: if one pattern matches, skip the others
-      if [[ $f == $p ]]; then match=0; break; fi
+      # add leading slash to simplify matching
+      if [[ "/$f" =~ $p ]]; then match=0; break; fi
     done
     # file loop: if this file matched no patterns, the group fails
     # (one mismatch spoils the whole bushel)
-    if [[ $match -eq 1 ]] ; then all_match=1; break; fi
+    if [[ $match -eq 1 ]] ; then
+      echo "filename '$f' matched no patterns"
+      return 1
+    fi
   done
-  return $all_match
+  return 0
 }
 
 docs_pr_only() {
   DOCS_ONLY=false
-  local patterns=(
-    'doc/*'
-    'admin/*'
-    'src/sample.ceph.conf'
-    'CodingStyle'
-    '*.rst'
-    '*.md'
-    'COPYING*'
-    'README.*'
-    'SubmittingPatches'
-    '.readthedocs.yml'
-    'PendingReleaseNotes'
-  )
-  if pr_only_for patterns; then DOCS_ONLY=true; fi
+  local filenames=$(pr_filenames_changed)
+  echo -e "changed files:\n$filenames"
+  local patterns='doc/
+admin/
+src/sample.ceph.conf
+CodingStyle
+*.rst
+*.md
+COPYING*
+README.*
+SubmittingPatches
+.readthedocs.yml
+PendingReleaseNotes'
+  if all_filenames_match "$filenames" "$patterns"; then DOCS_ONLY=true; fi
 }
 
 container_pr_only() {
   CONTAINER_ONLY=false
-  local patterns=(
-    'container/*'
-    'Dockerfile.build'
-    'src/script/buildcontainer-setup.sh'
-    'src/script/build-with-container.py'
-  )
-  if pr_only_for patterns; then CONTAINER_ONLY=true; fi
+  local filenames=$(pr_filenames_changed)
+  local patterns='container/
+Dockerfile.build
+src/script/buildcontainer-setup.sh
+src/script/build-with-container.py'
+  if all_filenames_match "$filenames" "$patterns"; then CONTAINER_ONLY=true; fi
+}
+
+# given a CODEOWNERS file whose lines look like this:
+#   /doc/dev/rbd*    @ceph/rbd @ceph/doc-writers
+#
+# return the pattern string of all lines matching the given codeowner
+patterns_for_codeowner() {
+  grep -w "$1" .github/CODEOWNERS | cut -f 1 -d " "
+}
+
+# return success (0) if the pr changes filenames that match the given codeowner
+pr_matches_codeowner() {
+  local owner=$1
+  local filenames=$(pr_filenames_changed)
+  local patterns=$(patterns_for_codeowner "$owner")
+  if no_filenames_match "$filenames" "$patterns"; then return 1; fi
+  return 0
+}
+
+# return success (0) if the pr has the given label
+pr_matches_label() {
+  local target=$1
+  local labels=$(curl -s -u ${GITHUB_USER}:${GITHUB_PASS} https://api.github.com/repos/${ghprbGhRepository}/issues/${ghprbPullId}/labels | jq '.[].name' | tr -d '"')
+  for label in $labels; do
+    if [ $label = $target ]; then return 0; fi
+  done
+  return 1
 }
 
 function ssh_exec() {
