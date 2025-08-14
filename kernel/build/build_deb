@@ -41,9 +41,6 @@ echo "*****"
 env
 echo "*****"
 
-# Install build dependencies
-sudo apt-get install -y bc
-
 # Clean the upper level debs
 rm -f ../*.deb
 
