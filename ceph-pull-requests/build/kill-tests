@@ -1,5 +1,7 @@
 #!/bin/bash -ex
 
+report_github_check_status failure "make check" "make check failed" $GH_PULL_REQUEST_SHA $BUILD_URL
+
 # kill all descendant processes of ctest
 
 # ceph-pull-requests/build/build is killed by jenkins when the ceph-pull-requests job is aborted or

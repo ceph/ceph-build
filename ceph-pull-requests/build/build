@@ -1,15 +1,15 @@
 #!/bin/bash -ex
 
-docs_pr_only
-container_pr_only
-if [[ "$DOCS_ONLY" = true || "$CONTAINER_ONLY" = true ]]; then
-    echo "Only the doc/ or container/ dir changed.  No need to run make check."
-    exit 0
-fi
+echo "This job was triggered by $TRIGGER_METHOD via $TRIGGERED_BY"
+
+report_github_check_status pending "make check" "make check running" $GH_PULL_REQUEST_SHA $BUILD_URL
 
 export NPROC=$(nproc)
 export WITH_CRIMSON=true
 export WITH_RBD_RWL=true
 timeout 3h ./run-make-check.sh
+
+report_github_check_status success "make check" "make check passed" $GH_PULL_REQUEST_SHA $BUILD_URL
+
 sleep 5
 ps -ef | grep -v jnlp | grep ceph || true
