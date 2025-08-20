@@ -14,25 +14,35 @@ pipeline {
             } else {
               checkout_ref = env.BRANCH
             }
-          }
-          checkout scmGit(
-            branches: [[name: checkout_ref]],
-            userRemoteConfigs: [[
-              url: env.CEPH_REPO,
-              credentialsId: 'jenkins-build'
-            ]],
-            extensions: [
-              [$class: 'CleanBeforeCheckout'],
-              [
-                $class: 'CloneOption',
-                shallow: true,
-                depth:   100,
-                timeout: 90
-              ],
-            ],
-          )
-          script {
-            sh 'git fetch --tags https://github.com/ceph/ceph.git'
+
+            // Rewrite repo + ref if RELEASE_BUILD=true.
+            // RELEASE_BUILD is intentionally undefinable as a ceph-source-dist parameter but instead
+            // defined by ceph-release-pipeline so that only that job may clone from ceph-releases.git.
+            def repoUrl = params.RELEASE_BUILD ? 'git@github.com:ceph/ceph-releases.git' : env.CEPH_REPO
+            env.checkout_ref = params.RELEASE_BUILD ? "v${params.VERSION}" : env.BRANCH
+            env.CEPH_REPO = repoUrl
+
+            checkout scmGit(
+              branches: [[name: checkout_ref]],
+              userRemoteConfigs: [[
+                url: env.CEPH_REPO,
+                credentialsId: 'jenkins-build'
+              ]],
+              extensions: [
+                [$class: 'CleanBeforeCheckout'],
+                [
+                  $class: 'CloneOption',
+                  shallow: true,
+                  depth: 100,
+                  timeout: 90
+                ]
+              ]
+            )
+
+            // No need to fetch tags if this is a release build
+            if (!params.RELEASE_BUILD?.toBoolean()) {
+              sh 'git fetch --tags https://github.com/ceph/ceph.git'
+            }
           }
         }
       }
@@ -69,7 +79,24 @@ pipeline {
               ln ceph-$ceph_version_tarball.$extension dist/
 
               echo "SHA1=$(git rev-parse HEAD)" > dist/sha1
-              echo "BRANCH=${BRANCH}" > dist/branch
+
+              if [ "${RELEASE_BUILD:-}" = "true" ]; then
+                # For security, the following vars are written to dist/other_envvars to be passed
+                # to ceph-dev-pipeline instead of via parameters.
+                # ceph-dev-pipeline does not offer ceph-releases.git as an option for CEPH_REPO,
+                # and we don't want RELEASE_BUILD to be settable by the user to avoid being able
+                # clone from ceph-releases.git.
+                if [ "${RELEASE_TYPE}" = "PRIVATE" ]; then
+                  echo "CEPH_REPO=https://github.com/ceph/ceph-private" > dist/other_envvars
+                else
+                  echo "CEPH_REPO=https://github.com/ceph/ceph-releases" > dist/other_envvars
+                fi
+                echo "RELEASE_BUILD=true" >> dist/other_envvars
+                echo "chacra_url=https://chacra.ceph.com/" >> dist/other_envvars
+                echo "BRANCH=${BRANCH}-release" > dist/branch
+              else
+                echo "BRANCH=${BRANCH}" > dist/branch
+              fi
 
               mv dist ..
             '''
