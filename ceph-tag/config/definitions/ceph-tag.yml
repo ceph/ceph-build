@@ -50,6 +50,12 @@ SECURITY: Builds from BRANCH-release branch in ceph-private.git (private repo)."
             - RELEASE_CANDIDATE
             - HOTFIX
             - SECURITY
+
+      - string:
+          name: CEPH_BUILD_BRANCH
+          description: "The ceph-build.git branch to use.  Useful for testing changes to the ceph-tag job"
+          default: main
+
     scm:
       - git:
           url: https://github.com/ceph/ceph-build.git
@@ -59,8 +65,7 @@ SECURITY: Builds from BRANCH-release branch in ceph-private.git (private repo)."
           wipe-workspace: true
           basedir: "ceph-build"
           branches:
-            - origin/main
-
+            - ${{CEPH_BUILD_BRANCH}}
 
     builders:
       - shell:
