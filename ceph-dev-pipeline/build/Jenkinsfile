@@ -149,6 +149,10 @@ pipeline {
                 string(name: "SHA1", value: env.SHA1),
                 string(name: "CEPH_REPO", value: env.CEPH_REPO),
                 string(name: "CEPH_BUILD_BRANCH", value: env.CEPH_BUILD_BRANCH),
+                // Below are only for actual releases
+                string(name: 'RELEASE_TYPE',  value: env.RELEASE_TYPE ?: ''),
+                string(name: 'RELEASE_BUILD', value: env.RELEASE_BUILD ?: ''),
+                string(name: 'VERSION',       value: env.VERSION ?: '')
               ]
             )
             env.SETUP_BUILD_ID = setup_build.getNumber()
@@ -272,13 +276,25 @@ pipeline {
                 }
                 println "SHA1=${sha1_trimmed}"
                 env.VERSION = readFile(file: "${WORKSPACE}/dist/version").trim()
+                script {
+                  // In a release build, dist/other_envvars contains CEPH_REPO, and chacra_url
+                  // as written during ceph-source-dist but we don't to be able to define
+                  // ceph-releases.git or chacra.ceph.com as parameters for ceph-dev-pipeline.
+                  def props = readProperties file: "${WORKSPACE}/dist/other_envvars"
+                  for (p in props) {
+                    env."${p.key}" = p.value
+                  }
+                }
                 def branch_ui_value = env.BRANCH
                 def sha1_ui_value = env.SHA1
-                if ( env.CEPH_REPO.find(/https?:\/\/github.com\//) ) {
-                  def branch_url = "${env.CEPH_REPO}/tree/${env.BRANCH}"
-                  branch_ui_value = "<a href=\"${branch_url}\">${env.BRANCH}</a>"
-                  def commit_url = "${env.CEPH_REPO}/commit/${env.SHA1}"
-                  sha1_ui_value = "<a href=\"${commit_url}\">${env.SHA1}</a>"
+                if (env.CEPH_REPO?.find(/https?:\/\/github.com\//)) {
+                    // If this is a release build, link to ceph-release.git's $BRANCH-release branch
+                    def suffix = (env.RELEASE_BUILD?.trim() == "true") ? "-release" : ""
+
+                    def branch_url = "${env.CEPH_REPO}/tree/${env.BRANCH}${suffix}"
+                    branch_ui_value = "<a href=\"${branch_url}\">${env.BRANCH}${suffix}</a>"
+                    def commit_url = "${env.CEPH_REPO}/commit/${env.SHA1}"
+                    sha1_ui_value = "<a href=\"${commit_url}\">${env.SHA1}</a>"
                 }
                 def shaman_url = "https://shaman.ceph.com/builds/ceph/${env.BRANCH}/${env.SHA1}"
                 def build_description = """\
@@ -295,12 +311,6 @@ pipeline {
               }
               sh "sha256sum dist/*"
               sh "cat dist/sha1 dist/version"
-              script {
-                def props = readProperties file: "${WORKSPACE}/dist/other_envvars"
-                for (p in props) {
-                  env."${p.key}" = p.value
-                }
-              }
               sh '''#!/bin/bash
                 set -ex
                 cd dist
@@ -428,7 +438,9 @@ pipeline {
                 switch (env.FLAVOR) {
                   case "default":
                     env.CEPH_EXTRA_CMAKE_ARGS+=" -DALLOCATOR=tcmalloc"
-                    env.CEPH_EXTRA_CMAKE_ARGS+=" -DWITH_SYSTEM_BOOST=OFF -DWITH_BOOST_VALGRIND=ON"
+                    if (env.RELEASE_BUILD?.toBoolean()) {
+                      env.CEPH_EXTRA_CMAKE_ARGS+=" -DWITH_SYSTEM_BOOST=OFF -DWITH_BOOST_VALGRIND=ON"
+                    }
                     break
                   case ~/crimson.*/:
                     env.DEB_BUILD_PROFILES="pkg.ceph.crimson"
@@ -490,16 +502,18 @@ pipeline {
             post {
               always {
                 script {
-                  sh """
-                    if [ -f "${env.WORKSPACE}/dist/ceph/sccache_log.txt" ]; then
-                      ln dist/ceph/sccache_log.txt sccache_log_${env.DIST}_${env.ARCH}_${env.FLAVOR}.txt
-                    fi
-                  """
-                  archiveArtifacts(
-                    artifacts: 'sccache_log*.txt',
-                    allowEmptyArchive: true,
-                    fingerprint: true,
-                  )
+                  if (env.SCCACHE?.trim() == "true") {
+                    sh """
+                      if [ -f "${env.WORKSPACE}/dist/ceph/sccache_log.txt" ]; then
+                        ln dist/ceph/sccache_log.txt sccache_log_${env.DIST}_${env.ARCH}_${env.FLAVOR}.txt
+                      fi
+                    """
+                    archiveArtifacts(
+                      artifacts: 'sccache_log*.txt',
+                      allowEmptyArchive: true,
+                      fingerprint: true,
+                    )
+                  }
                 }
               }
               unsuccessful {
@@ -532,6 +546,8 @@ pipeline {
                       mkdir -p ./rpmbuild/SRPMS/
                       ln ceph-*.src.rpm ./rpmbuild/SRPMS/
                   """
+                  // Push packages to chacra.ceph.com under the 'test' ref if ceph-release-pipeline's TEST=true
+                  env.SHA1 = env.TEST?.toBoolean() ? 'test' : env.SHA1
                   def spec_text = get_ceph_release_spec_text("${chacra_url}r/ceph/${env.BRANCH}/${env.SHA1}/${os.name}/${os.version_name}/flavors/${env.FLAVOR}/")
                   writeFile(
                     file: "dist/ceph/rpmbuild/SPECS/ceph-release.spec",
