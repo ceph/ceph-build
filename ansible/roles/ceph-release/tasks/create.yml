@@ -106,6 +106,8 @@
     chdir: ceph
   when: tag|bool is true
 
+- import_tasks: write_sha1_file.yml
+
 - name: tag the version
   command: git tag -f "v{{ version }}" -m "v{{ version }}"
   args:
