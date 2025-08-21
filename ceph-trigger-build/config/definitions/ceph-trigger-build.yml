@@ -57,6 +57,6 @@
             - type: JSONPath
               key: is_delete
               value: $.deleted
-          regex-filter-text: $is_delete
-          regex-filter-expression: "(?i)false"
+          regex-filter-text: $is_delete $ref
+          regex-filter-expression: "(?i)false refs/heads/.*"
           cause: "Push to $ref by $pusher"
