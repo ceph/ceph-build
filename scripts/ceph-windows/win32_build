@@ -12,7 +12,7 @@ export SSH_USER=$UBUNTU_SSH_USER
 export SSH_ADDRESS=$UBUNTU_VM_IP
 
 function rsync_cmd() {
-    rsync -a --delete -e "ssh -i $SSH_KEY -o UserKnownHostsFile=$SSH_KNOWN_HOSTS_FILE" ${@}
+    rsync -a --delete -e "ssh -i $SSH_KEY -o UserKnownHostsFile=$SSH_KNOWN_HOSTS_FILE" "${@}"
 }
 
 #

@@ -24,7 +24,7 @@ mv $WORKSPACE/build/wnbd/symbols/* $WORKSPACE/ceph-windows-installer/Symbols/
 
 pushd $WORKSPACE/build/ceph
 mkdir -p $WORKSPACE/ceph-windows-installer/Binaries/.debug
-for FILE in $(ls *.dll ceph-conf.exe rados.exe rbd.exe rbd-wnbd.exe ceph-dokan.exe); do
+for FILE in *.dll ceph-conf.exe rados.exe rbd.exe rbd-wnbd.exe ceph-dokan.exe; do
     cp $FILE $WORKSPACE/ceph-windows-installer/Binaries/
     cp .debug/${FILE}.debug $WORKSPACE/ceph-windows-installer/Binaries/.debug/
 done
