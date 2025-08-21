@@ -2,6 +2,7 @@
 # vim: ts=4 sw=4 expandtab
 function setup_container_runtime () {
   loginctl enable-linger "$(id -nu)"
+  podman system info > /dev/null || podman system reset --force
   if command -v podman; then
     PODMAN_MAJOR_VERSION=$(podman version -f json | jq -r '.Client.Version|split(".")[0]')
     if [ "$PODMAN_MAJOR_VERSION" -lt 4 ]; then
