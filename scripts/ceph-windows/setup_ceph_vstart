@@ -17,7 +17,7 @@ export SSH_ADDRESS=$UBUNTU_VM_IP
 mkdir -p $VSTART_DIR
 
 function rsync_cmd() {
-    rsync -a --delete -e "ssh -i $CEPH_WIN_CI_KEY -o UserKnownHostsFile=$SSH_KNOWN_HOSTS_FILE" ${@}
+    rsync -a --delete -e "ssh -i $CEPH_WIN_CI_KEY -o UserKnownHostsFile=$SSH_KNOWN_HOSTS_FILE" "${@}"
 }
 
 #
