@@ -562,11 +562,6 @@ pipeline {
               }
             }
             post {
-              always {
-                script {
-                  sh 'podman unshare chown -R 0 $WORKSPACE/dist/ceph'
-                }
-              }
               success {
                 script {
                   def os = get_os_info(env.DIST)
@@ -610,9 +605,16 @@ pipeline {
           }
         }
         post {
+          success {
+            sh 'echo success: $DIST $ARCH $FLAVOR'
+          }
+          unsuccessful {
+            sh 'echo failure: $DIST $ARCH $FLAVOR'
+          }
           always {
             script {
-              sh 'podman unshare chown -R 0 $WORKSPACE/dist/ceph'
+              sh 'hostname'
+              sh 'podman unshare chown -R 0:0 ${WORKSPACE}/'
             }
           }
         }

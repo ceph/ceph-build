@@ -1,10 +1,8 @@
 #!/bin/bash -ex
 # vim: ts=4 sw=4 expandtab
 function setup_container_runtime () {
+  loginctl enable-linger "$(id -nu)"
   if command -v podman; then
-    if ! [ -d "/run/user/$(id -u)" ] && [ -w "/run/user/$(id -u)" ]; then
-      sudo loginctl enable-linger "$(id -nu)"
-    fi
     PODMAN_MAJOR_VERSION=$(podman version -f json | jq -r '.Client.Version|split(".")[0]')
     if [ "$PODMAN_MAJOR_VERSION" -lt 4 ]; then
       echo "Found a very old podman; removing"
