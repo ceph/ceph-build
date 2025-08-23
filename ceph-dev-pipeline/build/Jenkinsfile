@@ -269,6 +269,8 @@ pipeline {
                 sha1_from_artifact = sha1_props.SHA1.trim().toLowerCase()
                 if ( env.SHA1 && sha1_from_artifact != sha1_trimmed ) {
                   error message: "SHA1 from artifact (${sha1_from_artifact}) does not match parameter value (${sha1_trimmed})"
+                } else if ( ! env.SHA1 ) {
+                  env.SHA1 = sha1_from_artifact
                 }
                 println "SHA1=${sha1_trimmed}"
                 env.VERSION = readFile(file: "${WORKSPACE}/dist/version").trim()
