@@ -468,6 +468,7 @@ pipeline {
                   echo "CEPH_EXTRA_CMAKE_ARGS=${CEPH_EXTRA_CMAKE_ARGS}" >> .env
                 '''
                 sh """#!/bin/bash -ex
+                  sudo choom -p "\$\$" -n 500
                   cd dist/ceph
                   ln ../ceph-${env.VERSION}.tar.bz2 .
                   ${bwc_command}
