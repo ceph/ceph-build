@@ -13,6 +13,8 @@
           artifact-num-to-keep: -1
       - github:
           url: https://github.com/ceph/ceph
+      - copyartifact:
+          projects: ceph-dev-pipeline,ceph-release-pipeline
 
     parameters:
       - string:
@@ -48,6 +50,12 @@ SECURITY: Builds from BRANCH-release branch in ceph-private.git (private repo)."
             - RELEASE_CANDIDATE
             - HOTFIX
             - SECURITY
+
+      - string:
+          name: CEPH_BUILD_BRANCH
+          description: "The ceph-build.git branch to use.  Useful for testing changes to the ceph-tag job"
+          default: main
+
     scm:
       - git:
           url: https://github.com/ceph/ceph-build.git
@@ -57,14 +65,19 @@ SECURITY: Builds from BRANCH-release branch in ceph-private.git (private repo)."
           wipe-workspace: true
           basedir: "ceph-build"
           branches:
-            - origin/main
-
+            - ${{CEPH_BUILD_BRANCH}}
 
     builders:
       - shell:
           !include-raw-verbatim:
             - ../../../scripts/build_utils.sh
             - ../../build/build
+
+    publishers:
+      - archive:
+          artifacts: 'ceph-build/ansible/ceph/dist/sha1'
+          allow-empty: false
+          latest-only: false
 
     wrappers:
       - inject-passwords:
