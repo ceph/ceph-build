@@ -263,6 +263,7 @@ pipeline {
                   filter: artifact_filter,
                 )
               }
+              sh 'sudo journalctl --show-cursor -n 0 --no-pager | tail -n1 | cut -d\" \" -f3 > $WORKSPACE/cursor'
               script {
                 def sha1_trimmed = env.SHA1.trim().toLowerCase()
                 def sha1_props = readProperties file: "${WORKSPACE}/dist/sha1"
@@ -616,6 +617,7 @@ pipeline {
           always {
             script {
               sh 'hostname'
+              sh 'sudo journalctl -k -c $(cat ${WORKSPACE}/cursor)'
               sh 'podman unshare chown -R 0:0 ${WORKSPACE}/'
             }
           }
