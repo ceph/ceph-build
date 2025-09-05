@@ -21,7 +21,7 @@ if [[ "$project" == "ceph" ]] ; then
     if [[ ${PIPESTATUS[0]} -eq 22 ]] ; then
       echo "$combo packages not found, skipping"
       continue
-    if
+    fi
     if [ $combo_count -gt $current_highest_count ]; then
       current_highest_count=$combo_count
       highest_combo=$combo
