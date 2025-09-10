@@ -26,6 +26,13 @@ function setup_container_runtime () {
   fi
 
   if command -v podman; then
+    if [ "$(podman version -f "{{ lt .Client.Version \"5.6.1\" }}")" = "true" ] && \
+    ! echo "928238bfcdc79a26ceb51d7d9759f99144846c0a  /etc/tmpfiles.d/podman.conf" | sha1sum --status --check -; then
+      # Pull in this fix: https://github.com/containers/podman/pull/26986
+      curl -sS -L -O https://github.com/containers/podman/raw/refs/tags/v5.6.1/contrib/tmpfile/podman.conf
+      sudo mv podman.conf /etc/tmpfiles.d/
+      sudo systemd-tmpfiles --remove
+    fi
     if [ "$(podman version -f "{{ ge .Client.Version \"4\" }}")" = "true" ]; then
       PODMAN_DIR="$HOME/.local/share/containers"
       test -d "$PODMAN_DIR" && command -v restorecon && sudo restorecon -R -T0 -x "$PODMAN_DIR"
