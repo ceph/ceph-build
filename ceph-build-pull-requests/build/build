@@ -10,7 +10,12 @@ pkgs=( "ansible" "ansible-core" "git+https://opendev.org/jjb/jenkins-job-builder
 VENV=./.venv/bin
 uv pip install "${pkgs[@]}"
 
-dpkg -l shellcheck >/dev/null 2>&1 || sudo apt install -y shellcheck
+command -v dpkg >/dev/null && (
+    dpkg -l shellcheck >/dev/null 2>&1 || sudo apt install -y shellcheck
+)
+command -v dnf >/dev/null && (
+    rpm -q shellcheck >/dev/null 2>&1 || sudo dnf install -y shellcheck
+)
 rm -rf xml
 # Test every definition if available in the current repository and update the jobs
 # if they do define one (they should always define their definitions)
