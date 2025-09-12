@@ -15,6 +15,13 @@ def parse_args(args: list[str]) -> argparse.Namespace:
         nargs="*",
         help="The job XML file(s) to process",
     )
+    parser.add_argument(
+        "-v",
+        "--verbose",
+        action="store_true",
+        default=False,
+        help="Be more verbose",
+    )
     return parser.parse_args(args)
 
 
@@ -24,32 +31,32 @@ def main():
     for job_xml in args.job_xml:
         path = pathlib.Path(job_xml)
         assert path.exists
-        print("#" * 79)
-        print(f"## Processing job {job_xml}")
+        if args.verbose:
+            print(f"JOB: {job_xml}")
         job_obj = xmltodict.parse(path.read_text())
-        print("#" * 79)
-        success = success and process_job(job_obj)
+        for item in find(job_obj, "command"):
+            try:
+                if args.verbose:
+                    print(f"  shellcheck {item[0]}")
+                process_item(item)
+            except Exception:
+                print(f"Failed to verify job {job_xml} item {item[0]}")
+                success = False
+        if args.verbose:
+            print()
     return 0 if success else 1
 
-
-def process_job(job_obj: dict) -> bool:
-    success = True
-    for item in find(job_obj, "command"):
-        print("#" + "-" * 78)
-        print(f"# Running shellcheck on {item[0]}")
-        print("#" + "-" * 78)
-        script = item[1]
-        if not script.startswith("#!"):
-            script = "#!/bin/bash\n" + script
-        proc = subprocess.Popen(
-            ["shellcheck", "--severity", "error", "-"],
-            stdin=subprocess.PIPE,
-            encoding="utf-8",
-        )
-        proc.communicate(input=script)
-        success = proc.returncode == 0 and success
-    return success
-
+def process_item(item):
+    script = item[1]
+    if not script.startswith("#!"):
+        script = "#!/bin/bash\n" + script
+    proc = subprocess.Popen(
+        ["shellcheck", "--severity", "error", "-"],
+        stdin=subprocess.PIPE,
+        encoding="utf-8",
+    )
+    proc.communicate(input=script)
+    assert proc.returncode == 0
 
 def find(obj: dict, key: str, result=None, path="") -> list[tuple]:
     if result is None:

@@ -2,27 +2,36 @@
 
 set -e
 
-# the following two methods exist in scripts/build_utils.sh
-pkgs=( "ansible" "ansible-core" "git+https://opendev.org/jjb/jenkins-job-builder@60f0316389" "urllib3==1.26.1" "pyopenssl" "ndg-httpsclient" "pyasn1" "xmltodict" )
-TEMPVENV=$(create_venv_dir)
-VENV=${TEMPVENV}/bin
-install_python_packages $TEMPVENV "pkgs[@]"
+"$WORKSPACE/scripts/setup_uv.sh"
+PATH=$PATH:$HOME/.local/bin
+uv venv
 
+pkgs=( "ansible" "ansible-core" "git+https://opendev.org/jjb/jenkins-job-builder@60f0316389" "urllib3==1.26.1" "pyopenssl" "ndg-httpsclient" "pyasn1" "xmltodict" )
+VENV=./.venv/bin
+uv pip install "${pkgs[@]}"
+
+command -v dpkg >/dev/null && (
+    dpkg -l shellcheck >/dev/null 2>&1 || sudo apt install -y shellcheck
+)
+command -v dnf >/dev/null && (
+    rpm -q shellcheck >/dev/null 2>&1 || sudo dnf install -y shellcheck
+)
 rm -rf xml
 # Test every definition if available in the current repository and update the jobs
 # if they do define one (they should always define their definitions)
-for dir in `find . -maxdepth 1 -path ./.git -prune -o -type d -print`; do
+find . -maxdepth 1 -path ./.git -prune -o -type d -print | while read -r dir; do
     definitions_dir="$dir/config/definitions"
     if [ -d "$definitions_dir" ]; then
         echo "found definitions directory: $definitions_dir"
 
         # Test the definitions
-        $VENV/jenkins-jobs test $definitions_dir --config-xml -o ./xml > /dev/null
+        $VENV/jenkins-jobs test "$definitions_dir" --config-xml -o ./xml > /dev/null
     fi
 done
 
-dpkg -l shellcheck >/dev/null 2>&1 || sudo apt install -y shellcheck
-PATH=$PATH:$VENV find ./xml -name '*.xml' -print0 | xargs -0 -L1 "$WORKSPACE/scripts/shellcheck_job.py"
+find ./xml -name '*.xml' | while read -r path; do
+    uv run "$WORKSPACE/scripts/shellcheck_job.py" -v "$path"
+done
 
 # install ansible-galaxy roles for playbook syntax check
 for reqs in $WORKSPACE/ansible/requirements/*; do
