@@ -16,7 +16,7 @@ This pipeline's role is to:
 
 |Parameter|Description|Available Options|Default|
 |--|--|--|--|
-|CEPH-BUILD-JOB|Which Jenkins job to trigger. Only ceph-dev-pipeline supports the options below.|ceph-dev-pipeline, ceph-dev-new|`ceph-dev-new`|
+|CEPH-BUILD-JOB|Which Jenkins job to trigger. Only ceph-dev-pipeline supports the options below.|ceph-dev-pipeline, ceph-dev-new|`ceph-dev-pipeline`|
 |DISTROS|Space-sparated list of Linux distributions to build for|focal, jammy, noble, centos9, windows|Depends on keywords in branch name|
 |ARCHS|Space-separated list of architectures to build on|x86_64, arm64|`x86_64 arm64`|
 |FLAVORS|Crimson or non-Crimson|default, crimson-debug, crimson-release|`default`|
