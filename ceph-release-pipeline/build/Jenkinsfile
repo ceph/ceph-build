@@ -1,0 +1,101 @@
+// Global variables to use across stages
+def CEPH_TAG_CREATE_JOB_ID, CEPH_TAG_CREATE_JOB_URL
+def PACKAGE_BUILD_ID, PACKAGE_BUILD_URL
+def CEPH_TAG_PUSH_JOB_ID, CEPH_TAG_PUSH_JOB_URL
+
+pipeline {
+  agent any
+  stages {
+    stage('create ceph release tag') {
+      steps {
+        script {
+          def createTagJob = build(
+            job: 'ceph-tag',
+            parameters: [
+              string(name: 'VERSION',             value: env.VERSION),
+              string(name: 'BRANCH',              value: env.BRANCH),
+              booleanParam(name: 'FORCE',         value: env.FORCE?.toBoolean()),
+              booleanParam(name: 'FORCE_VERSION', value: env.FORCE_VERSION?.toBoolean()),
+              string(name: 'RELEASE_TYPE',        value: env.RELEASE_TYPE),
+              booleanParam(name: 'RELEASE_BUILD', value: true),
+              booleanParam(name: 'TAG',           value: env.TAG?.toBoolean()),
+              booleanParam(name: "THROWAWAY",     value: env.THROWAWAY?.toBoolean()),
+              string(name: "CEPH_BUILD_BRANCH",   value: env.CEPH_BUILD_BRANCH),
+              string(name: 'TAG_PHASE',           value: 'create')
+            ],
+          )
+          CEPH_TAG_CREATE_JOB_ID  = createTagJob.getNumber()
+          CEPH_TAG_CREATE_JOB_URL = new URI([env.JENKINS_URL, "job", "ceph-tag", CEPH_TAG_CREATE_JOB_ID].join("/")).normalize()
+
+          copyArtifacts projectName: 'ceph-tag',
+                    selector: specific("${CEPH_TAG_CREATE_JOB_ID}"),
+                    filter: 'ceph-build/ansible/ceph/dist/sha1',
+                    target: '.',
+                    flatten: true
+
+          def sha1 = readFile('sha1').trim()
+          env.SHA1 = sha1
+          echo "Downstream returned: ${env.SHA1}"
+          def build_description = """\
+                  BRANCH=${env.BRANCH}<br />
+                  VERSION=${env.VERSION}<br />
+                  SHA1=${env.SHA1}<br />
+          """.stripIndent()
+          // Note: This requires the 'build-name-setter' plugin
+          buildDescription build_description
+        }
+      }
+    }
+    stage("package build") {
+      steps {
+        script {
+          def package_build = build(
+            job: 'ceph-dev-pipeline',
+            parameters: [
+              // These are in order of the parameters ceph-dev-pipeline takes
+              string(name: "BRANCH",              value: env.BRANCH),
+              string(name: "SHA1",                value: env.SHA1),
+              string(name: "DISTROS",             value: env.DISTROS),
+              string(name: "ARCHS",               value: env.ARCHS),
+              string(name: "FLAVORS",             value: 'default'),
+              booleanParam(name: "CI_COMPILE",    value: true),
+              booleanParam(name: "THROWAWAY",     value: env.THROWAWAY),
+              booleanParam(name: "FORCE",         value: env.FORCE),
+              string(name: 'FLAVOR',              value: 'default'),
+              // Release containers are built manually from signed packages so we don't need to build them here
+              booleanParam(name: 'CI_CONTAINER',  value: false),
+              booleanParam(name: 'DWZ',           value: true),
+              booleanParam(name: 'SCCACHE',       value: false),
+              string(name: "CEPH_BUILD_BRANCH",   value: env.CEPH_BUILD_BRANCH),
+              string(name: 'RELEASE_TYPE',        value: env.RELEASE_TYPE),
+              booleanParam(name: 'RELEASE_BUILD', value: true),
+              string(name: 'VERSION',             value: env.VERSION)
+            ]
+          )
+          PACKAGE_BUILD_ID  = package_build.getNumber()
+          PACKAGE_BUILD_URL = new URI([env.JENKINS_URL, "job", "ceph-dev-pipeline", PACKAGE_BUILD_ID].join("/")).normalize()
+        }
+      }
+    }
+    stage('push ceph release tag') {
+      steps {
+        script {
+          def pushTagJob = build(
+            job: 'ceph-tag',
+            parameters: [
+              string(name: 'VERSION',             value: env.VERSION ?: ''),
+              string(name: 'BRANCH',              value: env.BRANCH ?: ''),
+              booleanParam(name: 'FORCE_VERSION', value: env.FORCE_VERSION),
+              string(name: 'RELEASE_TYPE',        value: env.RELEASE_TYPE ?: ''),
+              booleanParam(name: 'RELEASE_BUILD', value: true),
+              booleanParam(name: 'TAG',           value: env.TAG),
+              string(name: 'TAG_PHASE',           value: 'push')
+            ],
+          )
+          CEPH_TAG_PUSH_JOB_ID  = pushTagJob.getNumber()
+          CEPH_TAG_PUSH_JOB_URL = new URI([env.JENKINS_URL, "job", "ceph-tag", CEPH_TAG_PUSH_JOB_ID].join("/")).normalize()
+        }
+      }
+    }
+  }
+}
