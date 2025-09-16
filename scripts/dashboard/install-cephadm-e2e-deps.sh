@@ -45,6 +45,8 @@ sudo usermod -aG libvirt $(id -un)
 newgrp libvirt  # Avoid having to log out and log in for group addition to take effect.
 sudo systemctl enable --now libvirtd
 
+DISTRO="$(lsb_release -cs)"
+
 if [[ $(command -v docker) == '' ]]; then
     # Set up docker official repo and install docker.
     curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
