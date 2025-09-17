@@ -2,20 +2,16 @@
 
 set -ex
 
-if [ "$TAG" = false ] ; then
-    echo "Assuming tagging process has succeeded before because TAG was set to false"
-else
-    # the following two methods exist in scripts/build_utils.sh
-    pkgs=( "ansible" )
-    TEMPVENV=$(create_venv_dir)
-    VENV=${TEMPVENV}/bin
-    install_python_packages $TEMPVENV "pkgs[@]"
-    
-    # remove "-release" from $BRANCH variable in case it was accidentally passed in the Jenkins UI
-    BRANCH=${BRANCH//-release/}
-    
-    # run ansible to do all the tagging and release specifying
-    # a local connection and 'localhost' as the host where to execute
-    cd "$WORKSPACE/ceph-build/ansible/"
-    $VENV/ansible-playbook -i "localhost," -c local release.yml --extra-vars="stage=push version=$VERSION branch=$BRANCH force_version=$FORCE_VERSION release=$RELEASE_TYPE tag=$TAG project=ceph token=$GITHUB_TOKEN"
-fi
+# the following two methods exist in scripts/build_utils.sh
+pkgs=( "ansible" )
+TEMPVENV=$(create_venv_dir)
+VENV=${TEMPVENV}/bin
+install_python_packages $TEMPVENV "pkgs[@]"
+
+# remove "-release" from $BRANCH variable in case it was accidentally passed in the Jenkins UI
+BRANCH=${BRANCH//-release/}
+
+# run ansible to do all the tagging and release specifying
+# a local connection and 'localhost' as the host where to execute
+cd "$WORKSPACE/ceph-build/ansible/"
+$VENV/ansible-playbook -i "localhost," -c local release.yml --extra-vars="stage=$TAG_PHASE version=$VERSION branch=$BRANCH force_version=$FORCE_VERSION release=$RELEASE_TYPE tag=$TAG project=ceph token=$GITHUB_TOKEN"

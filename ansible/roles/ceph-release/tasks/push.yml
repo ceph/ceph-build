@@ -36,6 +36,8 @@
   args:
     chdir: ceph
 
+- import_tasks: write_sha1_file.yml
+
 - name: push version commit to BRANCH-release branch
   command: git push upstream {{ branch }}-release
   args:

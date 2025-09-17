@@ -7,3 +7,9 @@
     - "stage == 'push'"
     - "release != 'SECURITY'"
     - tag|bool is true
+
+# This only runs to prevent the Archive Artifacts plugin from hanging
+- import_tasks: write_sha1_file.yml
+  when:
+    - "stage == 'push'"
+    - "release == 'SECURITY'"
