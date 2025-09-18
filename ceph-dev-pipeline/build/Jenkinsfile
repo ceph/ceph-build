@@ -511,6 +511,11 @@ pipeline {
                         ln dist/ceph/sccache_log.txt sccache_log_${env.DIST}_${env.ARCH}_${env.FLAVOR}.txt
                       fi
                     """
+                    // The below is to work around an issue where Jenkins would recurse into
+                    // dist/ceph/qa and get stuck trying to follow the .qa symlinks. This was
+                    // discovered by seeing many messages about "too many levels of symbolic links"
+                    // in the system journal.
+                    sh "find ${env.WORKSPACE}/dist/ceph/ -name .qa -exec rm {} \;"
                     archiveArtifacts(
                       artifacts: 'sccache_log*.txt',
                       allowEmptyArchive: true,
