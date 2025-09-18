@@ -505,7 +505,7 @@ pipeline {
             post {
               always {
                 script {
-                  if (env.SCCACHE?.trim() == "true") {
+                  if (fileExists('dist/ceph/sccache_log.txt')) {
                     sh """
                       if [ -f "${env.WORKSPACE}/dist/ceph/sccache_log.txt" ]; then
                         ln dist/ceph/sccache_log.txt sccache_log_${env.DIST}_${env.ARCH}_${env.FLAVOR}.txt
