@@ -1,72 +1,97 @@
+# ======================================================================
+# Jenkins Job Builder (JJB) definition for Ceph Pull Request tests
+# This job runs the "make check" CI on GitHub PRs, builds the PR code,
+# executes tests, collects coverage/xUnit reports, and posts status back to GitHub.
+# ======================================================================
+
 - job:
-    name: ceph-pull-requests
-    project-type: freestyle
-    defaults: global
-    concurrent: true
-    # We want make check to only run on Bionic b/c it has python2 and python3 and b/c all builds should build on Bionic
+    name: ceph-pull-requests                 # Unique Jenkins job name
+    project-type: freestyle                  # Freestyle job type
+    defaults: global                         # Inherit global defaults
+    concurrent: true                         # Allow concurrent builds
+    # Run only on Bionic nodes because it has Python2 & Python3 and all builds should run here
     node: huge && bionic && x86_64 && !smithi
-    display-name: 'ceph: Pull Requests'
-    quiet-period: 5
-    block-downstream: false
-    block-upstream: false
-    retry-count: 3
+    display-name: 'ceph: Pull Requests'      # Human-readable display name
+    quiet-period: 5                          # Wait (seconds) after trigger before starting
+    block-downstream: false                  # Do not block downstream jobs
+    block-upstream: false                    # Do not block upstream jobs
+    retry-count: 3                           # Retry job 3 times on failure
+
+    # ------------------------------------------------------------------
+    # Job properties
+    # ------------------------------------------------------------------
     properties:
-      - build-discarder:
+      - build-discarder:                     # Manage build and artifact retention
           days-to-keep: 15
           num-to-keep: 300
           artifact-days-to-keep: -1
           artifact-num-to-keep: -1
-      - github:
+      - github:                              # Associate job with GitHub repo
           url: https://github.com/ceph/ceph/
-      - rebuild:
+      - rebuild:                             # Enable automatic rebuilds
           auto-rebuild: true
-      - inject:
+      - inject:                              # Inject environment variables
           properties-content: |
             TERM=xterm
 
+    # ------------------------------------------------------------------
+    # Job parameters
+    # ------------------------------------------------------------------
     parameters:
       - string:
-          name: ghprbPullId
+          name: ghprbPullId                 # Pull request ID to build
           description: "the GitHub pull id, like '72' in 'ceph/pull/72'"
 
+    # ------------------------------------------------------------------
+    # Job triggers
+    # ------------------------------------------------------------------
     triggers:
       - github-pull-request:
-          cancel-builds-on-update: true
+          cancel-builds-on-update: true      # Cancel current build if PR updated
           allow-whitelist-orgs-as-admins: true
           org-list:
-            - ceph
-          trigger-phrase: 'jenkins test make check'
+            - ceph                           # Only allow PRs from Ceph org
+          trigger-phrase: 'jenkins test make check'    # Manual trigger phrase
           skip-build-phrase: '^jenkins do not test.*'
           only-trigger-phrase: false
-          github-hooks: true
-          permit-all: true
+          github-hooks: true                 # Enable webhook-based triggering
+          permit-all: true                   # Permit all PR authors
           auto-close-on-fail: false
-          status-context: "make check"
+          status-context: "make check"      # GitHub PR status context
           started-status: "running make check"
           success-status: "make check succeeded"
           failure-status: "make check failed"
 
+    # ------------------------------------------------------------------
+    # Source Code Management (SCM)
+    # ------------------------------------------------------------------
     scm:
       - git:
           url: https://github.com/ceph/ceph.git
           branches:
-            - origin/pr/${{ghprbPullId}}/merge
+            - origin/pr/${{ghprbPullId}}/merge  # Build PR merge branch
           refspec: +refs/pull/${{ghprbPullId}}/*:refs/remotes/origin/pr/${{ghprbPullId}}/*
           browser: auto
           timeout: 20
           skip-tag: true
           shallow-clone: true
           honor-refspec: true
-          wipe-workspace: true
+          wipe-workspace: true                 # Clean workspace before build
 
+    # ------------------------------------------------------------------
+    # Builders: run shell scripts to build the code
+    # ------------------------------------------------------------------
     builders:
     - shell:
         !include-raw-verbatim:
           - ../../../scripts/build_utils.sh
           - ../../build/build
 
+    # ------------------------------------------------------------------
+    # Post-build actions
+    # ------------------------------------------------------------------
     publishers:
-      - cobertura:
+      - cobertura:                          # Collect code coverage report
           report-file: "src/pybind/mgr/dashboard/frontend/coverage/cobertura-coverage.xml"
           only-stable: "true"
           health-auto-update: "false"
@@ -82,7 +107,8 @@
                 healthy: 10
                 unhealthy: 20
                 failing: 30
-      - postbuildscript:
+
+      - postbuildscript:                     # Cleanup after aborted builds
           builders:
             - role: SLAVE
               build-on:
@@ -91,7 +117,8 @@
                 - shell:
                     !include-raw-verbatim:
                       - ../../build/kill-tests
-      - xunit:
+
+      - xunit:                               # Collect test results
           thresholds:
             - failed:
                 unstable: 0
@@ -102,9 +129,13 @@
             - ctest:
                 pattern: "build/Testing/**/Test.xml"
                 skip-if-no-test-files: true
+
+    # ------------------------------------------------------------------
+    # Wrappers: console color + GitHub credentials
+    # ------------------------------------------------------------------
     wrappers:
-      - ansicolor
-      - credentials-binding:
+      - ansicolor                            # Enable ANSI color in console logs
+      - credentials-binding:                 # Inject GitHub credentials into build
           - username-password-separated:
               credential-id: github-readonly-token
               username: GITHUB_USER
