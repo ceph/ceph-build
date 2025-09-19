@@ -515,7 +515,7 @@ pipeline {
                     // dist/ceph/qa and get stuck trying to follow the .qa symlinks. This was
                     // discovered by seeing many messages about "too many levels of symbolic links"
                     // in the system journal.
-                    sh "find ${env.WORKSPACE}/dist/ceph/ -name .qa -exec rm {} \;"
+                    sh "find ${env.WORKSPACE}/dist/ceph/ -name .qa -exec rm {} \\;"
                     archiveArtifacts(
                       artifacts: 'sccache_log*.txt',
                       allowEmptyArchive: true,
