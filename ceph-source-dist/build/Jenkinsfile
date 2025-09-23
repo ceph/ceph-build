@@ -51,9 +51,14 @@ pipeline {
       steps {
         script {
           dir("ceph") {
+            sh '''#!/bin/bash
+              while [ -z "$(git describe --abbrev=8 --match 'v*' | sed s/^v//)" ]; do
+                git fetch --deepen 50
+              done
+            '''
             def ceph_version_git = sh(
-                  script: "git describe --abbrev=8 --match 'v*' | sed s/^v//",
-                  returnStdout: true,
+              script: "git describe --abbrev=8 --match 'v*' | sed s/^v//",
+              returnStdout: true,
             ).trim()
             sh """
               mkdir dist
