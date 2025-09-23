@@ -636,8 +636,10 @@ setup_pbuilder() {
         echo "USENETWORK=yes" >> ~/.pbuilderrc
         local hookdir
         hookdir=$(recreate_hookdir)
-        setup_updates_repo $hookdir
-        setup_pbuilder_for_ppa $hookdir
+        if [[ "$NORMAL_DISTRO" = ubuntu ]]; then
+            setup_updates_repo $hookdir
+            setup_pbuilder_for_ppa $hookdir
+        fi
         echo "HOOKDIR=$hookdir" >> ~/.pbuilderrc
     fi
 
