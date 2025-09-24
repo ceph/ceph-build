@@ -79,8 +79,8 @@
                     CEPH_REPO=https://github.com/ceph/ceph
                     SETUP_JOB=ceph-source-dist
       # build tentacle on:
-      # default: noble jammy centos9 windows
-      # crimson: centos9
+      # default: noble jammy rocky10 centos9 windows
+      # crimson: centos9 rocky10
       - conditional-step:
           condition-kind: regex-match
           regex: .*tentacle.*
@@ -96,22 +96,22 @@
                   property-file: branch.properties
                   predefined-parameters: |
                     FORCE=True
-                    DISTROS=noble jammy centos9 windows
+                    DISTROS=noble jammy rocky10 centos9 windows
                     CEPH_REPO=https://github.com/ceph/ceph
                     SETUP_JOB=ceph-source-dist
                 - project: 'ceph-dev-pipeline'
                   property-file: branch.properties
                   predefined-parameters: |
                     FORCE=True
-                    DISTROS=centos9
+                    DISTROS=centos9 rocky10
                     FLAVORS=crimson-debug
                     ARCHS=x86_64
                     CEPH_REPO=https://github.com/ceph/ceph
                     SETUP_JOB=ceph-source-dist
       # build main on:
-      # default: noble jammy centos9 windows
-      # crimson-debug: centos9
-      # crimson-release: centos9
+      # default: noble jammy rocky10 centos9 windows
+      # crimson-debug: centos9 rocky10
+      # crimson-release: centos9 rocky10
       - conditional-step:
           condition-kind: regex-match
           regex: .*main.*
@@ -127,14 +127,14 @@
                   property-file: branch.properties
                   predefined-parameters: |
                     FORCE=True
-                    DISTROS=noble jammy centos9 windows
+                    DISTROS=noble jammy rocky10 centos9 windows
                     CEPH_REPO=https://github.com/ceph/ceph
                     SETUP_JOB=ceph-source-dist
                 - project: 'ceph-dev-pipeline'
                   property-file: branch.properties
                   predefined-parameters: |
                     FORCE=True
-                    DISTROS=centos9
+                    DISTROS=centos9 rocky10
                     FLAVORS=crimson-debug
                     ARCHS=x86_64
                     CEPH_REPO=https://github.com/ceph/ceph
@@ -143,7 +143,7 @@
                   property-file: branch.properties
                   predefined-parameters: |
                     FORCE=True
-                    DISTROS=centos9
+                    DISTROS=centos9 rocky10
                     FLAVORS=crimson-release
                     ARCHS=x86_64
                     CEPH_REPO=https://github.com/ceph/ceph
