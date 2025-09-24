@@ -4,7 +4,9 @@ set -o pipefail
 
 docs_pr_only
 container_pr_only
-if [[ "$DOCS_ONLY" = true || "$CONTAINER_ONLY" = true ]]; then
-    echo "Only the doc/ or container/ dir changed. No need to run Ceph Windows tests."
+gha_pr_only
+qa_pr_only
+if [[ "$DOCS_ONLY" = true || "$CONTAINER_ONLY" = true || "$GHA_ONLY" == true || "$QA_ONLY" == true ]]; then
+    echo "Only the doc/, container/, qa/ or .github/ dir changed.  No need to run Ceph Windows tests."
     exit 0
 fi
