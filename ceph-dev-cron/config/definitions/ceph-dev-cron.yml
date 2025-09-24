@@ -51,11 +51,13 @@
                 - ../../../scripts/build_utils.sh
                 - ../../build/notify
             - trigger-builds:
-                - project: 'ceph-dev'
+                - project: 'ceph-dev-pipeline'
+                  property-file: branch.properties
                   predefined-parameters: |
-                    BRANCH=${{GIT_BRANCH}}
                     FORCE=True
                     DISTROS=jammy focal centos9 windows
+                    CEPH_REPO=https://github.com/ceph/ceph
+                    SETUP_JOB=ceph-source-dist
       # build squid on:
       # default: noble jammy centos9 windows
       - conditional-step:
@@ -69,11 +71,13 @@
                 - ../../../scripts/build_utils.sh
                 - ../../build/notify
             - trigger-builds:
-                - project: 'ceph-dev'
+                - project: 'ceph-dev-pipeline'
+                  property-file: branch.properties
                   predefined-parameters: |
-                    BRANCH=${{GIT_BRANCH}}
                     FORCE=True
                     DISTROS=noble jammy centos9 windows
+                    CEPH_REPO=https://github.com/ceph/ceph
+                    SETUP_JOB=ceph-source-dist
       # build tentacle on:
       # default: noble jammy centos9 windows
       # crimson: centos9
@@ -88,18 +92,22 @@
                 - ../../../scripts/build_utils.sh
                 - ../../build/notify
             - trigger-builds:
-                - project: 'ceph-dev'
+                - project: 'ceph-dev-pipeline'
+                  property-file: branch.properties
                   predefined-parameters: |
-                    BRANCH=${{GIT_BRANCH}}
                     FORCE=True
                     DISTROS=noble jammy centos9 windows
-                - project: 'ceph-dev'
+                    CEPH_REPO=https://github.com/ceph/ceph
+                    SETUP_JOB=ceph-source-dist
+                - project: 'ceph-dev-pipeline'
+                  property-file: branch.properties
                   predefined-parameters: |
-                    BRANCH=${{GIT_BRANCH}}
                     FORCE=True
                     DISTROS=centos9
-                    FLAVOR=crimson-debug
+                    FLAVORS=crimson-debug
                     ARCHS=x86_64
+                    CEPH_REPO=https://github.com/ceph/ceph
+                    SETUP_JOB=ceph-source-dist
       # build main on:
       # default: noble jammy centos9 windows
       # crimson-debug: centos9
@@ -115,25 +123,31 @@
                 - ../../../scripts/build_utils.sh
                 - ../../build/notify
             - trigger-builds:
-                - project: 'ceph-dev'
+                - project: 'ceph-dev-pipeline'
+                  property-file: branch.properties
                   predefined-parameters: |
-                    BRANCH=${{GIT_BRANCH}}
                     FORCE=True
                     DISTROS=noble jammy centos9 windows
-                - project: 'ceph-dev'
+                    CEPH_REPO=https://github.com/ceph/ceph
+                    SETUP_JOB=ceph-source-dist
+                - project: 'ceph-dev-pipeline'
+                  property-file: branch.properties
                   predefined-parameters: |
-                    BRANCH=${{GIT_BRANCH}}
                     FORCE=True
                     DISTROS=centos9
-                    FLAVOR=crimson-debug
+                    FLAVORS=crimson-debug
                     ARCHS=x86_64
-                - project: 'ceph-dev'
+                    CEPH_REPO=https://github.com/ceph/ceph
+                    SETUP_JOB=ceph-source-dist
+                - project: 'ceph-dev-pipeline'
+                  property-file: branch.properties
                   predefined-parameters: |
-                    BRANCH=${{GIT_BRANCH}}
                     FORCE=True
                     DISTROS=centos9
-                    FLAVOR=crimson-release
+                    FLAVORS=crimson-release
                     ARCHS=x86_64
+                    CEPH_REPO=https://github.com/ceph/ceph
+                    SETUP_JOB=ceph-source-dist
 
     wrappers:
       - inject-passwords:
