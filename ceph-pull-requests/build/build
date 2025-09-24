@@ -2,8 +2,9 @@
 
 docs_pr_only
 container_pr_only
-if [[ "$DOCS_ONLY" = true || "$CONTAINER_ONLY" = true ]]; then
-    echo "Only the doc/ or container/ dir changed.  No need to run make check."
+gha_pr_only
+if [[ "$DOCS_ONLY" = true || "$CONTAINER_ONLY" = true || "$GHA_ONLY" == true ]]; then
+    echo "Only the doc/, container/ or .github/ dir changed.  No need to run make check."
     exit 0
 fi
 

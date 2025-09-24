@@ -1762,6 +1762,14 @@ container_pr_only() {
   if pr_only_for patterns; then CONTAINER_ONLY=true; fi
 }
 
+gha_pr_only () {
+  GHA_ONLY=false
+  local patterns=(
+    '.github/*'
+  )
+  if pr_only_for patterns; then GHA_ONLY=true; fi
+}
+
 function ssh_exec() {
     if [[ -z $SSH_ADDRESS ]]; then
         echo "ERROR: Env variable SSH_ADDRESS is not set"
