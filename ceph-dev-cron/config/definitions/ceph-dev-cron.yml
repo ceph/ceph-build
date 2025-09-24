@@ -1,21 +1,21 @@
 - job:
-    name: 'ceph-dev-cron'
+    name: 'preserve-ceph-dev-cron-dgalloway'
+    description: 'Twice-daily scheduled build trigger for selected ceph.git branches (only if new commits).'
     node: built-in
-    project-type: freestyle
+    project-type: pipeline
     defaults: global
     concurrent: true
-    quiet-period: 5
+    quiet-period: 0
     block-downstream: false
     block-upstream: false
+
     properties:
       - build-discarder:
-          days-to-keep: -1
-          num-to-keep: 20
+          num-to-keep: 200
           artifact-days-to-keep: -1
           artifact-num-to-keep: -1
       - github:
           url: https://github.com/ceph/ceph
-    discard-old-builds: true
 
     triggers:
       - pollscm:
@@ -24,116 +24,19 @@
             H 14 * * *
             H 20 * * *
 
-    scm:
-      - git:
-          url: https://github.com/ceph/ceph
-          browser: auto
-          branches:
-            - origin/main
-            - origin/tentacle
-            - origin/squid
-            - origin/reef
-          skip-tag: true
-          timeout: 20
-          wipe-workspace: true
-
-    builders:
-      # build reef on:
-      # default: jammy focal centos9 windows
-      - conditional-step:
-          condition-kind: regex-match
-          regex: .*reef.*
-          label: '${{GIT_BRANCH}}'
-          on-evaluation-failure: dont-run
-          steps:
-            - shell:
-                !include-raw-verbatim:
-                - ../../../scripts/build_utils.sh
-                - ../../build/notify
-            - trigger-builds:
-                - project: 'ceph-dev'
-                  predefined-parameters: |
-                    BRANCH=${{GIT_BRANCH}}
-                    FORCE=True
-                    DISTROS=jammy focal centos9 windows
-      # build squid on:
-      # default: noble jammy centos9 windows
-      - conditional-step:
-          condition-kind: regex-match
-          regex: .*squid.*
-          label: '${{GIT_BRANCH}}'
-          on-evaluation-failure: dont-run
-          steps:
-            - shell:
-                !include-raw-verbatim:
-                - ../../../scripts/build_utils.sh
-                - ../../build/notify
-            - trigger-builds:
-                - project: 'ceph-dev'
-                  predefined-parameters: |
-                    BRANCH=${{GIT_BRANCH}}
-                    FORCE=True
-                    DISTROS=noble jammy centos9 windows
-      # build tentacle on:
-      # default: noble jammy centos9 windows
-      # crimson: centos9
-      - conditional-step:
-          condition-kind: regex-match
-          regex: .*tentacle.*
-          label: '${{GIT_BRANCH}}'
-          on-evaluation-failure: dont-run
-          steps:
-            - shell:
-                !include-raw-verbatim:
-                - ../../../scripts/build_utils.sh
-                - ../../build/notify
-            - trigger-builds:
-                - project: 'ceph-dev'
-                  predefined-parameters: |
-                    BRANCH=${{GIT_BRANCH}}
-                    FORCE=True
-                    DISTROS=noble jammy centos9 windows
-                - project: 'ceph-dev'
-                  predefined-parameters: |
-                    BRANCH=${{GIT_BRANCH}}
-                    FORCE=True
-                    DISTROS=centos9
-                    FLAVOR=crimson-debug
-                    ARCHS=x86_64
-      # build main on:
-      # default: noble jammy centos9 windows
-      # crimson-debug: centos9
-      # crimson-release: centos9
-      - conditional-step:
-          condition-kind: regex-match
-          regex: .*main.*
-          label: '${{GIT_BRANCH}}'
-          on-evaluation-failure: dont-run
-          steps:
-            - shell:
-                !include-raw-verbatim:
-                - ../../../scripts/build_utils.sh
-                - ../../build/notify
-            - trigger-builds:
-                - project: 'ceph-dev'
-                  predefined-parameters: |
-                    BRANCH=${{GIT_BRANCH}}
-                    FORCE=True
-                    DISTROS=noble jammy centos9 windows
-                - project: 'ceph-dev'
-                  predefined-parameters: |
-                    BRANCH=${{GIT_BRANCH}}
-                    FORCE=True
-                    DISTROS=centos9
-                    FLAVOR=crimson-debug
-                    ARCHS=x86_64
-                - project: 'ceph-dev'
-                  predefined-parameters: |
-                    BRANCH=${{GIT_BRANCH}}
-                    FORCE=True
-                    DISTROS=centos9
-                    FLAVOR=crimson-release
-                    ARCHS=x86_64
+    pipeline-scm:
+      scm:
+        - git:
+            url: https://github.com/ceph/ceph-build
+            branches:
+              - cron-pipeline2
+            shallow-clone: true
+            submodule:
+              disable: true
+            wipe-workspace: true
+      script-path: ceph-dev-cron/build/Jenkinsfile
+      lightweight-checkout: false
+      do-not-fetch-tags: true
 
     wrappers:
       - inject-passwords:

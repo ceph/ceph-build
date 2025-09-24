@@ -1,0 +1,184 @@
+node('built-in') {
+    def repoUrl  = 'https://github.com/ceph/ceph'
+    def branches = ['main','tentacle','squid','reef']
+
+    def cfg = [
+        reef: [
+            distros: 'jammy focal centos9 windows',
+            extras : []
+        ],
+        squid: [
+            distros: 'noble jammy centos9 windows',
+            extras : []
+        ],
+        tentacle: [
+            distros: 'noble jammy rocky10 centos9 windows',
+            extras : [
+            [distros:'centos9 rocky10', flavors:'crimson-debug',   archs:'x86_64']
+            ]
+        ],
+        main: [
+            distros: 'noble jammy rocky10 centos9 windows',
+            extras : [
+            [distros:'centos9 rocky10', flavors:'crimson-debug',   archs:'x86_64'],
+            [distros:'centos9 rocky10', flavors:'crimson-release', archs:'x86_64']
+            ]
+        ]
+    ]
+
+    def last = [:]
+    stage('Slurp previous job SHAs') {
+        try {
+            step([$class: 'CopyArtifact',
+                projectName: env.JOB_NAME,
+                selector: [$class: 'LastSuccessfulBuildSelector'],
+                filter: 'last_shas.properties',
+                fingerprintArtifacts: true,
+                flatten: true])
+            last = readProperties file: 'last_shas.properties'
+        } catch (e) {
+            last = [:] // Triggers for all branches if no previous run or artifact found
+        }
+    }
+
+    def tips = [:]
+    stage('Retrieve branch tip SHAs') {
+        branches.each { b ->
+            def sha = sh(
+            script: "git ls-remote ${repoUrl} refs/heads/${b} | awk '{print \$1}'",
+            returnStdout: true
+            ).trim()
+            if (!sha) {
+                error "Could not resolve remote SHA for branch ${b}"
+            }
+            tips[b] = sha
+            echo "Branch ${b} -> ${sha}"
+        }
+    }
+
+    def toBuild   = []
+    def unchanged = []
+    stage('Compare SHAs') {
+        branches.each { b ->
+            def prev = last.getOrDefault(b, '')
+            if (prev != tips[b]) toBuild << b else unchanged << b
+        }
+        echo "Changed:   ${toBuild}"
+        echo "Unchanged: ${unchanged}"
+    }
+
+    // If no changes, artifact the SHAs and exit.
+    if (toBuild.isEmpty()) {
+        currentBuild.description = "No changes: ${branches.join(', ')}"
+        writeFile file: 'last_shas.properties', text: tips.collect{ k,v -> "${k}=${v}" }.join('\n') + "\n"
+        archiveArtifacts artifacts: 'last_shas.properties', fingerprint: true
+        return
+    }
+
+    // This is only really needed to notify shaman of a queued build.
+    stage('Checkout ceph-build.git') {
+        dir('ceph-build') {
+            checkout([
+            $class: 'GitSCM',
+            branches: [[name: '*/main']],
+            userRemoteConfigs: [[
+                url: 'https://github.com/ceph/ceph-build',
+            ]],
+            doGenerateSubmoduleConfigurations: false,
+            extensions: [[
+                $class: 'CloneOption',
+                shallow: true,
+                depth: 1,
+                noTags: true,
+                timeout: 20
+            ]]
+            ])
+        }
+    }
+/*
+    stage('Report queued build to Shaman') {
+        toBuild.each { b ->
+            def sha = tips[b]
+            sh """
+                bash -c '
+                source ceph-build/scripts/build_utils.sh
+                env
+                echo ${b}
+                echo ${sha}
+                echo ${DISTROS}
+                echo $DISTROS
+                submit_build_status "POST" queued ceph
+                '
+            """
+        }
+    }
+*/
+    stage('Trigger ceph-dev-pipeline') {
+        def triggered = []
+        toBuild.each { b ->
+            def sha = tips[b]
+            dir("work/${b}") {
+/*
+                // Use ceph-dev-pipeline's default ARCHS and FLAVORS
+                build job: 'ceph-dev-pipeline',
+                        parameters: [
+                            string(name: 'BRANCH',    value: b),
+                            string(name: 'DISTROS',   value: cfg[b].distros),
+                            string(name: 'CEPH_REPO', value: repoUrl),
+                            string(name: 'SETUP_JOB', value: 'ceph-source-dist'),
+                            booleanParam(name: 'FORCE',     value: 'True')
+                        ],
+                        wait: false
+
+                // OR trigger with specific ARCHS and FLAVORS
+                cfg[b].extras.each { ex ->
+                    build job: 'ceph-dev-pipeline',
+                        parameters: [
+                            string(name: 'BRANCH',    value: b),
+                            string(name: 'DISTROS',   value: ex.distros),
+                            string(name: 'FLAVORS',   value: ex.flavors),
+                            string(name: 'ARCHS',     value: ex.archs),
+                            string(name: 'CEPH_REPO', value: repoUrl),
+                            string(name: 'SETUP_JOB', value: 'ceph-source-dist'),
+                            booleanParam(name: 'FORCE',     value: 'True')
+                        ],
+                        wait: false
+                }
+*/
+                sh """
+                    bash -c '
+                    echo "Branch: ${b}"
+                    echo "SHA: ${sha}"
+                    echo "Distros: ${cfg[b].distros}"
+                    BRANCH='${b}'
+                    SHA='${sha}'
+
+                    #pwd
+                    source ../../ceph-build/scripts/build_utils.sh
+
+                    for d in ${cfg[b].distros}; do
+                        DIST="\$d"
+                        get_distro_and_target
+                        echo "Submitting status for \$d"
+                        submit_build_status "POST" queued ceph \$DISTRO \$DIST ""
+                        cat $WORKSPACE/build_status.json
+                    done
+                    '
+                """
+            }
+            // trim SHA to 8 chars for job description and add to triggered array
+            triggered << "${b}@${sha.take(8)}"
+        }
+
+        def skipped = (branches - toBuild)
+        currentBuild.description = triggered.isEmpty()
+            ? "No changes: ${branches.join(', ')}"
+            : "Triggered:<br>- ${triggered.join('<br>- ')}" +
+            (skipped ? "<br><br>Unchanged:<br>- ${skipped.join('<br>- ')}" : "")
+    }
+
+    stage('Write SHAs for next job') {
+        writeFile file: 'last_shas.properties', text: tips.collect{ k,v -> "${k}=${v}" }.join('\n') + "\n"
+        archiveArtifacts artifacts: 'last_shas.properties', fingerprint: true
+    }
+}
