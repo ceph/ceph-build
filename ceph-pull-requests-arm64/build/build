@@ -10,11 +10,49 @@ if [[ "$DOCS_ONLY" = true || "$CONTAINER_ONLY" = true || "$GHA_ONLY" == true || 
 fi
 
 n_build_jobs=$(get_nr_build_jobs)
-n_test_jobs=${n_build_jobs}
-export CHECK_MAKEOPTS="-j${n_test_jobs}"
-export BUILD_MAKEOPTS="-j${n_build_jobs}"
-export WITH_CRIMSON=true
-export WITH_RBD_RWL=true
-timeout 4h ./run-make-check.sh
+NPMCACHE=${HOME}/npmcache
+cat >.env <<EOF
+CHECK_MAKEOPTS="-j${n_build_jobs}"
+BUILD_MAKEOPTS="-j${n_build_jobs}"
+NPROC=${n_build_jobs}
+MAX_PARALLEL_JOBS=${n_build_jobs}
+WITH_CRIMSON=true
+WITH_RBD_RWL=true
+JENKINS_HOME=${JENKINS_HOME}
+REWRITE_COVERAGE_ROOTDIR=${PWD}/src/pybind/mgr/dashboard/frontend
+EOF
+# TODO: enable (read-only?) sccache support
+npm_cache_info() {
+    echo '===== npm cache info ======='
+    du -sh "${NPMCACHE}" || echo "${NPMCACHE} not present"
+    echo '============================'
+}
+bwc() {
+    # specify timeout in hours for $1
+    local timeout=$(($1*60*60))
+    shift
+    ./src/script/build-with-container.py \
+        -d "${DISTRO_BASE:-jammy}" \
+        --env-file="${PWD}/.env" \
+        --current-branch="${GIT_BRANCH:-main}" \
+        -t+arm64 \
+        --npm-cache-path="${NPMCACHE}" \
+        -x"--timeout=${timeout}" \
+        "${@}"
+}
+
+npm_cache_info
+bwc 1 -e configure
+# try to pre-load the npm cache so that it doesn't fail
+# during the normal build step
+for i in {0..5}; do
+    bwc 1 -e custom -- \
+        cmake --build build -t mgr-dashboard-frontend-deps && break
+    echo "Warning: Attempt $((i+1)) to cache npm packages failed."
+    sleep $((10 + 30 * i))
+done
+npm_cache_info
+bwc 4 -e tests
+npm_cache_info
 sleep 5
 ps -ef | grep -v jnlp | grep ceph || true
