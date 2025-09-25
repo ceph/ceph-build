@@ -8,4 +8,8 @@ SHA1=${GIT_COMMIT}
 
 echo "BRANCH=$BRANCH" > $WORKSPACE/branch.properties
 
+# echo the branch and sha1 to set the ceph-dev-cron build description
+# using the description-setter plugin (publishers section)
+echo "BUILD_DESCRIPTION=BRANCH=$BRANCH SHA1=$SHA1"
+
 update_build_status "queued" "ceph"

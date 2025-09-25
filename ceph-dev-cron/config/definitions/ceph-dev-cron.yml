@@ -148,6 +148,14 @@
                     ARCHS=x86_64
                     CEPH_REPO=https://github.com/ceph/ceph
                     SETUP_JOB=ceph-source-dist
+      # echo the branch and sha1 to set the ceph-dev-cron build description
+      # using the description-setter plugin (publishers section)
+#      - shell: 'echo "BUILD_DESCRIPTION=BRANCH=$BRANCH SHA1=$SHA1"'
+    
+    publishers:
+      - description-setter:
+          regexp: '^BUILD_DESCRIPTION=BRANCH=([^\s]+)\s+SHA1=([0-9A-Fa-f]{{7,40}})'
+          description: 'BRANCH: \1<br>SHA1: \2'
 
     wrappers:
       - inject-passwords:
