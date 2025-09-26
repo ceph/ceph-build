@@ -461,18 +461,23 @@ get_distro_and_target() {
             DIST=trusty
             DISTRO="ubuntu"
             ;;
-        centos*)
-            source /etc/os-release
-            if [ $VERSION -ge 8 ]; then
-                MOCK_TARGET="centos-stream+epel"
-            else
-                MOCK_TARGET="epel"
-            fi
-            DISTRO="centos"
-            ;;
-        rhel*)
-            DISTRO="rhel"
-            MOCK_TARGET="epel"
+        rocky*|centos*|alma*|rhel*)
+            # separate prefix (rocky/centos/alma/rhel) from number
+            DISTRO=$(echo "$DIST" | sed -E 's/^([a-zA-Z]+).*/\1/')
+            DIST=$(echo "$DIST" | sed -E 's/^[a-zA-Z]+([0-9]+)$/\1/')
+
+            case $DISTRO in
+                centos)
+                    if [ "$DIST" -ge 8 ]; then
+                        MOCK_TARGET="centos-stream+epel"
+                    else
+                        MOCK_TARGET="epel"
+                    fi
+                    ;;
+                rhel|rocky|alma)
+                    MOCK_TARGET="epel"
+                    ;;
+            esac
             ;;
         fedora*)
             DISTRO="fedora"
