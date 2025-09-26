@@ -16,6 +16,8 @@
           artifact-num-to-keep: -1
       - github:
           url: https://github.com/ceph/ceph
+      - copyartifact:
+          projects: preserve-ceph-dev-cron-dgalloway
 
     triggers:
       - pollscm:
@@ -37,12 +39,3 @@
       script-path: ceph-dev-cron/build/Jenkinsfile
       lightweight-checkout: false
       do-not-fetch-tags: true
-
-    wrappers:
-      - inject-passwords:
-          global: true
-          mask-password-params: true
-      - credentials-binding:
-          - text:
-              credential-id: shaman-api-key
-              variable: SHAMAN_API_KEY

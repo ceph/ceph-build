@@ -483,6 +483,10 @@ get_distro_and_target() {
             DISTRO="fedora"
             MOCK_TARGET="fedora"
             ;;
+        windows*)
+            DIST=1809
+            DISTRO="windows"
+            ;;
         *)
             DISTRO="unknown"
             ;;
