@@ -16,7 +16,7 @@ set -euxo pipefail
 # when jenkins-job-builder 6.5 or later is released, this requirement should change to
 # jenkins-job-builder>=6.5
 
-pkgs=( "dataclasses" "git+https://opendev.org/jjb/jenkins-job-builder@60f0316389" )
+pkgs=( "dataclasses" "jenkins-job-builder>=6.4.3" )
 TEMPVENV=$(create_venv_dir)
 VENV=${TEMPVENV}/bin
 install_python_packages $TEMPVENV "pkgs[@]" latest
