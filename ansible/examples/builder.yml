@@ -1084,8 +1084,7 @@
             state: stopped
 
         - name: Kill any errant slave.jar or agent.jar processes
-          shell:
-            cmd: "pkill -f -9 'java.*(slave|agent).jar'"
+          shell: "pkill -f -9 'java.*(slave|agent).jar'"
           register: result
           become: true
           failed_when: result.rc > 1
@@ -1096,7 +1095,7 @@
             state: started
             enabled: yes
 
-        - name: REstart jenkins service (if necessary)
+        - name: Restart jenkins service (if necessary)
           service:
             name: jenkins
             state: restarted
