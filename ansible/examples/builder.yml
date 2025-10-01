@@ -1049,9 +1049,24 @@
             force: yes
           register: jar_changed
 
+        - name: look for templates/
+          ansible.builtin.stat:
+            path: templates
+          delegate_to: localhost
+          run_once: true
+          register: template_dir
+
+        - name: choose proper templates dir
+          set_fact:
+            template_path: "{{ 'templates' if template_dir.stat.exists else '../templates' }}"
+
+        - name: echo template_path
+          debug:
+            msg: "template_path: {{ template_path }}"
+
         - name: Install the systemd unit files for jenkins
           ansible.builtin.template:
-            src: "{{ playbook_dir }}/../templates/systemd/jenkins.{{ item }}.j2"
+            src: "{{ template_path }}/systemd/jenkins.{{ item }}.j2"
             dest: "/etc/systemd/system/jenkins.{{ item }}"
             force: yes
           with_items:
