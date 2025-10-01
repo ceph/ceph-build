@@ -13,6 +13,33 @@
 ## exist in ANSIBLE_SECRETS_PATH
 
 - hosts: all
+  vars:
+    venv: "/home/{{ ansible_user }}/.venv"
+  tasks:
+    - name: "clean up any existing {{ venv }}"
+      ansible.builtin.file:
+        path: "{{ venv }}"
+        state: absent
+      tags: always
+
+    - name: Create "{{ venv }}"
+      ansible.builtin.command: "python3 -mvenv {{ venv }}"
+      args:
+        creates: "{{ venv }}/bin/python"
+      tags: always
+
+    - name: Install python-jenkins
+      ansible.builtin.command:
+        cmd: "{{ venv }}/bin/pip install python-jenkins"
+      become_user: "{{ ansible_user }}"
+      tags: always
+
+    - name: switch python interpreters
+      set_fact:
+        ansible_python_interpreter: "{{ venv }}/bin/python"
+      tags: always
+
+- hosts: all
   become: true
   user: ubuntu # This should be overridden on the CLI (e.g., -e user=centos).  It doesn't matter on a mita/prado builder because the playbook is run locally by root.
   vars:
@@ -887,44 +914,6 @@
         name: github.com
         path: '/etc/ssh/ssh_known_hosts'
         key: "{{ github_host_key }}"
-
-    ## PIP TASKS
-    - set_fact:
-        pip_version: pip
-        ansible_python_interpreter: /usr/bin/python
-      when: (ansible_os_family == "RedHat" and ansible_distribution_major_version|int <= 7) or
-            (ansible_os_family == "Debian" and ansible_distribution_major_version|int <= 16)
-      tags:
-        - register
-        - interpreter
-
-    - set_fact:
-        pip_version: pip3
-        ansible_python_interpreter: /usr/bin/python3
-      when: (ansible_os_family == "RedHat" and ansible_distribution_major_version|int >= 7) or
-            (ansible_os_family == "Debian" and ansible_distribution_major_version|int >= 18) or
-            ansible_os_family == "Suse"
-      tags:
-        - register
-        - interpreter
-
-    - name: Install six, latest one
-      pip:
-        name: six
-        state: latest
-        executable: "{{ pip_version }}"
-      when: ansible_os_family != "Suse"
-      tags:
-        - register
-
-    - name: Install python-jenkins
-      # https://review.openstack.org/460363
-      pip:
-        name: python-jenkins
-        version: 0.4.15
-        executable: "{{ pip_version }}"
-      tags:
-        - register
 
     ## LIBVIRT SERVICE TASKS
     - name: start libvirt services
