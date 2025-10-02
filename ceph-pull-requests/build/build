@@ -29,13 +29,12 @@ bwc() {
     # specify timeout in hours for $1
     local timeout=$(($1*60*60))
     shift
-    ./src/script/build-with-container.py \
+    timeout "${timeout}" ./src/script/build-with-container.py \
         -d "${DISTRO_BASE:-jammy}" \
         --env-file="${PWD}/.env" \
         --current-branch="${GIT_BRANCH:-main}" \
         -t+amd64 \
         --npm-cache-path="${NPMCACHE}" \
-        -x"--timeout=${timeout}" \
         "${@}"
 }
 
