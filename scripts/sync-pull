@@ -52,7 +52,10 @@ if [[ "$project" == "ceph" ]] ; then
   # Get numerical version
   version=$(echo $chacra_repo_status | jq -r .extra.version)
   relver=$release-$version
-  [[ -d /opt/repos/$project/$relver ]] || mkdir -p /opt/repos/$project/$relver/{debian/jessie,centos/9,rocky/10}
+  for subdir in debian/jessie centos/9 rocky/10; do
+    dir="/opt/repos/$project/$relver/$subdir"
+    [[ -d "$dir" ]] || mkdir -p "$dir"
+  done
 else
   # not ceph (i.e. ceph-iscsi)
   [[ -d /opt/repos/$project/$relver ]] || mkdir -p /opt/repos/$project/$relver/centos/9
