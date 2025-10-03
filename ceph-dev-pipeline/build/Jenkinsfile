@@ -377,7 +377,7 @@ pipeline {
                 sh """#!/bin/bash
                   set -ex
                   cd dist/ceph
-                  python3 src/script/build-with-container.py --image-repo=${env.CEPH_BUILDER_IMAGE} --tag=${ceph_builder_tag} -d ${DIST} -e build-container
+                  python3 src/script/build-with-container.py --image-repo=${env.CEPH_BUILDER_IMAGE} --tag=${ceph_builder_tag} -d ${DIST} --build-arg='SCCACHE_VERSION=0.10.1-beta0' --build-arg='SCCACHE_REPO=https://github.com/zmc/sccache' -e build-container
                   podman tag ${env.CEPH_BUILDER_IMAGE}:${ceph_builder_tag} ${env.CEPH_BUILDER_IMAGE}:${ceph_builder_tag_short}
                 """
                 sh """#!/bin/bash -ex
@@ -391,6 +391,7 @@ pipeline {
             environment {
               SHAMAN_API_KEY = credentials('shaman-api-key')
               SCCACHE_BUCKET_CREDS = credentials('ibm-cloud-sccache-bucket')
+              CACHESTATS_TOKEN = credentials('cachestats-token')
             }
             when {
               expression { return build_matrix["${DIST}_${ARCH}"] == true }
@@ -426,6 +427,7 @@ pipeline {
                   writeFile(
                     file: "dist/ceph/sccache.conf",
                     text: """\
+                      cache_stats_file = "/ceph/sccache_stats.json"
                       [cache.s3]
                       bucket = "ceph-sccache"
                       endpoint = "s3.us-south.cloud-object-storage.appdomain.cloud"
@@ -482,11 +484,20 @@ pipeline {
                 sh '''#!/bin/bash
                   echo "CEPH_EXTRA_CMAKE_ARGS=${CEPH_EXTRA_CMAKE_ARGS}" >> .env
                 '''
+                sh '''#!/bin/bash -x
+                  BUILD_STATUS=started BUILD_STARTED=$(date +%s) $WORKSPACE/scripts/cachestats.py | tee cachestats.json
+                  curl -sS -X POST -H "Content-Type: application/json" -H "Prefer: resolution=merge-duplicates" -H "Authorization: Bearer ${CACHESTATS_TOKEN}" -d @cachestats.json http://folio12.front.sepia.ceph.com:3000/builds
+                '''
                 sh """#!/bin/bash -ex
                   cd dist/ceph
                   ln ../ceph-${env.VERSION}.tar.bz2 .
                   ${bwc_command}
                 """
+                sh '''#!/bin/bash -x
+                  export BUILD_STARTED=$(date -r cachestats.json +%s)
+                  BUILD_STATUS=pass BUILD_DURATION=$(($(date +%s)-${BUILD_STARTED})) $WORKSPACE/scripts/cachestats.py dist/ceph/sccache_stats.json | tee cachestats.json
+                  curl -sS -X POST -H "Content-Type: application/json" -H "Prefer: resolution=merge-duplicates" -H "Authorization: Bearer ${CACHESTATS_TOKEN}" -d @cachestats.json http://folio12.front.sepia.ceph.com:3000/builds
+                '''
                 if ( os.pkg_type == "deb" ) {
                   sh """#!/bin/bash -ex
                     cd dist/ceph
@@ -528,6 +539,11 @@ pipeline {
                 script {
                   def os = get_os_info(env.DIST)
                   sh "./scripts/update_shaman.sh failed ceph ${os.name} ${os.version_name} $ARCH"
+                  sh '''#!/bin/bash -x
+                    export BUILD_STARTED=$(date -r cachestats.json +%s)
+                    BUILD_STATUS=fail BUILD_DURATION=$(($(date +%s)-${BUILD_STARTED})) $WORKSPACE/scripts/cachestats.py dist/ceph/sccache_stats.json | tee cachestats.json
+                    curl -sS -X POST -H "Content-Type: application/json" -H "Prefer: resolution=merge-duplicates" -H "Authorization: Bearer ${CACHESTATS_TOKEN}" -d @cachestats.json http://folio12.front.sepia.ceph.com:3000/builds
+                  '''
                 }
               }
             }
