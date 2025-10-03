@@ -16,6 +16,14 @@
   vars:
     venv: "/home/{{ ansible_user }}/.venv"
   tasks:
+    - name: install python3-venv deb
+      apt:
+        name: python3-venv
+        state: latest
+        update_cache: yes
+      when: ansible_os_family == "Debian"
+      become: true
+
     - name: "clean up any existing {{ venv }}"
       ansible.builtin.file:
         path: "{{ venv }}"
