@@ -13,8 +13,8 @@ version=$3
 pushd /data/download.ceph.com/www/prerelease/ceph/tarballs
 
 if [ ! -f ceph_$version.orig.tar.gz ]; then
-  wget https://chacra.ceph.com/binaries/ceph/$release/$sha1/ubuntu/focal/x86_64/flavors/default/ceph_$version.orig.tar.gz || wget https://chacra.ceph.com/binaries/ceph/$release/$sha1/ubuntu/jammy/x86_64/flavors/default/ceph_$version.orig.tar.gz
-  wget https://chacra.ceph.com/binaries/ceph/$release/$sha1/ubuntu/focal/x86_64/flavors/default/ceph-$version.tar.gz || wget https://chacra.ceph.com/binaries/ceph/$release/$sha1/ubuntu/jammy/x86_64/flavors/default/ceph-$version.tar.gz
+  wget https://chacra.ceph.com/binaries/ceph/$release/$sha1/ubuntu/noble/x86_64/flavors/default/ceph_$version.orig.tar.gz || wget https://chacra.ceph.com/binaries/ceph/$release/$sha1/ubuntu/jammy/x86_64/flavors/default/ceph_$version.orig.tar.gz
+  wget https://chacra.ceph.com/binaries/ceph/$release/$sha1/ubuntu/noble/x86_64/flavors/default/ceph-$version.tar.gz || wget https://chacra.ceph.com/binaries/ceph/$release/$sha1/ubuntu/jammy/x86_64/flavors/default/ceph-$version.tar.gz
 fi
 
 popd
