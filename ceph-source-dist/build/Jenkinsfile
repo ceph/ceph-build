@@ -9,18 +9,24 @@ pipeline {
       steps {
         dir("ceph") {
           script {
-            if ( env.SHA1 ) {
-              checkout_ref = env.SHA1
-            } else {
-              checkout_ref = env.BRANCH
-            }
-
-            // Rewrite repo + ref if RELEASE_BUILD=true.
             // RELEASE_BUILD is intentionally undefinable as a ceph-source-dist parameter but instead
             // defined by ceph-release-pipeline so that only that job may clone from ceph-releases.git.
-            def repoUrl = params.RELEASE_BUILD ? 'git@github.com:ceph/ceph-releases.git' : env.CEPH_REPO
-            env.checkout_ref = params.RELEASE_BUILD ? "v${params.VERSION}" : env.BRANCH
-            env.CEPH_REPO = repoUrl
+            def isReleaseBuild = (params.RELEASE_BUILD?.toString() == 'true')
+            def isSecurity     = (params.RELEASE_TYPE == 'SECURITY')
+
+            // If release build,
+            //   - Rewrite the checkout_ref to the new release version
+            //   - Default to ceph-releases.git unless RELEASE_TYPE=SECURITY, then
+            //     use ceph-private.git
+            if (isReleaseBuild) {
+              env.CEPH_REPO = isSecurity
+                ? 'git@github.com:ceph/ceph-private.git'
+                : 'git@github.com:ceph/ceph-releases.git'
+              checkout_ref = "v${params.VERSION}"
+            } else {
+              // leave env.CEPH_REPO as-is and set checkout_ref to env.BRANCH unless env.SHA1 is set.
+              checkout_ref = env.SHA1 ?: env.BRANCH
+            }
 
             checkout scmGit(
               branches: [[name: checkout_ref]],
