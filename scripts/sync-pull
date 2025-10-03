@@ -53,15 +53,10 @@ done
 
 relver=$release
 
-if [[ "$project" == "ceph" ]] ; then
-  # Get numerical version
-  version=$(echo $chacra_repo_status | jq -r .extra.version)
-  relver=$release-$version
-  [[ -d /opt/repos/$project/$relver ]] || mkdir -p /opt/repos/$project/$relver/{debian/jessie,centos/9,rocky/10}
-else
-  # not ceph (i.e. ceph-iscsi)
-  [[ -d /opt/repos/$project/$relver ]] || mkdir -p /opt/repos/$project/$relver/centos/9
-fi
+# Get numerical version
+version=$(echo $chacra_repo_status | jq -r .extra.version)
+relver=$release-$version
+mkdir -p /opt/repos/$project/$relver/{debian/jessie,centos/9,rocky/10}
 
 if [[ "$project" == "ceph" ]] ; then
   # Replace $highest_combo with your own DISTRO/VERSION if you don't want to sync from the repo with the most packages.
