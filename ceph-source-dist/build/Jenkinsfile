@@ -99,6 +99,13 @@ pipeline {
                 echo "RELEASE_BUILD=true" >> dist/other_envvars
                 echo "chacra_url=https://chacra.ceph.com/" >> dist/other_envvars
                 echo "BRANCH=${BRANCH}-release" > dist/branch
+
+                # We still need the multiple tarballs as part of the release process
+                echo "Creating tar.gz for upstream release"
+                pushd dist
+                bunzip2 -c ceph-$ceph_version_tarball.$extension | tar -xO | gzip > ceph-$ceph_version_tarball.tar.gz
+                cp -a ceph-$ceph_version_tarball.tar.gz ceph_$ceph_version_tarball.orig.tar.gz
+                popd
               else
                 echo "BRANCH=${BRANCH}" > dist/branch
               fi
