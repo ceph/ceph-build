@@ -47,16 +47,9 @@ done
 relver=$release
 
 if [[ "$project" == "ceph" ]] ; then
-  # We started using the new /opt/repos/ceph/$release-X.X.X format with Octopus.
-  # Older releases have all packages in one big $release dir without a trailing "-X.X.X" so we need to adjust paths accordingly.
-  if [[ "$release" =~ ^[a-n].* ]]; then
-    newgen=false
-  else
-    newgen=true
-    # Get numerical version number (we only need this with Octopus or later because of the new directory/path scheme).
-    version=$(echo $chacra_repo_status | jq -r .extra.version)
-    relver=$release-$version
-  fi
+  # Get numerical version
+  version=$(echo $chacra_repo_status | jq -r .extra.version)
+  relver=$release-$version
   [[ -d /opt/repos/$project/$relver ]] || mkdir -p /opt/repos/$project/$relver/{debian/jessie,centos/9}
 else
   # not ceph (i.e. ceph-iscsi)
