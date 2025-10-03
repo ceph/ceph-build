@@ -74,13 +74,24 @@ project_sync() {
     fi
 
     if [[ -n "${dcc_rpm_path}" ]] ; then
-      for el_version in 8 9; do
-        ssh signer@download.ceph.com "mkdir -p ${dcc_rpm_path}/el$el_version"
+      for el_version in 9 10; do
+        case "$el_version" in
+          9)
+            distro="centos"
+            ;;
+          10)
+            distro="rocky"
+            ;;
+        esac
+
+        ssh signer@download.ceph.com "mkdir -p ${dcc_rpm_path}/el${el_version}"
         destpath="signer@download.ceph.com:${dcc_rpm_path}/el${el_version}"
-        el_cmd="$path/centos/$el_version/* ${destpath}"
-        if [ -d "$path/centos/$el_version" ]; then
-          rsync --progress -avr $el_cmd
+        el_cmd="$path/${distro}/${el_version}/* ${destpath}"
+
+        if [ -d "$path/${distro}/${el_version}" ]; then
+          rsync --progress -avr $el_cmd || true
         fi
+
         if [[ "$project" == "ceph-iscsi" ]]; then
           echo "$(make_repofile ${project} ${release} ${el_version})" > ceph-iscsi.repo
           rsync --progress -avr ceph-iscsi.repo ${destpath}
