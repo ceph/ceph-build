@@ -487,7 +487,7 @@ pipeline {
                 int build_started = currentBuild.startTimeInMillis / 1000;
                 env.BUILD_STARTED = build_started;
                 sh """#!/bin/bash -x
-                  $WORKSPACE/scripts/cachestats.py > cachestats.json
+                  BUILD_STATUS=started $WORKSPACE/scripts/cachestats.py > cachestats.json
                   curl -X POST -H "Content-Type: application/json" -H "Prefer: resolution=merge-duplicates" -H "Authorization: Bearer ${env.CACHESTATS_TOKEN}" -d @cachestats.json http://folio12.front.sepia.ceph.com:3000/builds
                 """
                 sh """#!/bin/bash -ex
@@ -498,7 +498,7 @@ pipeline {
                 int duration = currentBuild.duration / 1000;
                 env.BUILD_DURATION = duration;
                 sh """#!/bin/bash -x
-                  $WORKSPACE/scripts/cachestats.py dist/ceph/sccache_stats.json > cachestats.json
+                  BUILD_STATUS=pass $WORKSPACE/scripts/cachestats.py dist/ceph/sccache_stats.json > cachestats.json
                   curl -X POST -H "Content-Type: application/json" -H "Prefer: resolution=merge-duplicates" -H "Authorization: Bearer ${env.CACHESTATS_TOKEN}" -d @cachestats.json http://folio12.front.sepia.ceph.com:3000/builds
                 """
                 if ( os.pkg_type == "deb" ) {
@@ -542,6 +542,12 @@ pipeline {
                 script {
                   def os = get_os_info(env.DIST)
                   sh "./scripts/update_shaman.sh failed ceph ${os.name} ${os.version_name} $ARCH"
+                  int duration = currentBuild.duration / 1000;
+                  env.BUILD_DURATION = duration;
+                  sh """#!/bin/bash -x
+                    BUILD_STATUS=fail $WORKSPACE/scripts/cachestats.py dist/ceph/sccache_stats.json > cachestats.json
+                    curl -X POST -H "Content-Type: application/json" -H "Prefer: resolution=merge-duplicates" -H "Authorization: Bearer ${env.CACHESTATS_TOKEN}" -d @cachestats.json http://folio12.front.sepia.ceph.com:3000/builds
+                  """
                 }
               }
             }
