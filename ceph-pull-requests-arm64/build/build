@@ -9,13 +9,11 @@ if [[ "$DOCS_ONLY" = true || "$CONTAINER_ONLY" = true || "$GHA_ONLY" == true || 
     exit 0
 fi
 
-n_build_jobs=$(get_nr_build_jobs)
+NPROC=$(nproc)
 NPMCACHE=${HOME}/npmcache
 cat >.env <<EOF
-CHECK_MAKEOPTS="-j${n_build_jobs}"
-BUILD_MAKEOPTS="-j${n_build_jobs}"
-NPROC=${n_build_jobs}
-MAX_PARALLEL_JOBS=${n_build_jobs}
+NPROC=${NPROC}
+MAX_PARALLEL_JOBS=${NPROC}
 WITH_CRIMSON=true
 WITH_RBD_RWL=true
 JENKINS_HOME=${JENKINS_HOME}
