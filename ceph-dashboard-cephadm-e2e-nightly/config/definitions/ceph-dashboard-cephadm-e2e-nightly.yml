@@ -15,7 +15,7 @@
     project-type: freestyle
     defaults: global
     concurrent: true
-    node: huge && focal && x86_64
+    node: huge && noble && x86_64
     quiet-period: 5
     block-downstream: false
     block-upstream: false
@@ -58,6 +58,7 @@
     builders:
       - shell:
           !include-raw-escape:
+            - ../../../scripts/setup_container_runtime.sh
             - ../../../scripts/dashboard/install-e2e-test-deps.sh
             - ../../../scripts/dashboard/install-cephadm-e2e-deps.sh
       - shell: |
