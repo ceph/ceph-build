@@ -3,7 +3,6 @@
     project-type: freestyle
     defaults: global
     concurrent: true
-    # We want make check to only run on Bionic b/c it has python2 and python3 and b/c all builds should build on Bionic
     node: x86_64 && (noble || centos9)
     display-name: 'ceph: Pull Requests'
     quiet-period: 5
@@ -109,3 +108,7 @@
               credential-id: github-readonly-token
               username: GITHUB_USER
               password: GITHUB_PASS
+          - username-password-separated:
+              credential-id: dgalloway-docker-hub
+              username: DOCKER_HUB_USERNAME
+              password: DOCKER_HUB_PASSWORD
