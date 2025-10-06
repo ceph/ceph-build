@@ -1,69 +1,91 @@
+# ======================================================================
+# Jenkins Job Builder (JJB) definition for Ceph Windows Pull Request tests
+# This job builds Windows CI tests for GitHub PRs by creating VMs via libvirt,
+# running the build and test scripts, and reporting results back to GitHub.
+# ======================================================================
+
 - job:
-    name: ceph-windows-pull-requests
-    project-type: freestyle
-    defaults: global
-    concurrent: true
-    node: amd64 && focal && libvirt && windows
-    display-name: 'ceph-windows: Pull Requests'
-    quiet-period: 5
-    block-downstream: false
-    block-upstream: false
-    retry-count: 3
+    name: ceph-windows-pull-requests       # Unique Jenkins job name
+    project-type: freestyle                # Freestyle job type
+    defaults: global                       # Inherit global defaults
+    concurrent: true                       # Allow concurrent builds
+    node: amd64 && focal && libvirt && windows  # Restrict nodes to Windows-compatible VM hosts
+    display-name: 'ceph-windows: Pull Requests' # Human-readable display name
+    quiet-period: 5                        # Wait (seconds) after trigger before starting
+    block-downstream: false                # Do not block downstream jobs
+    block-upstream: false                  # Do not block upstream jobs
+    retry-count: 3                         # Retry job 3 times on failure
+
+    # ------------------------------------------------------------------
+    # Job properties
+    # ------------------------------------------------------------------
     properties:
-      - build-discarder:
+      - build-discarder:                   # Manage build and artifact retention
           days-to-keep: 15
           num-to-keep: 300
           artifact-days-to-keep: 15
           artifact-num-to-keep: 100
-      - github:
+      - github:                            # Associate job with GitHub repository
           url: https://github.com/ceph/ceph/
-      - rebuild:
+      - rebuild:                            # Enable automatic rebuilds
           auto-rebuild: true
-      - inject:
+      - inject:                             # Inject environment variables
           properties-content: |
             TERM=xterm
 
+    # ------------------------------------------------------------------
+    # Job parameters
+    # ------------------------------------------------------------------
     parameters:
       - string:
-          name: ghprbPullId
+          name: ghprbPullId                 # Pull request ID to build
           description: "The GitHub pull request id, like '72' in 'ceph/pull/72'"
 
+    # ------------------------------------------------------------------
+    # Job triggers
+    # ------------------------------------------------------------------
     triggers:
       - github-pull-request:
-          cancel-builds-on-update: true
+          cancel-builds-on-update: true      # Cancel running build if PR updated
           allow-whitelist-orgs-as-admins: true
           org-list:
-            - ceph
-          white-list-target-branches:
+            - ceph                           # Only allow PRs from Ceph org
+          white-list-target-branches:        # Only trigger for these branches
             - main
             - tentacle
             - squid
             - reef
-          trigger-phrase: 'jenkins test windows'
+          trigger-phrase: 'jenkins test windows'   # Manual trigger phrase in PR comments
           skip-build-phrase: '^jenkins do not test.*'
           only-trigger-phrase: false
-          github-hooks: true
-          permit-all: true
+          github-hooks: true                 # Enable webhook-based triggering
+          permit-all: true                   # Permit all PR authors
           auto-close-on-fail: false
-          status-context: "ceph windows tests"
+          status-context: "ceph windows tests"    # GitHub PR status context
           started-status: "running ceph windows tests"
           success-status: "ceph windows tests succeeded"
           failure-status: "ceph windows tests failed"
 
+    # ------------------------------------------------------------------
+    # Source Code Management (SCM)
+    # ------------------------------------------------------------------
     scm:
       - git:
           url: https://github.com/ceph/ceph.git
           branches:
-            - origin/pr/${{ghprbPullId}}/merge
+            - origin/pr/${{ghprbPullId}}/merge  # Build PR merge branch
           refspec: +refs/pull/${{ghprbPullId}}/*:refs/remotes/origin/pr/${{ghprbPullId}}/*
-          browser: auto
-          timeout: 20
-          do-not-fetch-tags: true
-          shallow-clone: true
-          honor-refspec: true
-          wipe-workspace: true
-          basedir: ceph
+          browser: auto                                # GitHub browser integration
+          timeout: 20                                  # Git timeout in minutes
+          do-not-fetch-tags: true                      # Skip fetching tags
+          shallow-clone: true                          # Shallow clone for faster builds
+          honor-refspec: true                           # Respect the refspec
+          wipe-workspace: true                         # Clean workspace before build
+          basedir: ceph                                # Base directory for checkout
 
+    # ------------------------------------------------------------------
+    # Builders: run shell scripts to build and test in Windows VMs
+    # ------------------------------------------------------------------
     builders:
     - shell:
         !include-raw-verbatim:
@@ -78,13 +100,16 @@
           - ../../../scripts/ceph-windows/setup_ceph_vstart
           - ../../../scripts/ceph-windows/run_tests
 
+    # ------------------------------------------------------------------
+    # Post-build actions
+    # ------------------------------------------------------------------
     publishers:
-      - archive:
+      - archive:                               # Archive artifacts for analysis
           artifacts: 'artifacts/**'
           allow-empty: true
           latest-only: false
 
-      - postbuildscript:
+      - postbuildscript:                        # Cleanup after any build outcome
           builders:
             - role: SLAVE
               build-on:
@@ -98,12 +123,15 @@
                       - ../../../scripts/build_utils.sh
                       - ../../../scripts/ceph-windows/cleanup
 
+    # ------------------------------------------------------------------
+    # Wrappers: console color + credentials
+    # ------------------------------------------------------------------
     wrappers:
-      - ansicolor
+      - ansicolor                              # Enable ANSI color in console logs
       - credentials-binding:
           - file:
               credential-id: ceph_win_ci_private_key
-              variable: CEPH_WIN_CI_KEY
+              variable: CEPH_WIN_CI_KEY          # Inject Windows CI private key
           - username-password-separated:
               credential-id: github-readonly-token
               username: GITHUB_USER
