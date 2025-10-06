@@ -110,3 +110,7 @@
               credential-id: github-readonly-token
               username: GITHUB_USER
               password: GITHUB_PASS
+          - username-password-separated:
+              credential-id: dgalloway-docker-hub
+              username: DOCKER_HUB_USERNAME
+              password: DOCKER_HUB_PASSWORD

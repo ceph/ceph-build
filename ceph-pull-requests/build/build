@@ -38,6 +38,8 @@ bwc() {
         "${@}"
 }
 
+podman login -u ${DOCKER_HUB_USERNAME} -p ${DOCKER_HUB_PASSWORD} docker.io
+
 npm_cache_info
 bwc 1 -e configure
 # try to pre-load the npm cache so that it doesn't fail during the normal build
