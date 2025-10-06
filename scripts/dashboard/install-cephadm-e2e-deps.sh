@@ -39,30 +39,29 @@ nvm install
 nvm use
 popd
 
-sudo apt install -y libvirt-daemon-system libvirt-daemon-driver-qemu qemu-kvm libvirt-clients runc
+sudo apt install -y libvirt-daemon-system libvirt-daemon-driver-qemu qemu-kvm libvirt-clients
 
 sudo usermod -aG libvirt $(id -un)
 newgrp libvirt  # Avoid having to log out and log in for group addition to take effect.
 sudo systemctl enable --now libvirtd
 
-DISTRO="$(lsb_release -cs)"
-
-if [[ $(command -v docker) == '' ]]; then
-    # Set up docker official repo and install docker.
-    curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
-    echo \
-        "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu \
-        ${DISTRO} stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+if [[ $(command -v docker) != '' ]]; then
+    echo "Cleaning up old docker installation..."
+    sudo systemctl stop docker docker.socket containerd || true
+    sudo apt remove -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin || true
+    sudo apt purge -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin || true
+    sudo rm -f /etc/apt/sources.list.d/docker.list
+    sudo rm -f /usr/share/keyrings/docker-archive-keyring.gpg
+    sudo apt autoremove -y
     sudo apt update -y
-    sudo apt install -y docker-ce docker-ce-cli containerd.io
 fi
-sudo groupadd docker || true
-sudo usermod -aG docker $(id -un)
-sudo systemctl start docker
-sudo chgrp "$(id -un)" /var/run/docker.sock
 
-docker info
-docker container prune -f
+if [[ $(command -v podman) == '' ]]; then
+    sudo apt install -y podman
+fi
+
+podman info
+podman container prune -f
 
 KCLI_CONFIG_DIR="${HOME}/.kcli"
 mkdir -p ${KCLI_CONFIG_DIR}
@@ -72,11 +71,11 @@ fi
 
 : ${KCLI_CONTAINER_IMAGE:='quay.io/karmab/kcli:2543a61'}
 
-docker pull ${KCLI_CONTAINER_IMAGE}
+podman pull ${KCLI_CONTAINER_IMAGE}
 
 echo "#!/usr/bin/env bash
 
-docker run --net host --security-opt label=disable \
+podman run --rm --net host --security-opt label=disable \
     -v ${KCLI_CONFIG_DIR}:/root/.kcli \
     -v ${PWD}:/workdir \
     -v /var/lib/libvirt/images:/var/lib/libvirt/images \
