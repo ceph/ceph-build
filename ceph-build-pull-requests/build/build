@@ -6,7 +6,7 @@ set -e
 PATH=$PATH:$HOME/.local/bin
 uv venv
 
-pkgs=( "ansible" "ansible-core" "jenkins-job-builder>=6.4.3" "urllib3==1.26.1" "pyopenssl" "ndg-httpsclient" "pyasn1" "xmltodict" )
+pkgs=( "ansible" "ansible-core" "jenkins-job-builder>=6.4.3" "urllib3" "pyopenssl" "ndg-httpsclient" "pyasn1" "xmltodict" )
 VENV=./.venv/bin
 uv pip install "${pkgs[@]}"
 
