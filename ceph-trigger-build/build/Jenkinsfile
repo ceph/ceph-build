@@ -20,7 +20,7 @@ def gitTrailerParameterNames = [
 def defaults = [
   'CEPH_BUILD_JOB': 'ceph-dev-pipeline',
   'DISTROS': 'centos9 jammy noble windows',
-  'ARCHS': 'x86_64 arm64',
+  'ARCHS': 'x86_64',
   'FLAVOR': 'default',
 ]
 // This will later hold the initial set of parameters, before any branch-based
@@ -42,10 +42,15 @@ def params_from_branch(initialParams) {
   def singleSet = ( initialParams['CEPH_BUILD_JOB'].contains('ceph-dev-pipeline') )
   def params = [initialParams.clone()]
   switch (initialParams.BRANCH) {
+    case "main":
+      params[0]['ARCHS'] += ' arm64'
+      break
     case ~/.*reef.*/:
       params[-1]['DISTROS'] = 'centos9 jammy focal windows'
+      params[-1]['ARCHS'] += ' arm64'
       break
     case ~/.*squid.*/:
+      params[-1]['ARCHS'] += ' arm64'
       break
     case ~/.*tentacle.*/:
       if ( !singleSet ) {
@@ -54,6 +59,7 @@ def params_from_branch(initialParams) {
         params[-1]['DISTROS'] = 'centos9'
         params[-1]['FLAVOR'] = 'crimson-debug'
       } else {
+        params[0]['ARCHS'] += ' arm64'
         params[0]['FLAVOR'] += ' crimson-debug'
       }
       break
