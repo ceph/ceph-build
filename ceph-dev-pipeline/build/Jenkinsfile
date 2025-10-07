@@ -462,7 +462,7 @@ pipeline {
                     env.CEPH_EXTRA_CMAKE_ARGS = "${env.CEPH_EXTRA_CMAKE_ARGS} ${sccache_flag}"
                   }
                   sh '''#!/bin/bash
-                    echo "DEB_BUILD_PROFILES${DEB_BUILD_PROFILES}" >> .env
+                    echo "DEB_BUILD_PROFILES=${DEB_BUILD_PROFILES}" >> .env
                   '''
                   bwc_command = "${bwc_command} -e debs"
                 } else if ( env.DIST =~ /^(centos|rhel|rocky|fedora).*/ ) {
