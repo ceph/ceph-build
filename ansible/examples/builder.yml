@@ -36,9 +36,9 @@
         creates: "{{ venv }}/bin/python"
       tags: always
 
-    - name: Install python-jenkins
+    - name: Install python-jenkins, six
       ansible.builtin.command:
-        cmd: "{{ venv }}/bin/pip install python-jenkins"
+        cmd: "{{ venv }}/bin/pip install python-jenkins six"
       become_user: "{{ ansible_user }}"
       tags: always
 
