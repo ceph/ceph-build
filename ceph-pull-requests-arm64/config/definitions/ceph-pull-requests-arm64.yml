@@ -10,7 +10,7 @@
     concurrent: true
     disabled: false
     name: ceph-pull-requests-arm64
-    node: 'arm64 && (noble || centos9)'
+    node: 'arm64 && (installed-os-noble || centos9)'
     parameters:
     - string:
         name: ghprbPullId
