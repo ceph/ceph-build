@@ -13,6 +13,41 @@
 ## exist in ANSIBLE_SECRETS_PATH
 
 - hosts: all
+  vars:
+    venv: "/home/{{ ansible_user }}/.venv"
+  tasks:
+    - name: install python3-venv deb
+      apt:
+        name: python3-venv
+        state: latest
+        update_cache: yes
+      when: ansible_os_family == "Debian"
+      become: true
+
+    - name: "clean up any existing {{ venv }}"
+      ansible.builtin.file:
+        path: "{{ venv }}"
+        state: absent
+      tags: always
+
+    - name: Create "{{ venv }}"
+      ansible.builtin.command: "python3 -mvenv {{ venv }}"
+      args:
+        creates: "{{ venv }}/bin/python"
+      tags: always
+
+    - name: Install python-jenkins, six
+      ansible.builtin.command:
+        cmd: "{{ venv }}/bin/pip install python-jenkins six"
+      become_user: "{{ ansible_user }}"
+      tags: always
+
+    - name: switch python interpreters
+      set_fact:
+        ansible_python_interpreter: "{{ venv }}/bin/python"
+      tags: always
+
+- hosts: all
   become: true
   user: ubuntu # This should be overridden on the CLI (e.g., -e user=centos).  It doesn't matter on a mita/prado builder because the playbook is run locally by root.
   vars:
@@ -888,44 +923,6 @@
         path: '/etc/ssh/ssh_known_hosts'
         key: "{{ github_host_key }}"
 
-    ## PIP TASKS
-    - set_fact:
-        pip_version: pip
-        ansible_python_interpreter: /usr/bin/python
-      when: (ansible_os_family == "RedHat" and ansible_distribution_major_version|int <= 7) or
-            (ansible_os_family == "Debian" and ansible_distribution_major_version|int <= 16)
-      tags:
-        - register
-        - interpreter
-
-    - set_fact:
-        pip_version: pip3
-        ansible_python_interpreter: /usr/bin/python3
-      when: (ansible_os_family == "RedHat" and ansible_distribution_major_version|int >= 7) or
-            (ansible_os_family == "Debian" and ansible_distribution_major_version|int >= 18) or
-            ansible_os_family == "Suse"
-      tags:
-        - register
-        - interpreter
-
-    - name: Install six, latest one
-      pip:
-        name: six
-        state: latest
-        executable: "{{ pip_version }}"
-      when: ansible_os_family != "Suse"
-      tags:
-        - register
-
-    - name: Install python-jenkins
-      # https://review.openstack.org/460363
-      pip:
-        name: python-jenkins
-        version: 0.4.15
-        executable: "{{ pip_version }}"
-      tags:
-        - register
-
     ## LIBVIRT SERVICE TASKS
     - name: start libvirt services
       service:
@@ -1060,9 +1057,24 @@
             force: yes
           register: jar_changed
 
+        - name: look for templates/
+          ansible.builtin.stat:
+            path: templates
+          delegate_to: localhost
+          run_once: true
+          register: template_dir
+
+        - name: choose proper templates dir
+          set_fact:
+            template_path: "{{ 'templates' if template_dir.stat.exists else '../templates' }}"
+
+        - name: echo template_path
+          debug:
+            msg: "template_path: {{ template_path }}"
+
         - name: Install the systemd unit files for jenkins
           ansible.builtin.template:
-            src: "{{ playbook_dir }}/../templates/systemd/jenkins.{{ item }}.j2"
+            src: "{{ template_path }}/systemd/jenkins.{{ item }}.j2"
             dest: "/etc/systemd/system/jenkins.{{ item }}"
             force: yes
           with_items:
@@ -1080,8 +1092,7 @@
             state: stopped
 
         - name: Kill any errant slave.jar or agent.jar processes
-          shell:
-            cmd: "pkill -f -9 'java.*(slave|agent).jar'"
+          shell: "pkill -f -9 'java.*(slave|agent).jar'"
           register: result
           become: true
           failed_when: result.rc > 1
@@ -1092,7 +1103,7 @@
             state: started
             enabled: yes
 
-        - name: REstart jenkins service (if necessary)
+        - name: Restart jenkins service (if necessary)
           service:
             name: jenkins
             state: restarted
