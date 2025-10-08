@@ -62,6 +62,7 @@
     - shell:
         !include-raw-verbatim:
           - ../../../scripts/build_utils.sh
+          - ../../../scripts/setup_container_runtime.sh
           - ../../build/build
 
     publishers:
