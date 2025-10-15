@@ -91,6 +91,18 @@
                 - shell:
                     !include-raw-verbatim:
                       - ../../build/kill-tests
+      - postbuildscript:
+          builders:
+            - role: SLAVE
+              build-on:
+                - SUCCESS
+                - UNSTABLE
+                - FAILURE
+                - ABORTED
+              build-steps:
+                - shell: !include-raw-verbatim:
+                    - ../../build/cleanup
+
       - xunit:
           thresholds:
             - failed:
