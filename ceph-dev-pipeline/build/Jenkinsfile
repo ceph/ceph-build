@@ -377,7 +377,7 @@ pipeline {
                 sh """#!/bin/bash
                   set -ex
                   cd dist/ceph
-                  python3 src/script/build-with-container.py --image-repo=${env.CEPH_BUILDER_IMAGE} --tag=${ceph_builder_tag} -d ${DIST} -e build-container
+                  python3 src/script/build-with-container.py --image-repo=${env.CEPH_BUILDER_IMAGE} --tag=${ceph_builder_tag} --image-variant=packages -d ${DIST} -e build-container
                   podman tag ${env.CEPH_BUILDER_IMAGE}:${ceph_builder_tag} ${env.CEPH_BUILDER_IMAGE}:${ceph_builder_tag_short}
                 """
                 sh """#!/bin/bash -ex
@@ -403,7 +403,7 @@ pipeline {
                 env.AWS_SECRET_ACCESS_KEY = env.SCCACHE_BUCKET_CREDS_PSW
                 sh 'echo > .env'
                 def ceph_builder_tag = "${env.SHA1[0..6]}.${env.BRANCH}.${env.DIST}.${ARCH}"
-                def bwc_command_base = "python3 src/script/build-with-container.py --image-repo=${env.CEPH_BUILDER_IMAGE} --tag=${ceph_builder_tag} -d ${DIST} --ceph-version ${env.VERSION}"
+                def bwc_command_base = "python3 src/script/build-with-container.py --image-repo=${env.CEPH_BUILDER_IMAGE} --tag=${ceph_builder_tag} -d ${DIST} --image-variant=packages --ceph-version ${env.VERSION}"
                 def bwc_command = bwc_command_base
                 def bwc_cmd_sccache_flags = ""
                 if ( env.DWZ == "false" ) {
@@ -567,7 +567,7 @@ pipeline {
                     text: repo_text,
                   )
                   def ceph_builder_tag = "${env.SHA1[0..6]}.${env.BRANCH}.${env.DIST}.${ARCH}"
-                  def bwc_command_base = "python3 src/script/build-with-container.py --image-repo=${env.CEPH_BUILDER_IMAGE} --tag=${ceph_builder_tag} -d ${DIST} --ceph-version ${env.VERSION}"
+                  def bwc_command_base = "python3 src/script/build-with-container.py --image-repo=${env.CEPH_BUILDER_IMAGE} --tag=${ceph_builder_tag} -d ${DIST} --image-variant=packages --ceph-version ${env.VERSION}"
                   bwc_command = "${bwc_command_base} -e custom -- rpmbuild -bb --define \\'_topdir /ceph/rpmbuild\\' /ceph/rpmbuild/SPECS/ceph-release.spec"
                   sh """#!/bin/bash
                     set -ex
