@@ -35,8 +35,7 @@
           started-status: "Compiling site"
           success-status: "Site compiled successfully!"
           failure-status: "Site compilation failed"
-#         This is kinda noisy if there's lots of force pushes
-#         success-comment: "Site built successfully!  https://${{GIT_BRANCH}}.ceph.io"
+          success-comment: "Site built/updated successfully!  https://${{GIT_BRANCH}}.ceph.io"
 
     scm:
       - git:
