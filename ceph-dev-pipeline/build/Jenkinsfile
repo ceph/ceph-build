@@ -376,8 +376,10 @@ pipeline {
                 """
                 sh """#!/bin/bash
                   set -ex
+                  echo > .env
+                  [[ $FLAVOR == crimson* ]] && echo "WITH_CRIMSON=true" >> .env || true
                   cd dist/ceph
-                  python3 src/script/build-with-container.py --image-repo=${env.CEPH_BUILDER_IMAGE} --tag=${ceph_builder_tag} --image-variant=packages -d ${DIST} -e build-container
+                  python3 src/script/build-with-container.py --env-file=${env.WORKSPACE}/.env --image-repo=${env.CEPH_BUILDER_IMAGE} --tag=${ceph_builder_tag} --image-variant=packages -d ${DIST} -e build-container
                   podman tag ${env.CEPH_BUILDER_IMAGE}:${ceph_builder_tag} ${env.CEPH_BUILDER_IMAGE}:${ceph_builder_tag_short}
                 """
                 sh """#!/bin/bash -ex
@@ -401,7 +403,6 @@ pipeline {
                 sh "./scripts/update_shaman.sh started ceph ${os.name} ${os.version_name} $ARCH"
                 env.AWS_ACCESS_KEY_ID = env.SCCACHE_BUCKET_CREDS_USR
                 env.AWS_SECRET_ACCESS_KEY = env.SCCACHE_BUCKET_CREDS_PSW
-                sh 'echo > .env'
                 def ceph_builder_tag = "${env.SHA1[0..6]}.${env.BRANCH}.${env.DIST}.${ARCH}.${FLAVOR}"
                 def bwc_command_base = "python3 src/script/build-with-container.py --image-repo=${env.CEPH_BUILDER_IMAGE} --tag=${ceph_builder_tag} -d ${DIST} --image-variant=packages --ceph-version ${env.VERSION}"
                 def bwc_command = bwc_command_base
@@ -448,9 +449,6 @@ pipeline {
                     }
                     break
                   case ~/crimson.*/:
-                    sh '''#!/bin/bash
-                      echo "WITH_CRIMSON=true" >> .env
-                    '''
                     deb_build_profiles = "pkg.ceph.crimson";
                     break
                   default:
