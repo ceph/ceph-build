@@ -1,0 +1,3 @@
+#!/bin/bash -x
+
+podman unshare chown -R 0:0 "${WORKSPACE}"
