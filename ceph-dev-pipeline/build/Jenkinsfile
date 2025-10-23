@@ -178,7 +178,10 @@ pipeline {
               environment name: "CI_COMPILE", value: "true"
               allOf {
                 environment name: "CI_CONTAINER", value: "true"
-                environment name: "DIST", value: "centos9"
+                anyOf {
+                  environment name: "DIST", value: "rocky10"
+                  environment name: "DIST", value: "centos9"
+                }
               }
             }
           }
@@ -604,8 +607,13 @@ pipeline {
           }
           stage("container") {
             when {
-              environment name: "CI_CONTAINER", value: "true"
-              environment name: "DIST", value: "centos9"
+              allOf {
+                environment name: "CI_CONTAINER", value: "true"
+                anyOf {
+                  environment name: "DIST", value: "rocky10"
+                  environment name: "DIST", value: "centos9"
+                }
+              }
             }
             environment {
               CONTAINER_REPO_CREDS = credentials('quay-ceph-io-ceph-ci')
@@ -614,18 +622,11 @@ pipeline {
               script {
                 env.CONTAINER_REPO_USERNAME = env.CONTAINER_REPO_CREDS_USR
                 env.CONTAINER_REPO_PASSWORD = env.CONTAINER_REPO_CREDS_PSW
-                distro = sh(
-                  script: '. /etc/os-release && echo -n $ID',
-                  returnStdout: true,
-                )
-                release = sh(
-                  script: '. /etc/os-release && echo -n $VERSION_ID',
-                  returnStdout: true,
-                )
+                def os = get_os_info(env.DIST)
                 cephver = env.VERSION.trim()
                 sh """#!/bin/bash
-                  export DISTRO=${distro}
-                  export RELEASE=${release}
+                  export DISTRO=${os.name}
+                  export RELEASE=${os.version}
                   export cephver=${cephver}
                   ./scripts/build_container
                 """
