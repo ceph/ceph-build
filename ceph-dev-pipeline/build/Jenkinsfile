@@ -178,7 +178,7 @@ pipeline {
               environment name: "CI_COMPILE", value: "true"
               allOf {
                 environment name: "CI_CONTAINER", value: "true"
-                environment name: "DIST", value: "centos9"
+                environment name: "DIST", value: "rocky10"
               }
             }
           }
@@ -605,7 +605,7 @@ pipeline {
           stage("container") {
             when {
               environment name: "CI_CONTAINER", value: "true"
-              environment name: "DIST", value: "centos9"
+              environment name: "DIST", value: "rocky10"
             }
             environment {
               CONTAINER_REPO_CREDS = credentials('quay-ceph-io-ceph-ci')
@@ -624,8 +624,8 @@ pipeline {
                 )
                 cephver = env.VERSION.trim()
                 sh """#!/bin/bash
-                  export DISTRO=${distro}
-                  export RELEASE=${release}
+                  export DISTRO=${os.name}
+                  export RELEASE=${os.version}
                   export cephver=${cephver}
                   ./scripts/build_container
                 """
