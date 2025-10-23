@@ -1,3 +1,4 @@
+// vim: ts=2 sw=2 et
 ceph_build_repo = "https://github.com/ceph/ceph-build"
 ceph_build_branch = "main"
 base_node_label = "gigantic"
@@ -11,7 +12,12 @@ debian_releases = [
   "bullseye": "11",
 ]
 build_matrix = [:]
+
 container_distros = ['centos9', 'rocky10']
+
+def do_container(dist) {
+  return container_distros.contains[dist]
+}
 
 def get_os_info(dist) {
   def os = [
@@ -135,6 +141,21 @@ def get_ceph_release_repo_text(base_url) {
   return text.toString()
 }
 
+// hoisted here in an effort to avoid MethodTooLargeException
+def invoke_build_container(os) {
+  script {
+    env.CONTAINER_REPO_USERNAME = env.CONTAINER_REPO_CREDS_USR
+    env.CONTAINER_REPO_PASSWORD = env.CONTAINER_REPO_CREDS_PSW
+    cephver = env.VERSION.trim()
+    sh """#!/bin/bash
+      export DISTRO=${os.name}
+      export RELEASE=${os.version}
+      export cephver=${cephver}
+      ./scripts/build_container
+    """
+  }
+}
+
 pipeline {
   agent any
   stages {
@@ -179,7 +200,7 @@ pipeline {
               environment name: "CI_COMPILE", value: "true"
               allOf {
                 environment name: "CI_CONTAINER", value: "true"
-                expression { container_distros.contains(env.DIST) }
+                expression { do_container(env.DIST) }
               }
             }
           }
@@ -606,24 +627,14 @@ pipeline {
           stage("container") {
             when {
               expression {
-                env.CI_CONTAINER == 'true' && container_distros.contains(env.DIST)
+                env.CI_CONTAINER == 'true' && do_container(env.DIST)
               }
             }
             environment {
               CONTAINER_REPO_CREDS = credentials('quay-ceph-io-ceph-ci')
             }
             steps {
-              script {
-                env.CONTAINER_REPO_USERNAME = env.CONTAINER_REPO_CREDS_USR
-                env.CONTAINER_REPO_PASSWORD = env.CONTAINER_REPO_CREDS_PSW
-                cephver = env.VERSION.trim()
-                sh """#!/bin/bash
-                  export DISTRO=${os.name}
-                  export RELEASE=${os.version}
-                  export cephver=${cephver}
-                  ./scripts/build_container
-                """
-              }
+              invoke_build_container(os)
             }
           }
         }
