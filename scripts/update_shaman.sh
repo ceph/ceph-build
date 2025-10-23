@@ -1,3 +1,6 @@
+#!/bin/bash
+# vim: ts=4 sw=4 expandtab
+
 submit_build_status() {
 
     # A helper script to post (create) the status of a build in shaman
