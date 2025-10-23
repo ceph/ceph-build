@@ -178,7 +178,7 @@ pipeline {
               environment name: "CI_COMPILE", value: "true"
               allOf {
                 environment name: "CI_CONTAINER", value: "true"
-                environment name: "DIST", value: "centos9"
+                expression { ['centos9', 'rocky10'].contains(env.DIST) }
               }
             }
           }
