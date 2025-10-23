@@ -11,6 +11,7 @@ debian_releases = [
   "bullseye": "11",
 ]
 build_matrix = [:]
+container_distros = ['centos9', 'rocky10']
 
 def get_os_info(dist) {
   def os = [
@@ -178,7 +179,7 @@ pipeline {
               environment name: "CI_COMPILE", value: "true"
               allOf {
                 environment name: "CI_CONTAINER", value: "true"
-                expression { ['centos9', 'rocky10'].contains(env.DIST) }
+                expression { container_distros.contains(env.DIST) }
               }
             }
           }
@@ -605,7 +606,7 @@ pipeline {
           stage("container") {
             when {
               expression {
-                env.CI_CONTAINER == 'true' && ['centos9', 'rocky10'].contains(env.DIST)
+                env.CI_CONTAINER == 'true' && container_distros.contains(env.DIST)
               }
             }
             environment {
