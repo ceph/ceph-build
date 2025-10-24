@@ -41,7 +41,7 @@ if [[ $CI_CONTAINER == "true" && $DISTRO == "centos" && "$RELEASE" =~ 8|9 ]] ; t
     case "${from_image_spec}" in
         "centos:stream9")  FROM_IMAGE=quay.io/centos/centos:stream9 ;;
         "rocky:10") FROM_IMAGE=docker.io/rockylinux/rockylinux:10 ;;
-        *) echo "Don't know requested FROM image ${from_image_spec}; exit 1 ;;
+        *) echo "Don't know requested FROM image ${from_image_spec}"; exit 1 ;;
     esac
     FROM_IMAGE=${FROM_IMAGE} CEPH_SHA1=${SHA1} ./build.sh
 fi
