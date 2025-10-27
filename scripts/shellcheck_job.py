@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import argparse
+import json
 import pathlib
 import subprocess
 import sys
@@ -73,6 +74,14 @@ def find(obj: dict, key: str, result=None, path="") -> list[tuple]:
             maybe_result = find(v, key, result, subpath)
             if maybe_result is not result:
                 result.append((subpath, maybe_result[-1]))
+        elif isinstance(v, list):
+            for index, item in enumerate(v):
+                if not isinstance(item, dict):
+                    continue
+                subpath = f"{path}.{index}"
+                maybe_result = find(item, key, result, subpath)
+                if maybe_result is not result:
+                    result.append((subpath, maybe_result[-1]))
     return result
 
 
