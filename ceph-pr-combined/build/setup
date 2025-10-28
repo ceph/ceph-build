@@ -1,0 +1,19 @@
+#!/bin/bash
+set -ex
+
+# set up variables needed for
+# githubstatus to report back to the github PR
+# if this project was started manually
+github_status_setup
+
+# the following two methods exist in scripts/build_utils.sh
+pkgs=( "github-status>0.0.3" )
+install_python_packages "pkgs[@]"
+
+# The github-status project checks if a job was triggered by github-pull-request-builder and will not updated PR statuses if it was.
+# This is because github-pull-request-builder already updates PR statuses.  However, we can't set stages in the status message.
+# So I'm unsetting the ghprb vars to trick github-status into running.
+# https://github.com/alfredodeza/github-status/blob/master/github_status/util.py
+for var in ghprbActualCommit ghprbTriggerAuthor ghprbTargetBranch ghprbTriggerAuthorLogin ghprbCredentialsId ghprbGhRepository; do
+  unset $var
+done
