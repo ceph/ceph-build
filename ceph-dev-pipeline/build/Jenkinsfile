@@ -283,30 +283,27 @@ pipeline {
             steps {
               script {
                 env.CEPH_BUILDER_IMAGE = "${env.CONTAINER_REPO_HOSTNAME}/${env.CONTAINER_REPO_ORGANIZATION}/ceph-build"
+                def ceph_builder_tag_short = "${env.BRANCH}.${env.DIST}.${ARCH}.${FLAVOR}"
+                def ceph_builder_tag = "${env.SHA1[0..6]}.${ceph_builder_tag_short}"
                 sh '''#!/bin/bash
                   set -ex
                   podman login -u ${CONTAINER_REPO_CREDS_USR} -p ${CONTAINER_REPO_CREDS_PSW} ${CONTAINER_REPO_HOSTNAME}/${CONTAINER_REPO_ORGANIZATION}
                   podman login -u ${DOCKER_HUB_CREDS_USR} -p ${DOCKER_HUB_CREDS_PSW} docker.io
-                '''
-                def ceph_builder_tag_short = "${env.BRANCH}.${env.DIST}.${ARCH}.${FLAVOR}"
-                def ceph_builder_tag = "${env.SHA1[0..6]}.${ceph_builder_tag_short}"
-                sh """#!/bin/bash -ex
+
                   podman pull ${env.CEPH_BUILDER_IMAGE}:${ceph_builder_tag} || \
                   podman pull ${env.CEPH_BUILDER_IMAGE}:${ceph_builder_tag_short} || \
                   true
-                """
-                sh """#!/bin/bash
+
                   set -ex
                   echo > .env
                   [[ $FLAVOR == crimson* ]] && echo "WITH_CRIMSON=true" >> .env || true
                   cd dist/ceph
                   python3 src/script/build-with-container.py --env-file=${env.WORKSPACE}/.env --image-repo=${env.CEPH_BUILDER_IMAGE} --tag=${ceph_builder_tag} --image-variant=packages -d ${DIST} -e build-container
                   podman tag ${env.CEPH_BUILDER_IMAGE}:${ceph_builder_tag} ${env.CEPH_BUILDER_IMAGE}:${ceph_builder_tag_short}
-                """
-                sh """#!/bin/bash -ex
+
                   podman push ${env.CEPH_BUILDER_IMAGE}:${ceph_builder_tag_short}
                   podman push ${env.CEPH_BUILDER_IMAGE}:${ceph_builder_tag}
-                """
+                '''
               }
             }
           }
@@ -427,8 +424,7 @@ pipeline {
             when {
               allOf {
                 environment name: 'CI_CONTAINER', value: 'true'
-                //expression { ['centos9', 'rocky10'].contains(env.DIST) }
-                expression { ['centos9'].contains(env.DIST) }
+                expression { ['centos9', 'rocky10'].contains(env.DIST) }
               }
             }
             environment {
