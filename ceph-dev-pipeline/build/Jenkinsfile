@@ -38,100 +38,18 @@ def get_os_info(dist) {
   return os
 }
 
-ceph_release_spec_template = '''
-Name:           ceph-release
-Version:        1
-Release:        0%{?dist}
-Summary:        Ceph Development repository configuration
-Group:          System Environment/Base
-License:        GPLv2
-URL:            ${project_url}
-Source0:        ceph.repo
-BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
-BuildArch:      noarch
-
-%description
-This package contains the Ceph repository GPG key as well as configuration
-for yum and up2date.
-
-%prep
-
-%setup -q  -c -T
-install -pm 644 %{SOURCE0} .
-
-%build
-
-%install
-rm -rf %{buildroot}
-%if 0%{defined suse_version}
-install -dm 755 %{buildroot}/%{_sysconfdir}/zypp
-install -dm 755 %{buildroot}/%{_sysconfdir}/zypp/repos.d
-install -pm 644 %{SOURCE0} \
-    %{buildroot}/%{_sysconfdir}/zypp/repos.d
-%else
-install -dm 755 %{buildroot}/%{_sysconfdir}/yum.repos.d
-install -pm 644 %{SOURCE0} \
-    %{buildroot}/%{_sysconfdir}/yum.repos.d
-%endif
-
-%clean
-
-%post
-
-%postun
-
-%files
-%defattr(-,root,root,-)
-%if 0%{defined suse_version}
-/etc/zypp/repos.d/*
-%else
-/etc/yum.repos.d/*
-%endif
-
-%changelog
-* Mon Apr 28 2025 Zack Cerza <zack@cerza.org> 1-1
-'''
-
-ceph_release_repo_template = '''
-[Ceph]
-name=Ceph packages for \\$basearch
-baseurl=${repo_base_url}/\\$basearch
-enabled=1
-gpgcheck=0
-type=rpm-md
-gpgkey=https://download.ceph.com/keys/autobuild.asc
-
-[Ceph-noarch]
-name=Ceph noarch packages
-baseurl=${repo_base_url}/noarch
-enabled=1
-gpgcheck=0
-type=rpm-md
-gpgkey=https://download.ceph.com/keys/autobuild.asc
-
-[ceph-source]
-name=Ceph source packages
-baseurl=${repo_base_url}/SRPMS
-enabled=1
-gpgcheck=0
-type=rpm-md
-gpgkey=https://download.ceph.com/keys/autobuild.asc
-'''
-
 @NonCPS
-def get_ceph_release_spec_text(project_url) {
+def renderSpec(String templateText, String projectUrl) {
   def engine = new groovy.text.SimpleTemplateEngine()
-  def template = engine.createTemplate(ceph_release_spec_template)
-  def text = template.make(["project_url": project_url])
-  return text.toString()
+  def template = engine.createTemplate(templateText)
+  return template.make([project_url: projectUrl]).toString()
 }
 
 @NonCPS
-def get_ceph_release_repo_text(base_url) {
+def renderRepo(String templateText, String baseUrl) {
   def engine = new groovy.text.SimpleTemplateEngine()
-  def template = engine.createTemplate(ceph_release_repo_template)
-  def text = template.make(["repo_base_url": base_url])
-  return text.toString()
+  def template = engine.createTemplate(templateText)
+  return template.make([repo_base_url: baseUrl]).toString()
 }
 
 pipeline {
@@ -558,16 +476,17 @@ pipeline {
                   """
                   // Push packages to chacra.ceph.com under the 'test' ref if ceph-release-pipeline's TEST=true
                   env.SHA1 = env.TEST?.toBoolean() ? 'test' : env.SHA1
-                  def spec_text = get_ceph_release_spec_text("${chacra_url}r/ceph/${env.BRANCH}/${env.SHA1}/${os.name}/${os.version_name}/flavors/${env.FLAVOR}/")
-                  writeFile(
-                    file: "dist/ceph/rpmbuild/SPECS/ceph-release.spec",
-                    text: spec_text,
-                  )
-                  def repo_text = get_ceph_release_repo_text("${chacra_url}/r/ceph/${env.BRANCH}/${env.SHA1}/${os.name}/${os.version_name}/flavors/${env.FLAVOR}")
-                  writeFile(
-                    file: "dist/ceph/rpmbuild/SOURCES/ceph.repo",
-                    text: repo_text,
-                  )
+
+                  // Define Chacra URLs, pass to spec and repo templates, then write the files
+                  def specTemplate = readFile('templates/ceph_release_spec.tpl')
+                  def repoTemplate = readFile('templates/ceph_release_repo.tpl')
+                  def projectUrl = "${chacra_url}r/ceph/${env.BRANCH}/${env.SHA1}/${os.name}/${os.version_name}/flavors/${env.FLAVOR}/"
+                  def repoBase   = "${chacra_url}/r/ceph/${env.BRANCH}/${env.SHA1}/${os.name}/${os.version_name}/flavors/${env.FLAVOR}"
+                  def spec_text = renderSpec(specTemplate, projectUrl)
+                  writeFile file: "dist/ceph/rpmbuild/SPECS/ceph-release.spec", text: spec_text
+                  def repo_text = renderRepo(repoTemplate, repoBase)
+                  writeFile file: "dist/ceph/rpmbuild/SOURCES/ceph.repo", text: repo_text
+
                   def ceph_builder_tag = "${env.SHA1[0..6]}.${env.BRANCH}.${env.DIST}.${ARCH}.${FLAVOR}"
                   def bwc_command_base = "python3 src/script/build-with-container.py --image-repo=${env.CEPH_BUILDER_IMAGE} --tag=${ceph_builder_tag} -d ${DIST} --image-variant=packages --ceph-version ${env.VERSION}"
                   bwc_command = "${bwc_command_base} -e custom -- rpmbuild -bb --define \\'_topdir /ceph/rpmbuild\\' /ceph/rpmbuild/SPECS/ceph-release.spec"
