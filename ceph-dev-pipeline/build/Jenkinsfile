@@ -427,7 +427,8 @@ pipeline {
             when {
               allOf {
                 environment name: 'CI_CONTAINER', value: 'true'
-                expression { ['centos9', 'rocky10'].contains(env.DIST) }
+                //expression { ['centos9', 'rocky10'].contains(env.DIST) }
+                expression { ['centos9'].contains(env.DIST) }
               }
             }
             environment {
