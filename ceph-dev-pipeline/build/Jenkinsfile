@@ -12,6 +12,10 @@ debian_releases = [
 ]
 build_matrix = [:]
 
+def parseList = { raw ->
+  (raw ?: '').split(/[,\s]+/).findAll { it }.collect { it.trim() }
+}
+
 def get_os_info(dist) {
   def os = [
     "name": dist,
@@ -170,20 +174,20 @@ pipeline {
         }
         when {
           beforeAgent true
-          allOf {
-            expression { env.DISTROS.contains(env.DIST) }
-            expression { env.ARCHS.contains(env.ARCH) }
-            expression { env.FLAVORS.contains(env.FLAVOR) }
-            anyOf {
-              environment name: "CI_COMPILE", value: "true"
-              allOf {
-                environment name: "CI_CONTAINER", value: "true"
-                anyOf {
-                  environment name: "DIST", value: "centos9"
-                  environment name: "DIST", value: "rocky10"
-                }
-              }
-            }
+          expression {
+            def distros  = parseList(env.DISTROS)
+            def archs    = parseList(env.ARCHS)
+            def flavors  = parseList(env.FLAVORS)
+        
+            def distOk   = distros.contains(env.DIST)
+            def archOk   = archs.contains(env.ARCH)
+            def flavorOk = flavors.contains(env.FLAVOR)
+        
+            // rpm-building distros
+            def isRpmDist = ['centos9', 'rocky10'].contains(env.DIST)
+        
+            distOk && archOk && flavorOk &&
+            ( env.CI_COMPILE == 'true' || (env.CI_CONTAINER == 'true' && isRpmDist) )
           }
         }
         axes {
@@ -607,10 +611,8 @@ pipeline {
           }
           stage("container") {
             when {
-              allOf {
-                environment name: 'CI_CONTAINER', value: 'true'
-                expression { ['centos9', 'rocky10'].contains(env.DIST) }
-              }
+              beforeAgent true
+              expression { env.CI_CONTAINER == 'true' && (env.DIST == 'centos9' || env.DIST == 'rocky10') }
             }
             environment {
               CONTAINER_REPO_CREDS = credentials('quay-ceph-io-ceph-ci')
