@@ -113,7 +113,7 @@ pipeline {
             name 'ARCH'
             values 'x86_64', 'arm64'
           }
-          axes {
+          axis {
             name 'FLAVOR'
             values 'default', 'crimson-release', 'crimson-debug'
           }
