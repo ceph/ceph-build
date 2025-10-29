@@ -6,10 +6,18 @@
   roles:
     - ansible-jenkins
   vars:
-    - nginx_processor_count: 20
-    - nginx_connections: 2048
-    - ansible_ssh_port: 2222
-    - plugins:
+    nginx_processor_count: 20
+    nginx_connections: 2048
+    ansible_ssh_port: 2222
+    jenkins_port: 8080
+    prefix: '/build'
+    xmx: 8192
+    # Email support
+    #- email:
+    #  smtp_host: 'mail.example.com'
+    #  smtp_ssl: 'true'
+    #  default_email_suffix: '@example.com'
+    plugins:
       - 'ace-editor'
       - 'additional-metrics'
       - 'ant'
@@ -125,15 +133,6 @@
       - 'workflow-step-api'
       - 'workflow-support'
       - 'ws-cleanup'
-
-    - jenkins_port: 8080
-    - prefix: '/build'
-    - xmx: 8192
-    # Email support
-    #- email:
-    #  smtp_host: 'mail.example.com'
-    #  smtp_ssl: 'true'
-    #  default_email_suffix: '@example.com'
   vars_prompt:
   - name: "okay_with_restart"
     prompt: "\nWARNING: Some tasks like updating/installing plugins will restart Jenkins.\nAre you okay with restarting the Jenkins service? (y|n)"
