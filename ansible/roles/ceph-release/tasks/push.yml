@@ -3,6 +3,24 @@
 # We want to make sure packages get pulled, signed, and pushed before publicly
 # pushing the security fix. Pushing tags will be done manually by a human.
 
+- name: Check if a pull request already exists for branch
+  ansible.builtin.uri:
+    url: "https://api.github.com/repos/ceph/ceph/pulls?state=open&head=ceph:{{ branch }}-release&base={{ branch }}"
+    method: GET
+    headers:
+      Accept: "application/vnd.github.v3+json"
+      Authorization: "token {{ token }}"
+    return_content: true
+  register: pr_check
+  no_log: true   # hides token and response details safely
+
+- name: Fail if a PR already exists
+  ansible.builtin.fail:
+    msg: >-
+      A pull request already exists for branch '{{ branch }}-release':
+      {{ pr_check.json[0].html_url }}
+  when: pr_check.json | length > 0
+
 - name: clone the ceph repository
   git:
     repo: git@github.com:ceph/ceph.git
