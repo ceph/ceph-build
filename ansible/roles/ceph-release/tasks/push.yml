@@ -17,8 +17,12 @@
   command: git push upstream :v{{ version }}
   args:
     chdir: ceph
+  register: push_clear_remote_tag
   ignore_errors: yes
   when: tag|bool is true
+  failed_when: >-
+    push_clear_remote_tag is failed and
+    ('remote ref does not exist' not in (push_clear_remote_tag.stderr | default('')))
 
 - name: add releases repo
   command: git remote add -f releases git@github.com:ceph/ceph-releases.git
