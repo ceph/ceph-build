@@ -1,3 +1,5 @@
+org.jenkinsci.plugins.pipeline.modeldefinition.parser.RuntimeASTTransformer.SCRIPT_SPLITTING_TRANSFORMATION=true
+
 ceph_build_repo = "https://github.com/ceph/ceph-build"
 ceph_build_branch = "main"
 base_node_label = "gigantic"
