@@ -28,6 +28,16 @@
 Defaults to checked."
           default: true
 
+      - choice:
+          name: TAG_PHASE
+          description: "
+create: When TAG=true, pull BRANCH-release and create the tag/version commit on top of it
+push: When TAG=true, push the afformentioned tag to ceph.git, and create the PR to merge BRANCH-release back into BRANCH."
+          default: push
+          choices:
+            - push
+            - create
+
       - bool:
           name: THROWAWAY
           description: "
