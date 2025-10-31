@@ -134,6 +134,37 @@ def get_ceph_release_repo_text(base_url) {
   return text.toString()
 }
 
+def setup_node(env) {
+  build_matrix["${DIST}_${ARCH}"] = env.CI_COMPILE.toBoolean()
+  sh "hostname -f"
+  def node_shortname = env.NODE_NAME.split('\\+')[-1]
+  def node_url = new URI([env.JENKINS_URL, "computer", env.NODE_NAME].join("/")).normalize()
+  println("DIST=${env.DIST} ARCH=${env.ARCH} FLAVOR=${env.FLAVOR}")
+  println("${node_shortname}")
+  println("${node_url}")
+  def os = get_os_info(env.DIST)
+  println("OS_NAME=${os.name}")
+  println("OS_PKG_TYPE=${os.pkg_type}")
+  println("OS_VERSION=${os.version}")
+  println("OS_VERSION_NAME=${os.version_name}")
+  sh './scripts/setup_container_runtime.sh'
+  sh "cat /etc/os-release"
+}
+
+dev copy_artifacts(env) {
+  def artifact_filter = "dist/sha1,dist/version,dist/other_envvars,dist/ceph-*.tar.bz2"
+  def os = get_os_info(env.DIST)
+  if ( env.CI_COMPILE && os.pkg_type == "deb" ) {
+    artifact_filter += ",dist/ceph_*.diff.gz,dist/ceph_*.dsc"
+  }
+  println artifact_filter
+  copyArtifacts(
+    projectName: env.SETUP_JOB,
+    selector: specific(buildNumber: env.SETUP_BUILD_ID),
+    filter: artifact_filter,
+  )
+}
+
 pipeline {
   agent any
   stages {
@@ -226,22 +257,7 @@ pipeline {
         stages {
           stage("node") {
             steps {
-              script {
-                build_matrix["${DIST}_${ARCH}"] = env.CI_COMPILE.toBoolean()
-                sh "hostname -f"
-                def node_shortname = env.NODE_NAME.split('\\+')[-1]
-                def node_url = new URI([env.JENKINS_URL, "computer", env.NODE_NAME].join("/")).normalize()
-                println("DIST=${env.DIST} ARCH=${env.ARCH} FLAVOR=${env.FLAVOR}")
-                println("${node_shortname}")
-                println("${node_url}")
-                def os = get_os_info(env.DIST)
-                println("OS_NAME=${os.name}")
-                println("OS_PKG_TYPE=${os.pkg_type}")
-                println("OS_VERSION=${os.version}")
-                println("OS_VERSION_NAME=${os.version_name}")
-              }
-              sh './scripts/setup_container_runtime.sh'
-              sh "cat /etc/os-release"
+              setup_node(env)
             }
           }
           stage("checkout ceph-build") {
@@ -258,17 +274,7 @@ pipeline {
           stage("copy artifacts") {
             steps {
               script {
-                def artifact_filter = "dist/sha1,dist/version,dist/other_envvars,dist/ceph-*.tar.bz2"
-                def os = get_os_info(env.DIST)
-                if ( env.CI_COMPILE && os.pkg_type == "deb" ) {
-                  artifact_filter += ",dist/ceph_*.diff.gz,dist/ceph_*.dsc"
-                }
-                println artifact_filter
-                copyArtifacts(
-                  projectName: env.SETUP_JOB,
-                  selector: specific(buildNumber: env.SETUP_BUILD_ID),
-                  filter: artifact_filter,
-                )
+                copy_artifacts(env)
               }
               sh 'sudo journalctl --show-cursor -n 0 --no-pager | tail -n1 | cut -d\" \" -f3 > $WORKSPACE/cursor'
               script {
