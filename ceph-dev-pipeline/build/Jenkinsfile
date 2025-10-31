@@ -178,7 +178,10 @@ pipeline {
               environment name: "CI_COMPILE", value: "true"
               allOf {
                 environment name: "CI_CONTAINER", value: "true"
-                environment name: "DIST", value: "rocky10"
+                anyOf {
+                  expression { env.DIST.startsWith("centos") }
+                  expression { env.DIST.startsWith("rocky") }
+                }
               }
             }
           }
@@ -605,7 +608,10 @@ pipeline {
           stage("container") {
             when {
               environment name: "CI_CONTAINER", value: "true"
-              environment name: "DIST", value: "rocky10"
+              anyOf {
+                expression { env.DIST.startsWith("centos") }
+                expression { env.DIST.startsWith("rocky") }
+              }
             }
             environment {
               CONTAINER_REPO_CREDS = credentials('quay-ceph-io-ceph-ci')
