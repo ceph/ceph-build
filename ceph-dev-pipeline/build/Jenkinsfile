@@ -1,10 +1,10 @@
-def allDists = ['centos9', 'centos10', 'rocky9', 'rocky10', 'focal', 'jammy', 'noble', 'bookworm'];
-def allArches = ['x86_64', 'arm64'];
-def allFlavors = ['default', 'crimson-release', 'crimson-debug'];
-def crimsonFlavors = ['crimson-release', 'crimson-debug'];
-def containerDists = ['centos9', 'rocky10'];
+def allDists = ['centos9', 'centos10', 'rocky9', 'rocky10', 'focal', 'jammy', 'noble', 'bookworm']
+def allArches = ['x86_64', 'arm64']
+def allFlavors = ['default', 'crimson-release', 'crimson-debug']
+def crimsonFlavors = ['crimson-release', 'crimson-debug']
+def containerDists = ['centos9', 'rocky10']
 def base_node_label = "gigantic"
-def parallelBuilds = [:];
+def parallelBuilds = [:]
 
 pipeline {
   agent any
@@ -12,9 +12,9 @@ pipeline {
     stage("source distribution") {
       steps {
         script {
-          def buildImpl = load 'ceph-dev-pipeline/build/build.groovy';
-          result = buildImpl.build_source_dist(env);
-          env.putAll(result);
+          def buildImpl = load 'ceph-dev-pipeline/build/build.groovy'
+          result = buildImpl.build_source_dist(env)
+          env.putAll(result)
         }
       }
     }
