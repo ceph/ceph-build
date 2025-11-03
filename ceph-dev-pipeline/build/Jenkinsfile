@@ -6,13 +6,15 @@ def containerDists = ['centos9', 'rocky10']
 def base_node_label = "gigantic"
 def parallelBuilds = [:]
 
+def buildImpl;
+
 pipeline {
   agent any
   stages {
     stage("source distribution") {
       steps {
         script {
-          def buildImpl = load 'ceph-dev-pipeline/build/build.groovy'
+          buildImpl = load 'ceph-dev-pipeline/build/build.groovy'
           println(buildImpl)
           result = buildImpl.build_source_dist(env)
           env.putAll(result)
@@ -22,7 +24,6 @@ pipeline {
     stage("parallel build") {
       steps {
         script {
-          def buildImpl = load 'ceph-dev-pipeline/build/build.groovy';
           requestedDists = env.DISTROS.split(' ');
           requestedArchs = env.ARCHS.split(' ');
           requestedFlavors = env.FLAVORS.split(' ');
