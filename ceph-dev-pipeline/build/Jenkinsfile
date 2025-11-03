@@ -13,6 +13,10 @@ import groovy.transform.Field
   "bullseye": "11",
 ]
 @Field Map build_matrix = [:]
+@Field List container_distros = [
+  'centos9',
+  'rocky10',
+]
 
 def get_os_info(dist) {
   def os = [
@@ -606,8 +610,7 @@ pipeline {
           }
           stage("container") {
             when {
-              environment name: "CI_CONTAINER", value: "true"
-              environment name: "DIST", value: "centos9"
+              expression { env.CI_CONTAINER == 'true' && container_distros.contains(env.DIST) }
             }
             environment {
               CONTAINER_REPO_CREDS = credentials('quay-ceph-io-ceph-ci')
