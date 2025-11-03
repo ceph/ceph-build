@@ -13,6 +13,7 @@ pipeline {
       steps {
         script {
           def buildImpl = load 'ceph-dev-pipeline/build/build.groovy'
+          println(buildImpl)
           result = buildImpl.build_source_dist(env)
           env.putAll(result)
         }
