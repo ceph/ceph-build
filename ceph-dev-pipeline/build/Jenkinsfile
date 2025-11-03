@@ -134,32 +134,26 @@ def get_ceph_release_repo_text(base_url) {
   return text.toString()
 }
 
+def buildImpl = load 'ceph-dev-pipeline/build/build.groovy';
+
 pipeline {
   agent any
   stages {
     stage("source distribution") {
       steps {
         script {
-          if ( ! env.SETUP_BUILD_ID ) {
-            def setup_build = build(
-              job: env.SETUP_JOB,
-              parameters: [
-                string(name: "BRANCH", value: env.BRANCH),
-                // Below are just for ceph-source-dist
-                string(name: "SHA1", value: env.SHA1),
-                string(name: "CEPH_REPO", value: env.CEPH_REPO),
-                string(name: "CEPH_BUILD_BRANCH", value: env.CEPH_BUILD_BRANCH),
-                // Below are only for actual releases
-                string(name: 'RELEASE_TYPE',  value: env.RELEASE_TYPE ?: ''),
-                string(name: 'RELEASE_BUILD', value: env.RELEASE_BUILD ?: ''),
-                string(name: 'VERSION',       value: env.VERSION ?: '')
-              ]
-            )
-            env.SETUP_BUILD_ID = setup_build.getNumber()
-          }
-          println "SETUP_BUILD_ID=${env.SETUP_BUILD_ID}"
-          env.SETUP_BUILD_URL = new URI([env.JENKINS_URL, "job", env.SETUP_JOB, env.SETUP_BUILD_ID].join("/")).normalize()
-          println "${env.SETUP_BUILD_URL}"
+          result = buildImpl.build_source_dist([
+            SETUP_JOB: env.SETUP_JOB,
+            SETUP_BUILD_ID: env.SETUP_BUILD_ID,
+            CEPH_REPO: env.CEPH_REPO,
+            BRANCH: env.BRANCH,
+            SHA1: env.SHA1,
+            CEPH_BUILD_BRANCH: env.CEPH_BUILD_BRANCH,
+            RELEASE_TYPE: env.RELEASE_TYPE,
+            RELEASE_BUILD: env.RELEASE_BUILD,
+            VERSION: env.VERSION,
+          ]);
+          env.putAll(result);
         }
       }
     }
