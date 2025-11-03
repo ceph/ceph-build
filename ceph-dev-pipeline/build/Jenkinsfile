@@ -53,10 +53,13 @@ pipeline {
                 if ( crimsonFlavors.contains(FLAVOR) &&  (DIST != 'centos9' || ARCH != 'x86_64') ) continue;
                 if ( env.CI_COMPILE == true || (env.CI_CONTAINER == "true" && containerDists.contains(DIST)) ) { 
                   parallelBuilds["${DIST} ${ARCH} ${FLAVOR}"] = {
-                    node { label "(installed-os-centos9||installed-os-noble)&&${ARCH}&&${base_node_label}" }
-                    buildImpl.do_build([
-                      env: env,
-                    ]);
+                    node {
+                      label "(installed-os-centos9||installed-os-noble)&&${ARCH}&&${base_node_label}"
+                      buildImpl = load 'ceph-dev-pipeline/build/build.groovy'
+                      buildImpl.do_build([
+                        env: env,
+                      ]);
+                    }
                   }
                 }
               }
