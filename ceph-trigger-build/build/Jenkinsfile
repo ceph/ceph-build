@@ -1,11 +1,12 @@
 import groovy.json.JsonBuilder
+import groovy.transform.Field
 
 def pretty(obj) {
   return new JsonBuilder(obj).toPrettyString()
 }
 
 // These parameters are able to be parsed from git trailers
-def gitTrailerParameterNames = [
+@Field def gitTrailerParameterNames = [
   "ARCHS",
   "CEPH_BUILD_BRANCH",
   "CEPH_BUILD_JOB",
@@ -17,7 +18,7 @@ def gitTrailerParameterNames = [
   "SCCACHE",
 ]
 // These are the default parameter values for the pipeline
-def defaults = [
+@Field def defaults = [
   'CEPH_BUILD_JOB': 'ceph-dev-pipeline',
   'DISTROS': 'centos9 jammy noble windows',
   'ARCHS': 'x86_64',
@@ -25,15 +26,15 @@ def defaults = [
 ]
 // This will later hold the initial set of parameters, before any branch-based
 // values are inserted.
-def initialParams = [:]
+@Field def initialParams = [:]
 // this will later hold parameters parsed from git trailers
-def trailerParams = [:]
+@Field def trailerParams = [:]
 // This will later hold one or more parameter sets. Each parameter set will
 // result in a triggered job.
-def paramMaps = []
+@Field def paramMaps = []
 // This will later hold the build's description; we need to store it so that
 // we can append to it later, as there is no way to read it.
-def description = "";
+@Field def description = "";
 
 // This encodes the same logic as the ceph-dev-new-trigger job.
 // It returns a list of one or more parameter sets.
