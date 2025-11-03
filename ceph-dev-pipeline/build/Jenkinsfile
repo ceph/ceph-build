@@ -248,6 +248,7 @@ pipeline {
           }
           stage("copy artifacts") {
             steps {
+              // COPY
               script {
                 def artifact_filter = "dist/sha1,dist/version,dist/other_envvars,dist/ceph-*.tar.bz2"
                 def os = get_os_info(env.DIST)
@@ -261,7 +262,11 @@ pipeline {
                   filter: artifact_filter,
                 )
               }
-              sh 'sudo journalctl --show-cursor -n 0 --no-pager | tail -n1 | cut -d\" \" -f3 > $WORKSPACE/cursor'
+              // MISC
+              script {
+                sh 'sudo journalctl --show-cursor -n 0 --no-pager | tail -n1 | cut -d\" \" -f3 > $WORKSPACE/cursor'
+              }
+              // BUILD DESC
               script {
                 def sha1_trimmed = env.SHA1.trim().toLowerCase()
                 def sha1_props = readProperties file: "${WORKSPACE}/dist/sha1"
@@ -273,14 +278,12 @@ pipeline {
                 }
                 println "SHA1=${sha1_trimmed}"
                 env.VERSION = readFile(file: "${WORKSPACE}/dist/version").trim()
-                script {
-                  // In a release build, dist/other_envvars contains CEPH_REPO, and chacra_url
-                  // as written during ceph-source-dist but we don't to be able to define
-                  // ceph-releases.git or chacra.ceph.com as parameters for ceph-dev-pipeline.
-                  def props = readProperties file: "${WORKSPACE}/dist/other_envvars"
-                  for (p in props) {
-                    env."${p.key}" = p.value
-                  }
+                // In a release build, dist/other_envvars contains CEPH_REPO, and chacra_url
+                // as written during ceph-source-dist but we don't to be able to define
+                // ceph-releases.git or chacra.ceph.com as parameters for ceph-dev-pipeline.
+                def props = readProperties file: "${WORKSPACE}/dist/other_envvars"
+                for (p in props) {
+                  env."${p.key}" = p.value
                 }
                 def branch_ui_value = env.BRANCH
                 def sha1_ui_value = env.SHA1
@@ -306,14 +309,17 @@ pipeline {
                 """.stripIndent()
                 buildDescription build_description
               }
-              sh "sha256sum dist/*"
-              sh "cat dist/sha1 dist/version"
-              sh '''#!/bin/bash
-                set -ex
-                cd dist
-                mkdir ceph
-                tar --strip-components=1 -C ceph -xjf ceph-${VERSION}.tar.bz2 ceph-${VERSION}/{container,ceph.spec,ceph.spec.in,debian,Dockerfile.build,do_cmake.sh,install-deps.sh,run-make-check.sh,make-debs.sh,make-dist,make-srpm.sh,src/script}
-              '''
+              // EXTRACT
+              script {
+                sh "sha256sum dist/*"
+                sh "cat dist/sha1 dist/version"
+                sh '''#!/bin/bash
+                  set -ex
+                  cd dist
+                  mkdir ceph
+                  tar --strip-components=1 -C ceph -xjf ceph-${VERSION}.tar.bz2 ceph-${VERSION}/{container,ceph.spec,ceph.spec.in,debian,Dockerfile.build,do_cmake.sh,install-deps.sh,run-make-check.sh,make-debs.sh,make-dist,make-srpm.sh,src/script}
+                '''
+              }
             }
           }
           stage("check for built packages") {
