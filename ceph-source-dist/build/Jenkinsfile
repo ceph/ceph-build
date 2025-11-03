@@ -1,4 +1,6 @@
-def checkout_ref = ""
+import groovy.transform.Field
+
+@Field def checkout_ref = ""
 
 pipeline {
   agent {
