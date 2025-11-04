@@ -444,9 +444,7 @@ pipeline {
                 switch (env.FLAVOR) {
                   case "default":
                     ceph_extra_cmake_args += " -DALLOCATOR=tcmalloc"
-                    if (env.RELEASE_BUILD?.toBoolean()) {
-                      ceph_extra_cmake_args += " -DWITH_SYSTEM_BOOST=OFF -DWITH_BOOST_VALGRIND=ON"
-                    }
+                    ceph_extra_cmake_args += " -DWITH_SYSTEM_BOOST=OFF -DWITH_BOOST_VALGRIND=ON"
                     break
                   case ~/crimson.*/:
                     deb_build_profiles = "pkg.ceph.crimson";
