@@ -6,12 +6,12 @@ PS4="\$(date --rfc-3339=seconds) + "
 # XXX perhaps use job parameters instead of literals; then
 # later stages can also use them to compare etc.
 # build container image that supports building crimson-osd
-if [[ $CI_CONTAINER == "true" && $DISTRO == "centos" && "$RELEASE" =~ 8|9 ]] ; then
+if [[ $CI_CONTAINER == "true" && $DISTRO =~ centos|rocky|alma && "$RELEASE" =~ 8|9|10 ]] ; then
     podman login -u $CONTAINER_REPO_USERNAME -p $CONTAINER_REPO_PASSWORD $CONTAINER_REPO_HOSTNAME/$CONTAINER_REPO_ORGANIZATION
     loop=0
     ready=false
     while ((loop < 15)); do
-      curl -s "https://shaman.ceph.com/api/search/?project=ceph&distros=centos/${RELEASE}/${ARCH}&sha1=${SHA1}&ref=${BRANCH}&flavor=${FLAVOR}" > shaman.status
+      curl -s "https://shaman.ceph.com/api/search/?project=ceph&distros=${DISTRO}/${RELEASE}/${ARCH}&sha1=${SHA1}&ref=${BRANCH}&flavor=${FLAVOR}" > shaman.status
       if [[ ($(jq -r '.[0].status' < shaman.status) == 'ready') ]]; then
         # If we skipped compilation, we will not have generated a shaman build,
         # so skip validating against extra.build_url
