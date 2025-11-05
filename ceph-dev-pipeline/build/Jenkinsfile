@@ -1,16 +1,22 @@
-ceph_build_repo = "https://github.com/ceph/ceph-build"
-ceph_build_branch = "main"
-base_node_label = "gigantic"
-ubuntu_releases = [
+import groovy.transform.Field
+
+@Field String ceph_build_repo = "https://github.com/ceph/ceph-build"
+@Field String ceph_build_branch = "main"
+@Field String base_node_label = "gigantic"
+@Field Map ubuntu_releases = [
   "noble": "24.04",
   "jammy": "22.04",
   "focal": "20.04",
 ]
-debian_releases = [
+@Field Map debian_releases = [
   "bookworm": "12",
   "bullseye": "11",
 ]
-build_matrix = [:]
+@Field Map build_matrix = [:]
+@Field List container_distros = [
+  'centos9',
+  'rocky10',
+]
 
 def get_os_info(dist) {
   def os = [
@@ -38,7 +44,7 @@ def get_os_info(dist) {
   return os
 }
 
-ceph_release_spec_template = '''
+@Field String ceph_release_spec_template = '''
 Name:           ceph-release
 Version:        1
 Release:        0%{?dist}
@@ -92,7 +98,7 @@ install -pm 644 %{SOURCE0} \
 * Mon Apr 28 2025 Zack Cerza <zack@cerza.org> 1-1
 '''
 
-ceph_release_repo_template = '''
+@Field String ceph_release_repo_template = '''
 [Ceph]
 name=Ceph packages for \\$basearch
 baseurl=${repo_base_url}/\\$basearch
@@ -598,8 +604,7 @@ pipeline {
           }
           stage("container") {
             when {
-              environment name: "CI_CONTAINER", value: "true"
-              environment name: "DIST", value: "centos9"
+              expression { env.CI_CONTAINER == 'true' && container_distros.contains(env.DIST) }
             }
             environment {
               CONTAINER_REPO_CREDS = credentials('quay-ceph-io-ceph-ci')
