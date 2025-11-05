@@ -37,11 +37,11 @@ fi
 
 # distros are not configurable. "rhel" might not exist in every release (for
 # example it doesn't exist for infernalis releases.
-distros=( centos rhel )
+distros=( centos rhel rocky )
 
-# Although upstream these might be "el7" or "el8", we just use these since they
+# Although upstream these might be "el9" or "el10", we just use these since they
 # are the same values used by the build system.
-distro_versions=( 7 8 9 )
+distro_versions=( 9 10 )
 
 # To unlock the gpg keys for the current run, it is requested over STDIN as
 # a password and later passed into GPG directly as a variable.

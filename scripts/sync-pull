@@ -34,10 +34,17 @@ fi
 # Check the the DEB and RPM chacra endpoints to see if the repos are or need updating.
 # This helps prevent packages from getting missed when signing and pushing.
 need_rerun=false
-for endpoint in https://chacra.ceph.com/repos/$project/$release/$sha1/centos/9 https://chacra.ceph.com/repos/$project/$release/$sha1/$highest_combo; do
+for endpoint in https://chacra.ceph.com/repos/$project/$release/$sha1/{centos/9,rocky/10} \
+                https://chacra.ceph.com/repos/$project/$release/$sha1/$highest_combo
+do
   chacra_repo_status=$(curl -s -L $endpoint)
-  chacra_needs_update=$(echo $chacra_repo_status | jq .needs_update)
-  chacra_is_updating=$(echo $chacra_repo_status  | jq .is_updating)
+  if echo "$chacra_repo_status" | jq empty 2>/dev/null; then
+    chacra_needs_update=$(echo $chacra_repo_status | jq .needs_update)
+    chacra_is_updating=$(echo $chacra_repo_status  | jq .is_updating)
+  else
+    echo "Non-JSON response from $endpoint, skipping"
+    continue
+  fi
 
   if [ "$chacra_needs_update" == "true" ] || [ "$chacra_is_updating" == "true" ]; then
     need_rerun=true
@@ -46,22 +53,10 @@ done
 
 relver=$release
 
-if [[ "$project" == "ceph" ]] ; then
-  # We started using the new /opt/repos/ceph/$release-X.X.X format with Octopus.
-  # Older releases have all packages in one big $release dir without a trailing "-X.X.X" so we need to adjust paths accordingly.
-  if [[ "$release" =~ ^[a-n].* ]]; then
-    newgen=false
-  else
-    newgen=true
-    # Get numerical version number (we only need this with Octopus or later because of the new directory/path scheme).
-    version=$(echo $chacra_repo_status | jq -r .extra.version)
-    relver=$release-$version
-  fi
-  [[ -d /opt/repos/$project/$relver ]] || mkdir -p /opt/repos/$project/$relver/{debian/jessie,centos/9}
-else
-  # not ceph (i.e. ceph-iscsi)
-  [[ -d /opt/repos/$project/$relver ]] || mkdir -p /opt/repos/$project/$relver/centos/9
-fi
+# Get numerical version
+version=$(echo $chacra_repo_status | jq -r .extra.version)
+relver=$release-$version
+mkdir -p /opt/repos/$project/$relver/{debian/jessie,centos/9,rocky/10}
 
 if [[ "$project" == "ceph" ]] ; then
   # Replace $highest_combo with your own DISTRO/VERSION if you don't want to sync from the repo with the most packages.
@@ -73,11 +68,15 @@ if [[ "$project" == "ceph" ]] ; then
   fi
 fi
 
-for el_version in 9; do
-  el_cmd="ubuntu@chacra.ceph.com:/opt/repos/$project/$release/$sha1/centos/$el_version/flavors/default/* /opt/repos/$project/$relver/centos/$el_version/"
-  echo $el_cmd
+for el_version in centos/9 rocky/10; do
   echo "--------------------------------------------"
-  rsync -Lavh --progress $el_cmd
+  if curl -fs --head --connect-timeout 5 --max-time 10 https://shaman.ceph.com/api/repos/$project/$release/$sha1/$el_version/flavors/default/ >/dev/null 2>&1; then
+    el_cmd="ubuntu@chacra.ceph.com:/opt/repos/$project/$release/$sha1/$el_version/flavors/default/* /opt/repos/$project/$relver/$el_version/"
+    echo $el_cmd
+    rsync -Lavh --progress $el_cmd
+  else
+    echo "Shaman thinks a repo for $el_version doesn't exist.  Skipping."
+  fi
 done
 
 if [[ "$project" == "ceph" ]]; then

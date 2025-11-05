@@ -101,6 +101,12 @@ pipeline {
                 echo "RELEASE_BUILD=true" >> dist/other_envvars
                 echo "chacra_url=https://chacra.ceph.com/" >> dist/other_envvars
                 echo "BRANCH=${BRANCH}-release" > dist/branch
+
+                echo "Creating tar.gz for upstream release"
+                pushd dist
+                bunzip2 ceph-$ceph_version_tarball.$extension
+                gzip ceph-$ceph_version_tarball.tar.gz
+                popd
               else
                 echo "BRANCH=${BRANCH}" > dist/branch
               fi

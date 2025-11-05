@@ -57,18 +57,8 @@ project_sync() {
     if [[ "$project" == "ceph" ]] ; then
       version=$(echo $path | cut -d '-' -f2)
       release=$(echo $release | cut -d '-' -f1)
-      # We started using the new /opt/repos/ceph/$release-X.X.X format with Octopus.
-      # Older releases have all packages in one big $release dir without a trailing "-X.X.X" so we need to adjust paths accordingly.
-      if [[ "$release" =~ ^[a-n].* ]]; then
-        # Nautilus and older
-        debian_path=debian-$release
-        rpm_path=rpm-$release
-      else
-        # Octopus and newer
-        newgen=true
-        debian_path=debian-$version
-        rpm_path=rpm-$version
-      fi
+      debian_path=debian-$version
+      rpm_path=rpm-$version
       dcc_deb_path=${prerelease_dir}/${debian_path}
       dcc_rpm_path=${prerelease_dir}/${rpm_path}
     else
@@ -84,27 +74,36 @@ project_sync() {
     fi
 
     if [[ -n "${dcc_rpm_path}" ]] ; then
-      for el_version in 8 9; do
-        ssh signer@download.ceph.com "mkdir -p ${dcc_rpm_path}/el$el_version"
+      for el_version in 9 10; do
+        case "$el_version" in
+          9)
+            distro="centos"
+            ;;
+          10)
+            distro="rocky"
+            ;;
+        esac
+
+        ssh signer@download.ceph.com "mkdir -p ${dcc_rpm_path}/el${el_version}"
         destpath="signer@download.ceph.com:${dcc_rpm_path}/el${el_version}"
-        el_cmd="$path/centos/$el_version/* ${destpath}"
-        if [ -d "$path/centos/$el_version" ]; then
-          rsync --progress -avr $el_cmd
+        el_cmd="$path/${distro}/${el_version}/* ${destpath}"
+
+        if [ -d "$path/${distro}/${el_version}" ]; then
+          rsync --progress -avr $el_cmd || true
         fi
+
         if [[ "$project" == "ceph-iscsi" ]]; then
           echo "$(make_repofile ${project} ${release} ${el_version})" > ceph-iscsi.repo
           rsync --progress -avr ceph-iscsi.repo ${destpath}
         fi
       done
     fi
-done
+  done
 
   # Since paths are listed alphabetically/numerically in the first `for` loop, the last $version is what gets used for the new symlink below.
-  if $newgen; then
-    ssh signer@download.ceph.com "cd ${prerelease_dir}/; \
-                                  ln -sfn debian-$version debian-$release; \
-                                  ln -sfn rpm-$version rpm-$release"
-  fi
+  ssh signer@download.ceph.com "cd ${prerelease_dir}/; \
+                                ln -sfn debian-$version debian-$release; \
+                                ln -sfn rpm-$version rpm-$release"
 }
 
 for i in "${releases[@]}"
