@@ -225,17 +225,11 @@ pipeline {
             steps {
               script {
                 build_matrix["${DIST}_${ARCH}"] = env.CI_COMPILE.toBoolean()
-                sh "hostname -f"
+                println("Building: DIST=${env.DIST} ARCH=${env.ARCH} FLAVOR=${env.FLAVOR}")
                 def node_shortname = env.NODE_NAME.split('\\+')[-1]
                 def node_url = new URI([env.JENKINS_URL, "computer", env.NODE_NAME].join("/")).normalize()
-                println("DIST=${env.DIST} ARCH=${env.ARCH} FLAVOR=${env.FLAVOR}")
-                println("${node_shortname}")
+                println("Node: ${node_shortname}")
                 println("${node_url}")
-                def os = get_os_info(env.DIST)
-                println("OS_NAME=${os.name}")
-                println("OS_PKG_TYPE=${os.pkg_type}")
-                println("OS_VERSION=${os.version}")
-                println("OS_VERSION_NAME=${os.version_name}")
               }
               sh './scripts/setup_container_runtime.sh'
               sh "cat /etc/os-release"
