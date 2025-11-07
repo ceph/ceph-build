@@ -445,6 +445,9 @@ pipeline {
                   case "default":
                     ceph_extra_cmake_args += " -DALLOCATOR=tcmalloc"
                     ceph_extra_cmake_args += " -DWITH_SYSTEM_BOOST=OFF -DWITH_BOOST_VALGRIND=ON"
+                    if (os.version_name == "focal") {
+                      ceph_extra_cmake_args += " -DWITH_STATIC_LIBSTDCXX=ON"
+                    }
                     break
                   case ~/crimson.*/:
                     deb_build_profiles = "pkg.ceph.crimson";
