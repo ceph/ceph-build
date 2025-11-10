@@ -200,7 +200,7 @@ pipeline {
           }
           axes {
             name 'FLAVOR'
-            values 'default', 'crimson-release', 'crimson-debug'
+            values 'default', 'crimson-debug'
           }
         }
         // crimson is only supported on centos9 x86_64
@@ -208,7 +208,7 @@ pipeline {
           exclude {
             axis {
               name 'FLAVOR'
-              values 'crimson-release', 'crimson-debug'
+              values 'crimson-debug'
             }
             axis {
               name 'DIST'
@@ -218,7 +218,7 @@ pipeline {
           exclude {
             axis {
               name 'FLAVOR'
-              values 'crimson-release', 'crimson-debug'
+              values 'crimson-debug'
             }
             axis {
               name 'ARCH'
@@ -451,10 +451,6 @@ pipeline {
                   case "crimson-debug":
                     ceph_extra_cmake_args += " -DWITH_CRIMSON=true -DCMAKE_BUILD_TYPE=Debug"
                     deb_build_profiles = "pkg.ceph.crimson"
-                    break
-                  case "crimson-release":
-                    ceph_extra_cmake_args += " -DWITH_CRIMSON=true"
-                    deb_build_profiles = "pkg.ceph.crimson";
                     break
                   default:
                     println "FLAVOR=${env.FLAVOR} is invalid"

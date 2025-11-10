@@ -103,7 +103,6 @@
       # build main on:
       # default: noble jammy centos9 windows
       # crimson-debug: centos9
-      # crimson-release: centos9
       - conditional-step:
           condition-kind: regex-match
           regex: .*main.*
@@ -126,13 +125,6 @@
                     FORCE=True
                     DISTROS=centos9
                     FLAVOR=crimson-debug
-                    ARCHS=x86_64
-                - project: 'ceph-dev'
-                  predefined-parameters: |
-                    BRANCH=${{GIT_BRANCH}}
-                    FORCE=True
-                    DISTROS=centos9
-                    FLAVOR=crimson-release
                     ARCHS=x86_64
 
     wrappers:

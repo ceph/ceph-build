@@ -65,17 +65,6 @@
                   break
               fi
           done
-          if test {osd-flavor} = "crimson-release" ; then
-              export WITH_CRIMSON=true
-              # TODO use clang-10 on ubuntu/focal
-              timeout 7200 src/script/run-make.sh \
-                --cmake-args "-DCMAKE_CXX_COMPILER=$cxx_compiler -DCMAKE_C_COMPILER=$c_compiler -DCMAKE_BUILD_TYPE=Release -DWITH_CRIMSON=ON -DWITH_TESTS=OFF" \
-                vstart-base crimson-osd
-              src/script/run-cbt.sh --build-dir $PWD/build --source-dir $PWD --cbt ${{WORKSPACE}}/cbt -a $archive_dir src/test/crimson/cbt/radosbench_4K_read.yaml
-          else
-              timeout 7200 src/script/run-make.sh --cmake-args "-DCMAKE_BUILD_TYPE=Release -DWITH_TESTS=OFF" vstart-base
-              src/script/run-cbt.sh --build-dir $PWD/build --source-dir $PWD --cbt ${{WORKSPACE}}/cbt -a $archive_dir src/test/crimson/cbt/radosbench_4K_read.yaml --classical
-          fi
 
 - builder:
     name: compare-cbt-results
@@ -247,7 +236,6 @@
     name: ceph-perf
     osd-flavor:
       - crimson-debug
-      - crimson-release
       - classic
     jobs:
       - ceph-perf-{osd-flavor}

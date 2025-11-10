@@ -139,7 +139,6 @@
       # Build only the `crimson` flavour, don't waste resources on the default one.
       # Useful for the crimson's bug-hunt at Sepia
       # crimson-debug: centos9
-      # crimson-release: centos9
       - conditional-step:
           condition-kind: regex-match
           regex: .*crimson-only.*
@@ -157,14 +156,6 @@
                     FORCE=True
                     DISTROS=centos9
                     FLAVOR=crimson-debug
-                    ARCHS=x86_64
-            - trigger-builds:
-                - project: 'ceph-dev-new'
-                  predefined-parameters: |
-                    BRANCH=${{GIT_BRANCH}}
-                    FORCE=True
-                    DISTROS=centos9
-                    FLAVOR=crimson-release
                     ARCHS=x86_64
       # sccache
       - conditional-step:

@@ -54,9 +54,8 @@ If this is checked, then the binaries will be built and pushed to chacra even if
           choices:
             - default
             - crimson-debug
-            - crimson-release
           default: "default"
-          description: "Type of Ceph build, choices are: crimson-debug, crimson-release, default. Defaults to: 'default'"
+          description: "Type of Ceph build, choices are: crimson-debug, default. Defaults to: 'default'"
 
       - bool:
           name: CI_CONTAINER

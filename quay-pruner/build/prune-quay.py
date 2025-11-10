@@ -20,7 +20,7 @@ page_limit = 100000
 NAME_RE = re.compile(
     r'(.*)-([0-9a-f]{7})-centos-.*([0-9]+)-(x86_64|aarch64)-devel'
 )
-SHA1_RE = re.compile(r'([0-9a-f]{40})(-crimson-debug|-crimson-release|-aarch64)*')
+SHA1_RE = re.compile(r'([0-9a-f]{40})(-crimson-debug|-aarch64)*')
 
 
 def get_all_quay_tags(quaytoken):
@@ -291,7 +291,7 @@ def main():
                 continue
             # <sha1>-crimson tags don't have full or ref tags to go with.
             # Delete them iff the default <sha1> tag is to be deleted
-            if match[2] in ('-crimson', '-crimson-debug', '-crimson-release') and sha1 in tags_to_delete:
+            if match[2] in ('-crimson', '-crimson-debug') and sha1 in tags_to_delete:
                 if args.verbose:
                     print(
                         'Marking %s for deletion: orphaned sha1 tag' % name

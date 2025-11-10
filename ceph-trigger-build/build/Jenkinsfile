@@ -73,9 +73,8 @@ def params_from_branch(initialParams) {
       if ( !singleSet ) {
         params << params[0].clone()
         params[0]['FLAVOR'] = 'crimson-debug'
-        params[1]['FLAVOR'] = 'crimson-release'
       } else {
-        params[0]['FLAVOR'] = 'crimson-debug crimson-release'
+        params[0]['FLAVOR'] = 'crimson-debug'
       }
       break
     default:

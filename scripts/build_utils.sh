@@ -889,10 +889,6 @@ ceph_build_args_from_flavor() {
         DEB_BUILD_PROFILES="pkg.ceph.crimson"
         CEPH_EXTRA_CMAKE_ARGS+=" -DCMAKE_BUILD_TYPE=Debug"
         ;;
-    crimson-release)
-        CEPH_EXTRA_RPMBUILD_ARGS="--with crimson"
-        DEB_BUILD_PROFILES="pkg.ceph.crimson"
-        ;;
     *)
         echo "unknown FLAVOR: ${FLAVOR}" >&2
         exit 1
