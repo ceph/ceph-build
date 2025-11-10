@@ -636,7 +636,7 @@ pipeline {
           always {
             script {
               sh 'hostname'
-              sh 'sudo journalctl -k -c $(cat ${WORKSPACE}/cursor)'
+              sh 'test -r ${WORKSPACE}/cursor && sudo journalctl -k -c $(cat ${WORKSPACE}/cursor)'
               sh 'podman unshare chown -R 0:0 ${WORKSPACE}/'
             }
           }
