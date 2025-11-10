@@ -449,7 +449,11 @@ pipeline {
                       ceph_extra_cmake_args += " -DWITH_STATIC_LIBSTDCXX=ON"
                     }
                     break
-                  case ~/crimson.*/:
+                  case "crimson-debug":
+                    deb_build_profiles = "pkg.ceph.crimson"
+                    ceph_extra_cmake_args += " -DCMAKE_BUILD_TYPE=Debug"
+                    break
+                  case "crimson-release":
                     deb_build_profiles = "pkg.ceph.crimson";
                     break
                   default:
