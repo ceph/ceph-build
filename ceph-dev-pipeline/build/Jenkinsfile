@@ -377,7 +377,6 @@ pipeline {
                 sh """#!/bin/bash
                   set -ex
                   echo > .env
-                  [[ $FLAVOR == crimson* ]] && echo "WITH_CRIMSON=true" >> .env || true
                   cd dist/ceph
                   python3 src/script/build-with-container.py --env-file=${env.WORKSPACE}/.env --image-repo=${env.CEPH_BUILDER_IMAGE} --tag=${ceph_builder_tag} --image-variant=packages -d ${DIST} -e build-container
                   podman tag ${env.CEPH_BUILDER_IMAGE}:${ceph_builder_tag} ${env.CEPH_BUILDER_IMAGE}:${ceph_builder_tag_short}
@@ -450,10 +449,11 @@ pipeline {
                     }
                     break
                   case "crimson-debug":
+                    ceph_extra_cmake_args += " -DWITH_CRIMSON=true -DCMAKE_BUILD_TYPE=Debug"
                     deb_build_profiles = "pkg.ceph.crimson"
-                    ceph_extra_cmake_args += " -DCMAKE_BUILD_TYPE=Debug"
                     break
                   case "crimson-release":
+                    ceph_extra_cmake_args += " -DWITH_CRIMSON=true"
                     deb_build_profiles = "pkg.ceph.crimson";
                     break
                   default:
