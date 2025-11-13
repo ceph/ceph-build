@@ -47,8 +47,9 @@ function setup_container_runtime () {
       if [ -d "$PODMAN_STORAGE_DIR" ]; then
         sudo chgrp -R "$(groups | cut -d' ' -f1)" "$PODMAN_STORAGE_DIR"
         if [ "$(podman unshare du -s --block-size=1G "$PODMAN_STORAGE_DIR" | awk '{print $1}')" -ge 50 ]; then
+          time podman system prune --force || \
+            time podman image prune --force --all --external
           time podman image prune --filter=until="$((24*7))h" --all --force
-          time podman system prune --force
           if [ "$(podman version -f "{{ ge .Client.Version \"5\" }}")" = "true" ]; then
             time podman system check --repair --quick
           fi
