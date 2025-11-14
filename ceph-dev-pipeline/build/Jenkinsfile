@@ -338,9 +338,15 @@ pipeline {
             steps {
               script {
                 def os = get_os_info(env.DIST)
-                def shaman_endpoint = "https://shaman.ceph.com/api/repos/ceph/${env.BRANCH}/${env.SHA1}/${os.name}/${os.version_name}"
+                def shaman_endpoint = "https://shaman.ceph.com/api/repos/ceph/${env.BRANCH}/${env.SHA1}/${os.name}/${os.version_name}/"
                 def chacra_repo_url = sh(
-                  script: '''curl -s -S --retry 4 ${shaman_endpoint} | jq -r 'first(.[] | select(.flavor == "env.FLAVOR" and (.archs | any(. == "env.ARCH")) and .status=="ready")) | .chacra_url' ''',
+                  script: """curl -s -S --retry 4 ${shaman_endpoint} | 
+                      jq -r '
+                        first(.[] | select(.flavor == env.FLAVOR
+                        and (.archs | any(. == env.ARCH))
+                        and .status=="ready"))
+                      | .chacra_url'
+                  """,
                   returnStdout: true
                 ).trim()
                 if ( chacra_repo_url != "" && env.FORCE != "true" ) {
