@@ -5,20 +5,20 @@ import sys
 from collections import defaultdict
 from datetime import datetime, timezone
 
-QUAYBASE = "https://quay.ceph.io/api/v1"
+QUAYBASE = "https://quay.ceph.io/"
+QUAYAPI = QUAYBASE + "api/v1/"
 REPO = "ceph-ci/ceph"
 
 # cache shaman search results so we only have to ask once
 sha1_cache = set()
 tags_done = set()
 
-# XXX why aren't these using named groups
 #
 # example full tag:
 # ceph-nvmeof-mon-5295149-centos-stream8-x86_64-devel
 # ^^^^ ref        ^^sha1  ^dist  ^^dver  ^arch  ^assumed
 OLD_FULLTAG_RE = re.compile(
-    r'(.*)-([-2-9a-f]{7})-centos-.*([0-9]+)-(x86_64|aarch64)-devel'
+    r'(?P<ref>.*)-(?P<shortsha1>[-2-9a-f]{7})-centos-.*(?P<el>[0-9]+)-(?P<arch>x86_64|aarch64)-devel'
 )
 # ^ this was originally true.  Now, when dmick introduced
 # container/build.sh, he forgot about the short sha1 altogether,
@@ -27,33 +27,43 @@ OLD_FULLTAG_RE = re.compile(
 # there could also be more suffixes, but they don't matter to the algorithm
 # (for that matter, neither do most of these fields)
 FULLTAG_RE = re.compile(
-    r'(.*)-(centos|rockylinux)-.*([-2-9]+)-(x86_64|aarch64)-devel'
+    r'(?P<ref>.*)-(?P<distro>centos|rockylinux)-.*(?P<el>[0-9]+)-(?P<arch>x86_64|aarch64)-devel'
 )
 
 # example sha1 tag:
 # 1d7b744e98c74bba9acb22262ef14c776a1e8bfe-crimson-{debug,release}
 # there are also still older tags with just '-crimson' which ought to still
 # be handled here
-SHA1_RE = re.compile(r'([0-9a-f]{40})(-crimson-debug|-crimson-release|-crimson|-aarch64)*')
+#SHA1_RE = re.compile(r'(?P<sha1>[0-9a-f]{40})(?P<flav_or_arch>-crimson-debug|-crimson-release|-crimson|-aarch64)*')
 # ...but, now that we've added an option fromtag, and apparently
 # switched to arm62, it's more like
-SHA1_RE = re.compile(r'([0-9a-f]{40})([a-z0-9-]+)*(-crimson-debug|-crimson-release|-crimson|-aarch64)*')
+SHA1_RE = re.compile(r'(?P<sha1>[0-9a-f]{40})(?P<fromtag>[a-z0-9-]+)*(?P<flav_or_arch>-crimson-debug|-crimson-release|-crimson|-aarch64)*')
 
 
 def parse_full_quay_tag(tag, old=False):
     if old:
         mo = OLD_FULLTAG_RE.match(tag)
-        # parsed, ref, shortsha1, el, arch
         if not mo:
             return False, None, None, None, None
-        return True, mo[1], mo[2], mo[3], mo[4]
-
+        return (
+            True,
+            mo.group('ref'),
+            mo.group('shortsha1'),
+            mo.group('el'),
+            mo.group('arch'),
+        )
     else:
         mo = FULLTAG_RE.match(tag)
         # parsed, ref, distro, el, arch
         if mo is None:
             return False, None, None, None, None
-        return True, mo[1], mo[2], mo[3], mo[4]
+        return (
+            True,
+            mo.group('ref'),
+            mo.group('distro'),
+            mo.group('el'),
+            mo.group('arch'),
+        )
 
 
 def parse_sha1_quay_tag(tag):
@@ -61,7 +71,12 @@ def parse_sha1_quay_tag(tag):
     # parsed, sha1, fromtag, flav_or_arch
     if mo is None:
         return False, None, None, None
-    return True, mo[1], mo[2], mo[3]
+    return (
+        True,
+        mo.group('sha1'),
+        mo.group('fromtag'),
+        mo.group('flav_or_arch'),
+    )
 
 
 def get_all_quay_tags(quaytoken, start, npages):
@@ -79,7 +94,7 @@ def get_all_quay_tags(quaytoken, start, npages):
     while has_additional and page < page_limit:
         try:
             response = requests.get(
-                '/'.join((QUAYBASE, 'repository', REPO, 'tag')),
+                '/'.join((QUAYAPI, 'repository', REPO, 'tag')),
                 params={'page': page, 'limit': 98, 'onlyActiveTags': 'true'},
                 headers=headers,
                 timeout=28,
@@ -87,7 +102,7 @@ def get_all_quay_tags(quaytoken, start, npages):
             response.raise_for_status()
         except requests.exceptions.RequestException as e:
             print(
-                'Quay.io request',
+                'quay request',
                 response.url,
                 'failed:',
                 e,
@@ -205,14 +220,14 @@ def sha1_present_in_shaman(sha1, verbose):
     return False
 
 
-def delete_from_quay(tagname, date, quaytoken, dryrun):
-    if dryrun:
+def delete_from_quay(tagname, date, quaytoken, dry_run):
+    if dry_run:
         print('Would delete from quay:', tagname, date)
         return
 
     try:
         response = requests.delete(
-            '/'.join((QUAYBASE, 'repository', REPO, 'tag', tagname)),
+            '/'.join((QUAYAPI, 'repository', REPO, 'tag', tagname)),
             headers={'Authorization': 'Bearer %s' % quaytoken},
             timeout=28,
         )

@@ -24,7 +24,7 @@ def parse_args():
 def main():
     args = parse_args()
 
-    print('Getting ceph-ci container tags from quay.ceph.io', file=sys.stderr)
+    print(f'Getting tags from {util.QUAYBASE}{util.REPO}', file=sys.stderr)
     quaytags, digest_to_tags = util.get_all_quay_tags(None, args.start, args.pages)
 
     tagdates = defaultdict(str)

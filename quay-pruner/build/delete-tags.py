@@ -15,8 +15,8 @@ def parse_args():
                         help="number of pages")
     parser.add_argument('-S', '--stragglers', type=int,
                         metavar="DAYS_OLD",
-                        help="find stragglers and delete them")
-    parser.add_argument('-n', '--dryrun', action='store_true',
+                        help="find stragglers and delete them; stragglers are currently \"anything older than the given age in days that doesn't have one of the recent release names in its tag\"; this is a heuristic that will change over time")
+    parser.add_argument('-n', '--dry-run', action='store_true',
                         help="don't actually delete")
     parser.add_argument('-v', '--verbose', action='count', default=0,
                         help="say more (-vv for more info)")
@@ -29,7 +29,7 @@ def main():
 
     tags_to_delete = list()
     quaytoken = None
-    if not args.dryrun:
+    if not args.dry_run:
         if 'QUAYTOKEN' in os.environ:
             quaytoken = os.environ['QUAYTOKEN']
         else:
@@ -38,7 +38,7 @@ def main():
                 'rb'
             ).read().strip().decode()
 
-    print('Getting ceph-ci container tags from quay.ceph.io', file=sys.stderr)
+    print(f'Getting tags from {util.QUAYBASE}{util.REPO}', file=sys.stderr)
     quaytags, digest_to_tags = util.get_all_quay_tags(quaytoken, args.start, args.pages)
 
     if args.stragglers:
@@ -49,11 +49,6 @@ def main():
                 if any([r in t for t in alltags for r in ('quincy', 'reef', 'squid', 'tentacle')]):
                     print(f'skipping {alltags}, looks distinguished')
                     continue
-                '''
-                if len(alltags) > 1:
-                    print(f'{tag["name"]} has friends {alltags}, leaving for now')
-                    continue
-                '''
                 print(f'Marking {tag["name"]}')
                 tags_to_delete.append((alltags, date))
     else:
@@ -76,7 +71,7 @@ def main():
     # and now delete all the ones we found
     for alltags, date in tags_to_delete:
         for tagname in alltags:
-            util.delete_from_quay(tagname, date, quaytoken, args.dryrun)
+            util.delete_from_quay(tagname, date, quaytoken, args.dry_run)
 
 
 if __name__ == "__main__":

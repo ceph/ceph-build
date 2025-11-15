@@ -16,7 +16,7 @@ def parse_args():
                         help="start page (of 100 tags)")
     parser.add_argument('-p', '--pages', type=int, default=100000,
                         help="number of pages")
-    parser.add_argument('-n', '--dryrun', action='store_true',
+    parser.add_argument('-n', '--dry-run', action='store_true',
                         help="don't actually delete")
     parser.add_argument('-v', '--verbose', action='count', default=0,
                         help="say more (-vv for more info)")
@@ -34,7 +34,7 @@ def main():
     args = parse_args()
 
     quaytoken = None
-    if not args.dryrun:
+    if not args.dry_run:
         if 'QUAYTOKEN' in os.environ:
             quaytoken = os.environ['QUAYTOKEN']
         else:
@@ -43,7 +43,7 @@ def main():
                 'rb'
             ).read().strip().decode()
 
-    print('Getting ceph-ci container tags from quay.ceph.io', file=sys.stderr)
+    print(f'Getting tags from {util.QUAYBASE}{util.REPO}', file=sys.stderr)
     quaytags, digest_to_tags = util.get_all_quay_tags(quaytoken, args.start, args.pages)
 
     tagstat = defaultdict(int)
@@ -123,7 +123,7 @@ def main():
     # and now delete all the ones we found
     for (alltags, date) in tags_to_delete:
         for tagname in alltags:
-            util.delete_from_quay(tagname, date, quaytoken, args.dryrun)
+            util.delete_from_quay(tagname, date, quaytoken, args.dry_run)
         tagstat['deleted'] += 1
         tagstat['subtags_deleted'] += len(alltags)
 
