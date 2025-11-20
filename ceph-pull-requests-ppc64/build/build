@@ -1,0 +1,59 @@
+#!/bin/bash -ex
+
+docs_pr_only
+container_pr_only
+gha_pr_only
+qa_pr_only
+if [[ "$DOCS_ONLY" = true || "$CONTAINER_ONLY" = true || "$GHA_ONLY" == true || "$QA_ONLY" == true ]]; then
+  echo "Only the doc/, container/, qa/ or .github/ dir changed.  No need to run make check."
+  exit 0
+fi
+
+NPROC=$(nproc)
+NPMCACHE=${HOME}/npmcache
+cat >.env <<EOF
+NPROC=${NPROC}
+MAX_PARALLEL_JOBS=${NPROC}
+WITH_RBD_RWL=true
+WITHOUT_DASHBOARD=true
+WITHOUT_BREAKPAD=true
+DISABLE_WERROR=true
+DISABLE_FIO=true
+JENKINS_HOME=${JENKINS_HOME}
+REWRITE_COVERAGE_ROOTDIR=${PWD}/src/pybind/mgr/dashboard/frontend
+EOF
+# TODO: enable (read-only?) sccache support
+#npm_cache_info() {
+#  echo '===== npm cache info ======='
+#  du -sh "${NPMCACHE}" || echo "${NPMCACHE} not present"
+#  echo '============================'
+#}
+bwc() {
+  # specify timeout in hours for $1
+  local timeout=$(($1 * 60 * 60))
+  shift
+  timeout "${timeout}" ./src/script/build-with-container.py \
+    -d "${DISTRO_BASE:-centos9}" \
+    --env-file="${PWD}/.env" \
+    --current-branch="${GIT_BRANCH:-main}" \
+    -t+ppc64 \
+    "${@}"
+}
+
+podman login -u ${DOCKER_HUB_USERNAME} -p ${DOCKER_HUB_PASSWORD} docker.io
+
+#npm_cache_info
+bwc 1 -e configure
+# try to pre-load the npm cache so that it doesn't fail
+# during the normal build step
+#for i in {0..5}; do
+#  bwc 1 -e custom -- \
+#    cmake --build build -t mgr-dashboard-frontend-deps && break
+#  echo "Warning: Attempt $((i + 1)) to cache npm packages failed."
+#  sleep $((10 + 30 * i))
+#done
+#npm_cache_info
+bwc 4 -e tests
+#npm_cache_info
+sleep 5
+ps -ef | grep -v jnlp | grep ceph || true
