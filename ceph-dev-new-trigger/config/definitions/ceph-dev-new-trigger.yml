@@ -68,7 +68,7 @@
                     DISTROS=noble jammy centos9 windows
       # build tentacle on:
       # default: noble jammy centos9 windows
-      # crimson: centos9
+      # debug: centos9
       - conditional-step:
           condition-kind: regex-match
           regex: .*tentacle.*
@@ -90,14 +90,14 @@
                     BRANCH=${{GIT_BRANCH}}
                     FORCE=True
                     DISTROS=centos9
-                    FLAVOR=crimson-debug
+                    FLAVOR=debug
                     ARCHS=x86_64
       # If no release name is found in branch, build on all possible distro/flavor combos (except xenial, bionic, focal).
       # regex matching and 'on-evaluation-failure: run' doesn't work here so triple negative it is.
       - conditional-step:
           condition-kind: shell
           condition-command: |
-            echo "${{GIT_BRANCH}}" | grep -v '\(reef\|squid\|tentacle\|centos9-only\|crimson-only\)'
+            echo "${{GIT_BRANCH}}" | grep -v '\(reef\|squid\|tentacle\|centos9-only\)'
           on-evaluation-failure: dont-run
           steps:
             - shell:
@@ -116,9 +116,9 @@
                     BRANCH=${{GIT_BRANCH}}
                     FORCE=True
                     DISTROS=centos9
-                    FLAVOR=crimson-debug
+                    FLAVOR=debug
                     ARCHS=x86_64
-      # build only centos9, no crimson
+      # build only centos9, default and debug
       - conditional-step:
           condition-kind: regex-match
           regex: .*centos9-only.*
@@ -136,35 +136,13 @@
                     FORCE=True
                     DISTROS=centos9
                     ARCHS=x86_64
-      # Build only the `crimson` flavour, don't waste resources on the default one.
-      # Useful for the crimson's bug-hunt at Sepia
-      # crimson-debug: centos9
-      # crimson-release: centos9
-      - conditional-step:
-          condition-kind: regex-match
-          regex: .*crimson-only.*
-          label: '${{GIT_BRANCH}}'
-          on-evaluation-failure: dont-run
-          steps:
-            - shell:
-                !include-raw-verbatim:
-                - ../../../scripts/build_utils.sh
-                - ../../build/notify
             - trigger-builds:
                 - project: 'ceph-dev-new'
                   predefined-parameters: |
                     BRANCH=${{GIT_BRANCH}}
                     FORCE=True
                     DISTROS=centos9
-                    FLAVOR=crimson-debug
-                    ARCHS=x86_64
-            - trigger-builds:
-                - project: 'ceph-dev-new'
-                  predefined-parameters: |
-                    BRANCH=${{GIT_BRANCH}}
-                    FORCE=True
-                    DISTROS=centos9
-                    FLAVOR=crimson-release
+                    FLAVOR=debug
                     ARCHS=x86_64
       # sccache
       - conditional-step:

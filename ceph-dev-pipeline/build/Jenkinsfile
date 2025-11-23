@@ -200,15 +200,15 @@ pipeline {
           }
           axes {
             name 'FLAVOR'
-            values 'default', 'crimson-release', 'crimson-debug'
+            values 'default', 'debug'
           }
         }
-        // crimson is only supported on centos9 x86_64
+        // debug flavor is currently only supported on centos9 x86_64
         excludes {
           exclude {
             axis {
               name 'FLAVOR'
-              values 'crimson-release', 'crimson-debug'
+              values 'debug'
             }
             axis {
               name 'DIST'
@@ -218,7 +218,7 @@ pipeline {
           exclude {
             axis {
               name 'FLAVOR'
-              values 'crimson-release', 'crimson-debug'
+              values 'debug'
             }
             axis {
               name 'ARCH'
@@ -377,7 +377,6 @@ pipeline {
                 sh """#!/bin/bash
                   set -ex
                   echo > .env
-                  [[ $FLAVOR == crimson* ]] && echo "WITH_CRIMSON=true" >> .env || true
                   cd dist/ceph
                   python3 src/script/build-with-container.py --env-file=${env.WORKSPACE}/.env --image-repo=${env.CEPH_BUILDER_IMAGE} --tag=${ceph_builder_tag} --image-variant=packages -d ${DIST} -e build-container
                   podman tag ${env.CEPH_BUILDER_IMAGE}:${ceph_builder_tag} ${env.CEPH_BUILDER_IMAGE}:${ceph_builder_tag_short}
@@ -449,12 +448,8 @@ pipeline {
                       ceph_extra_cmake_args += " -DWITH_STATIC_LIBSTDCXX=ON"
                     }
                     break
-                  case "crimson-debug":
-                    deb_build_profiles = "pkg.ceph.crimson"
+                  case "debug":
                     ceph_extra_cmake_args += " -DCMAKE_BUILD_TYPE=Debug"
-                    break
-                  case "crimson-release":
-                    deb_build_profiles = "pkg.ceph.crimson";
                     break
                   default:
                     println "FLAVOR=${env.FLAVOR} is invalid"
@@ -477,7 +472,6 @@ pipeline {
                   if ( env.SCCACHE == "true" ) rpmbuild_args += " -R--with=sccache"
                   if ( env.DWZ == "false" ) rpmbuild_args += " -R--without=dwz"
                   if ( env.FLAVOR == "default" ) rpmbuild_args += " -R--with=tcmalloc"
-                  if ( env.FLAVOR.startsWith("crimson") ) rpmbuild_args += " -R--with=crimson"
                   bwc_command = "${bwc_command}${rpmbuild_args} -e rpm"
                 } else if ( env.DIST =~ /suse|sles/ ) {
                   throw new Exception("bwc not implemented for ${env.DIST}")
