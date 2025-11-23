@@ -887,15 +887,6 @@ ceph_build_args_from_flavor() {
     debug)
         CEPH_EXTRA_CMAKE_ARGS+=" -DCMAKE_BUILD_TYPE=Debug"
         ;;
-    crimson-debug)
-        CEPH_EXTRA_RPMBUILD_ARGS="--with crimson"
-        DEB_BUILD_PROFILES="pkg.ceph.crimson"
-        CEPH_EXTRA_CMAKE_ARGS+=" -DCMAKE_BUILD_TYPE=Debug"
-        ;;
-    crimson-release)
-        CEPH_EXTRA_RPMBUILD_ARGS="--with crimson"
-        DEB_BUILD_PROFILES="pkg.ceph.crimson"
-        ;;
     *)
         echo "unknown FLAVOR: ${FLAVOR}" >&2
         exit 1
@@ -1041,14 +1032,7 @@ EOF
 
 extra_cmake_args() {
     # statically link against libstdc++ for building new releases on old distros
-    if [ "${FLAVOR}" = "crimson-debug" ] || [ "${FLAVOR}" = "crimson-release" ] ; then
-        # seastar's exception hack assums dynamic linkage against libgcc. as
-        # otherwise _Unwind_RaiseException will conflict with its counterpart
-        # defined in libgcc_eh.a, when the linker comes into play. and more
-        # importantly, _Unwind_RaiseException() in seastar will not be able
-        # to call the one implemented by GCC.
-        echo "-DWITH_STATIC_LIBSTDCXX=OFF"
-    elif use_ppa; then
+    if use_ppa; then
         echo "-DWITH_STATIC_LIBSTDCXX=ON"
     fi
 }
@@ -1501,16 +1485,6 @@ setup_rpm_build_deps() {
     mkdir -p $DIR
 
     sed -e 's/@//g' < ceph.spec.in > $DIR/ceph.spec
-
-    # enable more build depends required by build flavor(crimson)
-    case "${FLAVOR}" in
-    crimson-debug)
-      sed -i -e 's/%bcond_with crimson/%bcond_without crimson/g' $DIR/ceph.spec
-        ;;
-    crimson-release)
-      sed -i -e 's/%bcond_with crimson/%bcond_without crimson/g' $DIR/ceph.spec
-        ;;
-    esac
 
     # Make sure we have all the rpm macros installed and at the latest version
     # before installing the dependencies, python3-devel requires the
