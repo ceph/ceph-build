@@ -884,6 +884,9 @@ ceph_build_args_from_flavor() {
         CEPH_EXTRA_CMAKE_ARGS+=" -DWITH_SYSTEM_BOOST=OFF -DWITH_BOOST_VALGRIND=ON"
         DEB_BUILD_PROFILES=""
         ;;
+    debug)
+        CEPH_EXTRA_CMAKE_ARGS+=" -DCMAKE_BUILD_TYPE=Debug"
+        ;;
     crimson-debug)
         CEPH_EXTRA_RPMBUILD_ARGS="--with crimson"
         DEB_BUILD_PROFILES="pkg.ceph.crimson"

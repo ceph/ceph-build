@@ -200,15 +200,16 @@ pipeline {
           }
           axes {
             name 'FLAVOR'
-            values 'default', 'crimson-release', 'crimson-debug'
+            values 'default', 'crimson-release', 'crimson-debug', 'debug'
           }
         }
         // crimson is only supported on centos9 x86_64
+        // debug flavor is currently only supported on centos9 x86_64
         excludes {
           exclude {
             axis {
               name 'FLAVOR'
-              values 'crimson-release', 'crimson-debug'
+              values 'crimson-release', 'crimson-debug', 'debug'
             }
             axis {
               name 'DIST'
@@ -218,7 +219,7 @@ pipeline {
           exclude {
             axis {
               name 'FLAVOR'
-              values 'crimson-release', 'crimson-debug'
+              values 'crimson-release', 'crimson-debug', 'debug'
             }
             axis {
               name 'ARCH'
@@ -448,6 +449,9 @@ pipeline {
                     if (os.version_name == "focal") {
                       ceph_extra_cmake_args += " -DWITH_STATIC_LIBSTDCXX=ON"
                     }
+                    break
+                  case "debug":
+                    ceph_extra_cmake_args += " -DCMAKE_BUILD_TYPE=Debug"
                     break
                   case "crimson-debug":
                     deb_build_profiles = "pkg.ceph.crimson"

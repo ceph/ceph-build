@@ -46,7 +46,7 @@
 
       - string:
           name: FLAVORS
-          description: "A list of flavors to build. Available options are: default, crimson-release, crimson-debug"
+          description: "A list of flavors to build. Available options are: default, crimson-release, crimson-debug, debug"
           default: "default"
 
       - bool:
@@ -70,8 +70,9 @@
             - default
             - crimson-debug
             - crimson-release
+            - debug
           default: "default"
-          description: "Type of Ceph build, choices are: crimson-debug, crimson-release, default. Defaults to: 'default'"
+          description: "Type of Ceph build, choices are: crimson-debug, crimson-release, default, debug. Defaults to: 'default'"
 
       - bool:
           name: CI_CONTAINER
