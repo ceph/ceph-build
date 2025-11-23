@@ -52,10 +52,8 @@
           choices:
             - default
             - debug
-            - crimson-debug
-            - crimson-release
           default: "default"
-          description: "Type of Ceph build, choices are: crimson-debug, crimson-release, debug, default. Defaults to: 'default'"
+          description: "Type of Ceph build, choices are: default, debug. Defaults to: 'default'"
 
       - string:
           name: CI_CONTAINER
