@@ -1,61 +1,173 @@
 #!/bin/bash
-set -ex
+set -euo pipefail
+set -x
 
-cd $WORKSPACE
+cd "${WORKSPACE}"
 
-get_rpm_dist
+# -------- target distro detection (do this ONCE) ----------
+# If the pipeline told us rocky10, keep it and don't let get_rpm_dist overwrite it.
+TARGET_DIST="${DIST:-}"
+TARGET_ARCH="${ARCH:-x86_64}"
 
-chacra_endpoint="kernel/${BRANCH}/${GIT_COMMIT}/${DISTRO}/${RELEASE}"
-chacra_check_url="${chacra_endpoint}/${ARCH}/kernel-${VERSION}-${RPM_RELEASE}.${DIST}.${ARCH}.rpm"
-
-if [ "$THROWAWAY" = false ] ; then
-    # this exists in scripts/build_utils.sh
-    check_binary_existence $VENV $chacra_check_url
+if [[ "${TARGET_DIST}" == "rocky10" ]]; then
+  DIST="rocky10"
+  DISTRO="rocky"
+  RELEASE="10"
+  NORMAL_DISTRO="rocky"
+  NORMAL_DISTRO_VERSION="10"
+else
+  # Fall back to host-derived values
+  get_rpm_dist     # sets DISTRO, DIST, RELEASE, NORMAL_DISTRO, NORMAL_DISTRO_VERSION
 fi
 
-HOST=$(hostname --short)
 echo "Building on $(hostname)"
 echo "  DIST=${DIST}"
-echo "  ARCH=${ARCH}"
-echo "  WS=$WORKSPACE"
+echo "  ARCH=${TARGET_ARCH}"
+echo "  WS=${WORKSPACE}"
 echo "  PWD=$(pwd)"
-echo "*****"
-env
-echo "*****"
+echo "*****"; env; echo "*****"
 
-# Clean rpmbuild structure
-rm -rf ./rpmbuild/
+# ---------- chacra endpoint ----------
+chacra_endpoint="kernel/${BRANCH}/${GIT_COMMIT}/${DISTRO}/${RELEASE}"
 
-# Build the rpms
-echo "Building RPMs"
-make -j$(getconf _NPROCESSORS_ONLN) binrpm-pkg
-
-[ "$FORCE" = true ] && chacra_flags="--force" || chacra_flags=""
-
-if [ "$THROWAWAY" = false ] ; then
-    # push binaries to chacra
-    find ./rpmbuild/ | egrep '\.rpm$' | $VENV/chacractl binary ${chacra_flags} create ${chacra_endpoint}/$ARCH/
-    PACKAGE_MANAGER_VERSION=$(rpm --queryformat '%{VERSION}-%{RELEASE}\n' -qp $(find ./rpmbuild/ | egrep "\.$ARCH\.rpm" | head -1))
-
-    # write json file with build info
-    cat > $WORKSPACE/repo-extra.json << EOF
-{
-    "version":"$kernelrelease",
-    "package_manager_version":"$PACKAGE_MANAGER_VERSION",
-    "build_url":"$BUILD_URL",
-    "root_build_cause":"$ROOT_BUILD_CAUSE",
-    "node_name":"$NODE_NAME",
-    "job_name":"$JOB_NAME"
-}
-EOF
-    # post the json to repo-extra json to chacra
-    curl -X POST -H "Content-Type:application/json" --data "@$WORKSPACE/repo-extra.json" -u $CHACRACTL_USER:$CHACRACTL_KEY ${chacra_url}repos/${chacra_endpoint}/extra/
-
-    # start repo creation
-    $VENV/chacractl repo update ${chacra_endpoint}
-
-    echo Check the status of the repo at: https://shaman.ceph.com/api/repos/${chacra_endpoint}
+# If you know RPM_RELEASE externally, export it before this script.
+# Otherwise, skip the pre-build existence check (we'll compute later).
+if [[ "${THROWAWAY:-false}" = false && -n "${RPM_RELEASE:-}" ]]; then
+  chacra_check_url="${chacra_endpoint}/${TARGET_ARCH}/kernel-${VERSION}-${RPM_RELEASE}.${DIST}.${TARGET_ARCH}.rpm"
+  check_binary_existence "${VENV}" "${chacra_check_url}"
+else
+  echo "Skipping pre-build chacra existence check (RPM_RELEASE not set)."
 fi
 
-# update shaman with the completed build status
-update_build_status "completed" "kernel" $NORMAL_DISTRO $NORMAL_DISTRO_VERSION $ARCH
+# ---------- helpers ----------
+have() { command -v "$1" >/dev/null 2>&1; }
+
+build_in_container() {
+  local image="${KERNEL_BUILDER_IMAGE:-rockylinux:10}"
+  local runner
+  if have podman; then runner=podman; elif have docker; then runner=docker; else
+    echo "ERROR: Need podman or docker for containerized build." >&2; exit 2
+  fi
+
+  local host_uid host_gid cpus
+  host_uid="$(id -u)"
+  host_gid="$(id -g)"
+  cpus="$(getconf _NPROCESSORS_ONLN 2>/dev/null || nproc || echo 4)"
+
+  "$runner" pull "$image" || true
+
+  "$runner" run --rm -t \
+    -v "${WORKSPACE}:${WORKSPACE}:z" \
+    -w "${WORKSPACE}" \
+    -e WORKSPACE="${WORKSPACE}" \
+    -e ARCH="${TARGET_ARCH}" \
+    -e CPUS="${cpus}" \
+    -e HOST_UID="${host_uid}" \
+    -e HOST_GID="${host_gid}" \
+    "$image" bash -lc '
+      set -euo pipefail
+
+      # 1) deps as root
+      if command -v dnf >/dev/null 2>&1; then
+        dnf -y install rpm-build make gcc bc bison flex elfutils-libelf-devel openssl-devel \
+                       dwarves perl findutils git util-linux which tar xz
+      else
+        yum -y install rpm-build make gcc bc bison flex elfutils-libelf-devel openssl-devel \
+                       dwarves perl findutils git util-linux which tar xz
+      fi
+
+      # 2) ensure workspace owned by host uid/gid
+      chown -R "${HOST_UID}:${HOST_GID}" "${WORKSPACE}"
+
+      # 3) write build script (avoid set -u heredoc pitfalls)
+      cat > "${WORKSPACE}/.kernel-build.sh" <<'"'EOS'"
+set -euo pipefail
+cd "${WORKSPACE}"
+rm -rf ./rpmbuild/
+make olddefconfig
+make -j"${CPUS}" binrpm-pkg
+EOS
+      chmod +x "${WORKSPACE}/.kernel-build.sh"
+      chown "${HOST_UID}:${HOST_GID}" "${WORKSPACE}/.kernel-build.sh"
+
+      # 4) run as numeric uid:gid without requiring passwd entries or profiles
+      if command -v chroot >/dev/null 2>&1 && chroot --help 2>&1 | grep -q -- "--userspec"; then
+        chroot --userspec="${HOST_UID}:${HOST_GID}" / \
+          env -i HOME="${WORKSPACE}" PATH="/usr/sbin:/usr/bin:/sbin:/bin" \
+          WORKSPACE="${WORKSPACE}" ARCH="${ARCH}" CPUS="${CPUS}" \
+          bash --noprofile --norc "${WORKSPACE}/.kernel-build.sh"
+      elif command -v setpriv >/dev/null 2>&1; then
+        ( export HOME="${WORKSPACE}" PATH="/usr/sbin:/usr/bin:/sbin:/bin" \
+                WORKSPACE="${WORKSPACE}" ARCH="${ARCH}" CPUS="${CPUS}"
+          setpriv --reuid="${HOST_UID}" --regid="${HOST_GID}" --clear-groups \
+            bash --noprofile --norc "${WORKSPACE}/.kernel-build.sh"
+        )
+      else
+        # last resort: create a throwaway user
+        getent group "${HOST_GID}" >/dev/null || groupadd -g "${HOST_GID}" hostgrp
+        if ! getent passwd "${HOST_UID}" >/dev/null; then
+          useradd -u "${HOST_UID}" -g "${HOST_GID}" -M -s /bin/bash -d "${WORKSPACE}" hostuser
+        fi
+        su -s /bin/bash -l "$(getent passwd "${HOST_UID}" | cut -d: -f1)" -c \
+          "bash --noprofile --norc '${WORKSPACE}/.kernel-build.sh'"
+      fi
+    '
+}
+
+build_on_host() {
+  rm -rf ./rpmbuild/
+  make olddefconfig
+  make -j"$(getconf _NPROCESSORS_ONLN)" binrpm-pkg
+}
+
+# ---------- build ----------
+if [[ "${DIST}" == "rocky10" ]]; then
+  echo "Detected target rocky10 → building in container"
+  build_in_container
+else
+  echo "Target is ${DIST} → building on host"
+  build_on_host
+fi
+
+# ---------- publish ----------
+[ "${FORCE:-false}" = true ] && chacra_flags="--force" || chacra_flags=""
+
+if [[ "${THROWAWAY:-false}" = false ]]; then
+  # Push RPMs
+  find ./rpmbuild/ -type f -name '*.rpm' \
+    | "${VENV}/chacractl" binary ${chacra_flags} create "${chacra_endpoint}/${TARGET_ARCH}/"
+
+  # Derive PACKAGE_MANAGER_VERSION from a produced RPM
+  PACKAGE_MANAGER_VERSION="$(
+    rpm --queryformat '%{VERSION}-%{RELEASE}\n' -qp \
+      "$(find ./rpmbuild/ -type f -name "*.${TARGET_ARCH}.rpm" | head -1)"
+  )"
+
+  # If RPM_RELEASE was not set earlier, compute it now from the same RPM
+  if [[ -z "${RPM_RELEASE:-}" ]]; then
+    RPM_RELEASE="$(rpm -qp --qf '%{RELEASE}\n' \
+      "$(find ./rpmbuild/ -type f -name "*.${TARGET_ARCH}.rpm" | head -1)")"
+  fi
+
+  cat > "${WORKSPACE}/repo-extra.json" <<EOF
+{
+  "version":"${kernelrelease:-$(make -s kernelrelease)}",
+  "package_manager_version":"${PACKAGE_MANAGER_VERSION}",
+  "build_url":"${BUILD_URL}",
+  "root_build_cause":"${ROOT_BUILD_CAUSE}",
+  "node_name":"${NODE_NAME}",
+  "job_name":"${JOB_NAME}"
+}
+EOF
+
+  curl -X POST -H "Content-Type:application/json" \
+    --data "@${WORKSPACE}/repo-extra.json" \
+    -u "${CHACRACTL_USER}:${CHACRACTL_KEY}" \
+    "${chacra_url}repos/${chacra_endpoint}/extra/"
+
+  "${VENV}/chacractl" repo update "${chacra_endpoint}"
+  echo "Check repo status: https://shaman.ceph.com/api/repos/${chacra_endpoint}"
+fi
+
+# ---------- shaman status ----------
+update_build_status "completed" "kernel" "${NORMAL_DISTRO}" "${NORMAL_DISTRO_VERSION}" "${TARGET_ARCH}"

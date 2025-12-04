@@ -17,7 +17,7 @@
       - string:
           name: DISTROS
           description: "A list of distros to build for. Available options are: centos9, noble, jammy and focal"
-          default: "centos9 focal jammy noble"
+          default: "centos9 focal jammy noble rocky10"
 
       - string:
           name: ARCHS
@@ -60,6 +60,7 @@ If this is checked, then the binaries will be built and pushed to chacra even if
           name: AVAILABLE_DIST
           values:
             - centos9
+            - rocky10
             - focal
             - jammy
             - noble

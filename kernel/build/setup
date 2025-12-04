@@ -24,6 +24,45 @@ echo "*****"
 env
 echo "*****"
 
+# ---- Pin target distro from Jenkins env (not host) ----
+pick_first() { printf "%s\n" "$1" | tr ' ,;' '\n' | sed -n '1p'; }
+
+TARGET_DIST_RAW="${DIST:-}"
+if [[ -z "$TARGET_DIST_RAW" && -n "${DISTROS:-}" ]]; then
+  TARGET_DIST_RAW="$(pick_first "$DISTROS")"
+fi
+if [[ -z "$TARGET_DIST_RAW" ]]; then
+  echo "ERROR: Neither DIST nor DISTROS set; cannot determine target distro." >&2
+  exit 1
+fi
+
+case "$TARGET_DIST_RAW" in
+  rocky10)
+    export DIST="rocky10"
+    export DISTRO="rocky"
+    export RELEASE="10"
+    export NORMAL_DISTRO="rocky"
+    export NORMAL_DISTRO_VERSION="10"
+    export BUILD_IN_CONTAINER=1      # hint for later script
+    ;;
+  el9|centos9|c9s|centos-stream9)
+    export DIST="el9"
+    export DISTRO="centos"
+    export RELEASE="9"
+    export NORMAL_DISTRO="centos"
+    export NORMAL_DISTRO_VERSION="9"
+    export BUILD_IN_CONTAINER=        # host build OK
+    ;;
+  *)
+    # Fallback: if you have more targets, add them here. Last resort: host detect.
+    echo "WARN: Unrecognized target '$TARGET_DIST_RAW' — falling back to host detection for NORMAL_DISTRO only."
+    # We still avoid mutating DIST/DISTRO/RELEASE unless you want to.
+    ;;
+esac
+
+echo "Pinned target: DIST=${DIST} DISTRO=${DISTRO} RELEASE=${RELEASE}"
+echo "Shaman will report NORMAL_DISTRO=${NORMAL_DISTRO} NORMAL_DISTRO_VERSION=${NORMAL_DISTRO_VERSION}"
+
 if test $(id -u) != 0 ; then
     SUDO=sudo
 fi
@@ -35,11 +74,6 @@ if test -f /etc/redhat-release ; then
     $SUDO yum install -y flex bison  # for Kconfig
     $SUDO yum install -y dwarves
     $SUDO yum install -y elfutils-devel  # for dwarf.h
-
-    # Set vars for shaman status updating
-    get_rpm_dist
-    NORMAL_DISTRO=$DISTRO
-    NORMAL_DISTRO_VERSION=$DISTRO_VERSION
 fi
 
 if which apt-get > /dev/null ; then
@@ -49,11 +83,6 @@ if which apt-get > /dev/null ; then
     $SUDO apt-get install -y flex bison  # for Kconfig
     $SUDO apt-get install -y dwarves
     $SUDO apt-get install -y libdw-dev  # for dwarf.h
-
-    # Set vars for shaman status updating
-    DISTRO=$(lsb_release -si)
-    NORMAL_DISTRO=${DISTRO,,}
-    NORMAL_DISTRO_VERSION=$AVAILABLE_DIST
 fi
 
 case $DISTRO in
