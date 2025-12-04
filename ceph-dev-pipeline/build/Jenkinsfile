@@ -2,7 +2,7 @@ import groovy.transform.Field
 
 @Field String ceph_build_repo = "https://github.com/ceph/ceph-build"
 @Field String ceph_build_branch = "main"
-@Field String base_node_label = "gigantic"
+@Field String base_node_label = "dgalloway"
 @Field Map ubuntu_releases = [
   "noble": "24.04",
   "jammy": "22.04",
