@@ -25,7 +25,7 @@
           only-trigger-phrase: true
           trigger-phrase: 'jenkins render docs.*'
           github-hooks: true
-          permit-all: true
+          permit-all: false
           auto-close-on-fail: false
           status-context: "Docs: render build"
           started-status: "Docs: building to render"

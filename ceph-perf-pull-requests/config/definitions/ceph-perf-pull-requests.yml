@@ -151,7 +151,7 @@
             - performance
             - crimson
           github-hooks: true
-          permit-all: true
+          permit-all: false
           auto-close-on-fail: false
           cancel-builds-on-update: true
 
