@@ -1,213 +1,40 @@
 #!/usr/bin/env python3
 
 import argparse
-import functools
 import os
-import re
-import requests
 import sys
+import util
+from collections import defaultdict
+import pprint
 
-QUAYBASE = "https://quay.ceph.io/api/v1"
-REPO = "ceph-ci/ceph"
-
-# cache shaman search results so we only have to ask once
-sha1_cache = set()
-
-# quay page ranges to fetch; hackable for testing
-start_page = 1
-page_limit = 100000
-
-NAME_RE = re.compile(
-    r'(.*)-([0-9a-f]{7})-centos-.*([0-9]+)-(x86_64|aarch64)-devel'
-)
-SHA1_RE = re.compile(r'([0-9a-f]{40})(-crimson-debug|-crimson-release|-aarch64)*')
-
-
-def get_all_quay_tags(quaytoken):
-    page = start_page
-    has_additional = True
-    ret = list()
-
-    while has_additional and page < page_limit:
-        try:
-            response = requests.get(
-                '/'.join((QUAYBASE, 'repository', REPO, 'tag')),
-                params={'page': page, 'limit': 100, 'onlyActiveTags': 'true'},
-                headers={'Authorization': 'Bearer %s' % quaytoken},
-                timeout=30,
-            )
-            response.raise_for_status()
-        except requests.exceptions.RequestException as e:
-            print(
-                'Quay.io request',
-                response.url,
-                'failed:',
-                e,
-                requests.reason,
-                file=sys.stderr
-            )
-            break
-        response = response.json()
-        ret.extend(response['tags'])
-        page += 1
-        has_additional = response.get('has_additional')
-    return ret
-
-
-def parse_quay_tag(tag):
-
-    mo = NAME_RE.match(tag)
-    if mo is None:
-        return None, None, None, None
-    ref = mo.group(1)
-    short_sha1 = mo.group(2)
-    el = mo.group(3)
-    arch = mo.group(4)
-    return ref, short_sha1, el, arch
-
-
-@functools.cache
-def shaman_data():
-    print('Getting repo data from shaman for ceph builds', file=sys.stderr)
-    shaman_result = None
-    params = {
-        'project': 'ceph',
-        'flavor': 'default',
-        'status': 'ready',
-    }
-    try:
-        response = requests.get(
-            'https://shaman.ceph.com/api/search/',
-            params=params,
-            timeout=30
-        )
-        response.raise_for_status()
-        shaman_result = response.json()
-    except requests.exceptions.RequestException as e:
-        print(
-            'Shaman request',
-            response.url,
-            'failed:',
-            e,
-            response.reason,
-            file=sys.stderr
-        )
-    return shaman_result
-
-
-def query_shaman(ref, sha1, el):
-    '''
-    filter shaman data by given criteria.
-
-    returns (error, filtered_data)
-    error is True if no data could be retrieved
-    '''
-
-    filtered = shaman_data()
-    if not filtered:
-        return True, None
-
-    if el:
-        filterlist = [el]
-    else:
-        filterlist = ['7', '8', '9']
-    filtered = [
-        rec for rec in filtered if
-        rec['distro'] == 'centos' and
-        rec['distro_version'] in filterlist
-    ]
-
-    if ref:
-        filtered = [rec for rec in filtered if rec['ref'] == ref]
-    if sha1:
-        filtered = [rec for rec in filtered if rec['sha1'] == sha1]
-    return False, filtered
-
-
-def ref_present_in_shaman(ref, short_sha1, el, arch, verbose):
-
-    if ref is None:
-        return False
-
-    error, matches = query_shaman(ref, None, el)
-    if error:
-        print('Shaman request failed')
-        # don't cache, but claim present:
-        # avoid deletion in case of transient shaman failure
-        if verbose:
-            print('Found %s (assumed because shaman request failed)' % ref)
-        return True
-
-    for match in matches:
-        if match['sha1'][0:7] == short_sha1:
-            if verbose:
-                print('Found %s in shaman: sha1 %s' % (ref, match['sha1']))
-            return True
-    return False
-
-
-def sha1_present_in_shaman(sha1, verbose):
-
-    if sha1 in sha1_cache:
-        if verbose:
-            print('Found %s in shaman sha1_cache' % sha1)
-        return True
-
-    error, matches = query_shaman(None, sha1, None)
-    if error:
-        print('Shaman request failed')
-        # don't cache, but claim present
-        # to avoid deleting on transient shaman failure
-        if verbose:
-            print('Found %s (assuming because shaman request failed)' % sha1)
-        return True
-
-    for match in matches:
-        if match['sha1'] == sha1:
-            if verbose:
-                print('Found %s in shaman' % sha1)
-            sha1_cache.add(sha1)
-            return True
-    return False
-
-
-def delete_from_quay(tagname, quaytoken, dryrun):
-    if dryrun:
-        print('Would delete from quay:', tagname)
-        return
-
-    try:
-        response = requests.delete(
-            '/'.join((QUAYBASE, 'repository', REPO, 'tag', tagname)),
-            headers={'Authorization': 'Bearer %s' % quaytoken},
-            timeout=30,
-        )
-        response.raise_for_status()
-        print('Deleted', tagname)
-    except requests.exceptions.RequestException as e:
-        print(
-            'Problem deleting tag:',
-            tagname,
-            e,
-            response.reason,
-            file=sys.stderr
-        )
+tags_done = set()
 
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('-d', '--dryrun', action='store_true',
+    parser.add_argument('-s', '--start', type=int, default=1,
+                        help="start page (of 100 tags)")
+    parser.add_argument('-p', '--pages', type=int, default=100000,
+                        help="number of pages")
+    parser.add_argument('-n', '--dry-run', action='store_true',
                         help="don't actually delete")
-    parser.add_argument('-v', '--verbose', action='store_true',
-                        help="say more")
+    parser.add_argument('-v', '--verbose', action='count', default=0,
+                        help="say more (-vv for more info)")
     return parser.parse_args()
+
+
+def mark_all_done(tags):
+    if isinstance(tags, (list, set, tuple)):
+        tags_done.update(tags)
+    else:
+        tags_done.add(tags)
 
 
 def main():
     args = parse_args()
 
     quaytoken = None
-    if not args.dryrun:
+    if not args.dry_run:
         if 'QUAYTOKEN' in os.environ:
             quaytoken = os.environ['QUAYTOKEN']
         else:
@@ -216,94 +43,91 @@ def main():
                 'rb'
             ).read().strip().decode()
 
-    print('Getting ceph-ci container tags from quay.ceph.io', file=sys.stderr)
-    quaytags = get_all_quay_tags(quaytoken)
+    print(f'Getting tags from {util.QUAYBASE}{util.REPO}', file=sys.stderr)
+    quaytags, digest_to_tags = util.get_all_quay_tags(quaytoken, args.start, args.pages)
 
-    # build a map of digest to name(s) for detecting "same image"
-    digest_map = dict()
-    for tag in quaytags:
-        digest = tag['manifest_digest']
-        if digest in digest_map:
-            digest_map[digest].add(tag['name'])
-        else:
-            digest_map[digest] = set((tag['name'],))
-    if args.verbose:
-        for d,l in digest_map.items():
-            print(f'{d}: {l}')
+    tagstat = defaultdict(int)
+    tagstat['total tags'] = len(quaytags)
+    tagstat['unique_tags'] = len(digest_to_tags)
+    pprint.pprint(tagstat)
 
-    # find all full tags to delete, put them and ref tag on list
-    tags_to_delete = set()
-    for tag in quaytags:
-        name = tag['name']
-        if 'expiration' in tag or 'end_ts' in tag:
+    # Search through all the tags, matching digests so that we can consider
+    # all of them at the same time.  Use the sha1 tag to search for the
+    # packages on shaman; if we can't find that sha1 on shaman,
+    # delete all the tags (IOW, shaman presence controls how long we keep the
+    # corresponding container images).
+
+    tags_to_delete = list()
+
+    for qtag in quaytags:
+        name = qtag['name']
+        if 'expiration' in qtag or 'end_ts' in qtag:
             if args.verbose:
                 print('Skipping deleted-or-overwritten tag %s' % name)
+            tagstat['skipped'] += 1
+            tagstat['skipped_already_deleted'] += 1
             continue
 
-        ref, short_sha1, el, arch = parse_quay_tag(name)
-        if ref is None:
-            if args.verbose:
-                print(
-                    'Skipping %s, not in ref-shortsha1-el-arch form' % name
-                )
-            continue
+        sha1 = None
+        digest = qtag['manifest_digest']
+        alltags = digest_to_tags.get(digest)
 
-        if ref_present_in_shaman(ref, short_sha1, el, arch, args.verbose):
-            if args.verbose:
-                print('Skipping %s, present in shaman' % name)
-            continue
-
-        # accumulate full and ref tags to delete; keep list of short_sha1s
-
-        tags_to_delete.add(name)
+        # collect all the info from all the tagnames
         if args.verbose:
-            print('Marking %s for deletion' % name)
+            print(f'\nExamining {alltags}')
 
-        # the ref tag may already have been overwritten by a new
-        # build of the same ref, but a different sha1, so rather than
-        # deleting the ref tag, delete any tags that refer to the same
-        # image as the full tag we have in hand
-        digest = tag['manifest_digest']
-        if digest in digest_map:
-            # remove full tag name; no point in marking for delete twice
-            # (set.add would be safe, but only report if there are new marks)
-            digest_map[digest].discard(name)
-            if digest_map[digest]:
-                tags_to_delete.update(digest_map[digest])
+        if not alltags:
+            return 0
+
+        for t in alltags:
+
+            if args.verbose:
+                print(f'\nOn tag {t}')
+
+            if t in tags_done:
                 if args.verbose:
-                    print(f'Also marking {digest_map[digest]}, same digest')
-
-    # now find all the full-sha1 tags to delete by making a second
-    # pass and seeing if the tagname matches SHA1_RE but is gone from
-    # shaman
-    for tag in quaytags:
-
-        name = tag['name']
-        if 'expiration' in tag or 'end_ts' in tag:
-            continue
-
-        match = SHA1_RE.match(name)
-        if match:
-            sha1 = match[1]
-            if sha1_present_in_shaman(sha1, args.verbose):
-                if args.verbose:
-                    print('Skipping %s, present in shaman' % name)
+                    print(f'tag {t} already examined')
                 continue
-            # <sha1>-crimson tags don't have full or ref tags to go with.
-            # Delete them iff the default <sha1> tag is to be deleted
-            if match[2] in ('-crimson', '-crimson-debug', '-crimson-release') and sha1 in tags_to_delete:
-                if args.verbose:
-                    print(
-                        'Marking %s for deletion: orphaned sha1 tag' % name
-                    )
-                tags_to_delete.add(name)
 
-    if args.verbose:
-        print('\nDeleting tags:', sorted(tags_to_delete))
+            parsed_sha1, sha1, fromtag, flav_or_arch = util.parse_sha1_quay_tag(t)
+            if args.verbose > 1:
+                print(f'{"" if parsed_sha1 else "NOT"} SHA1: {sha1=} {fromtag=} {flav_or_arch=}')
+
+            if not (parsed_sha1):
+                if args.verbose:
+                    print(f'Assuming {t} is a branch tag, will skip')
+                tagstat['skipped'] += 1
+                tagstat['skipped_branchtag'] += 1
+                mark_all_done(t)
+                continue
+
+            if args.verbose:
+                print(f'Looking for {sha1} in shaman')
+
+            if util.sha1_present_in_shaman(sha1, args.verbose):
+                if args.verbose:
+                    print(f'Skipping {t}, present in shaman')
+                tagstat['skipped'] += 1
+                tagstat['skipped_in_shaman'] += 1
+                mark_all_done(alltags)
+
+                continue
+
+            if args.verbose:
+                print(f'Marking {alltags} {qtag["last_modified"]} for deletion')
+            tags_to_delete.append((alltags, qtag['last_modified']))
+            tagstat['marked_for_delete'] += 1
+            tagstat['subtags_marked_for_delete'] += len(alltags)
+            mark_all_done(alltags)
 
     # and now delete all the ones we found
-    for tagname in tags_to_delete:
-        delete_from_quay(tagname, quaytoken, args.dryrun)
+    for (alltags, date) in tags_to_delete:
+        for tagname in alltags:
+            util.delete_from_quay(tagname, date, quaytoken, args.dry_run)
+        tagstat['deleted'] += 1
+        tagstat['subtags_deleted'] += len(alltags)
+
+    pprint.pprint(tagstat, sort_dicts=False)
 
 
 if __name__ == "__main__":
