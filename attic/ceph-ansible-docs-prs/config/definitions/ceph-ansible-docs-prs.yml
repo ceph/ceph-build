@@ -32,7 +32,7 @@
           # This is set so the job can be manually triggered or by the ceph-ansible-pipeline multijob
           only-trigger-phrase: true
           github-hooks: true
-          permit-all: true
+          permit-all: false
           auto-close-on-fail: false
           status-context: "Docs"
           started-status: "checking if docs build"

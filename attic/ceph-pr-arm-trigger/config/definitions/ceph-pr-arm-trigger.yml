@@ -26,7 +26,7 @@
           trigger-phrase: 'jenkins test arm'
           only-trigger-phrase: false
           github-hooks: true
-          permit-all: true
+          permit-all: false
           auto-close-on-fail: false
           status-context: "arm build"
           started-status: "building on arm"
