@@ -410,7 +410,7 @@
     - set_fact:
         permanent: true
       with_items: "{{ ansible_all_ipv4_addresses }}"
-      when: "item.startswith('172.21.') or item.startswith('8.43')"
+      when: item | regex_search('^(172\\.21\\.|8\\.43\\.|10\\.20\\.)')
       tags: always
 
     ## Let's make sure nodename gets set using our Sepia hostnames if the builder's in Sepia
