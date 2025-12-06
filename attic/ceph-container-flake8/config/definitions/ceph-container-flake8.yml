@@ -43,7 +43,7 @@
           trigger-phrase: 'jenkins flake8'
           only-trigger-phrase: false
           github-hooks: true
-          permit-all: true
+          permit-all: false
           auto-close-on-fail: false
           status-context: "Testing: for sloppy python"
           started-status: "Running: flake8"
