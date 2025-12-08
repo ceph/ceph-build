@@ -46,7 +46,7 @@ def main():
             date = tag['last_modified']
             if util.days_diff(date) >= args.stragglers:
                 alltags = digest_to_tags[tag['manifest_digest']]
-                if any([r in t for t in alltags for r in ('quincy', 'reef', 'squid', 'tentacle')]):
+                if any([r in t for t in alltags for r in ('quincy', 'reef', 'squid', 'tentacle', 'umbrella')]):
                     print(f'skipping {alltags}, looks distinguished')
                     continue
                 print(f'Marking {tag["name"]}')
