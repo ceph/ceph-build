@@ -81,7 +81,7 @@
       - string:
           name: CONTAINER_REPO_HOSTNAME
           description: "FQDN of container repo server (e.g. 'quay.io')"
-          default: "quay-quay-quay.apps.os.sepia.ceph.com"
+          default: "quay.ceph.io"
 
       - string:
           name: CONTAINER_REPO_ORGANIZATION
