@@ -1063,6 +1063,7 @@
           delegate_to: localhost
           run_once: true
           register: template_dir
+          become: false
 
         - name: choose proper templates dir
           set_fact:
