@@ -47,7 +47,7 @@
           trigger-phrase: 'jenkins flake8'
           only-trigger-phrase: false
           github-hooks: true
-          permit-all: true
+          permit-all: false
           auto-close-on-fail: false
           status-context: "Flake8"
 

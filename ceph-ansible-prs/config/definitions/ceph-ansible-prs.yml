@@ -142,7 +142,7 @@
             - draft
           only-trigger-phrase: false
           github-hooks: true
-          permit-all: true
+          permit-all: false
           auto-close-on-fail: false
           status-context: "Testing: {distribution}-{deployment}-{scenario}"
           started-status: "Running: {distribution}-{deployment}-{scenario}"
@@ -250,7 +250,7 @@
           trigger-phrase: '^jenkins test {distribution}-{deployment}-{scenario}|jenkins test all.*'
           only-trigger-phrase: true
           github-hooks: true
-          permit-all: true
+          permit-all: false
           auto-close-on-fail: false
           status-context: "Testing: {distribution}-{deployment}-{scenario}"
           started-status: "Running: {distribution}-{deployment}-{scenario}"

@@ -47,7 +47,7 @@
           skip-build-phrase: '^jenkins do not test.*'
           only-trigger-phrase: false
           github-hooks: true
-          permit-all: true
+          permit-all: false
           auto-close-on-fail: false
           status-context: "ceph rook orchestrator e2e tests"
           started-status: "running ceph rook orchestrator e2e tests"

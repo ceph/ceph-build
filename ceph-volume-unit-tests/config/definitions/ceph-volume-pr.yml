@@ -36,11 +36,13 @@
 
     triggers:
       - github-pull-request:
+          org-list:
+            - ceph
           cancel-builds-on-update: true
           only-trigger-phrase: true
           trigger-phrase: 'jenkins ceph-volume unit tests'
           github-hooks: true
-          permit-all: true
+          permit-all: false
           auto-close-on-fail: false
           status-context: "ceph-volume tox testing"
           started-status: "ceph-volume tox running"
