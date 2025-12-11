@@ -82,6 +82,32 @@
       when: ansible_os_family == "Debian"
       ignore_errors: yes
 
+    - name: Gather service facts
+      service_facts:
+    
+    - name: Ensure needrestart config dir exists
+      file:
+        path: /etc/needrestart/conf.d
+        state: directory
+        owner: root
+        group: root
+        mode: '0755'
+      when: "'needrestart.service' in ansible_facts.services"
+    
+    - name: Disable automatic restarts via needrestart
+      copy:
+        dest: /etc/needrestart/conf.d/00-no-restart.conf
+        owner: root
+        group: root
+        mode: '0644'
+        content: |
+          # Disable automatic restarts and nagging from needrestart
+          $nrconf{restart}     = 'l';  # list only, never restart services automatically
+          $nrconf{kernelhints} = 0;    # no kernel upgrade notices
+          $nrconf{ucodehints}  = 0;    # no microcode restart suggestions
+          $nrconf{notify}      = 'n';  # no interactive prompts
+      when: "'needrestart.service' in ansible_facts.services"
+
     - name: Update package cache (Debian)
       apt:
         update_cache: yes
