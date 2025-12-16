@@ -45,7 +45,17 @@ function setup_container_runtime () {
       test -d "$PODMAN_DIR" && command -v restorecon && sudo restorecon -R -T0 -x "$PODMAN_DIR"
       PODMAN_STORAGE_DIR="$PODMAN_DIR/storage"
       if [ -d "$PODMAN_STORAGE_DIR" ]; then
-        sudo chgrp -R "$(groups | cut -d' ' -f1)" "$PODMAN_STORAGE_DIR"
+        # If someone ran "sudo podman" in a job, it can leave root-owned junk in the
+        # *rootless* store and brick future runs. Detect and surgically fix.
+        if sudo find "$PODMAN_STORAGE_DIR" -xdev -mindepth 1 -maxdepth 5 -user root -print -quit | grep -q .; then
+          echo "Detected root-owned files inside rootless podman store; repairing ownership."
+          sudo chown -R "$(id -u):$(id -g)" "$PODMAN_STORAGE_DIR"
+
+          # Also repair common “diff/work not writable” breakage without recursive chmod or chgrp:
+          # ensure the store dirs are at least user-writable so podman can clean up.
+          sudo find "$PODMAN_STORAGE_DIR/overlay" -xdev -type d \( -name diff -o -name work \) -exec chmod u+rwx {} + 2>/dev/null || true
+          sudo find "$PODMAN_STORAGE_DIR/overlay" -xdev -type d -path '*/work/work' -exec chmod u+rwx {} + 2>/dev/null || true
+        fi
         if [ "$(podman unshare du -s --block-size=1G "$PODMAN_STORAGE_DIR" | awk '{print $1}')" -ge 50 ]; then
           time podman system prune --force || \
             time podman image prune --force --all --external
