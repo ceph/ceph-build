@@ -26,13 +26,6 @@ function setup_container_runtime () {
   fi
 
   if command -v podman; then
-     
-    # remove any leftover containers that might be present because of
-    # bad exits from podman (like an oom kill or something).
-    # We've observed new jobs failing to run because they can't create
-    # a container named ceph_build
-    podman rm -f ceph_build 
-
     if [ "$(podman version -f "{{ lt .Client.Version \"5.6.1\" }}")" = "true" ] && \
     ! echo "928238bfcdc79a26ceb51d7d9759f99144846c0a  /etc/tmpfiles.d/podman.conf" | sha1sum --status --check -; then
       # Pull in this fix: https://github.com/containers/podman/pull/26986
@@ -66,6 +59,11 @@ function setup_container_runtime () {
         fi
       fi
     fi
+    # remove any leftover containers that might be present because of
+    # bad exits from podman (like an oom kill or something).
+    # We've observed new jobs failing to run because they can't create
+    # a container named ceph_build
+    podman rm -f ceph_build
   fi
 }
 
