@@ -62,7 +62,7 @@
           only-trigger-phrase: true
           trigger-phrase: '^jenkins test ceph-volume {distro} {objectstore}-{method}-{scenario}|jenkins test ceph-volume all.*|jenkins test ceph-volume {distro} all.*'
           github-hooks: true
-          permit-all: true
+          permit-all: false
           auto-close-on-fail: false
           status-context: "ceph-volume {method} testing {distro}-{objectstore}-{scenario}"
           started-status: "ceph-volume {method} running {distro}-{objectstore}-{scenario}"

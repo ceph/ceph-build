@@ -42,7 +42,7 @@
           trigger-phrase: 'jenkins test ceph_ansible-{test}'
           only-trigger-phrase: true
           github-hooks: true
-          permit-all: true
+          permit-all: false
           auto-close-on-fail: false
           status-context: "Testing: ceph_ansible-{test}"
           started-status: "Running: ceph_ansible-{test}"
@@ -124,7 +124,7 @@
           trigger-phrase: 'jenkins test ceph_ansible-{test}'
           only-trigger-phrase: true
           github-hooks: true
-          permit-all: true
+          permit-all: false
           auto-close-on-fail: false
           status-context: "Testing: ceph_ansible-{test}"
           started-status: "Running: ceph_ansible-{test}"

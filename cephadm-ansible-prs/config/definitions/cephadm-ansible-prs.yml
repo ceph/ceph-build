@@ -53,7 +53,7 @@
           trigger-phrase: '^jenkins test {scenario}|jenkins test all.*'
           only-trigger-phrase: false
           github-hooks: true
-          permit-all: true
+          permit-all: false
           auto-close-on-fail: false
           status-context: "Testing: {scenario}"
           started-status: "Running: {scenario}"
@@ -154,7 +154,7 @@
           trigger-phrase: '^jenkins test {distribution}-{scenario}|jenkins test all.*'
           only-trigger-phrase: false
           github-hooks: true
-          permit-all: true
+          permit-all: false
           auto-close-on-fail: false
           status-context: "Testing: {distribution}-{scenario}"
           started-status: "Running: {distribution}-{scenario}"

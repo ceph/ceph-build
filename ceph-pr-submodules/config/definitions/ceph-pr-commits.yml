@@ -30,7 +30,7 @@
           trigger-phrase: 'jenkins test submodules'
           only-trigger-phrase: false
           github-hooks: true
-          permit-all: true
+          permit-all: false
           auto-close-on-fail: false
           status-context: "Unmodified Submodules"
           started-status: "checking if PR has modified submodules"
