@@ -148,7 +148,44 @@ function Install-WnbdDriver {
     Push-Location $gitDir
     try {
         Set-VCVars
-        Invoke-CommandLine "MSBuild.exe" "vstudio\wnbd.sln /p:Configuration=Release"
+        # BEGIN 2025 Hacks
+        
+        # Make sure the build has BOTH:
+        #  - stampinf.exe available for generate_version_h.ps1
+        #  - Windows SDK vars set so headers like windows.h/winsock2.h resolve
+        $vals = & powershell.exe -NoProfile -ExecutionPolicy Bypass -File /ensure-windows-sdk.ps1
+        
+        $map = @{}
+        foreach ($line in $vals) {
+            if ($line -match '^(WindowsSdkDir|WindowsTargetPlatformVersion|StampinfDir)=(.*)$') {
+                $map[$matches[1]] = $matches[2]
+            }
+        }
+        
+        foreach ($k in @("WindowsSdkDir","WindowsTargetPlatformVersion","StampinfDir")) {
+            if (-not $map.ContainsKey($k) -or [string]::IsNullOrWhiteSpace($map[$k])) {
+                throw "ensure-windows-sdk.ps1 did not provide $k. Output was: $($vals -join '; ')"
+            }
+        }
+        
+        # Validate paths
+        if (!(Test-Path $map["StampinfDir"])) { throw "StampinfDir does not exist: $($map["StampinfDir"])" }
+        if (!(Test-Path $map["WindowsSdkDir"])) { throw "WindowsSdkDir does not exist: $($map["WindowsSdkDir"])" }
+        
+        $msb = @(
+          "MSBuild.exe",
+          "vstudio\wnbd.sln",
+          "/m",
+          "/p:Configuration=Release",
+          "/p:Platform=x64",
+          "/p:WindowsSdkDir=$($map['WindowsSdkDir'])",
+          "/p:WindowsTargetPlatformVersion=$($map['WindowsTargetPlatformVersion'])"
+        ) -join " "
+        
+        # Run MSBuild in *cmd.exe* so PATH definitely applies to MSBuild + its custom steps
+        Invoke-CommandLine "cmd.exe" ("/c set PATH=" + $map["StampinfDir"] + ";%PATH% && " + $msb)
+
+        # END 2025 Hacks
         Copy-Item -Force -Path "vstudio\x64\Release\driver\*" -Destination "${outDir}\"
         Copy-Item -Force -Path "vstudio\x64\Release\libwnbd.dll" -Destination "${outDir}\"
         Copy-Item -Force -Path "vstudio\x64\Release\wnbd-client.exe" -Destination "${outDir}\"
