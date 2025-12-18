@@ -93,18 +93,17 @@ echo "Starting libvirt VM"
 qemu-img create -f qcow2 ${BUILD_DIR}/ceph-win-ltsc2019-ci-image.qcow2 50G
 VM_NAME="ceph-win-ltsc2019"
 sudo virt-install \
-    --name $VM_NAME \
+    --name "$VM_NAME" \
     --os-variant win2k19 \
-    --boot hd,cdrom \
     --virt-type kvm \
     --graphics spice \
     --cpu host \
     --vcpus 4 \
     --memory 4096 \
-    --disk ${BUILD_DIR}/floppy.img,device=floppy \
-    --disk ${BUILD_DIR}/ceph-win-ltsc2019-ci-image.qcow2,bus=virtio \
-    --disk ${BUILD_DIR}/windows-server-2019.iso,device=cdrom \
-    --disk ${BUILD_DIR}/virtio-win.iso,device=cdrom \
+    --disk "${BUILD_DIR}/floppy.img,device=floppy" \
+    --disk "${BUILD_DIR}/ceph-win-ltsc2019-ci-image.qcow2,bus=virtio" \
+    --disk "${BUILD_DIR}/virtio-win.iso,device=cdrom" \
+    --cdrom "${BUILD_DIR}/windows-server-2019.iso" \
     --network network=default,model=virtio \
     --controller type=virtio-serial \
     --channel unix,target_type=virtio,name=org.qemu.guest_agent.0 \
@@ -208,4 +207,5 @@ done
 echo "Uploading the image to https://filedump.ceph.com/windows/"
 cd ${WORKSPACE}
 sha256sum ceph-win-ltsc2019-ci-image.qcow2 > ceph-win-ltsc2019-ci-image.qcow2.sha256
+pause 999999
 rsync -azvP ceph-win-ltsc2019-ci-image.qcow2 ceph-win-ltsc2019-ci-image.qcow2.sha256 --rsync-path="sudo rsync" -e "ssh -i ${FILEDUMP_SSH_KEY} -o UserKnownHostsFile=${SSH_KNOWN_HOSTS_FILE}" ${FILEDUMP_USER}@drop.front.sepia.ceph.com:/ceph/filedump.ceph.com/windows/
