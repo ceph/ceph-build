@@ -53,7 +53,7 @@ cloud-localds ${LIBVIRT_DIR}/config-drive.img ${LIBVIRT_DIR}/user-data.yaml ${LI
 sudo virt-install \
     --name $UBUNTU_VM_NAME \
     --os-variant ubuntu22.04 \
-    --boot hd \
+    --import \
     --virt-type kvm \
     --graphics spice \
     --cpu host \

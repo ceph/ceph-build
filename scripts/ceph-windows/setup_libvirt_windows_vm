@@ -20,7 +20,7 @@ curl -s -L $WINDOWS_VM_IMAGE_URL -o ${LIBVIRT_DIR}/ceph-windows-client.qcow2
 sudo virt-install \
     --name $WINDOWS_VM_NAME \
     --os-variant win2k19 \
-    --boot hd \
+    --import \
     --virt-type kvm \
     --graphics spice \
     --cpu host \
