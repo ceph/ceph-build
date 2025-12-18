@@ -548,8 +548,7 @@
           yum_repository:
             name: vagrant
             description: self-hosted vagrant repo
-            # Although this is a 'CentOS7' repo, the vagrant RPM is OS-version agnostic
-            baseurl: "https://chacra.ceph.com/r/vagrant/latest/HEAD/centos/7/flavors/default/x86_64/"
+            baseurl: "https://chacra.ceph.com/r/vagrant/latest/HEAD/centos/{{ ansible_distribution_major_version }}/flavors/default/x86_64/"
             enabled: yes
             gpgcheck: no
           when: ansible_os_family == "RedHat"
