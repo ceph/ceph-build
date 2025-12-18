@@ -98,8 +98,8 @@ sudo virt-install \
     --virt-type kvm \
     --graphics spice \
     --cpu host \
-    --vcpus 4 \
-    --memory 4096 \
+    --vcpus 16 \
+    --memory 32768 \
     --disk "${BUILD_DIR}/floppy.img,device=floppy" \
     --disk "${BUILD_DIR}/ceph-win-ltsc2019-ci-image.qcow2,bus=virtio" \
     --disk "${BUILD_DIR}/virtio-win.iso,device=cdrom" \
