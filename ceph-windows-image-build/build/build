@@ -108,7 +108,7 @@ sudo virt-install \
     --network network=default,model=virtio \
     --controller type=virtio-serial \
     --channel unix,target_type=virtio,name=org.qemu.guest_agent.0 \
-    --noautoconsol
+    --noautoconsole
 
 # Find the VM NIC MAC address
 sudo virsh dumpxml $VM_NAME > $WORKSPACE/libvirt_vm.xml
