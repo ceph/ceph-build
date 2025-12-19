@@ -210,10 +210,6 @@ install_python_packages () {
     PIP_SDIST_INDEX="$HOME/.cache/pip"
     mkdir -p $PIP_SDIST_INDEX
 
-    # Avoid UnicodeErrors when installing packages.
-    # See https://github.com/ceph/ceph/pull/42811
-    export LC_ALL=en_US.UTF-8
-
     if [ "$2" == "latest" ]; then
         echo "Ensuring latest pip is installed"
         $venv/pip install -U pip

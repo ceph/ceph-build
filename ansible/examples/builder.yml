@@ -183,6 +183,7 @@
           - jq
           - tmpreaper
           - podman
+          - locales
         tmp_cleaner_name: tmpreaper
         tmp_cleaner_args: "--runtime=0 14d /tmp/"
       when: ansible_os_family == "Debian"
@@ -284,6 +285,7 @@
           - openssl-devel
           - libffi-devel
           - tmpwatch
+          - glibc-langpack-en
         tmp_cleaner_name: tmpwatch
         tmp_cleaner_args: "14d /tmp/"
       when: ansible_os_family == "RedHat"
@@ -721,7 +723,7 @@
       lineinfile:
         dest: "/home/{{ jenkins_user }}/.bashrc"
         regexp: '^export LC_ALL='
-        line: "export LC_ALL=en_US.UTF-8"
+        line: "export LC_ALL=en_US.utf8"
         create: true
         state: present
 
@@ -729,13 +731,13 @@
       lineinfile:
         dest: "/home/{{ jenkins_user }}/.bashrc"
         regexp: '^export LANG='
-        line: "export LANG=en_US.UTF-8"
+        line: "export LANG=en_US.utf8"
 
     - name: Set utf-8 for LANGUAGE
       lineinfile:
         dest: "/home/{{ jenkins_user }}/.bashrc"
         regexp: '^export LANGUAGE='
-        line: "export LANGUAGE=en_US.UTF-8"
+        line: "export LANGUAGE=en_US.utf8"
 
     - name: Ensure the build dir exists
       file:
@@ -767,6 +769,10 @@
     - name: Ensure the home dir has the right owner permissions
       command: "sudo chown -R {{ jenkins_user }}:{{ jenkins_user }} /home/{{ jenkins_user}}"
       tags: chown
+
+    - name: Set system locale (systemd)
+      command: localectl set-locale LANG=en_US.utf8
+      when: ansible_service_mgr == "systemd"
 
     ## DEBIAN GPG KEY TASKS
     - name: Install Debian GPG Keys on Ubuntu
