@@ -65,7 +65,7 @@
                   break
               fi
           done
-          if test {osd-flavor} = "crimson-release" ; then
+          if test {osd-flavor} = "crimson" ; then
               export WITH_CRIMSON=true
               # TODO use clang-10 on ubuntu/focal
               timeout 7200 src/script/run-make.sh \
@@ -246,8 +246,7 @@
 - project:
     name: ceph-perf
     osd-flavor:
-      - crimson-debug
-      - crimson-release
       - classic
+      - crimson
     jobs:
       - ceph-perf-{osd-flavor}

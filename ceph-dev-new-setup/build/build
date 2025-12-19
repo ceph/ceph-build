@@ -86,6 +86,17 @@ else
   printf 'No cmake debug options added to branch %s.\n' "$BRANCH"
 fi
 
+# Tentacle is the last release that needs dedicated Crimson builds,
+# Later releases are able to use Crimson with the default build.
+# As the "Crimson flavor" is no longer available, we need a *temporary* way
+# to be able build Crimson for tentacle.
+# Note: This could be removed once Crimson we have Umbrella release builds.
+if [[ "$BRANCH" == *-crimson-tentacle ]]; then
+  CEPH_EXTRA_RPMBUILD_ARGS="--with crimson"
+  CEPH_EXTRA_CMAKE_ARGS+=" -DWITH_CRIMSON=true"
+  printf 'Added Crimson Tentacle cmake configs to branch %s. CEPH_EXTRA_CMAKE_ARGS: %s\n' "$BRANCH" "$CEPH_EXTRA_CMAKE_ARGS"
+fi
+
 ceph_build_args_from_flavor ${FLAVOR}
 
 mkdir -p release

@@ -58,24 +58,19 @@ def params_from_branch(initialParams) {
         params << params[0].clone()
         params[-1]['ARCHS'] = 'x86_64'
         params[-1]['DISTROS'] = 'centos9'
-        params[-1]['FLAVOR'] = 'crimson-debug'
+        params[-1]['FLAVOR'] = 'debug'
       } else {
         params[0]['ARCHS'] += ' arm64'
-        params[0]['FLAVOR'] += ' crimson-debug'
+        params[0]['FLAVOR'] += ' debug'
       }
       break
     case ~/.*centos9-only.*/:
       params[0]['DISTROS'] = 'centos9'
-      break
-    case ~/.*crimson-only.*/:
-      params[0]['ARCHS'] = 'x86_64'
-      params[0]['DISTROS'] = 'centos9'
       if ( !singleSet ) {
         params << params[0].clone()
-        params[0]['FLAVOR'] = 'crimson-debug'
-        params[1]['FLAVOR'] = 'crimson-release'
+        params[0]['FLAVOR'] = 'debug'
       } else {
-        params[0]['FLAVOR'] = 'crimson-debug crimson-release'
+        params[0]['FLAVOR'] += ' debug'
       }
       break
     default:
@@ -83,9 +78,9 @@ def params_from_branch(initialParams) {
         params << params[0].clone()
         params[-1]['ARCHS'] = 'x86_64'
         params[-1]['DISTROS'] = 'centos9'
-        params[-1]['FLAVOR'] = 'crimson-debug'
+        params[-1]['FLAVOR'] = 'debug'
       } else {
-        params[0]['FLAVOR'] += ' crimson-debug'
+        params[0]['FLAVOR'] += ' debug'
       }
   }
   if ( singleSet ) {

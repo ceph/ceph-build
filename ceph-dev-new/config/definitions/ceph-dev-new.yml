@@ -51,10 +51,9 @@
           name: FLAVOR
           choices:
             - default
-            - crimson-debug
-            - crimson-release
+            - debug
           default: "default"
-          description: "Type of Ceph build, choices are: crimson-debug, crimson-release, default. Defaults to: 'default'"
+          description: "Type of Ceph build, choices are: default, debug. Defaults to: 'default'"
 
       - string:
           name: CI_CONTAINER
