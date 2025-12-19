@@ -24,11 +24,16 @@
           description: "The virtio-win guest tools ISO URL."
           default: https://fedorapeople.org/groups/virt/virtio-win/direct-downloads/stable-virtio/virtio-win.iso
 
+      - string:
+          name: CEPH_BUILD_BRANCH
+          description: "The ceph-build.git branch to use.  Useful for testing changes."
+          default: main
+
     scm:
       - git:
           url: https://github.com/ceph/ceph-build.git
           branches:
-            - main
+            - ${{CEPH_BUILD_BRANCH}}
           basedir: ceph-build
 
     builders:
