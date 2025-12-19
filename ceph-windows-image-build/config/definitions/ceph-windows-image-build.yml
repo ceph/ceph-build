@@ -17,12 +17,12 @@
       - string:
           name: WINDOWS_SERVER_2019_ISO_URL
           description: "The Windows Server 2019 ISO URL."
-          default: https://software-download.microsoft.com/download/pr/17763.737.190906-2324.rs5_release_svc_refresh_SERVER_EVAL_x64FRE_en-us_1.iso
+          default: https://apt-mirror.sepia.ceph.com/windows/17763.737.190906-2324.rs5_release_svc_refresh_SERVER_EVAL_x64FRE_en-us_1.iso
 
       - string:
           name: VIRTIO_WIN_ISO_URL
           description: "The virtio-win guest tools ISO URL."
-          default: https://fedorapeople.org/groups/virt/virtio-win/direct-downloads/stable-virtio/virtio-win.iso
+          default: https://apt-mirror.sepia.ceph.com/windows/virtio-win.iso
 
       - string:
           name: CEPH_BUILD_BRANCH
