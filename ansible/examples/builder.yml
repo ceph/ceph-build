@@ -785,8 +785,14 @@
       become_user: "{{ jenkins_user }}"
       when: ansible_os_family == "Suse"
 
-    - name: Ensure the home dir has the right owner permissions
-      command: "sudo chown -R {{ jenkins_user }}:{{ jenkins_user }} /home/{{ jenkins_user}}"
+    # Do NOT try to chown the podman storage dirs.  This breaks all subsequent builds.
+    - name: Ensure the build dir has the right owner permissions
+      become: true
+      ansible.builtin.file:
+        path: "/home/{{ jenkins_user }}/build"
+        owner: "{{ jenkins_user }}"
+        group: "{{ jenkins_user }}"
+        recurse: true
       tags: chown
 
     - name: Set system locale (systemd)
