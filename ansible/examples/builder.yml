@@ -776,6 +776,34 @@
       command: localectl set-locale LANG=en_US.utf8
       when: ansible_service_mgr == "systemd"
 
+    - name: Reset rootless podman storage for {{ jenkins_user }} (required after subuid/subgid changes)
+      block:
+        - name: Stop and remove any running rootless containers
+          become: true
+          become_user: "{{ jenkins_user }}"
+          command: /bin/sh -lc 'podman ps -aq | xargs -r podman rm -f'
+          args:
+            chdir: "/home/{{ jenkins_user }}"
+          changed_when: false
+          failed_when: false
+
+        - name: Remove rootless podman storage
+          file:
+            path: "/home/{{ jenkins_user }}/.local/share/containers/storage"
+            state: absent
+
+        - name: Remove rootless podman cache
+          file:
+            path: "/home/{{ jenkins_user }}/.local/share/containers/cache"
+            state: absent
+
+        - name: Restore SELinux labels on containers directory (if applicable)
+          command: >
+            restorecon -R -T0 -x /home/{{ jenkins_user }}/.local/share/containers
+          when: ansible_selinux.status == "enabled"
+      tags:
+        - podman-reset
+
     ## DEBIAN GPG KEY TASKS
     - name: Install Debian GPG Keys on Ubuntu
       block:
