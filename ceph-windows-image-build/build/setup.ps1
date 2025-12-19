@@ -12,6 +12,39 @@ $DOKANY_URL = "https://github.com/dokan-dev/dokany/releases/download/v2.0.6.1000
 $WNBD_GIT_REPO = "https://github.com/ceph/wnbd.git"
 $WNBD_GIT_BRANCH = "main"
 
+function Ensure-ToolchainOrReboot {
+    $tool = "C:\ensure-toolchain.ps1"
+    if (!(Test-Path $tool)) { throw "Missing $tool" }
+
+    $toolOut = & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $tool 2>&1
+    $ec = $LASTEXITCODE
+
+    # 3010 is the common “restart required” code for MSI-ish installers
+    if ($ec -eq 3010) {
+        Write-Host "Toolchain requested reboot (3010). Exiting so caller can reboot + rerun setup."
+        exit 3010
+    }
+
+    if ($ec -ne 0) {
+        throw "Toolchain failed (exit=$ec). Output:`n$($toolOut -join [Environment]::NewLine)"
+    }
+
+    # Parse KEY=VALUE lines
+    $kv = @{}
+    $toolOut | ForEach-Object {
+        if ($_ -match '^(WindowsSdkDir|WindowsTargetPlatformVersion|StampinfDir)=(.+)$') {
+            $kv[$matches[1]] = $matches[2]
+        }
+    }
+
+    foreach ($k in @("WindowsSdkDir","WindowsTargetPlatformVersion","StampinfDir")) {
+        if ([string]::IsNullOrWhiteSpace($kv[$k])) { throw "Toolchain did not provide $k" }
+    }
+
+    return $kv
+}
+
+$Global:Toolchain = Ensure-ToolchainOrReboot
 
 function Get-WindowsBuildInfo {
     $p = Get-ItemProperty "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion"
@@ -147,43 +180,56 @@ function Install-WnbdDriver {
     Invoke-CommandLine "git.exe" "clone ${WNBD_GIT_REPO} --branch ${WNBD_GIT_BRANCH} ${gitDir}"
     Push-Location $gitDir
     try {
-        Set-VCVars
-        # BEGIN 2025 Hacks
+	# BEGIN 2025 Hacks (make MSBuild + custom build steps see the SDK)
+
+	$tool = "C:\ensure-toolchain.ps1"
+        if (!(Test-Path $tool)) { throw "Missing $tool" }
         
-        # Make sure the build has BOTH:
-        #  - stampinf.exe available for generate_version_h.ps1
-        #  - Windows SDK vars set so headers like windows.h/winsock2.h resolve
-        $vals = & powershell.exe -NoProfile -ExecutionPolicy Bypass -File /ensure-windows-sdk.ps1
+	# Run toolchain script and capture output + exit code
+        $toolOut = & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $tool 2>&1
+        $ec = $LASTEXITCODE
+        if ($ec -ne 0) {
+          throw "Toolchain failed (exit=$ec). Output:`n$($toolOut -join [Environment]::NewLine)"
+        }
         
-        $map = @{}
-        foreach ($line in $vals) {
-            if ($line -match '^(WindowsSdkDir|WindowsTargetPlatformVersion|StampinfDir)=(.*)$') {
-                $map[$matches[1]] = $matches[2]
-            }
+        # Parse KEY=VALUE lines
+        $kv = @{}
+        $toolOut | ForEach-Object {
+          if ($_ -match '^(WindowsSdkDir|WindowsTargetPlatformVersion|StampinfDir)=(.+)$') {
+            $kv[$matches[1]] = $matches[2]
+          }
         }
         
         foreach ($k in @("WindowsSdkDir","WindowsTargetPlatformVersion","StampinfDir")) {
-            if (-not $map.ContainsKey($k) -or [string]::IsNullOrWhiteSpace($map[$k])) {
-                throw "ensure-windows-sdk.ps1 did not provide $k. Output was: $($vals -join '; ')"
-            }
+          if ([string]::IsNullOrWhiteSpace($kv[$k])) { throw "Toolchain did not provide $k" }
         }
         
-        # Validate paths
-        if (!(Test-Path $map["StampinfDir"])) { throw "StampinfDir does not exist: $($map["StampinfDir"])" }
-        if (!(Test-Path $map["WindowsSdkDir"])) { throw "WindowsSdkDir does not exist: $($map["WindowsSdkDir"])" }
+        $winSdkDir   = $kv["WindowsSdkDir"]
+        $winVer      = $kv["WindowsTargetPlatformVersion"]
+        $stampinfDir = $kv["StampinfDir"]
         
-        $msb = @(
-          "MSBuild.exe",
-          "vstudio\wnbd.sln",
-          "/m",
-          "/p:Configuration=Release",
-          "/p:Platform=x64",
-          "/p:WindowsSdkDir=$($map['WindowsSdkDir'])",
-          "/p:WindowsTargetPlatformVersion=$($map['WindowsTargetPlatformVersion'])"
-        ) -join " "
+        Write-Host "Using WindowsSdkDir=$winSdkDir"
+        Write-Host "Using WindowsTargetPlatformVersion=$winVer"
+        Write-Host "Using StampinfDir=$stampinfDir"
         
-        # Run MSBuild in *cmd.exe* so PATH definitely applies to MSBuild + its custom steps
-        Invoke-CommandLine "cmd.exe" ("/c set PATH=" + $map["StampinfDir"] + ";%PATH% && " + $msb)
+        $btPath  = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\2019\BuildTools"
+        $vcvars  = Join-Path $btPath "VC\Auxiliary\Build\vcvars64.bat"
+        $msbuild = Join-Path $btPath "MSBuild\Current\Bin\MSBuild.exe"
+        if (!(Test-Path $vcvars))  { throw "Missing vcvars: $vcvars" }
+        if (!(Test-Path $msbuild)) { throw "Missing MSBuild: $msbuild" }
+        
+        # IMPORTANT:
+        # - vcvars sets INCLUDE/LIB + WindowsSdkDir plumbing
+        # - We *also* pass WindowsSdkDir + WindowsTargetPlatformVersion explicitly
+        # - We prepend stampinfDir so the custom step can find stampinf.exe
+	$cmd = @(
+          'call "' + $vcvars + '" >nul 2>nul'
+          'set "PATH=' + $stampinfDir + ';%PATH%"'
+          '"' + $msbuild + '" vstudio\wnbd.sln /m /p:Configuration=Release /p:Platform=x64 ' +
+            '/p:WindowsSdkDir="' + $winSdkDir + '" ' +
+            '/p:WindowsTargetPlatformVersion=' + $winVer
+        ) -join ' && '
+        Invoke-CommandLine "cmd.exe" ("/c " + $cmd)
 
         # END 2025 Hacks
         Copy-Item -Force -Path "vstudio\x64\Release\driver\*" -Destination "${outDir}\"

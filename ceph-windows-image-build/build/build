@@ -166,10 +166,9 @@ restart_windows_vm 1800
 
 scp_upload ${BUILD_DIR}/utils.ps1 /utils.ps1
 scp_upload ${BUILD_DIR}/setup.ps1 /setup.ps1
-scp_upload ${BUILD_DIR}/ensure-windows-sdk.ps1 /ensure-windows-sdk.ps1
-scp_upload ${BUILD_DIR}/ensure-stampinf.ps1 /ensure-stampinf.ps1
+scp_upload ${BUILD_DIR}/ensure-toolchain.ps1 /ensure-toolchain.ps1
 SSH_TIMEOUT=1h ssh_exec powershell.exe -File /setup.ps1
-ssh_exec powershell.exe Remove-Item -Force /setup.ps1, /utils.ps1
+ssh_exec powershell.exe Remove-Item -Force /setup.ps1, /utils.ps1, /ensure-toolchain.ps1
 
 restart_windows_vm
 
