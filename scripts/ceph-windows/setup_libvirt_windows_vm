@@ -4,10 +4,10 @@ set -o pipefail
 
 if [[ -z $LIBVIRT_DIR ]]; then echo "ERROR: The env variable LIBVIRT_DIR is not set"; exit 1; fi
 
-export WINDOWS_VM_IMAGE_URL=${WINDOWS_VM_IMAGE_URL:-"https://filedump.ceph.com/windows/ceph-win-ltsc2019-ci-image.qcow2"}
+export WINDOWS_VM_IMAGE_URL=${WINDOWS_VM_IMAGE_URL:-"https://apt-mirror.sepia.ceph.com/windows/ceph-win-ltsc2019-ci-image.qcow2"}
 export WINDOWS_VM_NAME=${WINDOWS_VM_NAME:-"ceph-windows-client-${JOB_NAME}-${BUILD_ID}"}
-export WINDOWS_VM_VCPUS="8"
-export WINDOWS_VM_MEMORY="8192"  # 8GB
+export WINDOWS_VM_VCPUS="32"
+export WINDOWS_VM_MEMORY="32768"  # 8GB
 export WINDOWS_SSH_USER="administrator"
 
 #
