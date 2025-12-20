@@ -25,8 +25,8 @@
 
     parameters:
       - string:
-          name: sha1
-          description: "commit id or a refname, like 'origin/pr/72/head'"
+          name: ghprbPullId
+          description: "Pull Request Number (e.g., 60421)"
 
     triggers:
       - github-pull-request:

@@ -1,5 +1,9 @@
 #!/bin/bash -e
 
+if [[ "${ROOT_BUILD_CAUSE}" == "MANUALTRIGGER" ]]; then
+    ghprbGhRepository="ceph/ceph"
+fi
+
 docs_pr_only
 container_pr_only
 gha_pr_only
