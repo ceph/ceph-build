@@ -885,7 +885,7 @@ ceph_build_args_from_flavor() {
         DEB_BUILD_PROFILES=""
         ;;
     debug)
-        CEPH_EXTRA_CMAKE_ARGS+=" -DCMAKE_BUILD_TYPE=Debug"
+        CEPH_EXTRA_CMAKE_ARGS+=" -DCMAKE_BUILD_TYPE=Debug -DWITH_CEPH_DEBUG_MUTEX=ON"
         ;;
     *)
         echo "unknown FLAVOR: ${FLAVOR}" >&2

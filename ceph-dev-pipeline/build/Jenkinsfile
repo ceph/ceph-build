@@ -449,7 +449,7 @@ pipeline {
                     }
                     break
                   case "debug":
-                    ceph_extra_cmake_args += " -DCMAKE_BUILD_TYPE=Debug"
+                    ceph_extra_cmake_args += " -DCMAKE_BUILD_TYPE=Debug -DWITH_CEPH_DEBUG_MUTEX=ON"
                     break
                   default:
                     println "FLAVOR=${env.FLAVOR} is invalid"
