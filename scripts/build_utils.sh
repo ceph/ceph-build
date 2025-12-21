@@ -876,22 +876,21 @@ ceph_build_args_from_flavor() {
     shift
 
     # shellcheck disable=SC2034
-    case "${flavor}" in
-    default)
-        CEPH_EXTRA_RPMBUILD_ARGS="--with tcmalloc"
-        CEPH_EXTRA_CMAKE_ARGS+=" -DALLOCATOR=tcmalloc"
-        # build boost with valgrind=on for https://tracker.ceph.com/issues/56500
-        CEPH_EXTRA_CMAKE_ARGS+=" -DWITH_SYSTEM_BOOST=OFF -DWITH_BOOST_VALGRIND=ON"
-        DEB_BUILD_PROFILES=""
-        ;;
-    debug)
+    CEPH_EXTRA_RPMBUILD_ARGS="--with tcmalloc"
+    CEPH_EXTRA_CMAKE_ARGS+=" -DALLOCATOR=tcmalloc"
+    # build boost with valgrind=on for https://tracker.ceph.com/issues/56500
+    CEPH_EXTRA_CMAKE_ARGS+=" -DWITH_SYSTEM_BOOST=OFF -DWITH_BOOST_VALGRIND=ON"
+    DEB_BUILD_PROFILES=""
+
+    if [[ "$flavor" == "debug" ]]; then
         CEPH_EXTRA_CMAKE_ARGS+=" -DCMAKE_BUILD_TYPE=Debug -DWITH_CEPH_DEBUG_MUTEX=ON"
-        ;;
-    *)
+    fi
+
+    if [[ "$flavor" != "default" && "$flavor" != "debug" ]]; then
         echo "unknown FLAVOR: ${FLAVOR}" >&2
         exit 1
-    esac
-}
+    fi
+
 
 write_dist_files()
 {
