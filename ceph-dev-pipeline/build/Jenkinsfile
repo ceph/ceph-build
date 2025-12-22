@@ -374,9 +374,11 @@ pipeline {
                   podman pull ${env.CEPH_BUILDER_IMAGE}:${ceph_builder_tag_short} || \
                   true
                 """
+                def withCrimson = env.BRANCH !in ['tentacle', 'squid', 'reef']
                 sh """#!/bin/bash
                   set -ex
                   echo > .env
+                  echo "WITH_CRIMSON=${withCrimson}" >> .env
                   cd dist/ceph
                   python3 src/script/build-with-container.py --env-file=${env.WORKSPACE}/.env --image-repo=${env.CEPH_BUILDER_IMAGE} --tag=${ceph_builder_tag} --image-variant=packages -d ${DIST} -e build-container
                   podman tag ${env.CEPH_BUILDER_IMAGE}:${ceph_builder_tag} ${env.CEPH_BUILDER_IMAGE}:${ceph_builder_tag_short}
