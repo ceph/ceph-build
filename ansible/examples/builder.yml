@@ -184,6 +184,7 @@
           - tmpreaper
           - podman
           - locales
+          - iproute2
         tmp_cleaner_name: tmpreaper
         tmp_cleaner_args: "--runtime=0 14d /tmp/"
       when: ansible_os_family == "Debian"
