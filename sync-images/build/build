@@ -4,6 +4,8 @@ set -e
 # shellcheck disable=SC2034
 WORKDIR=$(mktemp -td tox.XXXXXXXXXX)
 
+podman login -u ${DOCKER_HUB_USERNAME} -p ${DOCKER_HUB_PASSWORD} docker.io
+
 cat << EOF > ./sync.yml
 docker.io:
   images-by-semver:
