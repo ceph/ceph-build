@@ -40,6 +40,6 @@
               username: DEST_USERNAME
               password: DEST_PASSWORD
           - username-password-separated:
-              credential-id: nizamial09-dockerhub
+              credential-id: dgalloway-docker-hub
               username: DOCKER_HUB_USERNAME
               password: DOCKER_HUB_PASSWORD
