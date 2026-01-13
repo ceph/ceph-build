@@ -605,7 +605,8 @@ pipeline {
           }
           stage("container") {
             when {
-              expression { env.CI_CONTAINER == 'true' && container_distros.contains(env.DIST) }
+              // Do not build a container for debug builds
+              expression { env.CI_CONTAINER == 'true' && container_distros.contains(env.DIST) && env.FLAVOR != 'debug'}
             }
             environment {
               CONTAINER_REPO_CREDS = credentials('quay-ceph-io-ceph-ci')
