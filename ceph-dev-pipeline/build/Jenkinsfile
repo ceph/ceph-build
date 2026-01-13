@@ -357,7 +357,8 @@ pipeline {
               DOCKER_HUB_CREDS = credentials('dgalloway-docker-hub')
             }
             when {
-              expression { return build_matrix["${DIST}_${ARCH}"] == true }
+              // Do not build a conatiner for debug builds
+              expression { return build_matrix["${DIST}_${ARCH}"] == true && env.FLAVOR != 'debug' }
             }
             steps {
               script {
