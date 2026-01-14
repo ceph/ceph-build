@@ -1,6 +1,6 @@
 - project:
     name: cephadm-ansible-prs-syntax
-    worker_labels: 'vagrant && libvirt && (braggi || adami)'
+    worker_labels: 'vagrant && libvirt && !centos9'
     scenario:
       - flake8
       - mypy
