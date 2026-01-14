@@ -1128,13 +1128,27 @@ clear_libvirt_networks() {
 }
 
 restart_libvirt_services() {
-    # restart libvirt services
-    if test -f /etc/redhat-release; then
-        sudo service libvirtd restart
+    if command -v systemctl >/dev/null 2>&1; then
+        # systemd systems
+        if systemctl list-unit-files | grep -q '^libvirt-bin\.service'; then
+            sudo systemctl restart libvirt-bin 2>/dev/null || sudo systemctl restart libvirtd
+        else
+            sudo systemctl restart libvirtd
+        fi
+
+        # Restart guests service if it exists
+        systemctl list-unit-files | grep -q '^libvirt-guests\.service' && \
+            sudo systemctl restart libvirt-guests
     else
-        sudo service libvirt-bin restart
+        # SysVinit systems
+        if sudo service libvirt-bin restart 2>/dev/null; then
+            :
+        else
+            sudo service libvirtd restart
+        fi
+
+        sudo service libvirt-guests restart 2>/dev/null || true
     fi
-    sudo service libvirt-guests restart
 }
 
 # Function to update vagrant boxes on static libvirt Jenkins builders used for ceph-ansible and ceph-docker testing
