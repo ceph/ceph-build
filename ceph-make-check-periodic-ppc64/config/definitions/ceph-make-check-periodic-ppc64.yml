@@ -1,0 +1,101 @@
+- job:
+    block-downstream: false
+    block-upstream: false
+    builders:
+    - shell:
+        !include-raw-verbatim:
+          - ../../../scripts/build_utils.sh
+          - ../../../scripts/setup_container_runtime.sh
+          - ../../build/build
+    concurrent: true
+    disabled: false
+    name: ceph-make-check-periodic-ppc64
+    node: 'ppc64 && (installed-os-noble || centos9)'
+    parameters:
+    - string:
+        name: ghprbPullId
+        description: "the GitHub pull id, like '72' in 'ceph/pull/72'"
+        default: origin/main
+    project-type: freestyle
+    properties:
+    - build-discarder:
+        artifact-days-to-keep: -1
+        artifact-num-to-keep: -1
+        days-to-keep: 15
+        num-to-keep: 300
+    - raw:
+        xml: |
+          <com.sonyericsson.jenkins.plugins.bfa.model.ScannerJobProperty plugin="build-failure-analyzer@1.18.1">
+          <doNotScan>false</doNotScan>
+          </com.sonyericsson.jenkins.plugins.bfa.model.ScannerJobProperty>
+    - github:
+        url: https://github.com/ceph/ceph/
+    - raw:
+        xml: |
+          <com.sonyericsson.rebuild.RebuildSettings plugin="rebuild@1.25">
+          <autoRebuild>false</autoRebuild>
+          <rebuildDisabled>false</rebuildDisabled>
+          </com.sonyericsson.rebuild.RebuildSettings>
+    quiet-period: '5'
+    retry-count: '3'
+    scm:
+    - git:
+        url: https://github.com/ceph/ceph.git
+        name: origin
+        branches:
+          - origin/pr/${{ghprbPullId}}/merge
+        refspec: +refs/pull/${{ghprbPullId}}/*:refs/remotes/origin/pr/${{ghprbPullId}}/*
+        skip-tag: true
+        shallow-clone: true
+        honor-refspec: true
+        timeout: 20
+        wipe-workspace: true
+    triggers:
+      - timed: '@weekly'
+    publishers:
+      - cobertura:
+          report-file: "src/pybind/mgr/dashboard/frontend/coverage/cobertura-coverage.xml"
+          only-stable: "true"
+          health-auto-update: "false"
+          stability-auto-update: "false"
+          zoom-coverage-chart: "true"
+          source-encoding: "Big5"
+          targets:
+            - files:
+                healthy: 10
+                unhealthy: 20
+                failing: 30
+            - method:
+                healthy: 10
+                unhealthy: 20
+                failing: 30
+      - postbuildscript:
+          builders:
+            - role: SLAVE
+              build-on:
+                - ABORTED
+              build-steps:
+                - shell:
+                    !include-raw-verbatim:
+                      - ../../build/kill-tests
+      - xunit:
+          thresholds:
+            - failed:
+                unstable: 0
+                unstablenew: 0
+                failure: 0
+                failurenew: 0
+          types:
+            - ctest:
+                pattern: "build/Testing/**/Test.xml"
+                skip-if-no-test-files: true
+    wrappers:
+      - credentials-binding:
+          - username-password-separated:
+              credential-id: github-readonly-token
+              username: GITHUB_USER
+              password: GITHUB_PASS
+          - username-password-separated:
+              credential-id: dgalloway-docker-hub
+              username: DOCKER_HUB_USERNAME
+              password: DOCKER_HUB_PASSWORD
