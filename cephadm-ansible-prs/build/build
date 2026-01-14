@@ -4,7 +4,7 @@
 pkgs=( "tox" )
 TEMPVENV=$(create_venv_dir)
 VENV=${TEMPVENV}/bin
-install_python_packages $TEMPVENV "pkgs[@]" "pip==22.0.4"
+install_python_packages $TEMPVENV "pkgs[@]"
 
 # XXX this might not be needed
 source $VENV/activate
