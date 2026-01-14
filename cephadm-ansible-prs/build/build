@@ -4,7 +4,6 @@
 pkgs=( "tox" )
 TEMPVENV=$(create_venv_dir)
 VENV=${TEMPVENV}/bin
-set_centos_python3_version "python3.9"
 install_python_packages $TEMPVENV "pkgs[@]" "pip==22.0.4"
 
 # XXX this might not be needed
