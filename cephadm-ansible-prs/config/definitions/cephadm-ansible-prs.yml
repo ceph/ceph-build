@@ -10,7 +10,7 @@
 
 - project:
     name: cephadm-ansible-prs-functional
-    worker_labels: 'vagrant && libvirt && (braggi || adami)'
+    worker_labels: 'vagrant && libvirt && !centos9'
     distribution:
       - el9
     scenario:
