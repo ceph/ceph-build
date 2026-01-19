@@ -39,3 +39,7 @@
               credential-id: sync-images-from-docker-to-quay
               username: DEST_USERNAME
               password: DEST_PASSWORD
+          - username-password-separated:
+              credential-id: nizamial09-dockerhub
+              username: DOCKER_HUB_USERNAME
+              password: DOCKER_HUB_PASSWORD
