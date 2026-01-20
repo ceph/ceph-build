@@ -1,0 +1,18 @@
+#!/bin/bash
+github_status_setup
+
+# the following two methods exist in scripts/build_utils.sh
+pkgs=( "github-status>0.0.3" )
+install_python_packages "pkgs[@]"
+GITHUB_STATUS_STATE="pending" $VENV/github-status create
+
+export NPROC=$(nproc)
+export WITH_SEASTAR=true
+timeout 3h ./run-make-check.sh
+sleep 5
+ps -ef | grep -v jnlp | grep ceph || true
+
+# This is so ugly but in order for github-status to know if `make check` or API tests failed in the postbuildscript, the ceph-pr-combined/build/failure script can check for this sentinel file.
+touch $WORKSPACE/.makecheckpassed
+
+GITHUB_STATUS_STATE="success" $VENV/github-status create
