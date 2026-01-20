@@ -442,20 +442,17 @@ pipeline {
                 }
                 def ceph_extra_cmake_args = "";
                 def deb_build_profiles = "";
-                switch (env.FLAVOR) {
-                  case "default":
-                    ceph_extra_cmake_args += " -DALLOCATOR=tcmalloc"
-                    ceph_extra_cmake_args += " -DWITH_SYSTEM_BOOST=OFF -DWITH_BOOST_VALGRIND=ON"
-                    if (os.version_name == "focal") {
-                      ceph_extra_cmake_args += " -DWITH_STATIC_LIBSTDCXX=ON"
-                    }
-                    break
-                  case "debug":
-                    ceph_extra_cmake_args += " -DCMAKE_BUILD_TYPE=Debug"
-                    break
-                  default:
-                    println "FLAVOR=${env.FLAVOR} is invalid"
-                    assert false
+                ceph_extra_cmake_args += " -DALLOCATOR=tcmalloc"
+                ceph_extra_cmake_args += " -DWITH_SYSTEM_BOOST=OFF -DWITH_BOOST_VALGRIND=ON"
+                if (os.version_name == "focal") {
+                  ceph_extra_cmake_args += " -DWITH_STATIC_LIBSTDCXX=ON"
+                }
+                if (env.FLAVOR ==  "debug") {
+                  ceph_extra_cmake_args += " -DCMAKE_BUILD_TYPE=Debug -DWITH_CEPH_DEBUG_MUTEX=ON"
+                }
+                if (env.FLAVOR != "default" && env.FLAVOR != "debug") {
+                  println "FLAVOR=${env.FLAVOR} is invalid"
+                  assert false
                 }
                 bwc_command = "${bwc_command} ${bwc_cmd_sccache_flags}"
                 if ( os.pkg_type == "deb" ) {
