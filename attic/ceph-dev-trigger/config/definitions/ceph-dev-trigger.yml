@@ -30,6 +30,7 @@
             - 'origin/reef'
             - 'origin/squid'
             - 'origin/tentacle'
+            - 'origin/umbrella'
           skip-tag: true
           timeout: 20
           wipe-workspace: true
@@ -91,7 +92,7 @@
                     DISTROS=jammy focal centos8 centos9
       # build tentacle on:
       # default: jammy focal centos8 centos9
-      # crimson: centos8 centos9
+      # crimson: centos9
       - conditional-step:
           condition-kind: regex-match
           regex: .*tentacle.*
@@ -108,6 +109,31 @@
                     BRANCH=${GIT_BRANCH}
                     FORCE=True
                     DISTROS=jammy focal centos8 centos9
+                - project: 'ceph-dev'
+                  predefined-parameters: |
+                    BRANCH=${GIT_BRANCH}
+                    FORCE=True
+                    DISTROS=centos9
+                    FLAVOR=crimson
+      # build umbrella on:
+      # default: jammy focal centos9
+      # crimson: centos9
+      - conditional-step:
+          condition-kind: regex-match
+          regex: .*umbrella.*
+          label: '${GIT_BRANCH}'
+          on-evaluation-failure: dont-run
+          steps:
+            - shell:
+                !include-raw:
+                - ../../../scripts/build_utils.sh
+                - ../../build/notify
+            - trigger-builds:
+                - project: 'ceph-dev'
+                  predefined-parameters: |
+                    BRANCH=${GIT_BRANCH}
+                    FORCE=True
+                    DISTROS=jammy focal centos9
                 - project: 'ceph-dev'
                   predefined-parameters: |
                     BRANCH=${GIT_BRANCH}

@@ -92,12 +92,38 @@
                     DISTROS=centos9
                     FLAVOR=debug
                     ARCHS=x86_64
+      # build umbrella on:
+      # default: noble jammy centos9 windows
+      # crimson: centos9
+      - conditional-step:
+          condition-kind: regex-match
+          regex: .*umbrella.*
+          label: '${{GIT_BRANCH}}'
+          on-evaluation-failure: dont-run
+          steps:
+            - shell:
+                !include-raw-verbatim:
+                - ../../../scripts/build_utils.sh
+                - ../../build/notify
+            - trigger-builds:
+                - project: 'ceph-dev-new'
+                  predefined-parameters: |
+                    BRANCH=${{GIT_BRANCH}}
+                    FORCE=True
+                    DISTROS=noble jammy centos9 windows
+                - project: 'ceph-dev-new'
+                  predefined-parameters: |
+                    BRANCH=${{GIT_BRANCH}}
+                    FORCE=True
+                    DISTROS=centos9
+                    FLAVOR=debug
+                    ARCHS=x86_64
       # If no release name is found in branch, build on all possible distro/flavor combos (except xenial, bionic, focal).
       # regex matching and 'on-evaluation-failure: run' doesn't work here so triple negative it is.
       - conditional-step:
           condition-kind: shell
           condition-command: |
-            echo "${{GIT_BRANCH}}" | grep -v '\(reef\|squid\|tentacle\|centos9-only\)'
+            echo "${{GIT_BRANCH}}" | grep -v '\(reef\|squid\|tentacle\|umbrella\|centos9-only\)'
           on-evaluation-failure: dont-run
           steps:
             - shell:
