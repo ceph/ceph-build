@@ -34,10 +34,10 @@ FULLTAG_RE = re.compile(
 # 1d7b744e98c74bba9acb22262ef14c776a1e8bfe-crimson-{debug,release}
 # there are also still older tags with just '-crimson' which ought to still
 # be handled here
-#SHA1_RE = re.compile(r'(?P<sha1>[0-9a-f]{40})(?P<flav_or_arch>-crimson-debug|-crimson-release|-crimson|-aarch64)*')
+#SHA1_RE = re.compile(r'(?P<sha1>[0-9a-f]{40})(?P<flav_or_arch>-crimson-debug|-crimson-release|-crimson|-debug|-aarch64)*')
 # ...but, now that we've added an option fromtag, and apparently
 # switched to arm62, it's more like
-SHA1_RE = re.compile(r'(?P<sha1>[0-9a-f]{40})(?P<fromtag>[a-z0-9-]+)*(?P<flav_or_arch>-crimson-debug|-crimson-release|-crimson|-aarch64)*')
+SHA1_RE = re.compile(r'(?P<sha1>[0-9a-f]{40})(?P<fromtag>[a-z0-9-]+)*(?P<flav_or_arch>-crimson-debug|-crimson-release|-crimson|-debug|-aarch64)*')
 
 
 def parse_full_quay_tag(tag, old=False):
