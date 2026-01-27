@@ -77,8 +77,8 @@
 
       - string:
           name: DISTROS
-          description: "A list of distros to build for. Available options are: centos9, noble, jammy, focal, bionic, xenial, trusty, precise, wheezy, jessie, buster, bullseye, bookworm"
-          default: "noble jammy centos8 centos9 bookworm"
+          description: "A list of distros to build for. Available options are: centos9, noble, jammy, focal, bionic, xenial, trusty, precise, wheezy, jessie, buster, bullseye, bookworm, trixie"
+          default: "noble jammy centos8 centos9 bookworm trixie"
 
       - string:
           name: ARCHS

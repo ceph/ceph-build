@@ -16,7 +16,7 @@ echo "********************************************"
 if [[ "$project" == "ceph" ]] ; then
   # This ugly loop checks all possible DEB combinations to see which repo has the most packages since that's likely the repo you want to sync.
   current_highest_count=0
-  for combo in debian/bookworm debian/bullseye ubuntu/bionic ubuntu/focal ubuntu/jammy ubuntu/noble; do
+  for combo in debian/trixie debian/bookworm debian/bullseye ubuntu/bionic ubuntu/focal ubuntu/jammy ubuntu/noble; do
     combo_count=$(curl -fs https://chacra.ceph.com/r/$project/$release/$sha1/${combo}/flavors/default/pool/main/c/ceph/ | wc -l || /bin/true)
     if [[ ${PIPESTATUS[0]} -eq 22 ]] ; then
       echo "$combo packages not found, skipping"
