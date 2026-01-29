@@ -1,0 +1,183 @@
+node('built-in') {
+  def repoUrl  = 'https://github.com/ceph/ceph'
+  def branches = ['main','tentacle','squid','reef']
+
+  // Define flavor/distro combinations
+  def cfg = [
+      reef: [
+          distros: 'jammy focal centos9 windows',
+          extras : []
+      ],
+      squid: [
+          distros: 'noble jammy centos9 windows',
+          extras : []
+      ],
+      tentacle: [
+          distros: 'noble jammy rocky10 centos9 windows',
+          extras : [
+              [distros:'centos9 rocky10', flavors:'debug', archs:'x86_64']
+          ]
+      ],
+      main: [
+          distros: 'noble jammy rocky10 centos9 windows',
+          extras : [
+              [distros:'centos9 rocky10', flavors:'debug', archs:'x86_64'],
+          ]
+      ]
+  ]
+
+  // Initialize some empty vars
+  def last = [:]
+  def tips = [:]
+  def toBuild = []
+  def unchanged = []
+
+  try {
+    // The last_shas.properties file ends up looking like:
+    // main=c743821fba4c7d4d10b2fc12facd975b6fd18c55
+    // tentacle=9530200d1f382ce628313be8e8b938354d7936cd
+    // squid=ab2234593ae767938f06d61a06ac4ff847db0b79
+    // reef=e6ab650721089ed287ed684011c35b550bf20fe7
+
+    // Try to get this file from the last ceph-dev-cron job that ran.  Missing is OK (we'll just trigger everything).
+    // We define an array, "last" that looks like:
+    // [
+    //   main     : 'c743821f...',
+    //   tentacle : '9530200d...',
+    //   squid    : 'ab223459...',
+    //   reef     : 'e6ab6507...'
+    // ]
+    stage('Slurp previous job SHAs') {
+      sh 'rm -f last_shas.properties' // ensure no cached copy in job dir
+      try {
+        copyArtifacts projectName: env.JOB_NAME,
+                      selector: lastWithArtifacts(),
+                      filter: 'last_shas.properties',
+                      optional: true,
+                      flatten: true
+        if (fileExists('last_shas.properties')) {
+          last = readProperties file: 'last_shas.properties'
+        } else {
+          last = [:]
+        }
+      } catch (e) {
+        echo "No prior cache available: ${e}"
+        last = [:]
+      }
+    }
+
+    // Query the remote Ceph git repository to get the current tip commit SHA
+    // for each tracked branch (without cloning). These SHAs are later compared
+    // against the previously stored values to determine which branches have
+    // changed and need downstream builds triggered.
+
+    // branches is the list of branch names (e.g., ['main','tentacle','squid','reef'])
+    // b is short for branch.  We're just looping over branches here.
+    // Ultimately we end up with array "tips" that looks like "last" but is the current
+    // tip of each branch instead of the last job's tips.
+    stage('Retrieve branch tip SHAs') {
+      branches.each { b ->
+        def sha = sh(
+          script: "git ls-remote ${repoUrl} refs/heads/${b} | awk '{print \$1}'",
+          returnStdout: true
+        ).trim()
+        if (!sha) { error "Could not resolve remote SHA for branch ${b}" }
+        tips[b] = sha
+        echo "Branch ${b} -> ${sha}"
+      }
+    }
+
+    // For each branch (b), if the previous job's tip does not equal this job's tip,
+    // add the branch name to array toBuild, otherwise add to unchanged.
+    stage('Compare SHAs') {
+      branches.each { b ->
+        def prev = (last.getOrDefault(b, '') ?: '').trim()
+        def now  = (tips[b] ?: '').trim()
+        if (prev != now) toBuild << b else unchanged << b
+      }
+      echo "Changed:   ${toBuild}"
+      echo "Unchanged: ${unchanged}"
+    }
+
+    if (toBuild.isEmpty()) {
+      currentBuild.description = "No changes: ${branches.join(', ')}"
+      return
+    }
+
+    // Loop through toBuild setting b to the branch name that needs to be built.
+    stage('Trigger ceph-dev-pipeline') {
+      def triggered = []
+      toBuild.each { b ->
+        def sha = tips[b]
+        dir("work/${b}") {
+
+          // Split the string, DISTROS, out into a list (i.e., tokenize)    
+          def toks = (cfg[b].distros ?: '').tokenize()
+          // Put all of the tokens other than "windows" in linuxDistros list
+          def linuxDistros = toks.findAll { it != 'windows' }.join(' ')
+          // If "windows" is present, put it in winDistros
+          // (Even though there will only ever be "windows" in this "list," it seemed more readable
+          // to trigger the Linux distros based on a list and the windows job based on a bool.)
+          def winDistros   = toks.findAll { it == 'windows' }.join(' ')
+    
+          if (linuxDistros) {
+            echo "Triggering BRANCH=${b}, DISTROS=${linuxDistros}, FLAVOR=default, ARCH=x86_64"
+            build job: 'ceph-dev-pipeline',
+                  parameters: [
+                    string(name: 'BRANCH',    value: b),
+                    string(name: 'DISTROS',   value: linuxDistros),
+                    string(name: 'CEPH_REPO', value: repoUrl),
+                    string(name: 'SETUP_JOB', value: 'ceph-source-dist'),
+                    booleanParam(name: 'FORCE', value: true)
+                  ],
+                  wait: false
+          }
+    
+          if (winDistros) {
+            echo "Triggering BRANCH=${b}, DISTROS=${winDistros}, FLAVOR=default, ARCH=x86_64"
+            build job: 'ceph-dev',
+                  parameters: [
+                    string(name: 'BRANCH',    value: b),
+                    string(name: 'DISTROS',   value: winDistros),
+                    booleanParam(name: 'FORCE', value: true)
+                  ],
+                  wait: false
+          }
+    
+          // This block is for FLAVOR=debug and/or ARCHS=arm64
+          cfg[b].extras.each { ex ->
+            echo "Triggering BRANCH=${b}, FLAVOR=${ex.flavors}, ARCH=${ex.archs}"
+            build job: 'ceph-dev-pipeline',
+                  parameters: [
+                    string(name: 'BRANCH',    value: b),
+                    string(name: 'DISTROS',   value: ex.distros),
+                    string(name: 'FLAVORS',   value: ex.flavors),
+                    string(name: 'ARCHS',     value: ex.archs),
+                    string(name: 'CEPH_REPO', value: repoUrl),
+                    string(name: 'SETUP_JOB', value: 'ceph-source-dist'),
+                    booleanParam(name: 'FORCE', value: true)
+                  ],
+                  wait: false
+          }
+        }
+        // For each job we triggered, add "$branch@$short_sha" to array "triggered"
+        triggered << "${b}@${sha.take(8)}"
+      }
+
+      // Set the build description
+      def skipped = (branches - toBuild)
+      currentBuild.description = triggered.isEmpty()
+        ? "No changes: ${branches.join(', ')}"
+        : "Triggered:<br>- ${triggered.join('<br>- ')}" +
+          (skipped ? "<br><br>Unchanged:<br>- ${skipped.join('<br>- ')}" : "")
+    }
+
+  } finally {
+    // Write last_shas.properties for the next job to consume
+    if (tips && tips instanceof Map && !tips.isEmpty()) {
+      writeFile file: 'last_shas.properties',
+               text: tips.collect { k, v -> "${k}=${v}" }.join('\n') + "\n"
+      archiveArtifacts artifacts: 'last_shas.properties', fingerprint: true
+    }
+  }
+}
