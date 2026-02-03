@@ -40,6 +40,18 @@
     - "release != 'SECURITY'"
     - tag|bool is true
 
+# If the previous tag exists, just reuse it.  Otherwise with the head commit in ceph-releases.git.
+- name: check for previously existing tag for re-build
+  command: git ls-remote --tags releases "refs/tags/v{{ version }}"
+  args:
+    chdir: ceph
+  when:
+    - "release != 'SECURITY'"
+    - tag|bool is false
+  register: previous_tag_exists
+  changed_when: false
+  failed_when: false
+
 - name: "git checkout previously existing tag for re-build"
   command: git checkout -f v{{ version }}
   args:
@@ -47,6 +59,8 @@
   when:
     - "release != 'SECURITY'"
     - tag|bool is false
+    - previous_tag_exists is defined
+    - previous_tag_exists.stdout | length > 0
 
 # SECURITY
 - name: "git checkout security {{ branch }}-release branch"
