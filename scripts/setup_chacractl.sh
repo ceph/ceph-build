@@ -1,11 +1,6 @@
 #!/bin/bash -ex
 # vim: ts=4 sw=4 expandtab
-command -v pipx || (
-  command -v apt && sudo apt install -y pipx
-  command -v dnf && sudo dnf install -y pipx
-)
-pipx ensurepath
-pipx install uv
+"$WORKSPACE/scripts/setup_uv.sh"
 ~/.local/bin/uv tool install chacractl
 
 if [ -z "$chacra_url" ]; then
