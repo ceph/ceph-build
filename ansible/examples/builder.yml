@@ -236,6 +236,7 @@
           - python3-pip
           - python3-venv
           - python3-virtualenv
+          - pipx
       when:
         - ansible_os_family == "Debian"
         - ansible_distribution_major_version|int >= 18
@@ -286,6 +287,7 @@
           - libffi-devel
           - tmpwatch
           - glibc-langpack-en
+          - pipx
         tmp_cleaner_name: tmpwatch
         tmp_cleaner_args: "14d /tmp/"
       when: ansible_os_family == "RedHat"
