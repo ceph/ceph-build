@@ -30,7 +30,7 @@ project=$1; shift
 
 if [ $# -eq 0 ]; then
   # Default releases if no arguments passed
-  releases=( reef squid tentacle )
+  releases=( reef squid tentacle umbrella )
 else
   releases=( "$@" )
 fi

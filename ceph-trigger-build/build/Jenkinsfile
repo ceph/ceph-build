@@ -64,6 +64,17 @@ def params_from_branch(initialParams) {
         params[0]['FLAVOR'] += ' debug'
       }
       break
+    case ~/.*umbrella.*/:
+      if ( !singleSet ) {
+        params << params[0].clone()
+        params[-1]['ARCHS'] = 'x86_64'
+        params[-1]['DISTROS'] = 'centos9'
+        params[-1]['FLAVOR'] = 'debug'
+      } else {
+        params[0]['ARCHS'] += ' arm64'
+        params[0]['FLAVOR'] += ' debug'
+      }
+      break
     case ~/.*centos9-only.*/:
       params[0]['DISTROS'] = 'centos9'
       if ( !singleSet ) {

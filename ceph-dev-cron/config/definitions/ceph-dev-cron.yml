@@ -30,6 +30,7 @@
           browser: auto
           branches:
             - origin/main
+            - origin/umbrella
             - origin/tentacle
             - origin/squid
             - origin/reef
@@ -80,6 +81,32 @@
       - conditional-step:
           condition-kind: regex-match
           regex: .*tentacle.*
+          label: '${{GIT_BRANCH}}'
+          on-evaluation-failure: dont-run
+          steps:
+            - shell:
+                !include-raw-verbatim:
+                - ../../../scripts/build_utils.sh
+                - ../../build/notify
+            - trigger-builds:
+                - project: 'ceph-dev'
+                  predefined-parameters: |
+                    BRANCH=${{GIT_BRANCH}}
+                    FORCE=True
+                    DISTROS=noble jammy centos9 windows
+                - project: 'ceph-dev'
+                  predefined-parameters: |
+                    BRANCH=${{GIT_BRANCH}}
+                    FORCE=True
+                    DISTROS=centos9
+                    FLAVOR=debug
+                    ARCHS=x86_64
+      # build umbrella on:
+      # default: noble jammy centos9 windows
+      # crimson: centos9
+      - conditional-step:
+          condition-kind: regex-match
+          regex: .*umbrella.*
           label: '${{GIT_BRANCH}}'
           on-evaluation-failure: dont-run
           steps:
