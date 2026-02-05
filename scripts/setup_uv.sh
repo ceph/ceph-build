@@ -5,7 +5,7 @@ function setup_pipx () {
   command -v pipx || (
     command -v apt && sudo apt install -y pipx
     command -v dnf && sudo dnf install -y pipx
-  )
+  ) || true
   pipx ensurepath
 }
 
