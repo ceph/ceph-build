@@ -786,6 +786,7 @@
       when: ansible_os_family == "Suse"
 
     # Do NOT try to chown the podman storage dirs.  This breaks all subsequent builds.
+    # follow: false avoids following our silly qa/ dir symlinks
     - name: Ensure the build dir has the right owner permissions
       become: true
       ansible.builtin.file:
@@ -793,6 +794,7 @@
         owner: "{{ jenkins_user }}"
         group: "{{ jenkins_user }}"
         recurse: true
+        follow: false
       tags: chown
 
     - name: Set system locale (systemd)
