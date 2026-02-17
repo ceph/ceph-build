@@ -1,0 +1,13 @@
+# Suite list for release-tracker-workflow.
+# SUITE_LIST_SOURCE: release-tracker-workflow/config/suites.yaml
+suites:
+  - teuthology:nop
+  - orch
+  - rbd
+  - fs
+  - rgw
+  - krbd
+  - upgrade
+  - crimson-rados
+  - crimson-rados/basic
+  - rados
