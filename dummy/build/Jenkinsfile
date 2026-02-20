@@ -1,0 +1,16 @@
+@Library('github.com/zmc/ceph-jenkins-pipelib@main') _
+
+pipeline {
+  agent any
+  stages {
+    stage("test") {
+      steps {
+        script {
+          sh 'echo hello'
+          def os = get_os_info("centos9")
+          sh "echo ${os.name} ${os.version}"
+        }
+      }
+    }
+  }
+}
