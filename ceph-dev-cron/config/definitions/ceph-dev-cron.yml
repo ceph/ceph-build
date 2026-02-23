@@ -20,11 +20,10 @@
           projects: ceph-dev-cron
 
     triggers:
-      - pollscm:
-          cron: |
-            TZ=Etc/UTC
-            H 14 * * *
-            H 20 * * *
+      - timed: |
+          TZ=Etc/UTC
+          H 14 * * *
+          H 20 * * *
 
     pipeline-scm:
       scm:
