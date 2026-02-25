@@ -65,6 +65,18 @@ function setup_container_runtime () {
     # a container named ceph_build
     podman rm -f ceph_build
   fi
+
+  # Set vm.mmap_rnd_bits for ASAN builds. ASAN requires a contiguous 16+ TB
+  # shadow memory region; high mmap_rnd_bits values (default 32 on modern
+  # systems) fragment the VA space and cause ASAN to crash at startup.
+  # See: https://clang.llvm.org/docs/AddressSanitizer.html
+  if [ -w /proc/sys/vm/mmap_rnd_bits ]; then
+    current=$(cat /proc/sys/vm/mmap_rnd_bits)
+    if [ "$current" -gt 28 ]; then
+      echo "Lowering vm.mmap_rnd_bits from $current to 28 for ASAN compatibility"
+      sudo sysctl -w vm.mmap_rnd_bits=28
+    fi
+  fi
 }
 
 # If the script is executed (as opposed to sourced), run the function now
