@@ -4,7 +4,7 @@ import groovy.transform.Field
 
 pipeline {
   agent {
-    label "gigantic&&x86_64"
+    label "gigantic"
   }
   stages {
     stage("repository") {
