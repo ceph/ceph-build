@@ -4,7 +4,7 @@ set -e
 
 "$WORKSPACE/scripts/setup_uv.sh"
 PATH=$PATH:$HOME/.local/bin
-uv venv
+uv venv --clear --seed
 
 pkgs=( "ansible" "ansible-core" "jenkins-job-builder>=6.4.3" "urllib3" "pyopenssl" "ndg-httpsclient" "pyasn1" "xmltodict" )
 VENV=./.venv/bin
