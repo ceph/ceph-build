@@ -4,9 +4,10 @@ set -e
 
 "$WORKSPACE/scripts/setup_uv.sh"
 PATH=$PATH:$HOME/.local/bin
-uv venv
+uv venv --clear --seed
 
-pkgs=( "ansible" "ansible-core" "jenkins-job-builder>=6.4.3" "urllib3" "pyopenssl" "ndg-httpsclient" "pyasn1" "xmltodict" )
+# setuptools 82 removed pkg_resources; JJB/stevedore still expects it
+pkgs=( "ansible" "ansible-core" "jenkins-job-builder>=6.4.3" "urllib3" "pyopenssl" "ndg-httpsclient" "pyasn1" "xmltodict" "setuptools<82" )
 VENV=./.venv/bin
 uv pip install "${pkgs[@]}"
 

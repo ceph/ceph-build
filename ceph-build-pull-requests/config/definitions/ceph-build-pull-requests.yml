@@ -1,6 +1,6 @@
 - job:
     name: ceph-build-pull-requests
-    node: huge
+    node: small
     project-type: freestyle
     defaults: global
     concurrent: true
