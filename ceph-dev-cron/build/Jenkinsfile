@@ -2,7 +2,10 @@ node('built-in') {
   def repoUrl  = 'https://github.com/ceph/ceph'
   def branches = ['main','tentacle','squid','reef']
 
-  // Define flavor/distro combinations
+  // Define flavor/distro combinations per branch.
+  // Below when we trigger, we send ARCHS=x86_64 and FLAVORS=default by default
+  // so the extras list should be used to specify a distro/flavor/arch combination other than
+  // those defaults (e.g., any arm64 or debug builds need an extras[] entry.
   def cfg = [
       reef: [
           distros: 'jammy focal centos9 windows',
@@ -22,6 +25,7 @@ node('built-in') {
           distros: 'noble jammy rocky10 centos9 windows',
           extras : [
               [distros:'centos9 rocky10', flavors:'debug', archs:'x86_64'],
+              [distros:'rocky10', flavors:'default', archs:'arm64'],
           ]
       ]
   ]
