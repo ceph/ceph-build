@@ -72,7 +72,8 @@ for release in "${releases[@]}"; do
                 --define "_gpg_name '$keyid'" \
                 --define '_signature gpg' \
                 --define '__gpg_check_password_cmd /bin/true' \
-                --define "__gpg_sign_cmd %{__gpg} gpg --no-tty --yes --batch --no-armor --passphrase '$GPG_PASSPHRASE' --no-secmem-warning -u "%{_gpg_name}" --sign --detach-sign --output %{__signature_filename} %{__plaintext_filename}" \
+                --define "__gpg_sign_cmd %{__gpg} gpg --no-tty --yes --batch --no-armor --digest-algo SHA256 --passphrase '$GPG_PASSPHRASE' --no-secmem-warning -u "%{_gpg_name}" --sign --detach-sign --output %{__signature_filename} %{__plaintext_filename}" \
+
                 --resign "$rpm_path"
 
             fi
@@ -100,7 +101,8 @@ for release in "${releases[@]}"; do
           if [[ $update_repo -eq 1 ]]; then
             for repomd in `find -name repomd.xml`; do
               echo "signing repomd: $repomd"
-              gpg --batch --yes --passphrase "$GPG_PASSPHRASE" --detach-sign --armor -u $keyid $repomd
+              gpg --batch --yes --digest-algo SHA256 --passphrase "$GPG_PASSPHRASE" --detach-sign --armor -u $keyid $repomd
+
             done
           fi
 
