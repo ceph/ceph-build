@@ -70,12 +70,16 @@ fi
 
 for el_version in centos/9 rocky/10; do
   echo "--------------------------------------------"
-  if curl -fs --head --connect-timeout 5 --max-time 10 https://shaman.ceph.com/api/repos/$project/$release/$sha1/$el_version/flavors/default/ >/dev/null 2>&1; then
+
+  # "//" in jq land is OR.  "empty" is a jq magic variable that returns nothing.
+  status=$(curl -fsSo - --connect-timeout 5 --max-time 10 "https://shaman.ceph.com/api/repos/$project/$release/$sha1/$el_version/flavors/default/" | jq -r '.[].status // empty')
+
+  if [ "$status" = "ready" ]; then
     el_cmd="ubuntu@chacra.ceph.com:/opt/repos/$project/$release/$sha1/$el_version/flavors/default/* /opt/repos/$project/$relver/$el_version/"
-    echo $el_cmd
+    echo "$el_cmd"
     rsync -Lavh --progress $el_cmd
   else
-    echo "Shaman thinks a repo for $el_version doesn't exist.  Skipping."
+    echo "Shaman repo for $el_version is not ready (status: ${status:-unknown}). Skipping."
   fi
 done
 
