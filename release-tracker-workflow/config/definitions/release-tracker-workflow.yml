@@ -1,0 +1,75 @@
+# Release tracker workflow: RC testing automation
+# SHA1 -> wait Shaman -> schedule suites -> aggregate -> report to Redmine (Shaman only, no build)
+# Requires: teuthology-agent label, redmine-api-key credential
+- job:
+    name: release-tracker-workflow
+    description: |
+      Resolve or use CEPH_SHA1, wait for Shaman, schedule teuthology suites (all at once),
+      aggregate results, post to Redmine and/or email. Relies on Shaman only (no build step).
+      Use CEPH_SHA1 to run on a given SHA1 if present on Shaman.
+    project-type: pipeline
+    quiet-period: 1
+    concurrent: true
+    pipeline-scm:
+      scm:
+        - git:
+            url: https://github.com/ceph/ceph-build
+            branches:
+              - ${{CEPH_BUILD_BRANCH}}
+            shallow-clone: true
+            submodule:
+              disable: true
+            wipe-workspace: true
+      script-path: release-tracker-workflow/build/Jenkinsfile
+      lightweight-checkout: true
+      do-not-fetch-tags: true
+
+    parameters:
+      - string:
+          name: CEPH_REPO
+          description: "Ceph repository URL"
+          default: "https://github.com/ceph/ceph.git"
+      - string:
+          name: CEPH_BRANCH
+          description: "Ceph branch (e.g. main, reef, tentacle)"
+          default: main
+      - string:
+          name: CEPH_SHA1
+          description: "Optional: Ceph commit SHA1. If set, run on this SHA1 (must exist on Shaman). Empty = resolve from branch tip."
+          default: ""
+      - string:
+          name: RELEASE_VERSION
+          description: "Release version (e.g. 20.1.0)"
+          default: "20.1.0"
+      - string:
+          name: TRACKER_ISSUE_ID
+          description: "Redmine tracker issue ID. Required when posting to tracker."
+          default: ""
+      - string:
+          name: SUITE_NAME
+          description: "Single suite when SUITE_LIST_SOURCE is empty"
+          default: smoke
+      - string:
+          name: SUITE_LIST_SOURCE
+          description: "File path (e.g. release-tracker-workflow/config/suites.yaml) or URL for suite list. Empty = use SUITE_NAME."
+          default: ""
+      - string:
+          name: PADDLES_URL
+          description: "Paddles base URL for aggregation"
+          default: "http://paddles.front.sepia.ceph.com/"
+      - string:
+          name: EMAIL_RECIPIENTS
+          description: "Comma-separated emails to notify when run finishes."
+          default: ""
+      - bool:
+          name: SKIP_INTEGRATION_TESTS
+          description: "Skip teuthology suite scheduling and wait"
+          default: false
+      - bool:
+          name: SKIP_TRACKER_UPDATE
+          description: "If true, do not post to Redmine."
+          default: true
+      - string:
+          name: CEPH_BUILD_BRANCH
+          description: "Use the Jenkinsfile from this ceph-build branch"
+          default: main

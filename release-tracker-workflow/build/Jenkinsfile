@@ -1,0 +1,228 @@
+/**
+ * Release tracker workflow: resolve SHA1 -> wait for shaman -> schedule suites -> aggregate -> report to redmine + email.
+ * Relies on Shaman only (no build step). Paths and URLs are parameterized.
+ */
+pipeline {
+    agent { label "${params.AGENT_LABEL}" }
+    options { timestamps(); timeout(time: 24, unit: 'HOURS'); buildDiscarder(logRotator(numToKeepStr: '30')) }
+    environment {
+        PIPELINE_DIR = "${WORKSPACE}/release-tracker-workflow"
+        SCRIPT_DIR = "${params.TEUTHOLOGY_SCRIPT_DIR}"
+        VIRTUALENV_PATH = "${params.TEUTHOLOGY_VIRTUALENV_PATH}"
+        OVERRIDE_YAML = "${params.TEUTHOLOGY_OVERRIDE_YAML}"
+        CEPH_DIR = "${WORKSPACE}/ceph"
+        PULPITO_BASE = "${params.PULPITO_BASE}"
+    }
+    parameters {
+        string(name: 'AGENT_LABEL', defaultValue: 'teuthology-agent', description: 'Jenkins agent label to run this pipeline.')
+        string(name: 'TEUTHOLOGY_SCRIPT_DIR', defaultValue: '/home/ubuntu/teuthology', description: 'Path to teuthology clone (for teuthology-suite / teuthology-wait).')
+        string(name: 'TEUTHOLOGY_VIRTUALENV_PATH', defaultValue: '/home/ubuntu/teuthology/virtualenv', description: 'Path to teuthology virtualenv.')
+        string(name: 'TEUTHOLOGY_OVERRIDE_YAML', defaultValue: '/home/ubuntu/override.yaml', description: 'Optional override YAML passed to teuthology-suite. Use empty to omit.')
+        string(name: 'PULPITO_BASE', defaultValue: 'https://pulpito.ceph.com', description: 'Base URL for Pulpito (suite run links).')
+        string(name: 'CEPH_REPO', defaultValue: 'https://github.com/ceph/ceph.git')
+        string(name: 'CEPH_BRANCH', defaultValue: 'main')
+        string(name: 'CEPH_SHA1', defaultValue: '', description: 'Optional: Ceph commit SHA1 to use. If set, run on this SHA1 (must exist on Shaman). Empty = resolve from branch tip.')
+        string(name: 'RELEASE_VERSION', defaultValue: '')
+        string(name: 'TRACKER_ISSUE_ID', defaultValue: '', description: 'Redmine tracker issue ID. Required when posting to tracker.')
+        string(name: 'SUITE_NAME', defaultValue: 'smoke', description: 'Single suite when SUITE_LIST_SOURCE is empty')
+        string(name: 'SUITE_LIST_SOURCE', defaultValue: '', description: 'Live read: path (e.g. release-tracker-workflow/config/suites.yaml) or URL. Empty = use SUITE_NAME.')
+        string(name: 'PADDLES_URL', defaultValue: 'http://paddles.front.sepia.ceph.com/')
+        string(name: 'EMAIL_RECIPIENTS', defaultValue: '', description: 'Comma-separated emails to notify when run finishes. Empty = no email.')
+        string(name: 'REDMINE_CREDENTIAL_ID', defaultValue: 'redmine-api-key', description: 'Jenkins credential ID for Redmine API key.')
+        string(name: 'SUITE_MACHINE_TYPE', defaultValue: 'openstack', description: 'Machine type for teuthology-suite.')
+        string(name: 'SUITE_LIMIT', defaultValue: '1', description: '--limit for teuthology-suite.')
+        string(name: 'SHAMAN_WAIT_TIMEOUT', defaultValue: '3600', description: 'Timeout in seconds for wait_for_shaman_sha1.py.')
+        string(name: 'SHAMAN_WAIT_INTERVAL', defaultValue: '120', description: 'Poll interval in seconds for wait_for_shaman_sha1.py.')
+        string(name: 'SUITE_WAIT_SLEEP', defaultValue: '15', description: 'Seconds to sleep after scheduling all suites before teuthology-wait.')
+        booleanParam(name: 'SKIP_INTEGRATION_TESTS', defaultValue: false)
+        booleanParam(name: 'SKIP_TRACKER_UPDATE', defaultValue: true, description: 'If true, do not post to Redmine. Enable only when you want to update the tracker.')
+    }
+    stages {
+        stage('Checkout and Resolve SHA1') {
+            steps {
+                checkout scm
+                script {
+                    if (params.CEPH_SHA1?.trim()) {
+                        env.SHA1 = params.CEPH_SHA1.trim()
+                        echo "Using CEPH_SHA1: ${env.SHA1} (must exist on Shaman for branch ${params.CEPH_BRANCH})"
+                    } else {
+                        dir("${env.CEPH_DIR}") {
+                            checkout([$class: "GitSCM", branches: [[name: "${params.CEPH_BRANCH}"]],
+                                extensions: [[$class: "CloneOption", depth: 1, shallow: true]],
+                                userRemoteConfigs: [[url: "${params.CEPH_REPO}"]]])
+                            env.SHA1 = sh(script: 'git rev-parse HEAD 2>/dev/null || echo "unknown"', returnStdout: true).trim()
+                        }
+                        echo "Branch: ${params.CEPH_BRANCH} | SHA1: ${env.SHA1}"
+                    }
+                }
+            }
+        }
+        stage('Wait for Shaman') {
+            when { expression { return !params.SKIP_INTEGRATION_TESTS } }
+            steps {
+                script {
+                    def w = "${env.PIPELINE_DIR}/scripts/wait_for_shaman_sha1.py"
+                    if (fileExists(w)) sh "python3 ${w} --branch ${params.CEPH_BRANCH} --sha1 ${env.SHA1} --timeout ${params.SHAMAN_WAIT_TIMEOUT} --interval ${params.SHAMAN_WAIT_INTERVAL}"
+                    else echo "wait_for_shaman_sha1.py not found; continuing."
+                }
+            }
+        }
+        stage('Resolve suite list') {
+            when { expression { return !params.SKIP_INTEGRATION_TESTS } }
+            steps {
+                script {
+                    env.SUITE_LIST = resolveSuiteList(params.SUITE_LIST_SOURCE, params.SUITE_NAME, params.CEPH_BRANCH, params.RELEASE_VERSION)
+                    echo "Suites to run: ${env.SUITE_LIST}"
+                }
+            }
+        }
+        stage('Schedule suites') {
+            when { expression { return !params.SKIP_INTEGRATION_TESTS } }
+            steps {
+                script {
+                    def suites = env.SUITE_LIST?.split(',')?.collect { it.trim() }?.findAll { it } ?: [params.SUITE_NAME]
+                    def runInfos = []
+                    for (suite in suites) {
+                        def runName = scheduleSuiteOnly(params.CEPH_BRANCH, env.SHA1, suite)
+                        if (runName) runInfos << [suite, runName]
+                    }
+                    def runNames = runInfos.collect { it[1] }
+                    if (runNames) {
+                        sleep(time: params.SUITE_WAIT_SLEEP.toInteger(), unit: 'SECONDS')
+                        dir(env.SCRIPT_DIR) {
+                            for (runName in runNames) {
+                                sh(script: "${VIRTUALENV_PATH}/bin/teuthology-wait --run ${runName}", returnStatus: true)
+                            }
+                        }
+                    }
+                    def tables = []
+                    def aggScript = "${env.PIPELINE_DIR}/scripts/aggregate_suite_results.py"
+                    for (info in runInfos) {
+                        def suite = info[0]
+                        def runName = info[1]
+                        def safeName = suite.toString().replaceAll('/','_')
+                        if (fileExists(aggScript)) {
+                            sh "python3 ${aggScript} --run ${runName} --paddles-url ${params.PADDLES_URL} --out ${WORKSPACE}/agg_${safeName}.txt"
+                            if (fileExists("${WORKSPACE}/agg_${safeName}.txt")) tables << "${suite}:\n${readFile("${WORKSPACE}/agg_${safeName}.txt")}"
+                        }
+                    }
+                    env.TEUTHOLOGY_RUN_NAMES = runNames.join(',')
+                    env.TEUTHOLOGY_RUN_NAME = runNames ? runNames[0] : 'N/A'
+                    if (tables) writeFile file: "${WORKSPACE}/aggregate_table.txt", text: tables.join("\n\n")
+                    else if (!fileExists("${WORKSPACE}/aggregate_table.txt")) writeFile file: "${WORKSPACE}/aggregate_table.txt", text: "Runs: ${env.TEUTHOLOGY_RUN_NAMES}"
+                }
+            }
+        }
+        stage('Aggregate results') {
+            when { expression { return !params.SKIP_INTEGRATION_TESTS && env.TEUTHOLOGY_RUN_NAME != 'N/A' } }
+            steps {
+                script {
+                    if (!fileExists("${WORKSPACE}/aggregate_table.txt")) {
+                        def a = "${env.PIPELINE_DIR}/scripts/aggregate_suite_results.py"
+                        if (fileExists(a)) sh "python3 ${a} --run ${env.TEUTHOLOGY_RUN_NAME} --paddles-url ${params.PADDLES_URL} --out ${WORKSPACE}/aggregate_table.txt"
+                        else writeFile file: "${WORKSPACE}/aggregate_table.txt", text: "Run: ${env.TEUTHOLOGY_RUN_NAME}"
+                    }
+                }
+            }
+        }
+        stage('Tag and artifacts') {
+            steps {
+                script {
+                    if (!env.TEUTHOLOGY_RUN_NAME) env.TEUTHOLOGY_RUN_NAME = 'skipped'
+                    if (!env.TEUTHOLOGY_RUN_NAMES) env.TEUTHOLOGY_RUN_NAMES = env.TEUTHOLOGY_RUN_NAME
+                    def runLinks = (env.TEUTHOLOGY_RUN_NAMES && env.TEUTHOLOGY_RUN_NAMES != 'skipped') ? env.TEUTHOLOGY_RUN_NAMES.split(',').findAll { it.trim() }.collect { env.PULPITO_BASE + '/' + it.trim() }.join(' ') : (env.TEUTHOLOGY_RUN_NAMES ?: 'skipped')
+                    def lines = ["Release workflow: ${env.BUILD_URL}", "Version: ${params.RELEASE_VERSION} | Branch: ${params.CEPH_BRANCH}", "SHA1: ${env.SHA1}", "Suite run(s): ${runLinks}"]
+                    if (fileExists("${WORKSPACE}/aggregate_table.txt")) lines += ["", readFile("${WORKSPACE}/aggregate_table.txt")]
+                    writeFile file: "${WORKSPACE}/tracker_note.txt", text: lines.join("\n")
+                    archiveArtifacts artifacts: "tracker_note.txt,aggregate_table.txt", allowEmptyArchive: true
+                }
+            }
+        }
+        stage('Update tracker') {
+            when { expression { return !params.SKIP_TRACKER_UPDATE && params.TRACKER_ISSUE_ID?.trim() } }
+            steps {
+                script {
+                    def scriptPath = "${env.PIPELINE_DIR}/build/scripts/redmine_post_note.sh"
+                    withCredentials([string(credentialsId: params.REDMINE_CREDENTIAL_ID, variable: 'REDMINE_API_KEY')]) {
+                        if (fileExists(scriptPath)) sh "bash ${scriptPath} ${params.TRACKER_ISSUE_ID.trim()} ${WORKSPACE}/tracker_note.txt"
+                        else echo "Redmine script not found; post tracker_note.txt manually to #${params.TRACKER_ISSUE_ID}"
+                    }
+                }
+            }
+        }
+        stage('Draft release notes') {
+            steps {
+                script {
+                    writeFile file: "${WORKSPACE}/release_notes_draft.md", text: "# Ceph ${params.RELEASE_VERSION} (${params.CEPH_BRANCH})\n\nBranch: ${params.CEPH_BRANCH}\nSHA1: ${env.SHA1}\nSuite: ${env.TEUTHOLOGY_RUN_NAME ?: 'N/A'}\n\nTracker #${params.TRACKER_ISSUE_ID ?: '(not set)'}."
+                    archiveArtifacts artifacts: "release_notes_draft.md", allowEmptyArchive: true
+                }
+            }
+        }
+    }
+    post {
+        success { echo "Done." }
+        failure { echo "Failed." }
+        always {
+            script {
+                if (params.EMAIL_RECIPIENTS?.trim()) {
+                    def body = "RC testing flow: ${env.JOB_NAME} #${env.BUILD_NUMBER}\nResult: ${currentBuild.currentResult}\nBuild: ${env.BUILD_URL}\n"
+                    if (fileExists("${WORKSPACE}/tracker_note.txt")) body += "\nSummary:\n${readFile("${WORKSPACE}/tracker_note.txt").take(2000)}"
+                    try {
+                        mail to: params.EMAIL_RECIPIENTS.trim(),
+                             subject: "RC testing ${env.JOB_NAME} #${env.BUILD_NUMBER} - ${currentBuild.currentResult}",
+                             body: body
+                    } catch (Exception e) {
+                        echo "Email failed: ${e.message}"
+                    }
+                }
+            }
+        }
+    }
+}
+
+def resolveSuiteList(String source, String defaultSuite, String branch, String version) {
+    if (!source?.trim()) return defaultSuite
+    def raw = null
+    if (source.trim().toLowerCase().startsWith('http')) {
+        raw = sh(script: "curl -sL '${source}'", returnStdout: true).trim()
+    } else {
+        def path = source.trim()
+        if (path.contains('${') || path.contains('branch') || path.contains('version')) {
+            path = path.replace('${branch}', branch).replace('${version}', version).replace('${BRANCH}', branch).replace('${VERSION}', version)
+        }
+        if (!path.startsWith('/')) path = "${WORKSPACE}/${path}"
+        if (fileExists(path)) raw = readFile(path).trim()
+    }
+    if (!raw) return defaultSuite
+    def list = []
+    raw.eachLine { line ->
+        def t = line.trim()
+        if (t.startsWith('-')) list << t.drop(1).trim()
+        else if (t && !t.startsWith('#') && !t.startsWith('suites:')) list << t
+    }
+    return list ? list.join(',') : defaultSuite
+}
+
+def scheduleSuiteOnly(String branch, String sha1, String suiteName) {
+    dir(env.SCRIPT_DIR) {
+        def ts = sh(script: 'date "+%Y-%m-%d_%H:%M:%S"', returnStdout: true).trim()
+        def overrideArg = (env.OVERRIDE_YAML?.trim()) ? env.OVERRIDE_YAML : ''
+        def cmd = "${VIRTUALENV_PATH}/bin/teuthology-suite --suite \"${suiteName}\" --machine-type ${params.SUITE_MACHINE_TYPE} --ceph \"${branch}\" --ceph-repo ${params.CEPH_REPO} --limit ${params.SUITE_LIMIT} --job-threshold 1 --subset 1/10000 --sha1 ${sha1} ${overrideArg}"
+        def safeName = suiteName.replaceAll('/', '_')
+        def outFile = "${env.WORKSPACE}/suite_out_${safeName}.txt"
+        sh(script: "bash -c '${cmd}' > ${outFile} 2>&1; true", returnStatus: true)
+        def out = readFile(outFile)
+        def runName = null
+        def prefix = 'Job scheduled with name '
+        def i = out.indexOf(prefix)
+        if (i >= 0) {
+            def start = i + prefix.length()
+            def lineEnd = out.indexOf('\n', start)
+            if (lineEnd < 0) lineEnd = out.length()
+            def restOfLine = out.substring(start, lineEnd).trim()
+            runName = restOfLine.split()[0]
+        }
+        if (!runName) runName = "${sh(script: 'whoami', returnStdout: true).trim()}-${ts}-${suiteName.replaceAll('/', ':')}-${branch}-distro-default-openstack"
+        return runName
+    }
+}
