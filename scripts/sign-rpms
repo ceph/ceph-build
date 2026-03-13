@@ -73,7 +73,6 @@ for release in "${releases[@]}"; do
                 --define '_signature gpg' \
                 --define '__gpg_check_password_cmd /bin/true' \
                 --define "__gpg_sign_cmd %{__gpg} gpg --no-tty --yes --batch --no-armor --digest-algo SHA256 --passphrase '$GPG_PASSPHRASE' --no-secmem-warning -u "%{_gpg_name}" --sign --detach-sign --output %{__signature_filename} %{__plaintext_filename}" \
-
                 --resign "$rpm_path"
 
             fi
