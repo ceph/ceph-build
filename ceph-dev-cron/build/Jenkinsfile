@@ -85,15 +85,26 @@ node('built-in') {
     // b is short for branch.  We're just looping over branches here.
     // Ultimately we end up with array "tips" that looks like "last" but is the current
     // tip of each branch instead of the last job's tips.
+
+    // branches = branches.findAll rewrites branches[] by removing a branch (b) if ls-remote fails.
+    // This is useful when we are adding a new lettered Ceph release but the actual branch hasn't been
+    // created yet.  Or even if there is some github infra issue with the ls-remote.
     stage('Retrieve branch tip SHAs') {
-      branches.each { b ->
+      branches = branches.findAll { b ->
         def sha = sh(
           script: "git ls-remote ${repoUrl} refs/heads/${b} | awk '{print \$1}'",
           returnStdout: true
         ).trim()
-        if (!sha) { error "Could not resolve remote SHA for branch ${b}" }
+
+        if (!sha) {
+          echo "Could not resolve remote SHA for branch ${b}."
+          echo "This is either due to an infra issue or ${b} doesn't exist."
+          return false
+        }
+
         tips[b] = sha
         echo "Branch ${b} -> ${sha}"
+        return true
       }
     }
 
