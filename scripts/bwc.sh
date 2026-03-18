@@ -19,6 +19,8 @@ bwc() {
     # specify timeout in hours for $1
     local timeout=$(($1*60*60))
     shift
+    local current_branch=${GIT_BRANCH:-main}
+    current_branch=${current_branch//\//-}
     local args=()
     if [ "${NPMCACHE}" ]; then
         args+=(--npm-cache-path="${NPMCACHE}")
@@ -27,7 +29,7 @@ bwc() {
     timeout "${timeout}" ./src/script/build-with-container.py \
         -d "${DISTRO_BASE:-jammy}" \
         --env-file="${PWD}/.env" \
-        --current-branch="${GIT_BRANCH:-main}" \
+        --current-branch="${current_branch}" \
         -t"+$(bwc_arch)" \
         "${args[@]}"
 }
