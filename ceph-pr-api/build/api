@@ -1,3 +1,34 @@
 #!/bin/bash -e
-cd src/pybind/mgr/dashboard
-timeout 7200 ./run-backend-api-tests.sh
+
+NPMCACHE=${HOME}/npmcache
+export NPMCACHE  # used by bwc function (silence shellcheck warning)
+CB_SCRIPT_DIR=../../../scripts
+INNER_SCRIPT_DIR=build.scripts
+
+# this script needs to be run inside the build image rather than
+# on the build host. So create an intermediate location for scripts
+# that bootstrap the test env than can be executed by a bwc custom
+# command.
+mkdir -p "${INNER_SCRIPT_DIR}"
+cp "${CB_SCRIPT_DIR}/dashboard/install-backend-api-test-deps.sh" \
+    "${INNER_SCRIPT_DIR}"
+chmod +x "${INNER_SCRIPT_DIR}/install-backend-api-test-deps.sh"
+
+# TODO: either we have this hack or we update the dashboard script
+# and the things it calss to avoid a bunch of hardcoded sudo calls.
+# For now, this is the easier choice.
+cat > "${INNER_SCRIPT_DIR}/install-fake-sudo.sh" <<EOF
+#!/bin/sh
+set -x
+echo '#!/bin/sh' > /usr/local/bin/sudo
+echo 'exec "\$@"' >> /usr/local/bin/sudo
+chmod +x /usr/local/bin/sudo
+EOF
+chmod +x "${INNER_SCRIPT_DIR}/install-fake-sudo.sh"
+
+bwc 2 -e custom -- \
+    "./${INNER_SCRIPT_DIR}/install-backend-api-test-deps.sh" \
+    '&&' "./${INNER_SCRIPT_DIR}/install-fake-sudo.sh" \
+    '&&' sudo ls \
+    '&&' cd src/pybind/mgr/dashboard \
+    '&&' ./run-backend-api-tests.sh
