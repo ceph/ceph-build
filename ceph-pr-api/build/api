@@ -2,7 +2,7 @@
 
 NPMCACHE=${HOME}/npmcache
 export NPMCACHE  # used by bwc function (silence shellcheck warning)
-CB_SCRIPT_DIR=../../../scripts
+CB_SCRIPT_DIR=../../scripts
 INNER_SCRIPT_DIR=build.scripts
 
 # this script needs to be run inside the build image rather than
