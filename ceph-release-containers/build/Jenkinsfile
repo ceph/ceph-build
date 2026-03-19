@@ -97,7 +97,7 @@ pipeline {
               podman login -u ${CONTAINER_REPO_CREDS_USR} -p ${CONTAINER_REPO_CREDS_PSW} ${CONTAINER_REPO_HOSTNAME}/${CONTAINER_REPO_ORGANIZATION}
               skopeo login -u ${CONTAINER_REPO_CREDS_USR} -p ${CONTAINER_REPO_CREDS_PSW} ${CONTAINER_REPO_HOSTNAME}/${CONTAINER_REPO_ORGANIZATION}
               cd container;
-              ./make-manifest-list.py
+              ./make-manifest-list.py --version ${VERSION}
               '''
           }
         }
