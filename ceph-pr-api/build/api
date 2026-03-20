@@ -10,8 +10,16 @@ INNER_SCRIPT_DIR=build.scripts
 # that bootstrap the test env than can be executed by a bwc custom
 # command.
 mkdir -p "${INNER_SCRIPT_DIR}"
-cp "${CB_SCRIPT_DIR}/dashboard/install-backend-api-test-deps.sh" \
-    "${INNER_SCRIPT_DIR}"
+# XXX: It can't find the other script??
+cat > "${INNER_SCRIPT_DIR}/install-backend-api-test-deps.sh"  <<EOF
+#!/bin/bash
+set -ex
+if grep -q  debian /etc/*-release; then
+    apt-get install -y python3-scipy python3-routes
+elif grep -q rhel /etc/*-release; then
+    yum install -y scipy python-routes python3-routes
+fi
+EOF
 chmod +x "${INNER_SCRIPT_DIR}/install-backend-api-test-deps.sh"
 
 # TODO: either we have this hack or we update the dashboard script
