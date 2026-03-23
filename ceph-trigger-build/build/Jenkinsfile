@@ -20,7 +20,7 @@ def pretty(obj) {
 // These are the default parameter values for the pipeline
 @Field def defaults = [
   'CEPH_BUILD_JOB': 'ceph-dev-pipeline',
-  'DISTROS': 'centos9 jammy noble windows',
+  'DISTROS': 'rocky10 centos9 jammy noble windows',
   'ARCHS': 'x86_64',
   'FLAVOR': 'default',
 ]
@@ -51,6 +51,7 @@ def params_from_branch(initialParams) {
       params[-1]['ARCHS'] += ' arm64'
       break
     case ~/.*squid.*/:
+      params[-1]['DISTROS'] = 'centos9 jammy noble windows'
       params[-1]['ARCHS'] += ' arm64'
       break
     case ~/.*(tentacle|umbrella).*/:
