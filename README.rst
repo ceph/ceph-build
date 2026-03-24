@@ -210,9 +210,15 @@ Testing JJB changes by hand, before merging to main
 Sometimes it's useful to test a JJB change by hand prior to merging a pull
 request.
 
-1. Install ``jenkins-job-builder`` on your local computer.
+1. Log in to the Jenkins Web UI with GitHub OAuth
 
-2. Create ``$HOME/.jenkins_jobs.ini`` on your local computer::
+2. Click your User icon in the top right and go to Security
+
+3. Create an API key
+
+4. Install ``jenkins-job-builder`` on your local computer.
+
+5. Create ``$HOME/.jenkins_jobs.ini`` on your local computer::
 
     [jenkins]
     user=ktdreyer
@@ -220,28 +226,26 @@ request.
     url=https://jenkins.ceph.com/
 
 Where ``user`` is your Jenkins (ie GitHub) account username, and ``password``
-is your Jenkins API token. (Note, your Jenkins API token can be found @
-https://jenkins.ceph.com/ , for example
-https://jenkins.ceph.com/user/ktdreyer/configure)
+is your Jenkins API token.
 
-3. Switch to the Git branch with the JJB changes that you wish to test::
+6. Switch to the Git branch with the JJB changes that you wish to test::
 
     git checkout <branch with your changes>
 
 Let's say this git branch makes a change in the ``my-cool-job`` job.
 
-4. Run JJB to test the syntax of your changes::
+7. Run JJB to test the syntax of your changes::
 
     jenkins-jobs --conf ~/.jenkins_jobs.ini test my-cool-job/config/definitions/my-cool-job.yml
 
    If everything goes ok, this will cause JJB to output the XML of your job(s).
    If there is a problem, JJB will print an error/backtrace instead.
 
-5. Run JJB to push your changes live to job on the main::
+8. Run JJB to push your changes live to job on the main::
 
     jenkins-jobs --conf ~/.jenkins_jobs.ini update my-cool-job/config/definitions/my-cool-job.yml
 
-6. Run a throwaway build with your change, and verify that your change didn't
+9. Run a throwaway build with your change, and verify that your change didn't
    break anything and does what you want it to do.
 
 (Note: if anyone merges anything to main during this time, Jenkins will reset
