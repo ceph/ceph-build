@@ -8,6 +8,8 @@ function setup_container_runtime () {
       echo "Found a very old podman; removing"
       command -v dnf && sudo dnf remove -y podman
       command -v apt && sudo apt remove -y podman
+      # Clear bash's command path cache after removing old podman
+      hash -r
     fi
   fi
 
