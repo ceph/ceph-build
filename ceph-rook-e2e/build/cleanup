@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 set +x
+echo "Here's some cluster debug info..."
+minikube kubectl -- -n rook-ceph exec deploy/rook-ceph-tools -- ceph health detail || true
 echo "Starting cleanup..."
-docker container prune -f
+docker container prune -f || podman container prune -f
 minikube stop
 minikube delete
 echo "Cleanup completed."

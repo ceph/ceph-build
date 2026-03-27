@@ -24,8 +24,8 @@
             TERM=xterm
     parameters:
       - string:
-          name: sha1
-          description: "commit id or a refname, like 'origin/pr/72/head'"
+          name: ghprbPullId
+          description: "the GitHub pull id, like '72' in 'ceph/pull/72'"
 
     triggers:
       - github-pull-request:
@@ -60,10 +60,10 @@
           branches:
             - origin/pr/${{ghprbPullId}}/merge
           refspec: +refs/pull/${{ghprbPullId}}/*:refs/remotes/origin/pr/${{ghprbPullId}}/*
-          browser: auto
-          timeout: 20
           skip-tag: true
           shallow-clone: true
+          honor-refspec: true
+          timeout: 20
           wipe-workspace: true
 
       - git:
@@ -75,6 +75,7 @@
     builders:
       - shell:
           !include-raw-verbatim:
+             - ../../../scripts/setup_container_runtime.sh
              - ../../../scripts/rook-orch/install-rook-e2e-deps.sh
       - shell: |
           export COMMIT_INFO_MESSAGE="$ghprbPullTitle"
