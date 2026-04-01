@@ -104,8 +104,7 @@ pipeline {
 
                 echo "Creating tar.gz for upstream release"
                 pushd dist
-                bunzip2 ceph-$ceph_version_tarball.$extension
-                gzip ceph-$ceph_version_tarball.tar.gz
+                bzip2 -dc ceph-$ceph_version_tarball.$extension | gzip > ceph-$ceph_version_tarball.tar.gz
                 popd
               else
                 echo "BRANCH=${BRANCH}" > dist/branch
