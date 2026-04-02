@@ -13,6 +13,7 @@
     worker_labels: 'vagrant && libvirt && !centos9'
     distribution:
       - el9
+      - el10
     scenario:
       - functional
     jobs:
