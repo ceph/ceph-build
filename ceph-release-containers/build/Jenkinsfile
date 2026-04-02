@@ -102,6 +102,7 @@ pipeline {
                 ./make-manifest-list.py --version ${VERSION}
               else
                 ./make-manifest-list.py
+              fi
               '''
           }
         }
