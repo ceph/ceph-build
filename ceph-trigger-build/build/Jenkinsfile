@@ -58,7 +58,7 @@ def params_from_branch(initialParams) {
       if ( !singleSet ) {
         params << params[0].clone()
         params[-1]['ARCHS'] = 'x86_64'
-        params[-1]['DISTROS'] = 'centos9'
+        params[-1]['DISTROS'] = 'centos9 rocky10'
         params[-1]['FLAVOR'] = 'debug'
       } else {
         params[0]['ARCHS'] += ' arm64'
@@ -78,7 +78,7 @@ def params_from_branch(initialParams) {
       if ( !singleSet ) {
         params << params[0].clone()
         params[-1]['ARCHS'] = 'x86_64'
-        params[-1]['DISTROS'] = 'centos9'
+        params[-1]['DISTROS'] = 'centos9 rocky10'
         params[-1]['FLAVOR'] = 'debug'
       } else {
         params[0]['FLAVOR'] += ' debug'
