@@ -349,6 +349,15 @@ pipeline {
                   println("Skipping compilation since chacra already has artifacts. To override, use THROWAWAY=true (to skip this check) or FORCE=true (to re-upload artifacts).")
                   build_matrix["${DIST}_${ARCH}"] = false
                 }
+
+                // Set up Pulp client
+                if ( env.PULP_UPLOAD == "true" ) {
+                  withCredentials([
+                    usernamePassword(credentialsId: 'pulp-auth', usernameVariable: 'PULP_USERNAME', passwordVariable: 'PULP_PASSWORD')
+                  ]) {
+                      sh './scripts/setup_pulp.sh'
+                  }
+                }
               }
             }
           }
@@ -586,6 +595,22 @@ pipeline {
                   export OS_VERSION_NAME="${os.version_name}"
                   export OS_PKG_TYPE="${os.pkg_type}"
                   if [ "$THROWAWAY" != "true" ]; then ./scripts/chacra_upload.sh; fi
+                """
+
+                sh """#!/bin/bash
+                  if [ "$THROWAWAY" != "true" ] && [ "$PULP_UPLOAD" == "true" ]; then
+                    export CEPH_VERSION="${env.VERSION}"
+                    export OS_NAME="${os.name}"
+                    export OS_VERSION="${os.version}"
+                    export OS_VERSION_NAME="${os.version_name}"
+                    export OS_PKG_TYPE="${os.pkg_type}"
+                    export SHA1="${env.SHA1}"
+                    export FLAVOR="${env.FLAVOR}"
+
+                    ./scripts/pulp_upload.sh
+                  else
+                    echo "Skipping pulp upload because PULP_UPLOAD=$PULP_UPLOAD"
+                  fi
                 """
               }
             }
