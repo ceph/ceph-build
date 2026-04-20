@@ -1,9 +1,14 @@
 #!/usr/bin/env bash
 set +x
 echo "Starting cleanup..."
-kcli delete plan -y ceph || true
-kcli delete network ceph-dashboard -y
-kcli delete pool ceph-dashboard -y
+
+with_libvirt() {
+    sg libvirt -c "$1"
+}
+
+with_libvirt "kcli delete plan -y ceph || true"
+with_libvirt "kcli delete network ceph-dashboard -y || true"
+with_libvirt "kcli delete pool ceph-dashboard -y || true"
 sudo rm -rf ${HOME}/.kcli
 podman container prune -f
 echo "Cleanup completed."
