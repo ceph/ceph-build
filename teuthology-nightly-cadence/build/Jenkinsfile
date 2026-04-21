@@ -1,0 +1,254 @@
+/**
+ * teuthology-nightly-cadence: expands daily/weekly cadence into SUITE_RUNS_JSON and invokes teuthology-runner.
+ * Cadence definitions live here (partition/subset).
+ */
+import java.util.Calendar
+import java.util.TimeZone
+
+pipeline {
+    agent { label 'built-in' }
+    options {
+        timestamps()
+        timeout(time: 8, unit: 'HOURS')
+        buildDiscarder(logRotator(numToKeepStr: '25'))
+    }
+    parameters {
+        string(name: 'CEPH_BUILD_BRANCH', defaultValue: 'main', description: 'ceph-build branch for teuthology-runner SCM.')
+        string(name: 'TEUTHOLOGY_RUNNER_JOB_NAME', defaultValue: 'teuthology-runner', description: 'Jenkins job name for the runner pipeline.')
+        string(name: 'AGENT_LABEL', defaultValue: 'teuthology', description: 'Agent label for teuthology-runner.')
+        choice(name: 'CADENCE', choices: ['daily', 'weekly'], description: 'daily ≈ nop+smoke; weekly ≈ ceph.git teuthology-cronjobs style.')
+        choice(name: 'CEPH_BRANCH', choices: ['main', 'tentacle', 'squid', 'reef'], description: 'Ceph branch.')
+        string(name: 'CEPH_REPO', defaultValue: 'https://github.com/ceph/ceph.git', description: 'Ceph git URL.')
+        string(name: 'CEPH_SHA1', defaultValue: '', description: 'Optional SHA1. Empty = resolve from Shaman for SHAMAN_WAIT_PLATFORMS, then pass explicitly to teuthology-runner.')
+        booleanParam(name: 'USE_WORKSPACE_TEUTHOLOGY', defaultValue: true, description: 'Clone teuthology in runner workspace.')
+        string(name: 'TEUTHOLOGY_REPO_URL', defaultValue: 'https://github.com/ceph/teuthology.git', description: 'Teuthology repo.')
+        string(name: 'TEUTHOLOGY_BRANCH', defaultValue: 'main', description: 'Teuthology branch.')
+        string(name: 'TEUTHOLOGY_SCRIPT_DIR', defaultValue: '', description: 'When USE_WORKSPACE_TEUTHOLOGY false.')
+        string(name: 'TEUTHOLOGY_VIRTUALENV_PATH', defaultValue: '', description: 'When USE_WORKSPACE_TEUTHOLOGY false.')
+        string(name: 'SUITE_REPO', defaultValue: 'https://github.com/ceph/ceph.git', description: 'teuthology-suite --suite-repo.')
+        string(name: 'SUITE_MACHINE_TYPE', defaultValue: 'smithi', description: 'teuthology-suite --machine-type.')
+        string(name: 'TEUTH_CONFIG_OVERRIDE_YAML', defaultValue: '', description: 'Optional teuthology-suite argv.')
+        string(name: 'SHAMAN_WAIT_TIMEOUT', defaultValue: '7200', description: 'Shaman wait timeout (seconds).')
+        string(name: 'SHAMAN_WAIT_INTERVAL', defaultValue: '120', description: 'Shaman poll interval.')
+        string(name: 'SHAMAN_WAIT_PLATFORMS', defaultValue: 'rocky-10-default,ubuntu-jammy-default,centos-9-default', description: 'Shaman platforms.')
+        booleanParam(name: 'SKIP_SHAMAN_WAIT', defaultValue: false, description: 'Skip Shaman wait.')
+        booleanParam(name: 'WAIT_FOR_RUNS', defaultValue: false, description: 'teuthology-wait in runner.')
+        string(name: 'SUITE_WAIT_SLEEP', defaultValue: '15', description: 'Sleep before teuthology-wait.')
+        booleanParam(name: 'RUN_AGGREGATE', defaultValue: false, description: 'Aggregate in runner.')
+        string(name: 'PADDLES_URL', defaultValue: '', description: 'Optional Paddles override.')
+        string(name: 'PULPITO_BASE', defaultValue: 'https://pulpito.ceph.com', description: 'Pulpito base URL for teuthology-runner.')
+    }
+    stages {
+        stage('teuthology-runner') {
+            steps {
+                script {
+                    def runnerJob = (params.TEUTHOLOGY_RUNNER_JOB_NAME ?: 'teuthology-runner').trim()
+                    if (!runnerJob) {
+                        runnerJob = 'teuthology-runner'
+                    }
+                    def resolvedSha = params.CEPH_SHA1?.trim()
+                    if (!resolvedSha) {
+                        def branch = params.CEPH_BRANCH?.trim() ?: ''
+                        if (!(branch ==~ '^[a-zA-Z0-9/._-]+$')) {
+                            error("CEPH_BRANCH contains unsupported characters: ${branch}")
+                        }
+                        def timeout = params.SHAMAN_WAIT_TIMEOUT?.trim() ?: '7200'
+                        def interval = params.SHAMAN_WAIT_INTERVAL?.trim() ?: '120'
+                        if (!(timeout ==~ '^[0-9]+$') || timeout == '0') {
+                            error("SHAMAN_WAIT_TIMEOUT must be a positive integer: ${timeout}")
+                        }
+                        if (!(interval ==~ '^[0-9]+$') || interval == '0') {
+                            error("SHAMAN_WAIT_INTERVAL must be a positive integer: ${interval}")
+                        }
+                        def platforms = params.SHAMAN_WAIT_PLATFORMS?.trim() ?: 'rocky-10-default,ubuntu-jammy-default,centos-9-default'
+                        def shamanScript = "${env.WORKSPACE}/teuthology-runner/scripts/wait_for_shaman_sha1.py"
+                        if (!fileExists(shamanScript)) {
+                            error("Missing ${shamanScript}")
+                        }
+                        resolvedSha = sh(
+                            script: "python3 \"${shamanScript}\" --branch \"${branch}\" --timeout \"${timeout}\" --interval \"${interval}\" --platform \"${platforms}\" --use-available-sha",
+                            returnStdout: true,
+                        ).trim()
+                        echo "Resolved CEPH_SHA1 from Shaman for branch=${branch} platforms=${platforms}: ${resolvedSha}"
+                    } else {
+                        echo "Using explicit CEPH_SHA1 from parameters: ${resolvedSha}"
+                    }
+                    if (!resolvedSha || !(resolvedSha ==~ /^[a-fA-F0-9]{7,40}$/)) {
+                        error("Resolved CEPH_SHA1 is invalid: ${resolvedSha}")
+                    }
+                    def rows = expandCadenceToRows(params.CADENCE, params.CEPH_BRANCH)
+                    if (!rows) {
+                        error("No suites for CADENCE=${params.CADENCE} CEPH_BRANCH=${params.CEPH_BRANCH}")
+                    }
+                    def json = suiteRunsRowsToJson(rows)
+                    def tp = []
+                    tp << string(name: 'AGENT_LABEL', value: params.AGENT_LABEL.trim())
+                    tp << string(name: 'CEPH_BUILD_BRANCH', value: params.CEPH_BUILD_BRANCH.trim())
+                    tp << string(name: 'CEPH_BRANCH', value: params.CEPH_BRANCH)
+                    tp << string(name: 'CEPH_REPO', value: params.CEPH_REPO.trim())
+                    tp << string(name: 'CEPH_SHA1', value: resolvedSha)
+                    tp << booleanParam(name: 'USE_WORKSPACE_TEUTHOLOGY', value: params.USE_WORKSPACE_TEUTHOLOGY)
+                    tp << string(name: 'TEUTHOLOGY_REPO_URL', value: params.TEUTHOLOGY_REPO_URL.trim())
+                    tp << string(name: 'TEUTHOLOGY_BRANCH', value: params.TEUTHOLOGY_BRANCH.trim())
+                    if (!params.USE_WORKSPACE_TEUTHOLOGY) {
+                        tp << string(name: 'TEUTHOLOGY_SCRIPT_DIR', value: params.TEUTHOLOGY_SCRIPT_DIR?.trim() ?: '')
+                        tp << string(name: 'TEUTHOLOGY_VIRTUALENV_PATH', value: params.TEUTHOLOGY_VIRTUALENV_PATH?.trim() ?: '')
+                    }
+                    if (params.TEUTH_CONFIG_OVERRIDE_YAML?.trim()) {
+                        tp << string(name: 'TEUTH_CONFIG_OVERRIDE_YAML', value: params.TEUTH_CONFIG_OVERRIDE_YAML.trim())
+                    }
+                    tp << string(name: 'SUITE_REPO', value: params.SUITE_REPO.trim())
+                    tp << string(name: 'SUITE_MACHINE_TYPE', value: params.SUITE_MACHINE_TYPE.trim())
+                    if (params.PADDLES_URL?.trim()) {
+                        tp << string(name: 'PADDLES_URL', value: params.PADDLES_URL.trim())
+                    }
+                    tp << string(name: 'SHAMAN_WAIT_TIMEOUT', value: params.SHAMAN_WAIT_TIMEOUT.trim())
+                    tp << string(name: 'SHAMAN_WAIT_INTERVAL', value: params.SHAMAN_WAIT_INTERVAL.trim())
+                    tp << string(name: 'SHAMAN_WAIT_PLATFORMS', value: params.SHAMAN_WAIT_PLATFORMS.trim())
+                    tp << string(name: 'PULPITO_BASE', value: (params.PULPITO_BASE ?: 'https://pulpito.ceph.com').trim())
+                    tp << booleanParam(name: 'SKIP_SHAMAN_WAIT', value: params.SKIP_SHAMAN_WAIT)
+                    tp << booleanParam(name: 'WAIT_FOR_RUNS', value: params.WAIT_FOR_RUNS)
+                    tp << string(name: 'SUITE_WAIT_SLEEP', value: params.SUITE_WAIT_SLEEP.trim())
+                    tp << booleanParam(name: 'RUN_AGGREGATE', value: params.RUN_AGGREGATE)
+                    tp << text(name: 'SUITE_RUNS_JSON', value: json)
+                    build job: runnerJob, wait: true, propagate: true, parameters: tp
+                }
+            }
+        }
+    }
+}
+
+List expandCadenceToRows(String cadence, String branch) {
+    def steps = cadenceSteps(cadence, branch.toLowerCase())
+    if (!steps) {
+        return []
+    }
+    def utcCal = Calendar.getInstance(TimeZone.getTimeZone('UTC'))
+    def doy = utcCal.get(Calendar.DAY_OF_YEAR)
+    def rows = []
+    for (def st in steps) {
+        def part = st.partitions as int
+        def idx = doy % part
+        def subset = "${idx}/${part}"
+        def lim = st.limit != null ? st.limit as String : "${part}"
+        def thr = st.threshold != null ? st.threshold as String : "${part}"
+        def pr = st.priority ?: ''
+        def m = [
+            suite: st.suite,
+            limit: lim,
+            threshold: thr,
+            subset: subset,
+            priority: pr,
+            forcePriority: st.forcePriority ? true : false,
+        ]
+        if (st.flavor) {
+            m.flavor = st.flavor
+        }
+        if (st.kernel) {
+            m.kernel = st.kernel
+        }
+        if (st.filter) {
+            m.filter = st.filter
+        }
+        rows << m
+    }
+    return rows
+}
+
+def cadenceSteps(String cadence, String branch) {
+    def b = branch.toLowerCase()
+    if (cadence?.toLowerCase() == 'daily') {
+        return [
+            [suite: 'teuthology/nop', partitions: 1, priority: '1', forcePriority: true],
+            [suite: 'smoke', partitions: 1, priority: '100', forcePriority: true],
+        ]
+    }
+    if (cadence?.toLowerCase() != 'weekly') {
+        return []
+    }
+    switch (b) {
+        case 'main':
+            return [
+                [suite: 'rados', partitions: 100000, priority: '101', forcePriority: true],
+                [suite: 'rados', partitions: 100000, priority: '101', forcePriority: true, flavor: 'debug'],
+                [suite: 'orch', partitions: 64, priority: '950', forcePriority: false],
+                [suite: 'rbd', partitions: 128, priority: '950', forcePriority: false],
+                [suite: 'fs', partitions: 512, priority: '700', forcePriority: false],
+                [suite: 'powercycle', partitions: 4, priority: '950', forcePriority: false],
+                [suite: 'rgw', partitions: 30000, limit: '1', threshold: '1', priority: '150', forcePriority: false],
+                [suite: 'krbd', partitions: 4, priority: '950', forcePriority: false, kernel: 'testing'],
+                [suite: 'crimson-rados', partitions: 1, priority: '101', forcePriority: true, flavor: 'debug'],
+                [suite: 'crimson-rados', partitions: 1, priority: '101', forcePriority: true],
+            ]
+        case 'tentacle':
+            return [
+                [suite: 'rados', partitions: 100000, priority: '831', forcePriority: false],
+                [suite: 'orch', partitions: 64, priority: '830', forcePriority: false],
+                [suite: 'rbd', partitions: 128, priority: '830', forcePriority: false],
+                [suite: 'fs', partitions: 512, priority: '830', forcePriority: false],
+                [suite: 'powercycle', partitions: 4, priority: '830', forcePriority: false],
+                [suite: 'rgw', partitions: 30000, limit: '1', threshold: '1', priority: '830', forcePriority: false],
+                [suite: 'krbd', partitions: 4, priority: '830', forcePriority: false, kernel: 'testing'],
+            ]
+        case 'squid':
+            return [
+                [suite: 'rados', partitions: 100000, priority: '921', forcePriority: false],
+                [suite: 'orch', partitions: 64, priority: '920', forcePriority: false],
+                [suite: 'rbd', partitions: 128, priority: '920', forcePriority: false],
+                [suite: 'fs', partitions: 512, priority: '920', forcePriority: false],
+                [suite: 'powercycle', partitions: 4, priority: '920', forcePriority: false],
+                [suite: 'rgw', partitions: 30000, limit: '1', threshold: '1', priority: '920', forcePriority: false],
+                [suite: 'krbd', partitions: 4, priority: '920', forcePriority: false, kernel: 'testing'],
+            ]
+        case 'reef':
+            return [
+                [suite: 'rados', partitions: 100000, priority: '920', forcePriority: false],
+                [suite: 'orch', partitions: 64, priority: '920', forcePriority: false],
+                [suite: 'rbd', partitions: 128, priority: '920', forcePriority: false],
+                [suite: 'fs', partitions: 512, priority: '920', forcePriority: false],
+                [suite: 'powercycle', partitions: 4, priority: '920', forcePriority: false],
+                [suite: 'rgw', partitions: 30000, limit: '1', threshold: '1', priority: '920', forcePriority: false],
+                [suite: 'krbd', partitions: 4, priority: '920', forcePriority: false, kernel: 'testing'],
+            ]
+        default:
+            return []
+    }
+}
+
+String suiteRunsRowsToJson(List rows) {
+    def sb = new StringBuilder()
+    sb.append('[')
+    def first = true
+    for (def row in rows) {
+        if (!first) {
+            sb.append(',')
+        }
+        first = false
+        sb.append('{')
+        def f2 = true
+        row.each { k, v ->
+            if (!f2) {
+                sb.append(',')
+            }
+            f2 = false
+            sb.append('"').append(k).append('":')
+            if (v instanceof Boolean) {
+                sb.append(v ? 'true' : 'false')
+            } else if (v instanceof Number) {
+                sb.append(v.toString())
+            } else {
+                sb.append('"').append(jsonStringEscape(v != null ? v.toString() : '')).append('"')
+            }
+        }
+        sb.append('}')
+    }
+    sb.append(']')
+    return sb.toString()
+}
+
+String jsonStringEscape(String s) {
+    if (s == null) {
+        return ''
+    }
+    return s.replace('\\', '\\\\').replace('"', '\\"').replace('\n', '\\n').replace('\r', '\\r').replace('\t', '\\t')
+}
