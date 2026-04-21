@@ -1,0 +1,67 @@
+/**
+ * Thin trigger job that fires teuthology-nightly-cadence with wait:false.
+ * builds: Sunday UTC → weekly cadence (Sunday 20:00 trigger matches qa/crontab/teuthology-cronjobs
+ * weekly block); any other day → daily. Manual builds use CADENCE / CEPH_BRANCH parameters.
+ */
+import java.util.Calendar
+import java.util.TimeZone
+
+pipeline {
+    agent any
+    options {
+        buildDiscarder(logRotator(numToKeepStr: '40'))
+        skipDefaultCheckout()
+        timestamps()
+        ansiColor('xterm')
+    }
+    parameters {
+        choice(name: 'CADENCE', choices: ['daily', 'weekly'], description: 'Cadence tier.')
+        choice(name: 'CEPH_BRANCH', choices: ['main', 'tentacle', 'squid', 'reef'], description: 'Ceph branch to test.')
+        string(
+            name: 'CEPH_BUILD_BRANCH',
+            defaultValue: 'main',
+            description: 'ceph-build branch for the triggered teuthology-nightly-cadence build (SCM / Jenkinsfile).',
+        )
+        string(
+            name: 'TEUTHOLOGY_RUNNER_JOB_NAME',
+            defaultValue: 'teuthology-runner',
+            description: 'Forwarded to teuthology-nightly-cadence: Jenkins job name for the runner pipeline.',
+        )
+        string(
+            name: 'TEUTHOLOGY_NIGHTLY_CADENCE_JOB',
+            defaultValue: 'preserve-teuthology-nightly-cadence',
+            description: 'Jenkins job name of the cadence pipeline to trigger (teuthology-nightly-cadence in production).',
+        )
+    }
+    stages {
+        stage('Trigger teuthology-nightly-cadence') {
+            steps {
+                script {
+                    def timerCause = currentBuild.getBuildCauses('hudson.triggers.TimerTrigger$TimerTriggerCause')
+                    def cadence = params.CADENCE
+                    if (timerCause && !timerCause.isEmpty()) {
+                        def utcCal = Calendar.getInstance(TimeZone.getTimeZone('UTC'))
+                        def dow = utcCal.get(Calendar.DAY_OF_WEEK)
+                        // Calendar: Sunday=1 … Saturday=7 (avoid java.time / static enum fields in sandbox)
+                        cadence = (dow == 1) ? 'weekly' : 'daily'
+                        echo "Timer-triggered build: CADENCE=${cadence} (Sunday=weekly per weekly cron line; else daily)."
+                    }
+                    def cephBranch = params.CEPH_BRANCH
+                    def cadenceJob = (params.TEUTHOLOGY_NIGHTLY_CADENCE_JOB ?: 'preserve-teuthology-nightly-cadence').trim() ?: 'preserve-teuthology-nightly-cadence'
+                    echo "Triggering ${cadenceJob} CADENCE=${cadence} CEPH_BRANCH=${cephBranch}"
+                    def rj = (params.TEUTHOLOGY_RUNNER_JOB_NAME ?: 'teuthology-runner').trim() ?: 'teuthology-runner'
+                    build(
+                        wait: false,
+                        job: cadenceJob,
+                        parameters: [
+                            string(name: 'CADENCE', value: cadence),
+                            string(name: 'CEPH_BRANCH', value: cephBranch),
+                            string(name: 'CEPH_BUILD_BRANCH', value: params.CEPH_BUILD_BRANCH.trim()),
+                            string(name: 'TEUTHOLOGY_RUNNER_JOB_NAME', value: rj),
+                        ],
+                    )
+                }
+            }
+        }
+    }
+}
