@@ -4,9 +4,9 @@
     path: "{{ jenkins_lib }}/config.xml"
   register: jenkins_config_file
 
-- name: Check if github oauth is already enabled
-  shell: "grep -q github-oauth {{ jenkins_lib }}/config.xml"
-  register: github_oauth_enabled
+- name: Check if Matrix Auth is already enabled
+  shell: "grep -q ProjectMatrixAuthorizationStrategy {{ jenkins_lib }}/config.xml"
+  register: matrix_auth_enabled
   when: jenkins_config_file.stat.exists
   failed_when: false
 
@@ -30,29 +30,105 @@
     path: "{{ jenkins_lib }}/config.xml"
     insertafter: ".*useSecurity.*"
     block: |2
-        <authorizationStrategy class="org.jenkinsci.plugins.GithubAuthorizationStrategy" plugin="github-oauth@0.25">
-          <rootACL>
-            <organizationNameList class="linked-list">
-              <string></string>
-            </organizationNameList>
-            <adminUserNameList class="linked-list">
-              <string>ktdreyer</string>
-              <string>alfredodeza</string>
-              <string>gregmeno</string>
-              <string>dmick</string>
-              <string>zmc</string>
-              <string>andrewschoen</string>
-              <string>djgalloway</string>
-              <string>ceph-jenkins</string>
-            </adminUserNameList>
-            <authenticatedUserReadPermission>true</authenticatedUserReadPermission>
-            <useRepositoryPermissions>false</useRepositoryPermissions>
-            <authenticatedUserCreateJobPermission>false</authenticatedUserCreateJobPermission>
-            <allowGithubWebHookPermission>true</allowGithubWebHookPermission>
-            <allowCcTrayPermission>false</allowCcTrayPermission>
-            <allowAnonymousReadPermission>true</allowAnonymousReadPermission>
-            <allowAnonymousJobStatusPermission>true</allowAnonymousJobStatusPermission>
-          </rootACL>
+        <authorizationStrategy class="hudson.security.ProjectMatrixAuthorizationStrategy">
+          <permission>GROUP:com.cloudbees.plugins.credentials.CredentialsProvider.Create:ceph*jenkins-admins</permission>
+          <permission>GROUP:com.cloudbees.plugins.credentials.CredentialsProvider.Delete:ceph*jenkins-admins</permission>
+          <permission>GROUP:com.cloudbees.plugins.credentials.CredentialsProvider.ManageDomains:ceph*jenkins-admins</permission>
+          <permission>GROUP:com.cloudbees.plugins.credentials.CredentialsProvider.Update:ceph*jenkins-admins</permission>
+          <permission>GROUP:com.cloudbees.plugins.credentials.CredentialsProvider.View:ceph*jenkins-admins</permission>
+          <permission>USER:com.cloudbees.plugins.credentials.CredentialsProvider.View:ceph-jenkins</permission>
+          <permission>GROUP:com.sonyericsson.jenkins.plugins.bfa.PluginImpl.RemoveCause:ceph*jenkins-admins</permission>
+          <permission>USER:com.sonyericsson.jenkins.plugins.bfa.PluginImpl.RemoveCause:ceph-jenkins</permission>
+          <permission>GROUP:com.sonyericsson.jenkins.plugins.bfa.PluginImpl.UpdateCauses:ceph*jenkins-admins</permission>
+          <permission>USER:com.sonyericsson.jenkins.plugins.bfa.PluginImpl.UpdateCauses:ceph-jenkins</permission>
+          <permission>GROUP:com.sonyericsson.jenkins.plugins.bfa.PluginImpl.ViewCauses:ceph*jenkins-admins</permission>
+          <permission>USER:com.sonyericsson.jenkins.plugins.bfa.PluginImpl.ViewCauses:ceph-jenkins</permission>
+          <permission>GROUP:hudson.model.Computer.Build:ceph*jenkins-admins</permission>
+          <permission>USER:hudson.model.Computer.Build:ceph-jenkins</permission>
+          <permission>GROUP:hudson.model.Computer.Configure:ceph*jenkins-admins</permission>
+          <permission>USER:hudson.model.Computer.Configure:ceph-jenkins</permission>
+          <permission>GROUP:hudson.model.Computer.Connect:ceph*jenkins-admins</permission>
+          <permission>GROUP:hudson.model.Computer.Connect:ceph*jenkins-ppc</permission>
+          <permission>GROUP:hudson.model.Computer.Connect:ceph*windows</permission>
+          <permission>USER:hudson.model.Computer.Connect:ceph-jenkins</permission>
+          <permission>GROUP:hudson.model.Computer.Create:ceph*jenkins-admins</permission>
+          <permission>GROUP:hudson.model.Computer.Create:ceph*jenkins-ppc</permission>
+          <permission>GROUP:hudson.model.Computer.Create:ceph*windows</permission>
+          <permission>USER:hudson.model.Computer.Create:ceph-jenkins</permission>
+          <permission>GROUP:hudson.model.Computer.Delete:ceph*jenkins-admins</permission>
+          <permission>USER:hudson.model.Computer.Delete:ceph-jenkins</permission>
+          <permission>GROUP:hudson.model.Computer.Disconnect:ceph*jenkins-admins</permission>
+          <permission>USER:hudson.model.Computer.Disconnect:ceph-jenkins</permission>
+          <permission>GROUP:hudson.model.Computer.Provision:ceph*jenkins-admins</permission>
+          <permission>USER:hudson.model.Computer.Provision:ceph-jenkins</permission>
+          <permission>GROUP:hudson.model.Hudson.Administer:ceph*jenkins-admins</permission>
+          <permission>GROUP:hudson.model.Hudson.Read:authenticated</permission>
+          <permission>GROUP:hudson.model.Hudson.Read:ceph*jenkins-admins</permission>
+          <permission>GROUP:hudson.model.Hudson.Read:ceph*jenkins-readwrite</permission>
+          <permission>USER:hudson.model.Hudson.Read:anonymous</permission>
+          <permission>USER:hudson.model.Hudson.Read:ceph-jenkins</permission>
+          <permission>GROUP:hudson.model.Item.Build:ceph*jenkins-admins</permission>
+          <permission>GROUP:hudson.model.Item.Build:ceph*jenkins-execute</permission>
+          <permission>GROUP:hudson.model.Item.Build:ceph*jenkins-readwrite</permission>
+          <permission>GROUP:hudson.model.Item.Build:ceph*windows</permission>
+          <permission>USER:hudson.model.Item.Build:ceph-jenkins</permission>
+          <permission>GROUP:hudson.model.Item.Cancel:ceph*jenkins-admins</permission>
+          <permission>GROUP:hudson.model.Item.Cancel:ceph*jenkins-execute</permission>
+          <permission>GROUP:hudson.model.Item.Cancel:ceph*jenkins-readwrite</permission>
+          <permission>GROUP:hudson.model.Item.Cancel:ceph*windows</permission>
+          <permission>USER:hudson.model.Item.Cancel:ceph-jenkins</permission>
+          <permission>GROUP:hudson.model.Item.Configure:ceph*jenkins-admins</permission>
+          <permission>GROUP:hudson.model.Item.Configure:ceph*jenkins-readwrite</permission>
+          <permission>GROUP:hudson.model.Item.Configure:ceph*windows</permission>
+          <permission>USER:hudson.model.Item.Configure:ceph-jenkins</permission>
+          <permission>GROUP:hudson.model.Item.Create:ceph*jenkins-admins</permission>
+          <permission>GROUP:hudson.model.Item.Create:ceph*jenkins-readwrite</permission>
+          <permission>USER:hudson.model.Item.Create:ceph-jenkins</permission>
+          <permission>GROUP:hudson.model.Item.Delete:ceph*jenkins-admins</permission>
+          <permission>USER:hudson.model.Item.Delete:ceph-jenkins</permission>
+          <permission>GROUP:hudson.model.Item.Discover:ceph*jenkins-admins</permission>
+          <permission>USER:hudson.model.Item.Discover:ceph-jenkins</permission>
+          <permission>GROUP:hudson.model.Item.Move:ceph*jenkins-admins</permission>
+          <permission>USER:hudson.model.Item.Move:ceph-jenkins</permission>
+          <permission>GROUP:hudson.model.Item.Read:authenticated</permission>
+          <permission>GROUP:hudson.model.Item.Read:ceph*jenkins-admins</permission>
+          <permission>GROUP:hudson.model.Item.Read:ceph*jenkins-execute</permission>
+          <permission>GROUP:hudson.model.Item.Read:ceph*jenkins-ppc</permission>
+          <permission>GROUP:hudson.model.Item.Read:ceph*jenkins-readwrite</permission>
+          <permission>GROUP:hudson.model.Item.Read:ceph*windows</permission>
+          <permission>USER:hudson.model.Item.Read:anonymous</permission>
+          <permission>USER:hudson.model.Item.Read:ceph-jenkins</permission>
+          <permission>GROUP:hudson.model.Item.Workspace:ceph*jenkins-admins</permission>
+          <permission>GROUP:hudson.model.Item.Workspace:ceph*jenkins-readwrite</permission>
+          <permission>USER:hudson.model.Item.Workspace:ceph-jenkins</permission>
+          <permission>GROUP:hudson.model.Run.Delete:ceph*jenkins-admins</permission>
+          <permission>USER:hudson.model.Run.Delete:ceph-jenkins</permission>
+          <permission>GROUP:hudson.model.Run.Replay:ceph*jenkins-admins</permission>
+          <permission>USER:hudson.model.Run.Replay:ceph-jenkins</permission>
+          <permission>GROUP:hudson.model.Run.Update:ceph*jenkins-admins</permission>
+          <permission>USER:hudson.model.Run.Update:ceph-jenkins</permission>
+          <permission>GROUP:hudson.model.View.Configure:ceph*jenkins-admins</permission>
+          <permission>GROUP:hudson.model.View.Create:ceph*jenkins-admins</permission>
+          <permission>GROUP:hudson.model.View.Delete:ceph*jenkins-admins</permission>
+          <permission>GROUP:hudson.model.View.Read:ceph*jenkins-admins</permission>
+          <permission>GROUP:hudson.scm.SCM.Tag:ceph*jenkins-admins</permission>
+          <permission>USER:hudson.scm.SCM.Tag:ceph-jenkins</permission>
+          <permission>GROUP:jenkins.metrics.api.Metrics.HealthCheck:ceph*jenkins-admins</permission>
+          <permission>USER:jenkins.metrics.api.Metrics.HealthCheck:ceph-jenkins</permission>
+          <permission>GROUP:jenkins.metrics.api.Metrics.ThreadDump:ceph*jenkins-admins</permission>
+          <permission>USER:jenkins.metrics.api.Metrics.ThreadDump:ceph-jenkins</permission>
+          <permission>GROUP:jenkins.metrics.api.Metrics.View:ceph*jenkins-admins</permission>
+          <permission>USER:jenkins.metrics.api.Metrics.View:ceph-jenkins</permission>
+          <permission>GROUP:org.jenkins.plugins.lockableresources.LockableResourcesManager.Queue:ceph*jenkins-admins</permission>
+          <permission>USER:org.jenkins.plugins.lockableresources.LockableResourcesManager.Queue:ceph-jenkins</permission>
+          <permission>GROUP:org.jenkins.plugins.lockableresources.LockableResourcesManager.Reserve:ceph*jenkins-admins</permission>
+          <permission>USER:org.jenkins.plugins.lockableresources.LockableResourcesManager.Reserve:ceph-jenkins</permission>
+          <permission>GROUP:org.jenkins.plugins.lockableresources.LockableResourcesManager.Steal:ceph*jenkins-admins</permission>
+          <permission>USER:org.jenkins.plugins.lockableresources.LockableResourcesManager.Steal:ceph-jenkins</permission>
+          <permission>GROUP:org.jenkins.plugins.lockableresources.LockableResourcesManager.Unlock:ceph*jenkins-admins</permission>
+          <permission>USER:org.jenkins.plugins.lockableresources.LockableResourcesManager.Unlock:ceph-jenkins</permission>
+          <permission>GROUP:org.jenkins.plugins.lockableresources.LockableResourcesManager.View:ceph*jenkins-admins</permission>
+          <permission>USER:org.jenkins.plugins.lockableresources.LockableResourcesManager.View:ceph-jenkins</permission>
         </authorizationStrategy>
         <securityRealm class="org.jenkinsci.plugins.GithubSecurityRealm">
           <githubWebUri>https://github.com</githubWebUri>
@@ -61,7 +137,7 @@
           <clientSecret>{{ github_oauth_secret }}</clientSecret>
           <oauthScopes>read:org,user:email</oauthScopes>
         </securityRealm>
-  when: jenkins_config_file.stat.exists and github_oauth_enabled.rc == 1
+  when: jenkins_config_file.stat.exists and matrix_auth_enabled.rc == 1
   no_log: true
   notify:
     - restart jenkins
