@@ -1,4 +1,5 @@
 - job:
+    disabled: true
     name: ceph-api
     project-type: freestyle
     defaults: global
