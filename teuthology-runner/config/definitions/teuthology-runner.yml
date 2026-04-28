@@ -1,0 +1,28 @@
+# Shared Teuthology job: Shaman (optional), schedule suites, optional teuthology-wait, optional aggregate.
+# Used by teuthology-nightly-cadence and release-tracker-workflow .
+- job:
+    name: preserve-teuthology-runner
+    description: |
+      Resolve Ceph SHA, optional Shaman wait, clone/bootstrap teuthology, schedule suite(s) from
+      SUITE_RUNS_JSON or SUITE_LIST. Optional teuthology-wait and Paddles aggregate.
+    project-type: pipeline
+    quiet-period: 1
+    concurrent: true
+    pipeline-scm:
+      scm:
+        - git:
+            url: https://github.com/ceph/ceph-build
+            branches:
+              - ${{CEPH_BUILD_BRANCH}}
+            shallow-clone: true
+            submodule:
+              disable: true
+            wipe-workspace: true
+      script-path: teuthology-runner/build/Jenkinsfile
+      lightweight-checkout: true
+      do-not-fetch-tags: true
+    parameters:
+      - string:
+          name: CEPH_BUILD_BRANCH
+          description: "ceph-build branch for Jenkinsfile and scripts"
+          default: "main"

@@ -1,0 +1,391 @@
+/**
+ * teuthology-runner: schedule Teuthology suite(s) from caller-supplied data; optional Shaman wait,
+ * teuthology-wait, Paddles aggregate. Pass SUITE_RUNS_JSON or SUITE_LIST.
+ */
+import com.cloudbees.groovy.cps.NonCPS
+
+pipeline {
+    agent { label "${params.AGENT_LABEL}" }
+    options {
+        timestamps()
+        timeout(time: 48, unit: 'HOURS')
+        buildDiscarder(logRotator(numToKeepStr: '40'))
+    }
+    environment {
+        PIPELINE_DIR = "${WORKSPACE}/teuthology-runner"
+        PULPITO_BASE = "${params.PULPITO_BASE ?: 'https://pulpito.ceph.com'}"
+    }
+    parameters {
+        string(name: 'PULPITO_BASE', defaultValue: 'https://pulpito.ceph.com', description: 'Pulpito base URL.')
+        string(name: 'AGENT_LABEL', defaultValue: 'teuthology', description: 'Jenkins agent label.')
+        string(name: 'CEPH_BUILD_BRANCH', defaultValue: 'main', description: 'ceph-build branch for this job SCM.')
+        string(name: 'CEPH_BRANCH', defaultValue: 'main', description: 'Ceph branch.')
+        string(name: 'CEPH_REPO', defaultValue: 'https://github.com/ceph/ceph.git', description: 'Ceph git URL.')
+        string(name: 'CEPH_SHA1', defaultValue: '', description: 'Optional SHA1. Empty = branch tip via git ls-remote.')
+        booleanParam(name: 'USE_WORKSPACE_TEUTHOLOGY', defaultValue: true, description: 'Clone teuthology into workspace.')
+        string(name: 'TEUTHOLOGY_REPO_URL', defaultValue: 'https://github.com/ceph/teuthology.git', description: 'Teuthology repo URL.')
+        string(name: 'TEUTHOLOGY_BRANCH', defaultValue: 'main', description: 'Teuthology branch.')
+        string(name: 'TEUTHOLOGY_SCRIPT_DIR', defaultValue: '', description: 'When USE_WORKSPACE_TEUTHOLOGY false: teuthology path.')
+        string(name: 'TEUTHOLOGY_VIRTUALENV_PATH', defaultValue: '', description: 'When USE_WORKSPACE_TEUTHOLOGY false: venv path.')
+        string(name: 'TEUTH_CONFIG_OVERRIDE_YAML', defaultValue: '', description: 'Optional extra argv for teuthology-suite (appended by run_teuthology_suite.sh).')
+        string(name: 'SUITE_REPO', defaultValue: 'https://github.com/ceph/ceph.git', description: 'teuthology-suite --suite-repo.')
+        string(name: 'SUITE_SHA', defaultValue: '', description: 'Optional --suite-sha1.')
+        string(name: 'SUITE_MACHINE_TYPE', defaultValue: 'trial', description: 'teuthology-suite --machine-type.')
+        string(name: 'SUITE_LIMIT', defaultValue: '1', description: 'Default --limit')
+        string(name: 'SUITE_JOB_THRESHOLD', defaultValue: '', description: 'Default --job-threshold for SUITE_LIST mode / JSON row fallback.')
+        string(name: 'SUITE_SUBSET', defaultValue: '', description: 'Default --subset for SUITE_LIST mode / JSON row fallback.')
+        string(name: 'SUITE_LIST', defaultValue: '', description: 'Comma-separated suite names when SUITE_RUNS_JSON empty.')
+        text(name: 'SUITE_RUNS_JSON', defaultValue: '', description: 'JSON array of objects: suite (required), optional limit, threshold, subset, priority, flavor, kernel, filter, forcePriority, suiteSha.')
+        string(name: 'PADDLES_URL', defaultValue: '', description: 'Override Paddles for aggregate; empty = /etc/teuthology.yaml results_server.')
+        string(name: 'SHAMAN_WAIT_TIMEOUT', defaultValue: '7200', description: 'Shaman wait timeout (seconds).')
+        string(name: 'SHAMAN_WAIT_INTERVAL', defaultValue: '120', description: 'Shaman poll interval (seconds).')
+        string(name: 'SHAMAN_WAIT_PLATFORMS', defaultValue: 'rocky-10-default,ubuntu-jammy-default,centos-9-default', description: 'Shaman --platform list.')
+        booleanParam(name: 'SKIP_SHAMAN_WAIT', defaultValue: false, description: 'Skip Shaman wait.')
+        booleanParam(name: 'WAIT_FOR_RUNS', defaultValue: false, description: 'Run teuthology-wait after scheduling.')
+        string(name: 'SUITE_WAIT_SLEEP', defaultValue: '15', description: 'Sleep before teuthology-wait.')
+        booleanParam(name: 'RUN_AGGREGATE', defaultValue: false, description: 'Write aggregate_table.txt.')
+    }
+    stages {
+        stage('Checkout ceph-build') {
+            steps {
+                checkout scm
+            }
+        }
+        stage('Resolve Ceph SHA') {
+            steps {
+                script {
+                    if (params.CEPH_SHA1?.trim()) {
+                        env.SHA1 = params.CEPH_SHA1.trim()
+                        echo "Using CEPH_SHA1 parameter: ${env.SHA1}"
+                    } else {
+                        def repo = params.CEPH_REPO.trim()
+                        def branch = params.CEPH_BRANCH.trim()
+                        if (!repo || !branch) {
+                            error('CEPH_REPO and CEPH_BRANCH are required when CEPH_SHA1 is empty')
+                        }
+                        if (!(branch ==~ '^[a-zA-Z0-9/._-]+$')) {
+                            error("CEPH_BRANCH contains unsupported characters: ${branch}")
+                        }
+                        if (!(repo ==~ '^[a-zA-Z0-9@.:/_-]+$')) {
+                            error('CEPH_REPO format rejected (use a plain https git URL)')
+                        }
+                        withEnv([
+                            "LS_REMOTE_REPO=${repo}",
+                            "LS_REMOTE_BRANCH=${branch}",
+                        ]) {
+                            env.SHA1 = sh(
+                                script: 'git ls-remote "$LS_REMOTE_REPO" "refs/heads/$LS_REMOTE_BRANCH" | head -1 | awk \'{print $1}\'',
+                                returnStdout: true,
+                            ).trim()
+                        }
+                        echo "CEPH_BRANCH=${branch} SHA1=${env.SHA1} (git ls-remote)"
+                    }
+                    if (!env.SHA1 || env.SHA1 == 'unknown') {
+                        error('Could not resolve SHA1 (ls-remote empty: check CEPH_REPO and branch ref)')
+                    }
+                    if (!(env.SHA1 ==~ /^[a-fA-F0-9]{7,40}$/)) {
+                        error("Resolved SHA1 does not look like a git commit: ${env.SHA1}")
+                    }
+                }
+            }
+        }
+        stage('Setup teuthology') {
+            steps {
+                script {
+                    if (params.USE_WORKSPACE_TEUTHOLOGY) {
+                        def teuthDir = "${env.WORKSPACE}/teuthology"
+                        dir(teuthDir) {
+                            checkout([
+                                $class: 'GitSCM',
+                                branches: [[name: "*/${params.TEUTHOLOGY_BRANCH ?: 'main'}"]],
+                                extensions: [[$class: 'CloneOption', depth: 1, shallow: true]],
+                                userRemoteConfigs: [[url: params.TEUTHOLOGY_REPO_URL.trim()]],
+                            ])
+                        }
+                        dir(teuthDir) {
+                            if (fileExists('bootstrap')) {
+                                sh './bootstrap'
+                            } else {
+                                sh 'python3 -m venv virtualenv'
+                                sh 'virtualenv/bin/pip install --upgrade pip'
+                                sh 'virtualenv/bin/pip install -r requirements.txt 2>/dev/null || true'
+                                sh 'virtualenv/bin/pip install -e .'
+                            }
+                        }
+                        env.SCRIPT_DIR = teuthDir
+                        env.VIRTUALENV_PATH = "${teuthDir}/virtualenv"
+                    } else {
+                        def sd = params.TEUTHOLOGY_SCRIPT_DIR?.trim()
+                        def ve = params.TEUTHOLOGY_VIRTUALENV_PATH?.trim()
+                        if (!sd || !ve) {
+                            error('USE_WORKSPACE_TEUTHOLOGY is false: set TEUTHOLOGY_SCRIPT_DIR and TEUTHOLOGY_VIRTUALENV_PATH')
+                        }
+                        env.SCRIPT_DIR = sd
+                        env.VIRTUALENV_PATH = ve
+                    }
+                    env.TEUTH_CONFIG_OVERRIDE_YAML = params.TEUTH_CONFIG_OVERRIDE_YAML?.trim() ?: ''
+                    echo "Teuthology SCRIPT_DIR=${env.SCRIPT_DIR} VIRTUALENV_PATH=${env.VIRTUALENV_PATH}"
+                }
+            }
+        }
+        stage('Wait for Shaman') {
+            when { expression { return !params.SKIP_SHAMAN_WAIT } }
+            steps {
+                script {
+                    def w = "${env.PIPELINE_DIR}/scripts/wait_for_shaman_sha1.py"
+                    if (!fileExists(w)) {
+                        error("Missing ${w}")
+                    }
+                    sh "python3 ${w} --branch ${params.CEPH_BRANCH} --sha1 ${env.SHA1} --timeout ${params.SHAMAN_WAIT_TIMEOUT} --interval ${params.SHAMAN_WAIT_INTERVAL} --platform ${params.SHAMAN_WAIT_PLATFORMS}"
+                }
+            }
+        }
+        stage('Schedule suites') {
+            steps {
+                script {
+                    def teuthologyConfigPath = '/etc/teuthology.yaml'
+                    if (!fileExists(teuthologyConfigPath)) {
+                        error("Required site config not found: ${teuthologyConfigPath}")
+                    }
+                    def cfgText = readFile(teuthologyConfigPath)
+                    def aggUrl = parseAggPaddlesUrlFromTeuthYaml(cfgText)
+                    if (!aggUrl) {
+                        error("Could not parse results_server from ${teuthologyConfigPath}")
+                    }
+                    env.AGG_PADDLES_URL = params.PADDLES_URL?.trim() ?: (aggUrl.endsWith('/') ? aggUrl : (aggUrl + '/'))
+
+                    def runEnvBase = [
+                        "HOME=${env.WORKSPACE}",
+                    ] + paddlesTlsSslEnv() + [
+                        "TEUTHOLOGY_CONFIG=${teuthologyConfigPath}",
+                        "SCRIPT_DIR=${env.SCRIPT_DIR}",
+                        "VIRTUALENV_PATH=${env.VIRTUALENV_PATH}",
+                    ]
+
+                    def runInfos = []
+                    def jsonText = params.SUITE_RUNS_JSON?.trim()
+
+                    if (jsonText) {
+                        def items = parseSuiteRunsJson(jsonText)
+                        if (!items) {
+                            error('SUITE_RUNS_JSON must be a JSON array of objects with a "suite" field')
+                        }
+                        withEnv(runEnvBase) {
+                            for (def item in items) {
+                                if (!(item instanceof Map)) {
+                                    error('SUITE_RUNS_JSON: each element must be an object')
+                                }
+                                def row = item as Map
+                                def runName = scheduleFromRow(row)
+                                def sn = row.suite?.toString()?.trim() ?: row.name?.toString()?.trim()
+                                runInfos << [sn, runName]
+                                echo "Scheduled run: ${runName}"
+                            }
+                        }
+                    } else {
+                        def suites = params.SUITE_LIST?.trim()?.split(',')?.collect { it.trim() }?.findAll { it }
+                        if (!suites) {
+                            error('Set SUITE_RUNS_JSON (JSON array) or non-empty SUITE_LIST')
+                        }
+                        def suiteNamePattern = ~'^[a-zA-Z0-9_/:-]+$'
+                        for (suite in suites) {
+                            def s = suite?.toString()?.trim()
+                            if (!s || !(s ==~ suiteNamePattern)) {
+                                error("Invalid suite name: ${suite}")
+                            }
+                        }
+                        withEnv(runEnvBase) {
+                            for (suite in suites) {
+                                def runName = scheduleFromRow([
+                                    suite: suite,
+                                    limit: params.SUITE_LIMIT?.trim() ?: '1',
+                                    threshold: params.SUITE_JOB_THRESHOLD?.trim() ?: '',
+                                    subset: params.SUITE_SUBSET?.trim() ?: '',
+                                ])
+                                runInfos << [suite as String, runName]
+                                echo "Scheduled run: ${runName}"
+                            }
+                        }
+                    }
+
+                    env.TEUTHOLOGY_RUN_NAMES = runInfos.collect { it[1] }.join(',')
+                    env.TEUTHOLOGY_RUN_NAME = runInfos ? runInfos[0][1] : ''
+                    writeFile file: "${WORKSPACE}/teuthology_run_infos.txt", text: runInfos.collect { "${it[0]}|${it[1]}" }.join('\n')
+                }
+            }
+        }
+        stage('Wait for suite runs') {
+            when { expression { return params.WAIT_FOR_RUNS } }
+            steps {
+                script {
+                    def names = env.TEUTHOLOGY_RUN_NAMES?.trim()
+                    if (!names) {
+                        echo 'No teuthology runs to wait for.'
+                        return
+                    }
+                    def runNameList = names.split(',').collect { it.trim() }.findAll { it }
+                    sleep(time: params.SUITE_WAIT_SLEEP.toInteger(), unit: 'SECONDS')
+                    def waitEnv = ["HOME=${env.WORKSPACE}"] + paddlesTlsSslEnv()
+                    if (fileExists('/etc/teuthology.yaml')) {
+                        waitEnv << 'TEUTHOLOGY_CONFIG=/etc/teuthology.yaml'
+                    }
+                    withEnv(waitEnv) {
+                        dir(env.SCRIPT_DIR) {
+                            for (runName in runNameList) {
+                                try {
+                                    sh "${env.VIRTUALENV_PATH}/bin/teuthology-wait --run ${runName}"
+                                } catch (Exception e) {
+                                    echo "teuthology-wait failed for ${runName}: ${e.message}"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        stage('Aggregate results') {
+            when { expression { return params.RUN_AGGREGATE && env.TEUTHOLOGY_RUN_NAMES?.trim() } }
+            steps {
+                script {
+                    def runNames = env.TEUTHOLOGY_RUN_NAMES.split(',').collect { it.trim() }.findAll { it }
+                    def aggScript = "${env.PIPELINE_DIR}/scripts/aggregate_suite_results.py"
+                    if (!fileExists(aggScript)) {
+                        writeFile file: "${WORKSPACE}/aggregate_table.txt", text: "Runs: ${env.TEUTHOLOGY_RUN_NAMES}"
+                    } else {
+                        def runFlags = runNames.collect { "--run ${it}" }.join(' ')
+                        withEnv(paddlesTlsSslEnv()) {
+                            sh "python3 ${aggScript} ${runFlags} --paddles-url ${env.AGG_PADDLES_URL} --out ${WORKSPACE}/aggregate_table.txt"
+                        }
+                    }
+                }
+            }
+        }
+        stage('Archive artifacts') {
+            steps {
+                archiveArtifacts artifacts: 'teuthology_run_infos.txt,aggregate_table.txt', allowEmptyArchive: true
+            }
+        }
+    }
+}
+
+@NonCPS
+List parseSuiteRunsJson(String json) {
+    def raw = new groovy.json.JsonSlurper().parseText(json)
+    if (!(raw instanceof List)) {
+        return null
+    }
+    def out = []
+    for (def o in (raw as List)) {
+        if (o instanceof Map) {
+            def copy = [:]
+            o.each { k, v -> copy[k] = v }
+            out << copy
+        }
+    }
+    return out
+}
+
+@NonCPS
+def parseAggPaddlesUrlFromTeuthYaml(String cfgText) {
+    def m = (cfgText =~ ~'(?m)^\\s*results_server\\s*:\\s*(\\S+)\\s*$')
+    if (m.find()) {
+        return m.group(1).trim()
+    }
+    m = (cfgText =~ ~'(?m)^\\s*lock_server\\s*:\\s*(\\S+)\\s*$')
+    if (m.find()) {
+        return m.group(1).trim()
+    }
+    return null
+}
+
+def paddlesTlsSslEnv() {
+    return [
+        'REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt',
+        'SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt',
+    ]
+}
+
+String coalesceRow(Map row, String key, String paramFallback) {
+    if (row.containsKey(key) && row[key] != null && row[key].toString().trim()) {
+        return row[key].toString().trim()
+    }
+    return paramFallback ?: ''
+}
+
+boolean rowForcePriority(Map row) {
+    def v = row.forcePriority
+    if (v == null) {
+        return false
+    }
+    if (v instanceof Boolean) {
+        return v.booleanValue()
+    }
+    return 'true'.equalsIgnoreCase(v.toString().trim())
+}
+
+String scheduleFromRow(Map row) {
+    def suite = row.suite?.toString()?.trim() ?: row.name?.toString()?.trim()
+    if (!suite) {
+        error('Each schedule row must include "suite" (or "name")')
+    }
+    def lim = coalesceRow(row, 'limit', params.SUITE_LIMIT?.trim() ?: '1')
+    def thr = coalesceRow(row, 'threshold', params.SUITE_JOB_THRESHOLD?.trim() ?: '')
+    def subset = coalesceRow(row, 'subset', params.SUITE_SUBSET?.trim() ?: '')
+    def priority = coalesceRow(row, 'priority', '')
+    def flavor = coalesceRow(row, 'flavor', '')
+    def kernel = coalesceRow(row, 'kernel', '')
+    def filter = coalesceRow(row, 'filter', '')
+    def fp = rowForcePriority(row) ? 'true' : ''
+    def suiteSha = coalesceRow(row, 'suiteSha', params.SUITE_SHA?.trim() ?: '')
+
+    def safeName = suite.replaceAll('/', '_')
+    def runName = null
+    dir(env.SCRIPT_DIR) {
+        def outFile = "${env.WORKSPACE}/suite_out_${safeName}_${System.currentTimeMillis()}.txt"
+        def runner = "${env.PIPELINE_DIR}/scripts/run_teuthology_suite.sh"
+        if (!fileExists(runner)) {
+            error("run_teuthology_suite.sh not found: ${runner}")
+        }
+        def machineType = params.SUITE_MACHINE_TYPE?.trim() ?: 'smithi'
+        def suiteRepo = params.SUITE_REPO?.trim() ?: ''
+        def overrideYaml = env.TEUTH_CONFIG_OVERRIDE_YAML?.trim() ?: ''
+        def envList = [
+            "SUITE_NAME=${suite}",
+            "CEPH_BRANCH=${params.CEPH_BRANCH}",
+            "CEPH_SHA1=${env.SHA1}",
+            "TEUTH_CONFIG_OVERRIDE_YAML=${overrideYaml}",
+            "CEPH_REPO=${params.CEPH_REPO}",
+            "SUITE_LIMIT=${lim}",
+            "MACHINE_TYPE=${machineType}",
+            "SUITE_REPO=${suiteRepo}",
+            "SUITE_JOB_THRESHOLD=${thr}",
+            "SUITE_SUBSET=${subset}",
+            "SUITE_PRIORITY=${priority}",
+            "SUITE_FLAVOR=${flavor}",
+            "SUITE_KERNEL=${kernel}",
+            "SUITE_FILTER=${filter}",
+            "SUITE_FORCE_PRIORITY=${fp}",
+            "SUITE_SHA=${suiteSha}",
+        ]
+        withEnv(envList) {
+            sh(script: "bash \"${runner}\" > \"${outFile}\" 2>&1; true", returnStatus: true)
+        }
+        def out = readFile(outFile)
+        echo "teuthology-suite output (tail):\n${out.take(50000)}"
+        def prefix = 'Job scheduled with name '
+        def i = out.indexOf(prefix)
+        if (i >= 0) {
+            def start = i + prefix.length()
+            def lineEnd = out.indexOf('\n', start)
+            if (lineEnd < 0) {
+                lineEnd = out.length()
+            }
+            def restOfLine = out.substring(start, lineEnd).trim()
+            runName = restOfLine.split()[0]
+        }
+        if (!runName) {
+            error("teuthology-suite did not schedule '${suite}'. Expected 'Job scheduled with name' in output.")
+        }
+    }
+    return runName
+}
