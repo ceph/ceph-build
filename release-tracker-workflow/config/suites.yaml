@@ -1,0 +1,12 @@
+# Suite list for release-tracker-workflow
+suites:
+  - teuthology:nop
+  - orch
+  - rbd
+  - fs
+  - rgw
+  - krbd
+  - upgrade
+  - crimson-rados
+  - crimson-rados/basic
+  - rados
