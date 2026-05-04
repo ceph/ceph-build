@@ -15,10 +15,22 @@ if [[ "$DOCS_ONLY" = true || "$CONTAINER_ONLY" = true || "$GHA_ONLY" == true ]];
 fi
 
 n_build_jobs=$(get_nr_build_jobs)
-n_test_jobs=$(($(nproc) / 4))
+n_test_jobs=$(($(nproc) / 2))
 export CHECK_MAKEOPTS="-j${n_test_jobs} -N -Q"
 export BUILD_MAKEOPTS="-j${n_build_jobs}"
 export FOR_MAKE_CHECK=1
+
+# Use shared S3-backed sccache to avoid re-compiling objects that haven't
+# changed since a recent PR build on any worker (~75-85% compile time saved).
+if [[ -f "$WORKSPACE/scripts/setup_sccache.sh" ]]; then
+    source "$WORKSPACE/scripts/setup_sccache.sh"
+    write_sccache_conf
+    write_aws_credentials
+    install_sccache
+    export CMAKE_C_COMPILER_LAUNCHER=sccache
+    export CMAKE_CXX_COMPILER_LAUNCHER=sccache
+fi
+
 timeout 2h ./src/script/run-make.sh \
         --cmake-args '-DWITH_TESTS=OFF -DENABLE_GIT_VERSION=OFF'
 sleep 5

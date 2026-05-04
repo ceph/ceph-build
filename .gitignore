@@ -1,1 +1,9 @@
 *~
+
+# Cursor IDE (local)
+*.pyc
+.cursor/
+.test-venv/
+temp.log
+.gitignore
+

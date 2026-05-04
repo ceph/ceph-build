@@ -74,6 +74,14 @@ def params_from_branch(initialParams) {
         params[0]['FLAVOR'] += ' debug'
       }
       break
+    // wip-*-testing branches: build only jammy x86_64 to reduce package build
+    // time (~45min vs ~3h for all platforms) before the teuthology smoke run.
+    case ~/.*wip-.*-testing.*/:
+      params[0]['DISTROS'] = 'jammy'
+      params[0]['ARCHS'] = 'x86_64'
+      params[0]['FLAVORS'] = 'default'
+      params[0]['CI_CONTAINER'] = 'false'
+      break
     default:
       if ( !singleSet ) {
         params << params[0].clone()

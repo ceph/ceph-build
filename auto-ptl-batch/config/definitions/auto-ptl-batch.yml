@@ -1,0 +1,133 @@
+- job:
+    name: preserve-auto-ptl-batch
+    description: |
+      Fully-automated PR batching for ceph/ceph – no manual wip-*-testing
+      labels required.
+
+      The job discovers all open PRs that carry every label in REQUIRED_LABELS
+      (default: needs-QA) plus a "component: <X>" label, have green CI, and
+      carry none of the labels in EXCLUDE_LABELS.  PRs are grouped by
+      (component, base_branch), then split into sub-batches using file-path
+      conflict detection: two PRs that touch overlapping paths at
+      CONFLICT_PATH_DEPTH directory levels are placed into separate batches so
+      that merge conflicts and root-cause analysis stay isolated.
+
+      For each resulting sub-batch:
+        1. CI green check  (make check + ceph API tests)
+        2. Local merge via ptl-tool.py  (--branch HEAD; no push yet)
+        3. Fast-fail compile check  (timeout 90 min)
+        4. Push to ceph-ci as  wip-<component>-<branch>-auto-batch<N>
+           (component label is sanitized for the branch name: allowed chars only;
+           others become '-')
+           → commit trailers constrain ceph-dev-pipeline build scope
+             (DISTROS=jammy centos9 rocky10, ARCHS=x86_64, FLAVORS=default, CI-CONTAINER=false)
+           → on success, preserve-teuthology-runner runs suite from
+             COMPONENT_SUITE_MAP
+
+      Runs once daily via a cron trigger.  Can also be triggered manually;
+      set CEPH_BASE_BRANCH to limit processing to a specific target branch,
+      or leave empty to process all branches.
+
+      Credentials required on the Jenkins agent:
+        - 'github-readonly-token': username+password, read:org + repo scope
+          (used for GitHub API calls, ptl-tool.py auth, and HTTPS push to ceph-ci)
+    project-type: pipeline
+    quiet-period: 2
+    concurrent: false
+    pipeline-scm:
+      scm:
+        - git:
+            url: https://github.com/ceph/ceph-build
+            branches:
+              - ${{CEPH_BUILD_BRANCH}}
+            shallow-clone: true
+            submodule:
+              disable: true
+            wipe-workspace: true
+      script-path: auto-ptl-batch/build/Jenkinsfile
+      lightweight-checkout: true
+      do-not-fetch-tags: true
+
+    triggers:
+      - timed: 'H 0 * * *'
+
+    parameters:
+      - string:
+          name: CEPH_BUILD_BRANCH
+          description: "ceph-build branch to use for this job's Jenkinsfile"
+          default: "main"
+      - string:
+          name: CEPH_BASE_BRANCH
+          description: |
+            If set, only process PRs targeting this branch (e.g. main, reef).
+            Leave empty to process PRs across all branches.
+          default: ""
+      - string:
+          name: REQUIRED_LABELS
+          description: |
+            Comma-separated labels that every PR must carry to be eligible.
+            A "component: <X>" label is always required in addition to these.
+          default: "needs-qa"
+      - string:
+          name: EXCLUDE_LABELS
+          description: |
+            Comma-separated labels that disqualify a PR, even if CI is green.
+          default: "needs-rebase,ready-to-merge,passed-qa"
+      - string:
+          name: COMPONENT_SUITE_MAP
+          description: |
+            JSON object mapping each "component: <X>" label value to the
+            teuthology suite to run for that component's batches.
+            Add or override entries here without changing the Jenkinsfile.
+          default: >-
+            {"bluestore":"rados","build/ops":"smoke","cephfs":"fs",
+             "common":"smoke","core":"rados","crimson":"crimson",
+             "dashboard":"dashboard","mds":"fs","mgr":"mgr","mon":"rados",
+             "msgr":"rados","osd":"rados","pybind":"smoke","rados":"rados",
+             "rbd":"rbd","rgw":"rgw","tools":"smoke"}
+      - string:
+          name: UPDATED_WITHIN_DAYS
+          description: |
+            Only consider PRs that have been updated within this many days.
+            Keeps the scan fast and ignores stale PRs unlikely to need QA.
+          default: "7"
+      - string:
+          name: CONFLICT_PATH_DEPTH
+          description: |
+            Directory depth used to detect file-path conflicts between PRs.
+              3 → src/rgw/multisite/   (recommended: catches sub-component conflicts)
+              2 → src/rgw/             (component-level only)
+              0 → exact file match     (fewest splits)
+          default: "3"
+      - string:
+          name: MAX_PRS_PER_BATCH
+          description: "Hard cap on the number of PRs in a single sub-batch."
+          default: "5"
+      - string:
+          name: MAX_PUSHES
+          description: |
+            Maximum number of branches to push to ceph-ci in a single run.
+            Set to 1 to test only the first eligible batch. 0 = no limit.
+          default: "0"
+      - bool:
+          name: DRY_RUN
+          description: |
+            If true, run all discovery, CI checks, merges, and compile checks
+            but skip the final push to ceph-ci.
+          default: false
+      - bool:
+          name: SKIP_STATUS_POST
+          description: |
+            If true, push branches to ceph-ci as normal but do NOT post the
+            "auto-ptl-batch=pending" commit status to any PR on GitHub.
+            Useful for testing the push path without touching existing PRs.
+          default: false
+    wrappers:
+      - inject-passwords:
+          global: true
+          mask-password-params: true
+      - credentials-binding:
+          - username-password-separated:
+              credential-id: github-readonly-token
+              username: GITHUB_USER
+              password: GITHUB_PASS

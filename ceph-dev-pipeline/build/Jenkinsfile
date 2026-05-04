@@ -645,4 +645,29 @@ pipeline {
       }
     }
   }
+  // After all distro/arch builds succeed, automatically schedule a teuthology
+  // smoke run for wip-*-testing branches so no manual trigger step is needed.
+  post {
+    success {
+      script {
+        if (env.BRANCH ==~ /.*wip-.*-testing.*/) {
+          echo "wip-testing branch detected: scheduling teuthology smoke run for ${env.BRANCH} @ ${env.SHA1}"
+          build(
+            job: 'preserve-teuthology-runner',
+            wait: false,
+            parameters: [
+              string(name: 'CEPH_BRANCH',       value: env.BRANCH),
+              string(name: 'CEPH_SHA1',          value: env.SHA1),
+              string(name: 'CEPH_REPO',          value: env.CEPH_REPO),
+              string(name: 'SUITE_LIST',         value: 'smoke'),
+              string(name: 'SUITE_MACHINE_TYPE', value: 'smithi'),
+              string(name: 'SUITE_LIMIT',        value: '1'),
+              booleanParam(name: 'SKIP_SHAMAN_WAIT', value: false),
+              booleanParam(name: 'WAIT_FOR_RUNS',    value: false),
+            ],
+          )
+        }
+      }
+    }
+  }
 }
