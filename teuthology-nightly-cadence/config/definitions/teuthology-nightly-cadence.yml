@@ -2,7 +2,7 @@
 # Reference: ceph.git qa/crontab/teuthology-cronjobs and schedule_subset.sh.
 
 - job:
-    name: preserve-teuthology-nightly-cadence
+    name: teuthology-nightly-cadence
     description: |
       Invokes job teuthology-runner in cadence mode (Shaman wait, schedule_subset-style
       partitions/subsets). Optional WAIT_FOR_RUNS on teuthology-runner. Requires teuthology-runner
@@ -31,10 +31,10 @@
       - string:
           name: TEUTHOLOGY_RUNNER_JOB_NAME
           description: "Jenkins job name for the runner pipeline (default teuthology-runner)"
-          default: "preserve-teuthology-runner"
+          default: "teuthology-runner"
 
 - job:
-    name: preserve-teuthology-nightly-cadence-trigger
+    name: teuthology-nightly-cadence-trigger
     description: |
       Triggers teuthology-nightly-cadence with wait:false. Timed triggers follow the same schedule as
       ceph.git qa/crontab/teuthology-cronjobs.
@@ -69,8 +69,8 @@
       - string:
           name: TEUTHOLOGY_RUNNER_JOB_NAME
           description: "Forwarded to teuthology-nightly-cadence (runner job Jenkins name)"
-          default: "preserve-teuthology-runner"
+          default: "teuthology-runner"
       - string:
           name: TEUTHOLOGY_NIGHTLY_CADENCE_JOB
           description: "Jenkins job name of the cadence pipeline to trigger"
-          default: "preserve-teuthology-nightly-cadence"
+          default: "teuthology-nightly-cadence"
