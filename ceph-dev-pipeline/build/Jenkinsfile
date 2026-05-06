@@ -1,3 +1,7 @@
+//
+// vim: ts=2 sw=2 expandtab
+//
+
 import groovy.transform.Field
 
 @Field String ceph_build_repo = "https://github.com/ceph/ceph-build"
@@ -334,18 +338,19 @@ pipeline {
             }
             steps {
               script {
-                sh './scripts/setup_chacractl.sh'
-                def chacra_url = sh(
-                  script: '''grep url ~/.chacractl | cut -d'"' -f2''',
-                  returnStdout: true,
-                ).trim()
                 def os = get_os_info(env.DIST)
-                def chacra_endpoint = "ceph/${env.BRANCH}/${env.SHA1}/${os.name}/${os.version_name}/${env.ARCH}/flavors/${env.FLAVOR}/"
-                def chacractl_rc = sh(
-                  script: "$HOME/.local/bin/chacractl exists binaries/${chacra_endpoint}",
-                  returnStatus: true,
-                )
-                if ( chacractl_rc == 0 && env.FORCE != "true" ) {
+                def shaman_endpoint = "https://shaman.ceph.com/api/repos/ceph/${env.BRANCH}/${env.SHA1}/${os.name}/${os.version_name}/"
+                def chacra_repo_url = sh(
+                  script: """curl -s -S --retry 4 ${shaman_endpoint} | 
+                      jq -r '
+                        first(.[] | select(.flavor == env.FLAVOR
+                        and (.archs | any(. == env.ARCH))
+                        and .status=="ready"))
+                      | .chacra_url'
+                  """,
+                  returnStdout: true
+                ).trim()
+                if ( chacra_repo_url != "" && env.FORCE != "true" ) {
                   println("Skipping compilation since chacra already has artifacts. To override, use THROWAWAY=true (to skip this check) or FORCE=true (to re-upload artifacts).")
                   build_matrix["${DIST}_${ARCH}"] = false
                 }
@@ -546,6 +551,7 @@ pipeline {
             }
             steps {
               script {
+                sh './scripts/setup_chacractl.sh'
                 def chacra_url = sh(
                   script: '''grep url ~/.chacractl | cut -d'"' -f2''',
                   returnStdout: true,
