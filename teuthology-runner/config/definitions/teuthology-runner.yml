@@ -1,7 +1,7 @@
 # Shared Teuthology job: Shaman (optional), schedule suites, optional teuthology-wait, optional aggregate.
 # Used by teuthology-nightly-cadence and release-tracker-workflow .
 - job:
-    name: preserve-teuthology-runner
+    name: teuthology-runner
     description: |
       Resolve Ceph SHA, optional Shaman wait, clone/bootstrap teuthology, schedule suite(s) from
       SUITE_RUNS_JSON or SUITE_LIST. Optional teuthology-wait and Paddles aggregate.
