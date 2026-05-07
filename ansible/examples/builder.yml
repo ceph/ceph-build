@@ -768,13 +768,49 @@
       become_user: "{{ jenkins_user }}"
       when: ansible_os_family == "Suse"
 
-    - name: Ensure the home dir has the right owner permissions
-      command: "sudo chown -R {{ jenkins_user }}:{{ jenkins_user }} /home/{{ jenkins_user}}"
+    # Do NOT try to chown the podman storage dirs.  This breaks all subsequent builds.
+    # follow: false avoids following our silly qa/ dir symlinks
+    - name: Ensure the build dir has the right owner permissions
+      become: true
+      ansible.builtin.file:
+        path: "/home/{{ jenkins_user }}/build"
+        owner: "{{ jenkins_user }}"
+        group: "{{ jenkins_user }}"
+        recurse: true
+        follow: false
       tags: chown
 
     - name: Set system locale (systemd)
       command: localectl set-locale LANG=en_US.utf8
       when: ansible_service_mgr == "systemd"
+
+    - name: Reset rootless podman storage for {{ jenkins_user }} (required after subuid/subgid changes)
+      block:
+        - name: Stop and remove any running rootless containers
+          become: true
+          become_user: "{{ jenkins_user }}"
+          command: /bin/sh -lc 'podman ps -aq | xargs -r podman rm -f'
+          args:
+            chdir: "/home/{{ jenkins_user }}"
+          changed_when: false
+          failed_when: false
+
+        - name: Remove rootless podman storage
+          file:
+            path: "/home/{{ jenkins_user }}/.local/share/containers/storage"
+            state: absent
+
+        - name: Remove rootless podman cache
+          file:
+            path: "/home/{{ jenkins_user }}/.local/share/containers/cache"
+            state: absent
+
+        - name: Restore SELinux labels on containers directory (if applicable)
+          command: >
+            restorecon -R -T0 -x /home/{{ jenkins_user }}/.local/share/containers
+          when: ansible_selinux.status == "enabled"
+      tags:
+        - podman-reset
 
     ## DEBIAN GPG KEY TASKS
     - name: Install Debian GPG Keys on Ubuntu
