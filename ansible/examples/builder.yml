@@ -855,6 +855,10 @@
     ## VAGRANT PLUGIN TASKS
     - name: Install vagrant-libvirt plugin
       block:
+        - name: Use system python for this part
+          set_fact:
+            ansible_python_interpreter: "/usr/bin/python3"
+
         - name: Install the vagrant-libvirt plugin (without args)
           shell: vagrant plugin install vagrant-libvirt --plugin-version 0.3.0
           become_user: "{{ jenkins_user }}"
@@ -909,6 +913,15 @@
           environment:
             CONFIGURE_ARGS: 'with-libvirt-include=/usr/include/libvirt with-libvirt-lib=/usr/lib'
           when: ansible_os_family == "Debian" and ansible_distribution_major_version|int >= 20
+
+        # NOTE: We can't use "{{ venv }}" here because it's a play-level var defined in the first
+        # play, and play-level vars don't carry across plays (unlike set_fact, which is why
+        # ansible_python_interpreter does carry). We use the python3 venv so the jenkins_node
+        # module has access to python-jenkins, but vagrant-libvirt must be installed as
+        # jenkins-build, who can't execute cm's venv python.
+        - name: Back to cm's venv
+          set_fact:
+            ansible_python_interpreter: "/home/{{ ansible_user }}/.venv/bin/python"
       when: libvirt|bool
 
     ## RPMMACROS TASKS
