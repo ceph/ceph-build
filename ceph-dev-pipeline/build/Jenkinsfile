@@ -183,10 +183,7 @@ pipeline {
             expression { env.FLAVORS.contains(env.FLAVOR) }
             anyOf {
               environment name: "CI_COMPILE", value: "true"
-              allOf {
-                environment name: "CI_CONTAINER", value: "true"
-                environment name: "DIST", value: "centos9"
-              }
+              expression { env.CI_CONTAINER == 'true' && container_distros.contains(env.DIST) }
             }
           }
         }
