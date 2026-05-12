@@ -1,0 +1,43 @@
+- job:
+    name: builder-reimage-job
+    project-type: pipeline
+    description: "Pipeline to reimage Jenkins builders and run post-reimage ansible tasks"
+
+    concurrent: false
+
+    parameters:
+      - choice:
+          name: ACTION
+          choices:
+            - reimage
+            - reimage-all
+          default: reimage
+          description: "Reimage action"
+      - string:
+          name: MACHINE
+          default: ""
+          description: "Machine name"
+      - string:
+          name: OS
+          default: ""
+          description: "OS to deploy (optional)"
+      - bool:
+          name: SKIP_REIMAGE
+          default: false
+          description: "Skip reimage and only run post-reimage tasks"
+
+    scm:
+      - git:
+          url: https://github.com/jitendrasahu1803/builder-reimage.git
+          branches:
+            - main
+          clean: true
+
+    pipeline-scm:
+      scm:
+        - git:
+            url: https://github.com/jitendrasahu1803/builder-reimage.git
+            branches:
+              - main
+      script-path: Jenkins-job/test-2.jenkins/jenkins-pipeline/build/Jenkinsfile
+      lightweight-checkout: true
