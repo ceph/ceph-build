@@ -4,6 +4,10 @@ set -ex
 env
 
 BRANCH=$(echo $GIT_BRANCH | sed 's:.*/::')
+if [ "$BRANCH" = "main" ]; then
+  echo "branch must not be named 'main', exiting"
+  exit 1
+fi
 
 set +e
 export NVM_DIR="$HOME/.nvm"
@@ -18,16 +22,14 @@ npm ci
 
 npm run build:development
 
-if [ "$BRANCH" = "main" ]; then
-  echo "branch must not be named 'main', exiting"
-  exit 1
+# This will support "/" and "." in branch names - specific usecase being depadabot branches
+OUTPUT_DIR=$(echo "$BRANCH" | tr '/.' '-')
+
+if [ ! -d /opt/www/${OUTPUT_DIR} ]; then
+  mkdir -p /opt/www/${OUTPUT_DIR}
 fi
 
-if [ ! -d /opt/www/${BRANCH} ]; then
-  mkdir -p /opt/www/${BRANCH}
-fi
-
-rsync -av --delete-after dist/ /opt/www/${BRANCH}/
+rsync -av --delete-after dist/ /opt/www/${OUTPUT_DIR}/
 
 echo "===== Begin pruning old builds ====="
 old_builds=$(find /opt/www/ -maxdepth 1 -not -path "/opt/www/main" -type d -mtime +90 | sed 's:.*/::')
@@ -42,4 +44,4 @@ echo "===== Done pruning old builds ====="
 # This just makes the last `echo` line not repeat
 { set +x; } 2>/dev/null
 
-echo "Success!  This site is available at https://${BRANCH}.ceph.io."
+echo "Success!  This site is available at https://${OUTPUT_DIR}.ceph.io."
