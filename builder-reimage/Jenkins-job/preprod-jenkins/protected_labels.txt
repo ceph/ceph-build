@@ -1,0 +1,7 @@
+master
+teuthology
+libvirt
+mira
+www
+ec2
+reimage
