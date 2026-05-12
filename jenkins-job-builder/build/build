@@ -16,7 +16,10 @@ set -euxo pipefail
 # when jenkins-job-builder 6.5 or later is released, this requirement should change to
 # jenkins-job-builder>=6.5
 
-pkgs=( "dataclasses" "jenkins-job-builder>=6.4.3" )
+# setuptools>=82 drops pkg_resources in practice; stevedore (used by JJB) still
+# imports pkg_resources when loading CLI subcommands, which breaks `jenkins-jobs`
+# on Python 3.12 with "No module named 'pkg_resources'".
+pkgs=( "dataclasses" "jenkins-job-builder>=6.4.3" "setuptools<82" )
 TEMPVENV=$(create_venv_dir)
 VENV=${TEMPVENV}/bin
 install_python_packages $TEMPVENV "pkgs[@]" latest
