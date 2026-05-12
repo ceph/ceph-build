@@ -1,0 +1,49 @@
+- job:
+    name: builder-reimage-discover
+    project-type: pipeline
+    description: "Pipeline to reimage Jenkins builders (single/multi/discover) and run post-reimage ansible tasks"
+
+    concurrent: false
+
+    parameters:
+      - choice:
+          name: ACTION
+          choices:
+            - reimage
+            - reimage-all
+            - wait_online
+            - discover
+          default: reimage
+          description: "Select operation mode: reimage single/multi, wait_online, or discover eligible nodes"
+      - bool:
+          name: DRY_RUN
+          default: false
+          description: "If true, only discover and list target nodes without marking offline or running tasks"
+      - string:
+          name: MACHINE
+          default: ""
+          description: "Machine shortname or comma-separated nodes (ignored when ACTION=discover)"
+      - string:
+          name: OS
+          default: ""
+          description: "OS to deploy (optional)"
+      - bool:
+          name: SKIP_REIMAGE
+          default: false
+          description: "Skip reimage stage and run only post-reimage tasks"
+
+    scm:
+      - git:
+          url: https://github.com/jitendrasahu1803/builder-reimage.git
+          branches:
+            - main
+          clean: true
+
+    pipeline-scm:
+      scm:
+        - git:
+            url: https://github.com/jitendrasahu1803/builder-reimage.git
+            branches:
+              - main
+      script-path: Jenkins-job/preprod-jenkins/jenkins-pipeline/build/Jenkinsfile
+      lightweight-checkout: true
