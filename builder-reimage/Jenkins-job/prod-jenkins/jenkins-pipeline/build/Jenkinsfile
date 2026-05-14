@@ -1,5 +1,5 @@
 pipeline {
-    agent { label 'reimage' }
+    agent { label 'teuthology' }
 
     environment {
         VENV_DIR    = ".venv"
