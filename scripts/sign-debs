@@ -1,0 +1,57 @@
+#!/bin/bash -ex
+# vim: ts=2:sw=2:expandtab
+
+keyid=460F3994
+
+function usage() {
+    echo "sign-debs <project> [ release [ release ..]]"
+}
+
+if [[ $# -lt 1 ]] ; then usage ; exit 1 ; fi
+
+project=$1; shift
+
+if [ $# -eq 0 ]; then
+    releases=( reef squid tentacle umbrella )
+else
+    releases=( "$@" )
+fi
+
+distro_versions=( jessie )
+
+for release in "${releases[@]}"; do
+    for distro_version in "${distro_versions[@]}"; do
+        for path in /opt/repos/$project/$release*; do
+            if [ -d "$path/debian/$distro_version" ]; then
+
+                # Check if any Release file is missing a valid signature
+                needs_signing=0
+                while IFS= read -r release_file; do
+                    release_dir=$(dirname "$release_file")
+                    if ! gpg --verify "$release_dir/Release.gpg" "$release_file" 2>/dev/null; then
+                        needs_signing=1
+                        break
+                    fi
+                done < <(find "$path/debian/$distro_version/dists" -maxdepth 2 -name "Release" -not -name "InRelease")
+
+                if [[ $needs_signing -eq 0 ]]; then
+                    echo "already signed, skipping: $path/debian/$distro_version"
+                    continue
+                fi
+
+                echo "Signing: $path/debian/$distro_version"
+                merfi gpg "$path/debian/$distro_version"
+
+                # Verify all Release files that merfi just signed (#63336)
+                while IFS= read -r release_file; do
+                    release_dir=$(dirname "$release_file")
+                    echo "verifying: $release_dir/Release.gpg"
+                    gpg --verify "$release_dir/Release.gpg" "$release_file"
+                    echo "verifying: $release_dir/InRelease"
+                    gpg --verify "$release_dir/InRelease"
+                done < <(find "$path/debian/$distro_version/dists" -maxdepth 2 -name "Release" -not -name "InRelease")
+
+            fi
+        done
+    done
+done
