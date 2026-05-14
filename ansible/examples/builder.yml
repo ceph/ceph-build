@@ -815,40 +815,32 @@
     ## DEBIAN GPG KEY TASKS
     - name: Install Debian GPG Keys on Ubuntu
       block:
-        - name: Add the Debian Buster Key
-          apt_key:
-           id: 3CBBABEE
-           url: https://ftp-master.debian.org/keys/archive-key-10.asc
-           keyring: /etc/apt/trusted.gpg
-           state: present
-      
-        - name: Add the Debian Security Buster Key
-          apt_key:
-            id: CAA96DFA
-            url: https://ftp-master.debian.org/keys/archive-key-10-security.asc
-            keyring: /etc/apt/trusted.gpg
-            state: present
-      
-        - name: Add the Debian Buster Stable Key
-          apt_key:
-            id: 77E11517
-            url: https://ftp-master.debian.org/keys/release-10.asc
-            keyring: /etc/apt/trusted.gpg
-            state: present
+        - name: Ensure keyrings directory exists
+          file:
+            path: /etc/apt/keyrings
+            state: directory
+            mode: '0755'
+            owner: root
+            group: root
 
-        - name: Add the Debian Bookworm Key
-          apt_key:
-           id: 350947F8
-           url: https://ftp-master.debian.org/keys/archive-key-12.asc
-           keyring: /etc/apt/trusted.gpg
-           state: present
+        - name: Download Debian archive keys
+          get_url:
+            url: "{{ item.url }}"
+            dest: "/etc/apt/keyrings/{{ item.name }}"
+            mode: '0644'
+            owner: root
+            group: root
+          register: key_download
+          until: key_download is succeeded
+          retries: 5
+          delay: 5
+          loop:
+            - { name: debian-archive-key-10.asc,          url: "https://ftp-master.debian.org/keys/archive-key-10.asc" }
+            - { name: debian-archive-key-10-security.asc, url: "https://ftp-master.debian.org/keys/archive-key-10-security.asc" }
+            - { name: debian-release-10.asc,              url: "https://ftp-master.debian.org/keys/release-10.asc" }
+            - { name: debian-archive-key-12.asc,          url: "https://ftp-master.debian.org/keys/archive-key-12.asc" }
+            - { name: debian-archive-key-12-security.asc, url: "https://ftp-master.debian.org/keys/archive-key-12-security.asc" }
 
-        - name: Add the Debian Security Bookworm Key
-          apt_key:
-            id: AEC0A8F0
-            url: https://ftp-master.debian.org/keys/archive-key-12-security.asc
-            keyring: /etc/apt/trusted.gpg
-            state: present
       when: ansible_os_family == "Debian"
       tags: debian-keys
 
