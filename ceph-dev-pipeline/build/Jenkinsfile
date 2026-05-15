@@ -253,7 +253,7 @@ pipeline {
           stage("copy artifacts") {
             steps {
               script {
-                def artifact_filter = "dist/sha1,dist/version,dist/other_envvars,dist/ceph-*.tar.bz2"
+                def artifact_filter = "dist/sha1,dist/version,dist/branch,dist/other_envvars,dist/ceph-*.tar.bz2"
                 def os = get_os_info(env.DIST)
                 if ( env.CI_COMPILE && os.pkg_type == "deb" ) {
                   artifact_filter += ",dist/ceph_*.diff.gz,dist/ceph_*.dsc"
@@ -276,6 +276,10 @@ pipeline {
                   env.SHA1 = sha1_from_artifact
                 }
                 println "SHA1=${sha1_trimmed}"
+                // Derive canonical BRANCH from artifact.
+                // This way, if SHA1 and BRANCH were both provided as params and BRANCH didn't match, it will now.
+                def branch_props = readProperties file: "${WORKSPACE}/dist/branch"
+                env.BRANCH = branch_props.BRANCH.trim()
                 env.VERSION = readFile(file: "${WORKSPACE}/dist/version").trim()
                 script {
                   // In a release build, dist/other_envvars contains CEPH_REPO, and chacra_url
