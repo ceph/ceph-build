@@ -52,9 +52,8 @@ function setup_container_runtime () {
           sudo find "$PODMAN_STORAGE_DIR/overlay" -xdev -type d -path '*/work/work' -exec chmod u+rwx {} + 2>/dev/null || true
         fi
         if [ "$(podman unshare du -s --block-size=1G "$PODMAN_STORAGE_DIR" | awk '{print $1}')" -ge 50 ]; then
-          time podman system prune --force || \
-            time podman image prune --force --all --external
-          time podman image prune --filter=until="$((24*7))h" --all --force
+          time podman system prune --force
+          time podman image prune --filter=until="$((24*7))h" --all --force --external
           if [ "$(podman version -f "{{ ge .Client.Version \"5\" }}")" = "true" ]; then
             time podman system check --repair --quick
           fi
