@@ -442,7 +442,7 @@
         permanent: true
         nodename: "{{ ansible_hostname }}"
       with_items: "{{ ansible_all_ipv4_addresses }}"
-      when: item | regex_search('^(172\\.21\\.|8\\.43\\.|10\\.20\\.)')
+      when: item is match('^(172\\.21\\.|8\\.43\\.|10\\.20\\.)')
       tags: always
 
     ## EPHEMERAL SLAVE TASKS
