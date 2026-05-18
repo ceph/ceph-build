@@ -16,8 +16,8 @@ EOF
 # make sure we pull the last stable image
 podman pull quay.io/skopeo/stable
 podman run --rm --security-opt label=disable \
-  -v ./sync.yml:/sync.yml:ro quay.io/skopeo/stable sync --all \
   -e GODEBUG=http2client=0 \
+  -v ./sync.yml:/sync.yml:ro quay.io/skopeo/stable sync --all \
   --retry-times 5 \
   --src yaml \
   --src-username "${DOCKER_HUB_USERNAME}" \
