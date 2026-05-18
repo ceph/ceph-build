@@ -176,7 +176,7 @@ pipeline {
                         ########################################################
                         # prepare_env
                         ########################################################
-                        cd "$WORKSPACE/Jenkins-job/prod-jenkins/jenkins-pipeline/build"
+                        cd "$WORKSPACE/builder-reimage/Jenkins-job/prod-jenkins/jenkins-pipeline/build"
                         bash scripts/prepare_env.sh "${TARGET_FQDN}" "${WORK_DIR}" true \
                             git@github.com:ceph/ceph-build.git \
                             git@github.com:ceph/ceph-cm-ansible.git \
@@ -185,7 +185,7 @@ pipeline {
                         ########################################################
                         # ansible_runner.sh (NOTE: VENV_DIR not VENV_PATH)
                         ########################################################
-                        cd "$WORKSPACE/Jenkins-job/prod-jenkins/jenkins-pipeline/build"
+                        cd "$WORKSPACE/builder-reimage/Jenkins-job/prod-jenkins/jenkins-pipeline/build"
                         bash scripts/ansible_runner.sh \
                             "${TARGET_FQDN}" \
                             "${WORK_DIR}" \
