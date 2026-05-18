@@ -64,6 +64,11 @@
           description: "Whether to push new binaries to Chacra if some are already present"
           default: false
 
+      - bool:
+          name: PULP_UPLOAD
+          description: "Whether to upload packages to Pulp"
+          default: false
+
       - choice:
           name: FLAVOR
           choices:
