@@ -16,6 +16,19 @@ ANSIBLE_DIR="${WORK_DIR}/repos/ansible"
 MAIN_DIR="${WORK_DIR}/repos/main"
 LOG_DIR="${WORK_DIR}/ansible-logs"
 
+
+##############################################
+# Ensure secrets path exists (independent of prepare_env.sh)
+##############################################
+
+SECRETS_PATH="${WORK_DIR}/repos/secret-repo/ansible/secrets"
+
+# Backward compatibility for playbook expecting this env var
+export ANSIBLE_SECRETS_PATH="${ANSIBLE_SECRETS_PATH:-${SECRETS_PATH}}"
+
+echo "[ansible_runner] ANSIBLE_SECRETS_PATH=${ANSIBLE_SECRETS_PATH}"
+
+
 # NEW: consume paths exported by prepare_env.sh
 INVENTORY_PATH="${INVENTORY_PATH:-${WORK_DIR}/repos/secret-repo/ansible/inventory}"
 SECRETS_PATH="${SECRETS_PATH:-${WORK_DIR}/repos/secret-repo/ansible/secrets}"
@@ -153,7 +166,6 @@ run_playbook() {
 ##############################################
 # PLAYBOOK 4 — builder.yml (USES VAULT)
 ##############################################
-echo "DEBUG: ANSIBLE_SECRETS_PATH=${ANSIBLE_SECRETS_PATH}"
 (
   cd "${MAIN_DIR}/ansible"
 
