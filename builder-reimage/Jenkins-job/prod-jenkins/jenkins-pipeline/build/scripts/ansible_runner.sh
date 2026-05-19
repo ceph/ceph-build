@@ -153,6 +153,7 @@ run_playbook() {
 ##############################################
 # PLAYBOOK 4 — builder.yml (USES VAULT)
 ##############################################
+echo "DEBUG: ANSIBLE_SECRETS_PATH=${ANSIBLE_SECRETS_PATH}"
 (
   cd "${MAIN_DIR}/ansible"
 
