@@ -9,12 +9,16 @@ set -euo pipefail
 TARGET_FQDN="$1"
 WORK_DIR="$2"
 VENV_DIR="$3"
-OS_VALUE="${4,,}"        # normalize OS → lowercase (can be empty)
+OS_VALUE="${4,,}"
 BUILDER_TOKEN="$5"
 
 ANSIBLE_DIR="${WORK_DIR}/repos/ansible"
 MAIN_DIR="${WORK_DIR}/repos/main"
 LOG_DIR="${WORK_DIR}/ansible-logs"
+
+# NEW: consume paths exported by prepare_env.sh
+INVENTORY_PATH="${INVENTORY_PATH:-${WORK_DIR}/repos/secret-repo/ansible/inventory}"
+SECRETS_PATH="${SECRETS_PATH:-${WORK_DIR}/repos/secret-repo/ansible/secrets}"
 
 # Vault now ALWAYS comes from this file (created by Jenkinsfile)
 VAULT_FILE="/home/jenkins-build/.vault_pass.txt"
@@ -43,6 +47,8 @@ else
 fi
 
 echo "[ansible_runner] SSH user selected = ${SSH_USER}"
+echo "[ansible_runner] Using inventory = ${INVENTORY_PATH}"
+echo "[ansible_runner] Using secrets = ${SECRETS_PATH}"
 
 ##############################################
 # Admin user JSON builder
@@ -102,12 +108,12 @@ run_playbook() {
 
 ##############################################
 # PLAYBOOK 1 — ansible_managed.yml
-# (NO VAULT)
 ##############################################
 (
   cd "${ANSIBLE_DIR}"
 
   CMD="ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook ansible_managed.yml \
+        -i '${INVENTORY_PATH}' \
         --limit='${TARGET_FQDN}' \
         -e ansible_ssh_user='${SSH_USER}'"
 
@@ -116,7 +122,6 @@ run_playbook() {
 
 ##############################################
 # PLAYBOOK 2 — users.yml
-# (NO VAULT)
 ##############################################
 (
   cd "${ANSIBLE_DIR}"
@@ -124,6 +129,7 @@ run_playbook() {
   ADMIN_USERS_JSON="$(build_admin_users_json)"
 
   CMD="ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook users.yml -v \
+        -i '${INVENTORY_PATH}' \
         --limit='${TARGET_FQDN}' \
         --tags='user,pubkeys' \
         --extra-vars='${ADMIN_USERS_JSON}'"
@@ -133,25 +139,25 @@ run_playbook() {
 
 ##############################################
 # PLAYBOOK 3 — jenkins-builder-disk.yml
-# (NO VAULT)
 ##############################################
 (
   cd "${ANSIBLE_DIR}"
 
   CMD="ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -vvv tools/jenkins-builder-disk.yml \
+        -i '${INVENTORY_PATH}' \
         --limit='${TARGET_FQDN}'"
 
   run_playbook "play3-tools-disk" "${CMD}"
 )
 
 ##############################################
-# PLAYBOOK 4 — builder.yml
-# (USES VAULT)
+# PLAYBOOK 4 — builder.yml (USES VAULT)
 ##############################################
 (
   cd "${MAIN_DIR}/ansible"
 
   CMD="ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -vvv \
+        -i '${INVENTORY_PATH}' \
         ${VAULT_ARG} \
         -M ./library/ \
         examples/builder.yml \
