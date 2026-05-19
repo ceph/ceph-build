@@ -4,16 +4,13 @@ set -euo pipefail
 # prepare_env.sh
 # Usage:
 #   prepare_env.sh <target_fqdn> <work_dir> <ssh_available> <ansible_repo> <main_repo> <secrets_repo>
-#
-# Example:
-#   prepare_env.sh irvingi04.front.sepia.ceph.com /var/lib/jenkins/ci-work true git@github.com:org/repo-ansible.git ...
 
 TARGET_FQDN="$1"
 WORK_DIR="$2"
 SSH_AVAILABLE="${3:-false}"
-MAIN_REPO="${4:-git@github.com:ceph/ceph-build.git}"  ## ceph-build
-ANSIBLE_REPO="${5:-git@github.com:ceph/ceph-cm-ansible.git}" ## ceph-ci-ansible
-SECRETS_REPO="${6:-git@github.com:ceph/ceph-sepia-secrets.git}" ## ceph-sepia-secrets
+MAIN_REPO="${4:-git@github.com:ceph/ceph-build.git}"
+ANSIBLE_REPO="${5:-git@github.com:ceph/ceph-cm-ansible.git}"
+SECRETS_REPO="${6:-git@github.com:ceph/ceph-sepia-secrets.git}"
 
 SHORTNAME="${TARGET_FQDN%%.*}"
 
@@ -33,7 +30,6 @@ adjust_url() {
   if [ "${SSH_AVAILABLE}" = "true" ]; then
     echo "${url}"
   else
-    # convert git@github.com:org/repo.git -> https://github.com/org/repo.git
     echo "${url}" | sed 's|git@github.com:|https://github.com/|'
   fi
 }
@@ -62,7 +58,7 @@ clone_repo "${ANSIBLE_URL}" "${ANSIBLE_DIR}"
 clone_repo "${MAIN_URL}" "${MAIN_DIR}"
 clone_repo "${SECRETS_URL}" "${SECRETS_DIR}"
 
-# Ensure venv exists (created by Jenkinsfile in WORK_DIR). If not, create here.
+# Ensure venv exists
 if [ ! -d "${VENV_DIR}/bin" ]; then
   log "Virtualenv not found at ${VENV_DIR}, creating..."
   python3 -m venv "${VENV_DIR}"
@@ -73,24 +69,23 @@ else
   source "${VENV_DIR}/bin/activate"
 fi
 
-# Check ansible installation in venv or system
+# Check ansible installation
 if command -v ansible-playbook >/dev/null 2>&1; then
   log "Ansible already installed."
 else
   log "Ansible not found, attempting to install into venv..."
 
-  # Determine package manager depending on OS
   install_ansible_system() {
     if command -v apt-get >/dev/null 2>&1; then
       log "Detected apt-based system. Installing ansible..."
       sudo apt-get update && sudo apt-get install -y ansible || true
 
     elif command -v dnf >/dev/null 2>&1; then
-      log "Detected dnf-based system (RHEL8+/Rocky/Alma). Installing ansible-core..."
+      log "Detected dnf-based system. Installing ansible-core..."
       sudo dnf install -y ansible-core || sudo dnf install -y ansible || true
 
     elif command -v yum >/dev/null 2>&1; then
-      log "Detected yum-based system (RHEL7/CentOS7). Installing ansible..."
+      log "Detected yum-based system. Installing ansible..."
       sudo yum install -y ansible || true
 
     else
@@ -109,35 +104,42 @@ else
   fi
 fi
 
-# Create idempotent symlinks for /etc/ansible/secrets and /etc/ansible/hosts
-ensure_symlink() {
-  local src="$1"
-  local dst="$2"
-  if [ -L "${dst}" ]; then
-    log "Symlink ${dst} already exists"
-    return 0
-  fi
-  if [ -e "${dst}" ]; then
-    log "Target ${dst} exists and is not a symlink — leaving it untouched"
-    return 0
-  fi
-  # ensure parent directory exists
-  sudo mkdir -p "$(dirname "${dst}")"
-  sudo ln -s "${src}" "${dst}"
-  log "Created symlink ${dst} -> ${src}"
-}
+# -------------------------------------------------------------------
+# NEW: Workspace-local ansible configuration (replaces /etc/ansible)
+# -------------------------------------------------------------------
 
-# Ensure /etc/ansible exists
-sudo mkdir -p /etc/ansible || true
+INVENTORY_PATH="${SECRETS_DIR}/ansible/inventory"
+SECRETS_PATH="${SECRETS_DIR}/ansible/secrets"
+ANSIBLE_CFG="${WORK_DIR}/ansible.cfg"
 
-sudo rm -f /etc/ansible/secrets
-ensure_symlink "${SECRETS_DIR}/ansible/secrets" "/etc/ansible/secrets"
-sudo rm -f /etc/ansible/hosts
-ensure_symlink "${SECRETS_DIR}/ansible/inventory" "/etc/ansible/hosts"
+# Validate inventory presence
+if [ ! -e "${INVENTORY_PATH}" ]; then
+  log "ERROR: Inventory not found at ${INVENTORY_PATH}"
+  exit 1
+fi
 
-# Optional: Warn if target FQDN is not present in inventory file
-if ! grep -q -E "^${TARGET_FQDN}\\b" /etc/ansible/hosts 2>/dev/null; then
-  log "Warning: ${TARGET_FQDN} not found in /etc/ansible/hosts. Ensure dynamic inventory or update inventory."
+# Create ansible.cfg in workspace
+cat > "${ANSIBLE_CFG}" <<EOF
+[defaults]
+inventory = ${INVENTORY_PATH}
+host_key_checking = False
+retry_files_enabled = False
+stdout_callback = yaml
+interpreter_python = auto
+roles_path = ${ANSIBLE_DIR}/roles
+EOF
+
+export ANSIBLE_CONFIG="${ANSIBLE_CFG}"
+export INVENTORY_PATH
+export SECRETS_PATH
+
+log "Using ANSIBLE_CONFIG=${ANSIBLE_CONFIG}"
+log "Inventory path: ${INVENTORY_PATH}"
+log "Secrets path: ${SECRETS_PATH}"
+
+# Optional: Warn if target not present in inventory
+if ! grep -R -q -E "^${TARGET_FQDN}\\b" "${INVENTORY_PATH}" 2>/dev/null; then
+  log "Warning: ${TARGET_FQDN} not found in inventory. Ensure dynamic inventory or update inventory."
 fi
 
 log "prepare_env completed for ${TARGET_FQDN} (shortname=${SHORTNAME})"
