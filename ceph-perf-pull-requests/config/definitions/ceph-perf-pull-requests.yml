@@ -49,6 +49,7 @@
     name: run-cbt
     builders:
       - shell: |
+          set -euxo pipefail
           cd {src-dir}
           archive_dir={archive-basedir}/$(git rev-parse --short HEAD)
           if test -d $archive_dir ; then
@@ -58,24 +59,19 @@
           export FOR_MAKE_CHECK=true
           cxx_compiler=g++
           c_compiler=gcc
-          for i in $(seq 15 -1 10); do
+          for i in $(seq 22 -1 19); do
               if type -t clang-$i > /dev/null; then
                   cxx_compiler="clang++-$i"
                   c_compiler="clang-$i"
                   break
               fi
           done
-          if test {osd-flavor} = "crimson" ; then
-              export WITH_CRIMSON=true
-              # TODO use clang-10 on ubuntu/focal
-              timeout 7200 src/script/run-make.sh \
-                --cmake-args "-DCMAKE_CXX_COMPILER=$cxx_compiler -DCMAKE_C_COMPILER=$c_compiler -DCMAKE_BUILD_TYPE=Release -DWITH_CRIMSON=ON -DWITH_TESTS=OFF" \
-                vstart-base crimson-osd
-              src/script/run-cbt.sh --build-dir $PWD/build --source-dir $PWD --cbt ${{WORKSPACE}}/cbt -a $archive_dir src/test/crimson/cbt/radosbench_4K_read.yaml
-          else
-              timeout 7200 src/script/run-make.sh --cmake-args "-DCMAKE_BUILD_TYPE=Release -DWITH_TESTS=OFF" vstart-base
-              src/script/run-cbt.sh --build-dir $PWD/build --source-dir $PWD --cbt ${{WORKSPACE}}/cbt -a $archive_dir src/test/crimson/cbt/radosbench_4K_read.yaml --classical
-          fi
+          export WITH_CRIMSON=true
+          cmake_args="-DCMAKE_CXX_COMPILER=$cxx_compiler -DCMAKE_C_COMPILER=$c_compiler -DCMAKE_BUILD_TYPE=Release -DWITH_CRIMSON=ON -DWITH_TESTS=OFF $CEPH_PERF_EXTRA_CMAKE_ARGS"
+          timeout 7200 src/script/run-make.sh \
+            --cmake-args "$cmake_args" \
+            vstart-base
+          src/script/run-cbt.sh --build-dir $PWD/build --source-dir $PWD --cbt $WORKSPACE/cbt -a $archive_dir {benchmark-yaml}
 
 - builder:
     name: compare-cbt-results
@@ -105,18 +101,19 @@
             --summary ${{result}}                        \
             --text report.md
 
-- job-template:
-    name: 'ceph-perf-{osd-flavor}'
+- job:
+    name: ceph-perf
     project-type: freestyle
     defaults: global
     concurrent: true
-    # use lastest rhel and ubuntu for crimson for clang build
     node: performance
-    display-name: 'ceph: {osd-flavor} perf test'
+    display-name: 'ceph: perf regression test'
+    description: 'Release CBT regression check for Crimson: builds ceph-pr and ceph-main with WITH_CRIMSON=ON, runs the checked-in radosbench 4K read workload, and compares results via cbt/compare.py. The GitHub check fails when compare.py reports a statistically worse result, too much noise, or errors.'
     quiet-period: 5
     block-downstream: false
     block-upstream: false
     retry-count: 3
+    disabled: false
     check-app-id: "62865"
     check-install-id: "8465036"
     check-name: "perf-test"
@@ -138,22 +135,29 @@
       - string:
           name: ghprbPullId
           description: "the GitHub pull id, like '72' in 'ceph/pull/72'"
+      - string:
+          name: CEPH_PERF_EXTRA_CMAKE_ARGS
+          default: ''
+          description: 'Extra CMake arguments appended to the Crimson build (use this to disable additional components for a more minimal build).'
 
     triggers:
       - github-pull-request:
           allow-whitelist-orgs-as-admins: true
           org-list:
             - ceph
-          trigger-phrase: 'jenkins test {osd-flavor} perf'
+          trigger-phrase: 'jenkins test perf'
           skip-build-phrase: '^jenkins do not test.*'
           only-trigger-phrase: false
           white-list-labels:
             - performance
-            - crimson
           github-hooks: true
           permit-all: false
           auto-close-on-fail: false
           cancel-builds-on-update: true
+          status-context: 'ceph perf regression'
+          started-status: 'running ceph perf regression'
+          success-status: 'ceph perf regression passed'
+          failure-status: 'ceph perf regression failed'
 
     scm:
       - ceph-main
@@ -166,7 +170,7 @@
           . /etc/os-release || ID=ubuntu
           case $ID in
           debian|ubuntu)
-              sudo env DEBIAN_FRONTEND=noninteractive apt-get install -y python3-yaml python3-lxml python3-prettytable clang-12
+              sudo env DEBIAN_FRONTEND=noninteractive apt-get install -y python3-yaml python3-lxml python3-prettytable
               ;;
           centos|rhel)
               sudo dnf copr remove tchaikov/llvm-toolset-10 || true
@@ -209,12 +213,12 @@
 
       - run-cbt:
           src-dir: "ceph-main"
-          osd-flavor: '{osd-flavor}'
+          benchmark-yaml: "$WORKSPACE/ceph-main/src/test/crimson/cbt/radosbench_4K_read.yaml"
           # ideally cbt-results should be persited across jobs, so the test result can be reused
           archive-basedir: "$WORKSPACE/cbt-results"
       - run-cbt:
           src-dir: "ceph-pr"
-          osd-flavor: '{osd-flavor}'
+          benchmark-yaml: "$WORKSPACE/ceph-pr/src/test/crimson/cbt/radosbench_4K_read.yaml"
           # use the basedir of git checkout, so it can be wiped
           archive-basedir: "$WORKSPACE/ceph-pr"
       - compare-cbt-results:
@@ -243,10 +247,3 @@
           - file:
               credential-id: cephacheck.2020-04-29.private-key.pem
               variable: GITHUB_CHECK_PKEY_PEM
-- project:
-    name: ceph-perf
-    osd-flavor:
-      - classic
-      - crimson
-    jobs:
-      - ceph-perf-{osd-flavor}
