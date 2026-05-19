@@ -58,6 +58,7 @@ podman pull ${KCLI_CONTAINER_IMAGE}
 echo "#!/usr/bin/env bash
 
 podman run --rm --net host --security-opt label=disable \
+    --group-add keep-groups \
     -v ${KCLI_CONFIG_DIR}:/root/.kcli \
     -v ${PWD}:/workdir \
     -v /var/lib/libvirt/images:/var/lib/libvirt/images \
