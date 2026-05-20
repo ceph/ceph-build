@@ -10,18 +10,16 @@ pipeline {
         booleanParam(name: 'SKIP_REIMAGE', defaultValue: false)
         choice(name: 'ACTION', choices: ['reimage','reimage-all','wait_online'])
         string(
-            name: 'MACHINE', 
+            name: 'MACHINE(S)', 
             defaultValue: '', 
-            description: '''Machine(s) : 
-        node1
-        node1,node2
+            description: '''node1 OR
+        node1,node2 OR
         node1:jammy,node2:centos9'''
         )
         string(
             name: 'OS', 
             defaultValue: '',
-            description: '''Optional OS (e.g. jammy, centos9). 
-        Applies to all unless overridden'''
+            description: "Applies to all unless overridden by specifying OS per host in the MACHINE parameter"
         )
     }
 
