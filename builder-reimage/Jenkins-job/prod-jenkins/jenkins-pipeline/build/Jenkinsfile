@@ -31,7 +31,7 @@ pipeline {
                         branches["Node-${machine}"] = {
                             node('teuthology') {
 
-                                // ✅ Each branch gets its own repo
+                                // Each branch gets its own repo
                                 stage("Checkout-${machine}") {
                                     checkout scm
                                 }
@@ -40,32 +40,32 @@ pipeline {
                                     if (!params.SKIP_REIMAGE) {
                                         withCredentials([string(credentialsId: 'maas-api-key', variable: 'MAAS_API_KEY')]) {
                                             sh """#!/bin/bash
-set -euo pipefail
-
-REPO_DIR="\$WORKSPACE/builder-reimage/Jenkins-job/prod-jenkins"
-VENV_PATH="\$REPO_DIR/.venv"
-
-cd "\$REPO_DIR"
-
-# ✅ FIX: Ensure venv exists in THIS workspace
-if [ ! -d "\$VENV_PATH" ]; then
-    echo "[INFO] Creating virtual environment"
-    python3 -m venv "\$VENV_PATH"
-    source "\$VENV_PATH/bin/activate"
-    pip install --upgrade pip
-    pip install -r requirements.txt
-else
-    echo "[INFO] Using existing virtual environment"
-    source "\$VENV_PATH/bin/activate"
-fi
-
-echo "[INFO] Starting reimage for ${machine}"
-
-python Jenkins_builder-reimage.py \
-  --action reimage \
-  --machine ${machine} \
-  ${params.OS ? "--os ${params.OS}" : ""}
-"""
+                                                set -euo pipefail
+                                                
+                                                REPO_DIR="\$WORKSPACE/builder-reimage/Jenkins-job/prod-jenkins"
+                                                VENV_PATH="\$REPO_DIR/.venv"
+                                                
+                                                cd "\$REPO_DIR"
+                                                
+                                                # FIX: Ensure venv exists in THIS workspace
+                                                if [ ! -d "\$VENV_PATH" ]; then
+                                                    echo "[INFO] Creating virtual environment"
+                                                    python3 -m venv "\$VENV_PATH"
+                                                    source "\$VENV_PATH/bin/activate"
+                                                    pip install --upgrade pip
+                                                    pip install -r requirements.txt
+                                                else
+                                                    echo "[INFO] Using existing virtual environment"
+                                                    source "\$VENV_PATH/bin/activate"
+                                                fi
+                                                
+                                                echo "[INFO] Starting reimage for ${machine}"
+                                                
+                                                python Jenkins_builder-reimage.py \
+                                                  --action reimage \
+                                                  --machine ${machine} \
+                                                  ${params.OS ? "--os ${params.OS}" : ""}
+                                                """
                                         }
                                     }
                                 }
@@ -74,30 +74,30 @@ python Jenkins_builder-reimage.py \
                                     if (!params.SKIP_REIMAGE) {
                                         withCredentials([string(credentialsId: 'maas-api-key', variable: 'MAAS_API_KEY')]) {
                                             sh """#!/bin/bash
-set -euo pipefail
-
-REPO_DIR="\$WORKSPACE/builder-reimage/Jenkins-job/prod-jenkins"
-VENV_PATH="\$REPO_DIR/.venv"
-
-cd "\$REPO_DIR"
-
-# ✅ Ensure venv exists here too
-if [ ! -d "\$VENV_PATH" ]; then
-    echo "[INFO] Creating virtual environment"
-    python3 -m venv "\$VENV_PATH"
-    source "\$VENV_PATH/bin/activate"
-    pip install --upgrade pip
-    pip install -r requirements.txt
-else
-    source "\$VENV_PATH/bin/activate"
-fi
-
-echo "[INFO] Waiting for node ${machine}"
-
-python Jenkins_builder-reimage.py \
-  --action wait_online \
-  --machine ${machine}
-"""
+                                                set -euo pipefail
+                                                
+                                                REPO_DIR="\$WORKSPACE/builder-reimage/Jenkins-job/prod-jenkins"
+                                                VENV_PATH="\$REPO_DIR/.venv"
+                                                
+                                                cd "\$REPO_DIR"
+                                                
+                                                # Ensure venv exists here too
+                                                if [ ! -d "\$VENV_PATH" ]; then
+                                                    echo "[INFO] Creating virtual environment"
+                                                    python3 -m venv "\$VENV_PATH"
+                                                    source "\$VENV_PATH/bin/activate"
+                                                    pip install --upgrade pip
+                                                    pip install -r requirements.txt
+                                                else
+                                                    source "\$VENV_PATH/bin/activate"
+                                                fi
+                                                
+                                                echo "[INFO] Waiting for node ${machine}"
+                                                
+                                                python Jenkins_builder-reimage.py \
+                                                  --action wait_online \
+                                                  --machine ${machine}
+                                                """
                                         }
                                     }
                                 }
@@ -109,41 +109,41 @@ python Jenkins_builder-reimage.py \
                                         sshUserPrivateKey(credentialsId: 'ansible-ssh-key', keyFileVariable: 'SSH_KEY')
                                     ]) {
                                         sh """#!/bin/bash
-set -euo pipefail
-
-REPO_DIR="\$WORKSPACE/builder-reimage/Jenkins-job/prod-jenkins"
-BUILD_DIR="\$REPO_DIR/jenkins-pipeline/build"
-WORK_DIR="\$WORKSPACE/ci-work"
-
-TARGET_FQDN="${machine}.${DOMAIN}"
-
-echo "[INFO] Running Ansible for \$TARGET_FQDN"
-
-mkdir -p "\$WORK_DIR"
-
-# SSH key handling (safe per job)
-cp "${SSH_KEY}" /tmp/key_${machine}
-chmod 600 /tmp/key_${machine}
-
-# Vault file (pipeline-specific only)
-VAULT_FILE="/home/jenkins-build/.vault_pass.txt"
-echo "$VAULT_PASS" > "\$VAULT_FILE"
-
-cd "\$BUILD_DIR"
-
-bash scripts/prepare_env.sh "${machine}.${DOMAIN}" "\$WORK_DIR" true \
-  git@github.com:ceph/ceph-build.git \
-  git@github.com:ceph/ceph-cm-ansible.git \
-  git@github.com:ceph/ceph-sepia-secrets.git
-
-bash scripts/ansible_runner.sh \
-  "\$TARGET_FQDN" \
-  "\$WORK_DIR" \
-  "${env.VENV_DIR}" \
-  "${params.OS ?: ''}" \
-  "\$BUILDER_TOKEN" \
-  "\$VAULT_PASS"
-"""
+                                            set -euo pipefail
+                                            
+                                            REPO_DIR="\$WORKSPACE/builder-reimage/Jenkins-job/prod-jenkins"
+                                            BUILD_DIR="\$REPO_DIR/jenkins-pipeline/build"
+                                            WORK_DIR="\$WORKSPACE/ci-work"
+                                            
+                                            TARGET_FQDN="${machine}.${DOMAIN}"
+                                            
+                                            echo "[INFO] Running Ansible for \$TARGET_FQDN"
+                                            
+                                            mkdir -p "\$WORK_DIR"
+                                            
+                                            # SSH key handling (safe per job)
+                                            cp "${SSH_KEY}" /tmp/key_${machine}
+                                            chmod 600 /tmp/key_${machine}
+                                            
+                                            # Vault file (pipeline-specific only)
+                                            VAULT_FILE="/home/jenkins-build/.vault_pass.txt"
+                                            echo "$VAULT_PASS" > "\$VAULT_FILE"
+                                            
+                                            cd "\$BUILD_DIR"
+                                            
+                                            bash scripts/prepare_env.sh "${machine}.${DOMAIN}" "\$WORK_DIR" true \
+                                              git@github.com:ceph/ceph-build.git \
+                                              git@github.com:ceph/ceph-cm-ansible.git \
+                                              git@github.com:ceph/ceph-sepia-secrets.git
+                                            
+                                            bash scripts/ansible_runner.sh \
+                                              "\$TARGET_FQDN" \
+                                              "\$WORK_DIR" \
+                                              "${env.VENV_DIR}" \
+                                              "${params.OS ?: ''}" \
+                                              "\$BUILDER_TOKEN" \
+                                              "\$VAULT_PASS"
+                                            """
                                     }
                                 }
                             }
