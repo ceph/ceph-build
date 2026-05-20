@@ -22,7 +22,9 @@ pipeline {
             steps {
                 withCredentials([string(credentialsId: 'maas-api-key', variable: 'MAAS_API_KEY')]) {
                     sh '''
+                        bash -c '
                         set -euo pipefail
+
                         cd "$REPO_DIR"
 
                         rm -rf "$VENV_PATH"
@@ -31,14 +33,12 @@ pipeline {
                         source "$VENV_PATH/bin/activate"
                         pip install --upgrade pip
                         pip install -r requirements.txt
+                        '
                     '''
                 }
             }
         }
 
-        /* -------------------------------------------------------------
-           PARALLEL EXECUTION STAGE (MAIN CHANGE)
-        -------------------------------------------------------------- */
         stage('Parallel Execution') {
             steps {
                 script {
@@ -61,7 +61,9 @@ pipeline {
                                     if (!params.SKIP_REIMAGE) {
                                         withCredentials([string(credentialsId: 'maas-api-key', variable: 'MAAS_API_KEY')]) {
                                             sh """
+                                                bash -c '
                                                 set -euo pipefail
+
                                                 cd "$REPO_DIR"
                                                 source "$VENV_PATH/bin/activate"
 
@@ -72,6 +74,7 @@ pipeline {
 
                                                 echo "Running: \$CMD"
                                                 \$CMD
+                                                '
                                             """
                                         }
                                     }
@@ -81,13 +84,16 @@ pipeline {
                                     if (!params.SKIP_REIMAGE) {
                                         withCredentials([string(credentialsId: 'maas-api-key', variable: 'MAAS_API_KEY')]) {
                                             sh """
+                                                bash -c '
                                                 set -euo pipefail
+
                                                 cd "$REPO_DIR"
                                                 source "$VENV_PATH/bin/activate"
 
                                                 python Jenkins_builder-reimage.py \
                                                     --action wait_online \
                                                     --machine ${machine}
+                                                '
                                             """
                                         }
                                     }
@@ -100,6 +106,7 @@ pipeline {
                                         sshUserPrivateKey(credentialsId: 'ansible-ssh-key', keyFileVariable: 'SSH_KEY')
                                     ]) {
                                         sh """
+                                            bash -c '
                                             set -euo pipefail
 
                                             TARGET_FQDN="${machine}.${DOMAIN}"
@@ -120,7 +127,6 @@ pipeline {
                                                 git@github.com:ceph/ceph-cm-ansible.git \
                                                 git@github.com:ceph/ceph-sepia-secrets.git
 
-                                            # Use global OS param (safe fallback)
                                             DETECTED_OS="${params.OS ?: ''}"
 
                                             bash scripts/ansible_runner.sh \
@@ -130,6 +136,7 @@ pipeline {
                                                 "\$DETECTED_OS" \
                                                 "\$BUILDER_TOKEN" \
                                                 "\$VAULT_PASS"
+                                            '
                                         """
                                     }
                                 }
