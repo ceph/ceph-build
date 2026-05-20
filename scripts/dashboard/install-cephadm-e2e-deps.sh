@@ -39,11 +39,16 @@ nvm install
 nvm use
 popd
 
-sudo apt install -y libvirt-daemon-system libvirt-daemon-driver-qemu qemu-kvm libvirt-clients
+sudo apt install -y libvirt-daemon-system libvirt-daemon-driver-qemu qemu-kvm libvirt-clients crun
 
 sudo usermod -aG libvirt $(id -un)
-newgrp libvirt  # Avoid having to log out and log in for group addition to take effect.
 sudo systemctl enable --now libvirtd
+
+# Rootless podman creates a user namespace that drops supplementary groups.
+# --group-add keep-groups (crun) preserves them, but only if crun is the
+# OCI runtime.  As a robust fallback, also widen socket permissions so the
+# mapped UID can connect regardless of group membership.
+sudo chmod 0666 /var/run/libvirt/libvirt-sock
 
 KCLI_CONFIG_DIR="${HOME}/.kcli"
 mkdir -p ${KCLI_CONFIG_DIR}

@@ -3,6 +3,8 @@ set +x
 echo "Starting cleanup..."
 
 with_libvirt() {
+    # Ensure socket is accessible in case permissions were reset
+    sudo chmod 0666 /var/run/libvirt/libvirt-sock 2>/dev/null || true
     sg libvirt -c "$1"
 }
 
