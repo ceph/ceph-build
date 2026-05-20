@@ -11,16 +11,17 @@
           choices:
             - reimage
             - reimage-all
+            - wait_online (debug)
           default: reimage
           description: "Reimage action"
       - string:
           name: MACHINE
           default: ""
-          description: "Machine name"
+          description: "Machine(s) : node1 OR node1,node2 OR node1:jammy,node2:focal"
       - string:
           name: OS
           default: ""
-          description: "OS to deploy (optional)"
+          description: "Optional OS (e.g. jammy, focal). Applies to all unless overridden"
       - bool:
           name: SKIP_REIMAGE
           default: false
