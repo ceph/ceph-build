@@ -19,7 +19,7 @@ pipeline {
         string(
             name: 'OS', 
             defaultValue: '',
-            description: "Applies to all unless overridden by specifying OS per host in the MACHINE parameter"
+            description: "Applies to all unless overridden by specifying OS per host in the MACHINE(S) parameter"
         )
     }
 
