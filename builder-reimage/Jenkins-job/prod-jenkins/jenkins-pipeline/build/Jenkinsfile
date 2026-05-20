@@ -139,7 +139,8 @@ pipeline {
                         }
                     }
 
-                    parallel branches, failFast: false
+                    branches.failFast = false
+                    parallel branches
                 }
             }
         }
