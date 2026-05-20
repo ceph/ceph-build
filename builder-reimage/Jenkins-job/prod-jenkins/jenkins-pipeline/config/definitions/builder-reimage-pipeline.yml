@@ -17,11 +17,18 @@
       - string:
           name: MACHINE
           default: ""
-          description: "Machine(s) : node1 OR node1,node2 OR node1:jammy,node2:centos9"
+          description: |
+            Machine(s) :
+
+            node1
+            node1,node2
+            node1:jammy,node2:centos9
       - string:
           name: OS
           default: ""
-          description: "Optional OS (e.g. jammy, centos9). Applies to all unless overridden"
+          description: |
+            Optional OS (e.g. jammy, centos9). 
+            Applies to all unless overridden
       - bool:
           name: SKIP_REIMAGE
           default: false
