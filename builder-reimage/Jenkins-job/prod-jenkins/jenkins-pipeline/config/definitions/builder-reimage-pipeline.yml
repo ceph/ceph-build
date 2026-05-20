@@ -15,13 +15,13 @@
           default: reimage
           description: "Reimage action"
       - string:
-          name: MACHINE
+          name: MACHINE(S)
           default: ""
-          description: "Machine(s) :<br>node1<br>node1,node2<br>node1:jammy,node2:centos9"
+          description: "node1 OR<br>node1,node2 OR<br>node1:jammy,node2:centos9"
       - string:
           name: OS
           default: ""
-          description: "Optional OS (e.g. jammy, centos9).<br>Applies to all unless overridden"
+          description: "Applies to all unless overridden by specifying OS per host in the MACHINE parameter"
       - bool:
           name: SKIP_REIMAGE
           default: false
