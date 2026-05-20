@@ -68,8 +68,8 @@
       - shell:
           !include-raw-verbatim:
             - ../../../scripts/build_utils.sh
+            - ../../../scripts/bwc.sh
             - ../../build/build
-            - ../../../scripts/dashboard/install-backend-api-test-deps.sh
             - ../../build/api
 
     # This job seems to get aborted more often than others.  Multiple times in the past week,
