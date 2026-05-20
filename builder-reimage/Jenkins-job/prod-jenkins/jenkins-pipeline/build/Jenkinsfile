@@ -2,11 +2,8 @@ pipeline {
     agent { label 'teuthology' }
 
     environment {
-        VENV_DIR    = ".venv"
-        REPO_DIR    = "${WORKSPACE}/builder-reimage/Jenkins-job/prod-jenkins"
-        VENV_PATH   = "${REPO_DIR}/${VENV_DIR}"
-        WORK_DIR    = "${WORKSPACE}/ci-work"
-        DOMAIN      = "front.sepia.ceph.com"
+        DOMAIN = "front.sepia.ceph.com"
+        VENV_DIR = ".venv"
     }
 
     parameters {
@@ -25,12 +22,15 @@ pipeline {
                         bash -c '
                         set -euo pipefail
 
-                        cd "$REPO_DIR"
+                        REPO_DIR_LOCAL="${WORKSPACE}/builder-reimage/Jenkins-job/prod-jenkins"
+                        VENV_PATH_LOCAL="${REPO_DIR_LOCAL}/.venv"
 
-                        rm -rf "$VENV_PATH"
-                        python3 -m venv "$VENV_PATH"
+                        cd "$REPO_DIR_LOCAL"
 
-                        source "$VENV_PATH/bin/activate"
+                        rm -rf "$VENV_PATH_LOCAL"
+                        python3 -m venv "$VENV_PATH_LOCAL"
+
+                        source "$VENV_PATH_LOCAL/bin/activate"
                         pip install --upgrade pip
                         pip install -r requirements.txt
                         '
@@ -47,7 +47,6 @@ pipeline {
                     }
 
                     def machines = params.MACHINE.split(',').collect { it.trim() }
-
                     def branches = [:]
 
                     for (int i = 0; i < machines.size(); i++) {
@@ -64,8 +63,11 @@ pipeline {
                                                 bash -c '
                                                 set -euo pipefail
 
-                                                cd "$REPO_DIR"
-                                                source "$VENV_PATH/bin/activate"
+                                                REPO_DIR_LOCAL="${WORKSPACE}/builder-reimage/Jenkins-job/prod-jenkins"
+                                                VENV_PATH_LOCAL="${REPO_DIR_LOCAL}/.venv"
+
+                                                cd "$REPO_DIR_LOCAL"
+                                                source "$VENV_PATH_LOCAL/bin/activate"
 
                                                 CMD="python Jenkins_builder-reimage.py \
                                                     --action reimage \
@@ -87,8 +89,11 @@ pipeline {
                                                 bash -c '
                                                 set -euo pipefail
 
-                                                cd "$REPO_DIR"
-                                                source "$VENV_PATH/bin/activate"
+                                                REPO_DIR_LOCAL="${WORKSPACE}/builder-reimage/Jenkins-job/prod-jenkins"
+                                                VENV_PATH_LOCAL="${REPO_DIR_LOCAL}/.venv"
+
+                                                cd "$REPO_DIR_LOCAL"
+                                                source "$VENV_PATH_LOCAL/bin/activate"
 
                                                 python Jenkins_builder-reimage.py \
                                                     --action wait_online \
@@ -109,10 +114,14 @@ pipeline {
                                             bash -c '
                                             set -euo pipefail
 
+                                            REPO_DIR_LOCAL="${WORKSPACE}/builder-reimage/Jenkins-job/prod-jenkins"
+                                            BUILD_DIR="${REPO_DIR_LOCAL}/jenkins-pipeline/build"
+                                            WORK_DIR_LOCAL="${WORKSPACE}/ci-work"
+
                                             TARGET_FQDN="${machine}.${DOMAIN}"
                                             echo "Processing \$TARGET_FQDN"
 
-                                            mkdir -p "${WORK_DIR}"
+                                            mkdir -p "$WORK_DIR_LOCAL"
 
                                             cp "${SSH_KEY}" /tmp/key_${machine}
                                             chmod 600 /tmp/key_${machine}
@@ -120,9 +129,9 @@ pipeline {
                                             VAULT_FILE="/home/jenkins-build/.vault_pass.txt"
                                             echo "$VAULT_PASS" > "\$VAULT_FILE"
 
-                                            cd "$WORKSPACE/builder-reimage/Jenkins-job/prod-jenkins/jenkins-pipeline/build"
+                                            cd "$BUILD_DIR"
 
-                                            bash scripts/prepare_env.sh "${machine}.${DOMAIN}" "${WORK_DIR}" true \
+                                            bash scripts/prepare_env.sh "${machine}.${DOMAIN}" "$WORK_DIR_LOCAL" true \
                                                 git@github.com:ceph/ceph-build.git \
                                                 git@github.com:ceph/ceph-cm-ansible.git \
                                                 git@github.com:ceph/ceph-sepia-secrets.git
@@ -131,7 +140,7 @@ pipeline {
 
                                             bash scripts/ansible_runner.sh \
                                                 "\$TARGET_FQDN" \
-                                                "${WORK_DIR}" \
+                                                "$WORK_DIR_LOCAL" \
                                                 "${VENV_DIR}" \
                                                 "\$DETECTED_OS" \
                                                 "\$BUILDER_TOKEN" \
