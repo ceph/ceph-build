@@ -3,9 +3,9 @@
 MAAS Reimage Automation Script (Enhanced)
 
 Supports:
-- Single machine (unchanged)
+- Single machine 
 - Multiple machines: host1,host2
-- Per-machine OS: host1:jammy,host2:focal
+- Per-machine OS: host1:jammy,host2:centos9
 - Mixed mode: host1,host2:jammy
 """
 
