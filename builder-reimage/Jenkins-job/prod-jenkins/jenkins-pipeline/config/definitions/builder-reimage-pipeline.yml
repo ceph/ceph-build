@@ -21,7 +21,7 @@
       - string:
           name: OS
           default: ""
-          description: "Applies to all unless overridden by specifying OS per host in the MACHINE parameter"
+          description: "Applies to all unless overridden by specifying OS per host in the MACHINE(S) parameter"
       - bool:
           name: SKIP_REIMAGE
           default: false
