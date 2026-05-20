@@ -15,28 +15,6 @@ pipeline {
 
     stages {
 
-        stage('Setup Python Virtual Environment') {
-            steps {
-                withCredentials([string(credentialsId: 'maas-api-key', variable: 'MAAS_API_KEY')]) {
-                    sh '''#!/bin/bash
-set -euo pipefail
-
-REPO_DIR_LOCAL="$WORKSPACE/builder-reimage/Jenkins-job/prod-jenkins"
-VENV_PATH_LOCAL="$REPO_DIR_LOCAL/.venv"
-
-cd "$REPO_DIR_LOCAL"
-
-rm -rf "$VENV_PATH_LOCAL"
-python3 -m venv "$VENV_PATH_LOCAL"
-
-source "$VENV_PATH_LOCAL/bin/activate"
-pip install --upgrade pip
-pip install -r requirements.txt
-'''
-                }
-            }
-        }
-
         stage('Parallel Execution') {
             steps {
                 script {
@@ -53,7 +31,7 @@ pip install -r requirements.txt
                         branches["Node-${machine}"] = {
                             node('teuthology') {
 
-                                // ✅ FIX: checkout repo inside each parallel workspace
+                                // ✅ Each branch gets its own repo
                                 stage("Checkout-${machine}") {
                                     checkout scm
                                 }
@@ -64,11 +42,24 @@ pip install -r requirements.txt
                                             sh """#!/bin/bash
 set -euo pipefail
 
-REPO_DIR_LOCAL="\$WORKSPACE/builder-reimage/Jenkins-job/prod-jenkins"
-VENV_PATH_LOCAL="\$REPO_DIR_LOCAL/.venv"
+REPO_DIR="\$WORKSPACE/builder-reimage/Jenkins-job/prod-jenkins"
+VENV_PATH="\$REPO_DIR/.venv"
 
-cd "\$REPO_DIR_LOCAL"
-source "\$VENV_PATH_LOCAL/bin/activate"
+cd "\$REPO_DIR"
+
+# ✅ FIX: Ensure venv exists in THIS workspace
+if [ ! -d "\$VENV_PATH" ]; then
+    echo "[INFO] Creating virtual environment"
+    python3 -m venv "\$VENV_PATH"
+    source "\$VENV_PATH/bin/activate"
+    pip install --upgrade pip
+    pip install -r requirements.txt
+else
+    echo "[INFO] Using existing virtual environment"
+    source "\$VENV_PATH/bin/activate"
+fi
+
+echo "[INFO] Starting reimage for ${machine}"
 
 python Jenkins_builder-reimage.py \
   --action reimage \
@@ -85,11 +76,23 @@ python Jenkins_builder-reimage.py \
                                             sh """#!/bin/bash
 set -euo pipefail
 
-REPO_DIR_LOCAL="\$WORKSPACE/builder-reimage/Jenkins-job/prod-jenkins"
-VENV_PATH_LOCAL="\$REPO_DIR_LOCAL/.venv"
+REPO_DIR="\$WORKSPACE/builder-reimage/Jenkins-job/prod-jenkins"
+VENV_PATH="\$REPO_DIR/.venv"
 
-cd "\$REPO_DIR_LOCAL"
-source "\$VENV_PATH_LOCAL/bin/activate"
+cd "\$REPO_DIR"
+
+# ✅ Ensure venv exists here too
+if [ ! -d "\$VENV_PATH" ]; then
+    echo "[INFO] Creating virtual environment"
+    python3 -m venv "\$VENV_PATH"
+    source "\$VENV_PATH/bin/activate"
+    pip install --upgrade pip
+    pip install -r requirements.txt
+else
+    source "\$VENV_PATH/bin/activate"
+fi
+
+echo "[INFO] Waiting for node ${machine}"
 
 python Jenkins_builder-reimage.py \
   --action wait_online \
@@ -108,31 +111,34 @@ python Jenkins_builder-reimage.py \
                                         sh """#!/bin/bash
 set -euo pipefail
 
-REPO_DIR_LOCAL="\$WORKSPACE/builder-reimage/Jenkins-job/prod-jenkins"
-BUILD_DIR="\$REPO_DIR_LOCAL/jenkins-pipeline/build"
-WORK_DIR_LOCAL="\$WORKSPACE/ci-work"
+REPO_DIR="\$WORKSPACE/builder-reimage/Jenkins-job/prod-jenkins"
+BUILD_DIR="\$REPO_DIR/jenkins-pipeline/build"
+WORK_DIR="\$WORKSPACE/ci-work"
 
 TARGET_FQDN="${machine}.${DOMAIN}"
-echo "Processing \$TARGET_FQDN"
 
-mkdir -p "\$WORK_DIR_LOCAL"
+echo "[INFO] Running Ansible for \$TARGET_FQDN"
 
+mkdir -p "\$WORK_DIR"
+
+# SSH key handling (safe per job)
 cp "${SSH_KEY}" /tmp/key_${machine}
 chmod 600 /tmp/key_${machine}
 
+# Vault file (pipeline-specific only)
 VAULT_FILE="/home/jenkins-build/.vault_pass.txt"
 echo "$VAULT_PASS" > "\$VAULT_FILE"
 
 cd "\$BUILD_DIR"
 
-bash scripts/prepare_env.sh "${machine}.${DOMAIN}" "\$WORK_DIR_LOCAL" true \
+bash scripts/prepare_env.sh "${machine}.${DOMAIN}" "\$WORK_DIR" true \
   git@github.com:ceph/ceph-build.git \
   git@github.com:ceph/ceph-cm-ansible.git \
   git@github.com:ceph/ceph-sepia-secrets.git
 
 bash scripts/ansible_runner.sh \
   "\$TARGET_FQDN" \
-  "\$WORK_DIR_LOCAL" \
+  "\$WORK_DIR" \
   "${env.VENV_DIR}" \
   "${params.OS ?: ''}" \
   "\$BUILDER_TOKEN" \
@@ -144,7 +150,6 @@ bash scripts/ansible_runner.sh \
                         }
                     }
 
-                    // ✅ FIX: correct parallel syntax
                     branches.failFast = false
                     parallel branches
                 }
