@@ -171,7 +171,7 @@ echo "$VAULT_PASS" > "\$VAULT_FILE"
 
 cd "\$BUILD_DIR"
 
-"$WORK_DIR/.venv/bin/ansible-playbook" \  
+"$WORK_DIR/.venv/bin/ansible-playbook" \
   -i inventory \
   --private-key /tmp/key_${machine} \
   --limit "\$TARGET_FQDN" \
