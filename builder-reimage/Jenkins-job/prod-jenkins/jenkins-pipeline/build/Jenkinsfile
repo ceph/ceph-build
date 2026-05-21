@@ -129,7 +129,6 @@ python Jenkins_builder-reimage.py \
                                                 "builder.yml"
                                             ]
 
-                                            // ✅ Run ONCE
                                             stage("Prepare-env-${machine}") {
                                                 sh """#!/bin/bash
 set -euo pipefail
@@ -172,7 +171,7 @@ echo "$VAULT_PASS" > "\$VAULT_FILE"
 
 cd "\$BUILD_DIR"
 
-ansible-playbook \
+"$WORK_DIR/.venv/bin/ansible-playbook" \  
   -i inventory \
   --private-key /tmp/key_${machine} \
   --limit "\$TARGET_FQDN" \
