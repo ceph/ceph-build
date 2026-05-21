@@ -16,10 +16,7 @@ ANSIBLE_DIR="${WORK_DIR}/repos/ansible"
 MAIN_DIR="${WORK_DIR}/repos/main"
 LOG_DIR="${WORK_DIR}/ansible-logs"
 
-
-##############################################
 # Ensure secrets path exists (independent of prepare_env.sh)
-##############################################
 
 SECRETS_PATH="${WORK_DIR}/repos/secret-repo/ansible/secrets"
 
@@ -29,19 +26,17 @@ export ANSIBLE_SECRETS_PATH="${ANSIBLE_SECRETS_PATH:-${SECRETS_PATH}}"
 echo "[ansible_runner] ANSIBLE_SECRETS_PATH=${ANSIBLE_SECRETS_PATH}"
 
 
-# NEW: consume paths exported by prepare_env.sh
+# consume paths exported by prepare_env.sh
 INVENTORY_PATH="${INVENTORY_PATH:-${WORK_DIR}/repos/secret-repo/ansible/inventory}"
 SECRETS_PATH="${SECRETS_PATH:-${WORK_DIR}/repos/secret-repo/ansible/secrets}"
 
-# Vault now ALWAYS comes from this file (created by Jenkinsfile)
+# Vault comes from this file (created by Jenkinsfile)
 VAULT_FILE="/home/jenkins-build/.vault_pass.txt"
 VAULT_ARG="--vault-password-file=${VAULT_FILE}"
 
 mkdir -p "${LOG_DIR}"
 
-##############################################
 # Activate virtualenv if present
-##############################################
 if [[ -f "${WORK_DIR}/${VENV_DIR}/bin/activate" ]]; then
     echo "[ansible_runner] Activating venv: ${WORK_DIR}/${VENV_DIR}"
     # shellcheck disable=SC1090
@@ -50,9 +45,7 @@ else
     echo "[ansible_runner] WARNING: venv not found at ${WORK_DIR}/${VENV_DIR}. Continuing without venv."
 fi
 
-##############################################
 # Determine SSH user based on OS
-##############################################
 if [[ "$OS_VALUE" =~ (rhel|centos|rocky|almai|9-stream|rhel10|centos70|8) ]]; then
     SSH_USER="cloud-user"
 else
@@ -63,9 +56,7 @@ echo "[ansible_runner] SSH user selected = ${SSH_USER}"
 echo "[ansible_runner] Using inventory = ${INVENTORY_PATH}"
 echo "[ansible_runner] Using secrets = ${SECRETS_PATH}"
 
-##############################################
 # Admin user JSON builder
-##############################################
 ADMIN_USERS=(
   "akraitma"
   "dgalloway"
@@ -84,9 +75,7 @@ build_admin_users_json() {
     echo "${json}"
 }
 
-##############################################
 # Playbook runner with retries (3 attempts)
-##############################################
 run_playbook() {
     local pb_name="$1"
     local cmd="$2"
