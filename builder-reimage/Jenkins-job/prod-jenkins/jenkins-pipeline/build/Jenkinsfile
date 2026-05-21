@@ -178,7 +178,7 @@ cd "\$BUILD_DIR"
   --extra-vars "builder_token=$BUILDER_TOKEN os=${params.OS ?: ''}" \
   -e "ansible_user=ubuntu" \
   --vault-password-file "\$VAULT_FILE" \
-  playbooks/${pb}
+  "\$WORK_DIR/repos/ansible/playbooks/${pb}"
 """
                                                 }
                                             }
