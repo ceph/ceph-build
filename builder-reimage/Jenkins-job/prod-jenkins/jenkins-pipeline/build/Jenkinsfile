@@ -171,6 +171,11 @@ echo "$VAULT_PASS" > "\$VAULT_FILE"
 
 cd "\$BUILD_DIR"
 
+
+echo "==== DEBUG: repo structure ===="
+ls -R "$WORK_DIR/repos" || true
+echo "=============================="
+
 "\$WORK_DIR/.venv/bin/ansible-playbook" \
   -i inventory \
   --private-key /tmp/key_${machine} \
