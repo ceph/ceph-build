@@ -5,7 +5,7 @@ source "$WORKSPACE/scripts/setup_uv.sh"
 
 export PATH="$HOME/.local/bin:$PATH"
 
-PULP_SERVER_URL="https://pulp.apps.pok.os.sepia.ceph.com"
+PULP_SERVER_URL="https://pulp.front.sepia.ceph.com"
 
 uv tool install pulp-cli --with pulp-cli-deb
 
