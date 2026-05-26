@@ -201,7 +201,7 @@ pipeline {
             values 'default', 'debug'
           }
         }
-        // debug flavor is currently only supported on centos9 and rocky10, x86_64
+        // debug flavor is currently only supported on centos9, rocky10 and noble, x86_64
         excludes {
           exclude {
             axis {
@@ -210,7 +210,7 @@ pipeline {
             }
             axis {
               name 'DIST'
-              notValues 'centos9', 'rocky10'
+              notValues 'centos9', 'rocky10', 'noble'
             }
           }
           exclude {
@@ -469,6 +469,13 @@ pipeline {
                   def sccache_flag = "-DWITH_SCCACHE=ON"
                   if ( env.SCCACHE == "true" && ! ceph_extra_cmake_args.contains(sccache_flag) ) {
                     ceph_extra_cmake_args += " ${sccache_flag}"
+                  }
+                  // Build the ceph-osd-crimson package on noble for main/feature
+                  // branches only (release lines reef/squid/tentacle excluded),
+                  // matching the WITH_CRIMSON gate used for the builder image.
+                  def withCrimson = !(env.BRANCH in ['tentacle', 'squid', 'reef'])
+                  if ( withCrimson && env.DIST == "noble" ) {
+                    deb_build_profiles = deb_build_profiles ? "${deb_build_profiles} pkg.ceph.crimson" : "pkg.ceph.crimson"
                   }
                   if ( deb_build_profiles ) {
                     sh """#!/bin/bash
