@@ -46,7 +46,6 @@ pipeline {
                                     withCredentials([
                                         sshUserPrivateKey(credentialsId: 'ansible-ssh-key', keyFileVariable: 'SSH_KEY')
                                     ]) {
-
                                         sh """#!/bin/bash
                                             set -euo pipefail
 
@@ -123,13 +122,13 @@ pipeline {
                                         string(credentialsId: 'ansible-vault-pass', variable: 'VAULT_PASS'),
                                         sshUserPrivateKey(credentialsId: 'ansible-ssh-key', keyFileVariable: 'SSH_KEY')
                                     ]) {
+
                                         sh """#!/bin/bash
                                             set -euo pipefail
 
                                             REPO_DIR="\$WORKSPACE/builder-reimage/Jenkins-job/prod-jenkins"
                                             BUILD_DIR="\$REPO_DIR/jenkins-pipeline/build"
                                             WORK_DIR="${WORK_DIR}"
-
                                             TARGET_FQDN="${TARGET_FQDN}"
 
                                             echo "[INFO] Running Ansible for \$TARGET_FQDN"
@@ -157,11 +156,9 @@ pipeline {
                                               "${env.VENV_DIR}" \
                                               "${env.DETECTED_OS}" \
                                               "\$BUILDER_TOKEN"
-                                            archiveArtifacts artifacts: "${WORK_DIR}/ansible-logs/*.log", allowEmptyArchive: true  
                                         """
-                                        archiveArtifacts artifacts: "${WORK_DIR}/ansible-logs/*.log", 
-                                allowEmptyArchive: true    
 
+                                        archiveArtifacts artifacts: "${WORK_DIR}/ansible-logs/*.log", allowEmptyArchive: true
                                     }
                                 }
                             }
