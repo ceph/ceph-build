@@ -21,7 +21,6 @@ pipeline {
         stage('Parallel Execution') {
             steps {
                 script {
-
                     if (!params.MACHINE?.trim()) {
                         error("MACHINE parameter is required")
                     }
@@ -48,35 +47,36 @@ pipeline {
                                         sshUserPrivateKey(credentialsId: 'ansible-ssh-key', keyFileVariable: 'SSH_KEY')
                                     ]) {
 
-                                        sh """
-                                        mkdir -p "${WORK_DIR}"
+                                        sh """#!/bin/bash
+                                            set -euo pipefail
 
-                                        cp "${SSH_KEY}" /tmp/jenkins_git_key
-                                        chmod 600 /tmp/jenkins_git_key
+                                            mkdir -p "${WORK_DIR}"
 
-                                        bash builder-reimage/Jenkins-job/prod-jenkins/jenkins-pipeline/build/scripts/prepare_env.sh \
-                                            "${TARGET_FQDN}" \
-                                            "${WORK_DIR}" \
-                                            true \
-                                            git@github.com:ceph/ceph-build.git \
-                                            git@github.com:ceph/ceph-cm-ansible.git \
-                                            git@github.com:ceph/ceph-sepia-secrets.git
+                                            cp "${SSH_KEY}" /tmp/jenkins_git_key
+                                            chmod 600 /tmp/jenkins_git_key
+
+                                            bash builder-reimage/Jenkins-job/prod-jenkins/jenkins-pipeline/build/scripts/prepare_env.sh \
+                                                "${TARGET_FQDN}" \
+                                                "${WORK_DIR}" \
+                                                true \
+                                                git@github.com:ceph/ceph-build.git \
+                                                git@github.com:ceph/ceph-cm-ansible.git \
+                                                git@github.com:ceph/ceph-sepia-secrets.git
                                         """
                                     }
                                 }
 
                                 stage("Detect OS-${machine}") {
-
                                     def DETECTED_OS = sh(
-                                        script: """
-                                        python3 builder-reimage/Jenkins-job/prod-jenkins/jenkins-pipeline/build/scripts/get_node_os.py \
-                                            ${INVENTORY_FILE} \
-                                            ${machine}
+                                        script: """#!/bin/bash
+                                            python3 builder-reimage/Jenkins-job/prod-jenkins/jenkins-pipeline/build/scripts/get_node_os.py \
+                                                "${INVENTORY_FILE}" \
+                                                "${machine}"
                                         """,
                                         returnStdout: true
                                     ).trim()
 
-                                    echo "Detected OS output for ${machine}: ${DETECTED_OS}"
+                                    echo "Detected OS for ${machine} is ${DETECTED_OS}"
 
                                     if (!DETECTED_OS) {
                                         error("OS detection failed for ${machine}")
@@ -103,7 +103,6 @@ pipeline {
                                                     pip install --upgrade pip
                                                     pip install -r requirements.txt
                                                 else
-                                                    echo "Using existing virtual environment"
                                                     source "\$VENV_PATH/bin/activate"
                                                 fi
 
@@ -115,8 +114,6 @@ pipeline {
                                                   --os ${env.DETECTED_OS}
                                             """
                                         }
-                                    } else {
-                                        echo "Reimage skipped for ${machine}"
                                     }
                                 }
 
@@ -126,24 +123,38 @@ pipeline {
                                         string(credentialsId: 'ansible-vault-pass', variable: 'VAULT_PASS'),
                                         sshUserPrivateKey(credentialsId: 'ansible-ssh-key', keyFileVariable: 'SSH_KEY')
                                     ]) {
-                                
                                         sh """#!/bin/bash
                                             set -euo pipefail
-                                
-                                            mkdir -p "${WORK_DIR}"
-                                
+
+                                            REPO_DIR="\$WORKSPACE/builder-reimage/Jenkins-job/prod-jenkins"
+                                            BUILD_DIR="\$REPO_DIR/jenkins-pipeline/build"
+                                            WORK_DIR="${WORK_DIR}"
+
+                                            TARGET_FQDN="${TARGET_FQDN}"
+
+                                            echo "[INFO] Running Ansible for \$TARGET_FQDN"
+
+                                            mkdir -p "\$WORK_DIR"
+
                                             cp "${SSH_KEY}" /tmp/key_${machine}
                                             chmod 600 /tmp/key_${machine}
-                                
+
                                             VAULT_FILE="/home/jenkins-build/.vault_pass.txt"
-                                            echo "$VAULT_PASS" > "$VAULT_FILE"
-                                
-                                            bash builder-reimage/Jenkins-job/prod-jenkins/jenkins-pipeline/build/scripts/ansible_runner.sh \
-                                                "${TARGET_FQDN}" \
-                                                "${WORK_DIR}" \
-                                                "${env.VENV_DIR}" \
-                                                "${env.DETECTED_OS}" \
-                                                "$BUILDER_TOKEN"
+                                            echo "\$VAULT_PASS" > "\$VAULT_FILE"
+
+                                            cd "\$BUILD_DIR"
+
+                                            bash scripts/prepare_env.sh "\$TARGET_FQDN" "\$WORK_DIR" true \
+                                              git@github.com:ceph/ceph-build.git \
+                                              git@github.com:ceph/ceph-cm-ansible.git \
+                                              git@github.com:ceph/ceph-sepia-secrets.git
+
+                                            bash scripts/ansible_runner.sh \
+                                              "\$TARGET_FQDN" \
+                                              "\$WORK_DIR" \
+                                              "${env.VENV_DIR}" \
+                                              "${env.DETECTED_OS}" \
+                                              "\$BUILDER_TOKEN"
                                         """
                                     }
                                 }
