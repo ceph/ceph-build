@@ -158,7 +158,7 @@ pipeline {
                                               "\$BUILDER_TOKEN"
                                         """
 
-                                        archiveArtifacts artifacts: "${WORK_DIR}/ansible-logs/*.log", allowEmptyArchive: true
+                                        archiveArtifacts artifacts: "ci-work-${machine}/ansible-logs/*.log", allowEmptyArchive: true
                                     }
                                 }
                             }
