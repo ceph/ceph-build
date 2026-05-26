@@ -96,7 +96,7 @@ run_playbook() {
     until [[ $attempts -ge $max_attempts ]]; do
         attempts=$((attempts + 1))
 
-        stdbuf -oL -eL eval "${cmd}" 2>&1 | tee "${logfile}"
+        eval "${cmd}" 2>&1 | tee "${logfile}"
         rc=${PIPESTATUS[0]}
 
         if [[ $rc -eq 0 ]]; then
