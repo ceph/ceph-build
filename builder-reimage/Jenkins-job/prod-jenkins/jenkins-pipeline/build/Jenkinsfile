@@ -139,6 +139,8 @@ pipeline {
                                             cp "${SSH_KEY}" /tmp/jenkins_git_key
                                             chmod 600 /tmp/jenkins_git_key
 
+                                            export GIT_SSH_COMMAND="ssh -i /tmp/jenkins_git_key -o StrictHostKeyChecking=no"
+
                                             VAULT_FILE="/home/jenkins-build/.vault_pass.txt"
                                             echo "\$VAULT_PASS" > "\$VAULT_FILE"
 
