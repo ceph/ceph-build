@@ -157,7 +157,7 @@ run_playbook() {
 (
   cd "${ANSIBLE_DIR}"
 
-  CMD="ANSIBLE_HOST_KEY_CHECKING=False ANSIBLE_STDOUT_CALLBACK=json ansible-playbook -vvv tools/jenkins-builder-disk.yml \
+  CMD="ANSIBLE_HOST_KEY_CHECKING=False ANSIBLE_STDOUT_CALLBACK=json ansible-playbook -v tools/jenkins-builder-disk.yml \
         -i '${INVENTORY_PATH}' \
         --limit='${TARGET_FQDN}'"
 
@@ -170,7 +170,7 @@ run_playbook() {
 (
   cd "${MAIN_DIR}/ansible"
 
-  CMD="ANSIBLE_HOST_KEY_CHECKING=False ANSIBLE_STDOUT_CALLBACK=json ansible-playbook -vvv \
+  CMD="ANSIBLE_HOST_KEY_CHECKING=False ANSIBLE_STDOUT_CALLBACK=json ansible-playbook -v \
         -i '${INVENTORY_PATH}' \
         ${VAULT_ARG} \
         -M ./library/ \
