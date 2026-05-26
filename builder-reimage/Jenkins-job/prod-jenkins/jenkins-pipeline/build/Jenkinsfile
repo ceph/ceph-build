@@ -41,9 +41,9 @@ pipeline {
 
                                 def WORK_DIR = "${env.WORKSPACE}/ci-work-${machine}"
                                 def TARGET_FQDN = "${machine}.${env.DOMAIN}"
+                                def INVENTORY_FILE = "${WORK_DIR}/repos/secret-repo/ansible/inventory/group_vars/jenkins_builders.yml"
 
                                 stage("Prepare-${machine}") {
-
                                     withCredentials([
                                         sshUserPrivateKey(credentialsId: 'ansible-ssh-key', keyFileVariable: 'SSH_KEY')
                                     ]) {
@@ -65,20 +65,37 @@ pipeline {
                                     }
                                 }
 
-                                def INVENTORY_FILE = "${WORK_DIR}/repos/secret-repo/ansible/inventory/group_vars/jenkins_builders.yml"
+                                stage("Detect OS-${machine}") {
 
+                                    def DETECTED_OS = sh(
+                                        script: """
+                                        python3 builder-reimage/Jenkins-job/prod-jenkins/jenkins-pipeline/build/scripts/get_node_os.py \
+                                            ${INVENTORY_FILE} \
+                                            ${machine}
+                                        """,
+                                        returnStdout: true
+                                    ).trim()
+
+                                    echo "Detected OS output for ${machine}: ${DETECTED_OS}"
+
+                                    if (!DETECTED_OS) {
+                                        error("OS detection failed for ${machine}")
+                                    }
+
+                                    env.DETECTED_OS = DETECTED_OS
+                                }
 
                                 stage("Reimage-${machine}") {
                                     if (!params.SKIP_REIMAGE) {
                                         withCredentials([string(credentialsId: 'maas-api-key', variable: 'MAAS_API_KEY')]) {
                                             sh """#!/bin/bash
                                                 set -euo pipefail
-                                
+
                                                 REPO_DIR="\$WORKSPACE/builder-reimage/Jenkins-job/prod-jenkins"
                                                 VENV_PATH="\$REPO_DIR/.venv"
-                                
+
                                                 cd "\$REPO_DIR"
-                                
+
                                                 if [ ! -d "\$VENV_PATH" ]; then
                                                     echo "Creating virtual environment"
                                                     python3 -m venv "\$VENV_PATH"
@@ -89,9 +106,9 @@ pipeline {
                                                     echo "Using existing virtual environment"
                                                     source "\$VENV_PATH/bin/activate"
                                                 fi
-                                
-                                                echo "Starting reimage for ${machine}"
-                                
+
+                                                echo "Starting reimage for ${machine} with OS ${env.DETECTED_OS}"
+
                                                 python Jenkins_builder-reimage.py \
                                                   --action reimage \
                                                   --machine ${machine} \
