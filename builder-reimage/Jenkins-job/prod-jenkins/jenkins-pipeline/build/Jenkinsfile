@@ -136,8 +136,8 @@ pipeline {
 
                                             mkdir -p "\$WORK_DIR"
 
-                                            cp "${SSH_KEY}" /tmp/key_${machine}
-                                            chmod 600 /tmp/key_${machine}
+                                            cp "${SSH_KEY}" /tmp/jenkins_git_key
+                                            chmod 600 /tmp/jenkins_git_key
 
                                             VAULT_FILE="/home/jenkins-build/.vault_pass.txt"
                                             echo "\$VAULT_PASS" > "\$VAULT_FILE"
