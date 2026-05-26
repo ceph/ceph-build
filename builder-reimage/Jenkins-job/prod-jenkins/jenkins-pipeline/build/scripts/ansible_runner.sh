@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+export ANSIBLE_STDOUT_CALLBACK=json
+export ANSIBLE_RETRY_FILES_ENABLED=False
+
 # ansible_runner.sh
 #
 # Usage:
@@ -15,6 +18,10 @@ BUILDER_TOKEN="$5"
 ANSIBLE_DIR="${WORK_DIR}/repos/ansible"
 MAIN_DIR="${WORK_DIR}/repos/main"
 LOG_DIR="${WORK_DIR}/ansible-logs"
+
+# failure tracking
+FAILED_PLAYBOOKS=()
+FAILED_LOGS=()
 
 # Ensure secrets path exists (independent of prepare_env.sh)
 
@@ -89,12 +96,12 @@ run_playbook() {
     until [[ $attempts -ge $max_attempts ]]; do
         attempts=$((attempts + 1))
 
-        eval "${cmd}" 2>&1 | tee "${logfile}"
+        eval "${cmd}" 2>&1 | tee "${logfile}" > "${logfile}.json"
         rc=${PIPESTATUS[0]}
 
         if [[ $rc -eq 0 ]]; then
             echo "[ansible_runner] ${pb_name} succeeded on attempt ${attempts}"
-            return
+            return 0
         fi
 
         echo "[ansible_runner] ${pb_name} failed (rc=${rc}), attempt ${attempts}/${max_attempts}"
@@ -102,8 +109,13 @@ run_playbook() {
         if [[ $attempts -lt $max_attempts ]]; then
             sleep $((attempts * 10))
         else
-            echo "[ansible_runner] Max attempts reached for ${pb_name}; failing"
-            exit "${rc}"
+            echo "[ansible_runner] Max attempts reached for ${pb_name}"
+
+            # NEW: Track failure instead of exiting
+            FAILED_PLAYBOOKS+=("${pb_name}")
+            FAILED_LOGS+=("${logfile}")
+
+            return 1
         fi
     done
 }
@@ -114,12 +126,12 @@ run_playbook() {
 (
   cd "${ANSIBLE_DIR}"
 
-  CMD="ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook ansible_managed.yml \
+  CMD="ANSIBLE_HOST_KEY_CHECKING=False ANSIBLE_STDOUT_CALLBACK=json ansible-playbook ansible_managed.yml \
         -i '${INVENTORY_PATH}' \
         --limit='${TARGET_FQDN}' \
         -e ansible_ssh_user='${SSH_USER}'"
 
-  run_playbook "play1-ansible_managed" "${CMD}"
+  run_playbook "play1-ansible_managed" "${CMD}" || true
 )
 
 ##############################################
@@ -130,13 +142,13 @@ run_playbook() {
 
   ADMIN_USERS_JSON="$(build_admin_users_json)"
 
-  CMD="ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook users.yml -v \
+  CMD="ANSIBLE_HOST_KEY_CHECKING=False ANSIBLE_STDOUT_CALLBACK=json ansible-playbook users.yml -v \
         -i '${INVENTORY_PATH}' \
         --limit='${TARGET_FQDN}' \
         --tags='user,pubkeys' \
         --extra-vars='${ADMIN_USERS_JSON}'"
 
-  run_playbook "play2-users" "${CMD}"
+  run_playbook "play2-users" "${CMD}" || true
 )
 
 ##############################################
@@ -145,11 +157,11 @@ run_playbook() {
 (
   cd "${ANSIBLE_DIR}"
 
-  CMD="ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -vvv tools/jenkins-builder-disk.yml \
+  CMD="ANSIBLE_HOST_KEY_CHECKING=False ANSIBLE_STDOUT_CALLBACK=json ansible-playbook -vvv tools/jenkins-builder-disk.yml \
         -i '${INVENTORY_PATH}' \
         --limit='${TARGET_FQDN}'"
 
-  run_playbook "play3-tools-disk" "${CMD}"
+  run_playbook "play3-tools-disk" "${CMD}" || true
 )
 
 ##############################################
@@ -158,7 +170,7 @@ run_playbook() {
 (
   cd "${MAIN_DIR}/ansible"
 
-  CMD="ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -vvv \
+  CMD="ANSIBLE_HOST_KEY_CHECKING=False ANSIBLE_STDOUT_CALLBACK=json ansible-playbook -vvv \
         -i '${INVENTORY_PATH}' \
         ${VAULT_ARG} \
         -M ./library/ \
@@ -167,7 +179,32 @@ run_playbook() {
         -e permanent=true \
         --limit='${TARGET_FQDN}'"
 
-  run_playbook "play4-main-builder" "${CMD}"
+  run_playbook "play4-main-builder" "${CMD}" || true
 )
 
-echo "[ansible_runner] All playbooks completed successfully for ${TARGET_FQDN}"
+echo "========================================"
+echo "[ansible_runner] FINAL EXECUTION SUMMARY"
+echo "========================================"
+
+if [[ ${#FAILED_PLAYBOOKS[@]} -eq 0 ]]; then
+    echo "All playbooks completed successfully for ${TARGET_FQDN}"
+    exit 0
+fi
+
+echo "Failed playbooks detected:"
+
+for i in "${!FAILED_PLAYBOOKS[@]}"; do
+    echo "----------------------------------------"
+    echo "Playbook : ${FAILED_PLAYBOOKS[$i]}"
+    echo "Log file : ${FAILED_LOGS[$i]}"
+    echo "Extracting failure details..."
+
+    # Extract Ansible failures
+    grep -E "FAILED!|fatal:" "${FAILED_LOGS[$i]}" || echo "No detailed failure lines found"
+done
+
+echo "========================================"
+echo "Build FAILED due to above errors"
+echo "========================================"
+
+exit 1
