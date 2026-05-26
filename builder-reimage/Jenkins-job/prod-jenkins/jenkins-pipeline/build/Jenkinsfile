@@ -175,7 +175,7 @@ pipeline {
         always {
             sh 'rm -f /home/jenkins-build/.vault_pass.txt || true'
             echo 'Build finished'
-            archiveArtifacts artifacts: '**/ansible-logs/*.log', fingerprint: true
+            archiveArtifacts artifacts: 'ci-work-*/ansible-logs/*.log', fingerprint: true, allowEmptyArchive: true
         }
 
         failure {

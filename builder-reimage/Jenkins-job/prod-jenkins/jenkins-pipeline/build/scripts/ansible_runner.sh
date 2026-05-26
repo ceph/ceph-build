@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-export ANSIBLE_STDOUT_CALLBACK=json
+export ANSIBLE_STDOUT_CALLBACK=yaml
 export ANSIBLE_RETRY_FILES_ENABLED=False
 
 # ansible_runner.sh
@@ -96,7 +96,7 @@ run_playbook() {
     until [[ $attempts -ge $max_attempts ]]; do
         attempts=$((attempts + 1))
 
-        eval "${cmd}" 2>&1 | tee "${logfile}" > "${logfile}.json"
+        stdbuf -oL -eL eval "${cmd}" 2>&1 | tee "${logfile}"
         rc=${PIPESTATUS[0]}
 
         if [[ $rc -eq 0 ]]; then
