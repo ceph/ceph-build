@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-export ANSIBLE_STDOUT_CALLBACK=yaml
+export ANSIBLE_STDOUT_CALLBACK=default
 export ANSIBLE_RETRY_FILES_ENABLED=False
 
 # ansible_runner.sh
