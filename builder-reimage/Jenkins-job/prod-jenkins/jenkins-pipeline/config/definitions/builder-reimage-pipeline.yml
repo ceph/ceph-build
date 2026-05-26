@@ -42,5 +42,5 @@
             url: https://github.com/ceph/ceph-build.git
             branches:
               - builder-reimage-improved
-      script-path: builder-reimaggggge/Jenkins-job/prod-jenkins/jenkins-pipeline/build/Jenkinsfile
+      script-path: builder-reimage/Jenkins-job/prod-jenkins/jenkins-pipeline/build/Jenkinsfile
       lightweight-checkout: true
