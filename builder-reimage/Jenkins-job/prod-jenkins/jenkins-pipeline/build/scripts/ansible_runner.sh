@@ -169,6 +169,12 @@ run_playbook() {
 ##############################################
 # PLAYBOOK 4 — builder.yml (USES VAULT)
 ##############################################
+EXTRA_VARS=""
+
+if [ "${LIBVIRT}" = "true" ]; then
+    echo "[ansible_runner] libvirt detected for ${TARGET_FQDN}"
+    EXTRA_VARS="-e libvirt=True"
+fi
 (
   cd "${MAIN_DIR}/ansible"
 
