@@ -3,14 +3,10 @@ pipeline {
 
     parameters {
         string(name: 'MACHINE', description: 'Comma separated nodes like node1,node2')
-        string(name: 'WORK_DIR', defaultValue: '/home/jenkins-build/workspace')
+        string(name: 'WORK_DIR', defaultValue: '')
         string(name: 'VENV_DIR', defaultValue: '.venv')
         string(name: 'BUILDER_TOKEN')
         booleanParam(name: 'SKIP_REIMAGE', defaultValue: false)
-    }
-
-    environment {
-        BASE_WORK_DIR = "${WORK_DIR}"
     }
 
     stages {
@@ -23,6 +19,11 @@ pipeline {
                         error("MACHINE parameter is required")
                     }
 
+                    // FIX: Use Jenkins workspace if WORK_DIR not provided
+                    def BASE_WORK_DIR = params.WORK_DIR?.trim() ? params.WORK_DIR : env.WORKSPACE
+
+                    echo "Base work directory is ${BASE_WORK_DIR}"
+
                     def nodes = params.MACHINE.split(",")
                     def parallelStages = [:]
 
@@ -32,13 +33,15 @@ pipeline {
 
                         parallelStages[nodeName] = {
 
+                            // IMPORTANT: per-node directory
                             def NODE_WORK_DIR = "${BASE_WORK_DIR}/${nodeName}"
 
                             stage("Node ${nodeName}") {
 
                                 echo "Processing ${nodeName}"
+                                echo "Node work dir is ${NODE_WORK_DIR}"
 
-                                // Prepare environment and clone repositories
+                                // Prepare environment
                                 sh """
                                 mkdir -p ${NODE_WORK_DIR}
 
@@ -50,7 +53,7 @@ pipeline {
 
                                 def INVENTORY_FILE = "${NODE_WORK_DIR}/repos/secret-repo/ansible/inventory/group_vars/jenkins_builders.yml"
 
-                                // Update Jenkins labels from inventory
+                                // Sync Jenkins labels
                                 withCredentials([usernamePassword(
                                     credentialsId: 'jenkins-api-creds',
                                     usernameVariable: 'JENKINS_USER',
@@ -67,7 +70,7 @@ pipeline {
                                     """
                                 }
 
-                                // Detect OS from installed os label
+                                // Detect OS from labels
                                 def DETECTED_OS = sh(
                                     script: """
                                     python3 scripts/get_node_os.py \
@@ -79,7 +82,7 @@ pipeline {
 
                                 echo "Detected OS for ${nodeName} is ${DETECTED_OS}"
 
-                                // Reimage using MaaS unless skipped
+                                // Reimage
                                 if (!params.SKIP_REIMAGE) {
                                     sh """
                                     python3 scripts/maas_deploy.py \
@@ -90,7 +93,7 @@ pipeline {
                                     echo "Reimage skipped for ${nodeName}"
                                 }
 
-                                // Run Ansible configuration
+                                // Run Ansible
                                 sh """
                                 builder-reimage/Jenkins-job/prod-jenkins/jenkins-pipeline/build/scripts/ansible_runner.sh \
                                     ${nodeName} \
