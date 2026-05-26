@@ -14,6 +14,7 @@ WORK_DIR="$2"
 VENV_DIR="$3"
 OS_VALUE="${4,,}"
 BUILDER_TOKEN="$5"
+LIBVIRT="${6:-false}"
 
 ANSIBLE_DIR="${WORK_DIR}/repos/ansible"
 MAIN_DIR="${WORK_DIR}/repos/main"
@@ -22,6 +23,7 @@ LOG_DIR="${WORK_DIR}/ansible-logs"
 # failure tracking
 FAILED_PLAYBOOKS=()
 FAILED_LOGS=()
+
 
 # Ensure secrets path exists (independent of prepare_env.sh)
 
@@ -177,6 +179,7 @@ run_playbook() {
         examples/builder.yml \
         -e '{\"token\":\"${BUILDER_TOKEN}\", \"jenkins_credentials_uuid\":\"jenkins-build\", \"api_uri\":\"https://jenkins.ceph.com\"}' \
         -e permanent=true \
+        ${EXTRA_VARS} \
         --limit='${TARGET_FQDN}'"
 
   run_playbook "play4-main-builder" "${CMD}" || true
