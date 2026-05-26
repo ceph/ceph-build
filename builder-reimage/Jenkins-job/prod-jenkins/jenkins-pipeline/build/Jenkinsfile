@@ -1,26 +1,30 @@
 pipeline {
     agent { label 'teuthology' }
 
+    environment {
+        VENV_DIR = ".venv"
+        DOMAIN   = "front.sepia.ceph.com"
+    }
+
     parameters {
-        string(name: 'MACHINE', description: 'Comma separated nodes like node1,node2')
-        string(name: 'WORK_DIR', defaultValue: '')
-        string(name: 'VENV_DIR', defaultValue: '.venv')
-        string(name: 'BUILDER_TOKEN')
         booleanParam(name: 'SKIP_REIMAGE', defaultValue: false)
+        choice(name: 'ACTION', choices: ['reimage','reimage-all','wait_online'])
+        string(
+            name: 'MACHINE',
+            defaultValue: '',
+            description: 'node1 or node1,node2'
+        )
     }
 
     stages {
 
-        stage('Parallel Builder Execution') {
+        stage('Parallel Execution') {
             steps {
                 script {
 
                     if (!params.MACHINE?.trim()) {
                         error("MACHINE parameter is required")
                     }
-
-                    def BASE_WORK_DIR = params.WORK_DIR?.trim() ? params.WORK_DIR : env.WORKSPACE
-                    echo "Base work directory is ${BASE_WORK_DIR}"
 
                     def machines = params.MACHINE.split(',').collect { it.trim() }
                     def branches = [:]
@@ -35,23 +39,33 @@ pipeline {
                                     checkout scm
                                 }
 
-                                def NODE_WORK_DIR = "${BASE_WORK_DIR}/${machine}"
+                                def WORK_DIR = "${env.WORKSPACE}/ci-work-${machine}"
+                                def TARGET_FQDN = "${machine}.${env.DOMAIN}"
 
                                 stage("Prepare-${machine}") {
-                                    echo "Processing ${machine}"
-                                    echo "Node work dir is ${NODE_WORK_DIR}"
 
-                                    sh """
-                                    mkdir -p ${NODE_WORK_DIR}
+                                    withCredentials([
+                                        sshUserPrivateKey(credentialsId: 'ansible-ssh-key', keyFileVariable: 'SSH_KEY')
+                                    ]) {
 
-                                    bash builder-reimage/Jenkins-job/prod-jenkins/jenkins-pipeline/build/scripts/prepare_env.sh \
-                                        ${machine} \
-                                        ${NODE_WORK_DIR} \
-                                        false
-                                    """
+                                        sh """
+                                        mkdir -p "${WORK_DIR}"
+
+                                        cp "${SSH_KEY}" /tmp/jenkins_git_key
+                                        chmod 600 /tmp/jenkins_git_key
+
+                                        bash builder-reimage/Jenkins-job/prod-jenkins/jenkins-pipeline/build/scripts/prepare_env.sh \
+                                            "${TARGET_FQDN}" \
+                                            "${WORK_DIR}" \
+                                            true \
+                                            git@github.com:ceph/ceph-build.git \
+                                            git@github.com:ceph/ceph-cm-ansible.git \
+                                            git@github.com:ceph/ceph-sepia-secrets.git
+                                        """
+                                    }
                                 }
 
-                                def INVENTORY_FILE = "${NODE_WORK_DIR}/repos/secret-repo/ansible/inventory/group_vars/jenkins_builders.yml"
+                                def INVENTORY_FILE = "${WORK_DIR}/repos/secret-repo/ansible/inventory/group_vars/jenkins_builders.yml"
 
                                 stage("Detect OS-${machine}") {
                                     def DETECTED_OS = sh(
@@ -69,11 +83,16 @@ pipeline {
 
                                 stage("Reimage-${machine}") {
                                     if (!params.SKIP_REIMAGE) {
-                                        sh """
-                                        python3 scripts/maas_deploy.py \
-                                            --node ${machine} \
-                                            --os ${env.DETECTED_OS}
-                                        """
+                                        withCredentials([
+                                            string(credentialsId: 'maas-api-key', variable: 'MAAS_API_KEY')
+                                        ]) {
+
+                                            sh """
+                                            python3 scripts/maas_deploy.py \
+                                                --node ${machine} \
+                                                --os ${env.DETECTED_OS}
+                                            """
+                                        }
                                     } else {
                                         echo "Reimage skipped for ${machine}"
                                     }
@@ -87,9 +106,7 @@ pipeline {
                                     ]) {
 
                                         sh """
-                                        TARGET_FQDN="${machine}"
-
-                                        mkdir -p ${NODE_WORK_DIR}
+                                        mkdir -p "${WORK_DIR}"
 
                                         cp "${SSH_KEY}" /tmp/key_${machine}
                                         chmod 600 /tmp/key_${machine}
@@ -98,9 +115,9 @@ pipeline {
                                         echo "$VAULT_PASS" > "$VAULT_FILE"
 
                                         bash builder-reimage/Jenkins-job/prod-jenkins/jenkins-pipeline/build/scripts/ansible_runner.sh \
-                                            "$TARGET_FQDN" \
-                                            "${NODE_WORK_DIR}" \
-                                            "${VENV_DIR}" \
+                                            "${TARGET_FQDN}" \
+                                            "${WORK_DIR}" \
+                                            "${env.VENV_DIR}" \
                                             "${env.DETECTED_OS}" \
                                             "$BUILDER_TOKEN"
                                         """
