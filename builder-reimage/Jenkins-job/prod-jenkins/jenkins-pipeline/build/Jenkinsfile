@@ -157,7 +157,11 @@ pipeline {
                                               "${env.VENV_DIR}" \
                                               "${env.DETECTED_OS}" \
                                               "\$BUILDER_TOKEN"
+                                            archiveArtifacts artifacts: "${WORK_DIR}/ansible-logs/*.log", allowEmptyArchive: true  
                                         """
+                                        archiveArtifacts artifacts: "${WORK_DIR}/ansible-logs/*.log", 
+                                allowEmptyArchive: true    
+
                                     }
                                 }
                             }
@@ -175,7 +179,6 @@ pipeline {
         always {
             sh 'rm -f /home/jenkins-build/.vault_pass.txt || true'
             echo 'Build finished'
-            archiveArtifacts artifacts: 'ci-work-*/ansible-logs/*.log', fingerprint: true, allowEmptyArchive: true
         }
 
         failure {
