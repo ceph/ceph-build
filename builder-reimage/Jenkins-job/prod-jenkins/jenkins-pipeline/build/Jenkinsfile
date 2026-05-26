@@ -67,30 +67,35 @@ pipeline {
 
                                 def INVENTORY_FILE = "${WORK_DIR}/repos/secret-repo/ansible/inventory/group_vars/jenkins_builders.yml"
 
-                                stage("Detect OS-${machine}") {
-                                    def DETECTED_OS = sh(
-                                        script: """
-                                        python3 scripts/get_node_os.py \
-                                            ${INVENTORY_FILE} \
-                                            ${machine}
-                                        """,
-                                        returnStdout: true
-                                    ).trim()
-
-                                    env.DETECTED_OS = DETECTED_OS
-                                    echo "Detected OS for ${machine} is ${DETECTED_OS}"
-                                }
 
                                 stage("Reimage-${machine}") {
                                     if (!params.SKIP_REIMAGE) {
-                                        withCredentials([
-                                            string(credentialsId: 'maas-api-key', variable: 'MAAS_API_KEY')
-                                        ]) {
-
-                                            sh """
-                                            python3 scripts/maas_deploy.py \
-                                                --node ${machine} \
-                                                --os ${env.DETECTED_OS}
+                                        withCredentials([string(credentialsId: 'maas-api-key', variable: 'MAAS_API_KEY')]) {
+                                            sh """#!/bin/bash
+                                                set -euo pipefail
+                                
+                                                REPO_DIR="\$WORKSPACE/builder-reimage/Jenkins-job/prod-jenkins"
+                                                VENV_PATH="\$REPO_DIR/.venv"
+                                
+                                                cd "\$REPO_DIR"
+                                
+                                                if [ ! -d "\$VENV_PATH" ]; then
+                                                    echo "Creating virtual environment"
+                                                    python3 -m venv "\$VENV_PATH"
+                                                    source "\$VENV_PATH/bin/activate"
+                                                    pip install --upgrade pip
+                                                    pip install -r requirements.txt
+                                                else
+                                                    echo "Using existing virtual environment"
+                                                    source "\$VENV_PATH/bin/activate"
+                                                fi
+                                
+                                                echo "Starting reimage for ${machine}"
+                                
+                                                python Jenkins_builder-reimage.py \
+                                                  --action reimage \
+                                                  --machine ${machine} \
+                                                  --os ${env.DETECTED_OS}
                                             """
                                         }
                                     } else {
