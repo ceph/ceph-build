@@ -126,22 +126,24 @@ pipeline {
                                         string(credentialsId: 'ansible-vault-pass', variable: 'VAULT_PASS'),
                                         sshUserPrivateKey(credentialsId: 'ansible-ssh-key', keyFileVariable: 'SSH_KEY')
                                     ]) {
-
-                                        sh """
-                                        mkdir -p "${WORK_DIR}"
-
-                                        cp "${SSH_KEY}" /tmp/key_${machine}
-                                        chmod 600 /tmp/key_${machine}
-
-                                        VAULT_FILE="/home/jenkins-build/.vault_pass.txt"
-                                        echo "$VAULT_PASS" > "$VAULT_FILE"
-
-                                        bash builder-reimage/Jenkins-job/prod-jenkins/jenkins-pipeline/build/scripts/ansible_runner.sh \
-                                            "${TARGET_FQDN}" \
-                                            "${WORK_DIR}" \
-                                            "${env.VENV_DIR}" \
-                                            "${env.DETECTED_OS}" \
-                                            "$BUILDER_TOKEN"
+                                
+                                        sh """#!/bin/bash
+                                            set -euo pipefail
+                                
+                                            mkdir -p "${WORK_DIR}"
+                                
+                                            cp "${SSH_KEY}" /tmp/key_${machine}
+                                            chmod 600 /tmp/key_${machine}
+                                
+                                            VAULT_FILE="/home/jenkins-build/.vault_pass.txt"
+                                            echo "$VAULT_PASS" > "$VAULT_FILE"
+                                
+                                            bash builder-reimage/Jenkins-job/prod-jenkins/jenkins-pipeline/build/scripts/ansible_runner.sh \
+                                                "${TARGET_FQDN}" \
+                                                "${WORK_DIR}" \
+                                                "${env.VENV_DIR}" \
+                                                "${env.DETECTED_OS}" \
+                                                "$BUILDER_TOKEN"
                                         """
                                     }
                                 }
