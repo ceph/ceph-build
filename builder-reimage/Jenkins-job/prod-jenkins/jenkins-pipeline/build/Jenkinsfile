@@ -1,5 +1,5 @@
 pipeline {
-    agent any
+    agent { label 'teuthology' }
 
     parameters {
         string(name: 'MACHINE', description: 'Comma separated nodes like node1,node2')
@@ -19,96 +19,99 @@ pipeline {
                         error("MACHINE parameter is required")
                     }
 
-                    // FIX: Use Jenkins workspace if WORK_DIR not provided
                     def BASE_WORK_DIR = params.WORK_DIR?.trim() ? params.WORK_DIR : env.WORKSPACE
-
                     echo "Base work directory is ${BASE_WORK_DIR}"
 
-                    def nodes = params.MACHINE.split(",")
-                    def parallelStages = [:]
+                    def machines = params.MACHINE.split(',').collect { it.trim() }
+                    def branches = [:]
 
-                    for (n in nodes) {
+                    for (int i = 0; i < machines.size(); i++) {
+                        def machine = machines[i]
 
-                        def nodeName = n.trim()
+                        branches["Node-${machine}"] = {
+                            node('teuthology') {
 
-                        parallelStages[nodeName] = {
+                                stage("Checkout-${machine}") {
+                                    checkout scm
+                                }
 
-                            // IMPORTANT: per-node directory
-                            def NODE_WORK_DIR = "${BASE_WORK_DIR}/${nodeName}"
+                                def NODE_WORK_DIR = "${BASE_WORK_DIR}/${machine}"
 
-                            stage("Node ${nodeName}") {
+                                stage("Prepare-${machine}") {
+                                    echo "Processing ${machine}"
+                                    echo "Node work dir is ${NODE_WORK_DIR}"
 
-                                echo "Processing ${nodeName}"
-                                echo "Node work dir is ${NODE_WORK_DIR}"
+                                    sh """
+                                    mkdir -p ${NODE_WORK_DIR}
 
-                                // Prepare environment
-                                sh """
-                                mkdir -p ${NODE_WORK_DIR}
-
-                                builder-reimage/Jenkins-job/prod-jenkins/jenkins-pipeline/build/scripts/prepare_env.sh \
-                                    ${nodeName} \
-                                    ${NODE_WORK_DIR} \
-                                    false
-                                """
+                                    bash builder-reimage/Jenkins-job/prod-jenkins/jenkins-pipeline/build/scripts/prepare_env.sh \
+                                        ${machine} \
+                                        ${NODE_WORK_DIR} \
+                                        false
+                                    """
+                                }
 
                                 def INVENTORY_FILE = "${NODE_WORK_DIR}/repos/secret-repo/ansible/inventory/group_vars/jenkins_builders.yml"
 
-                                // Sync Jenkins labels
-                                withCredentials([usernamePassword(
-                                    credentialsId: 'jenkins-api-creds',
-                                    usernameVariable: 'JENKINS_USER',
-                                    passwordVariable: 'JENKINS_TOKEN'
-                                )]) {
+                                stage("Detect OS-${machine}") {
+                                    def DETECTED_OS = sh(
+                                        script: """
+                                        python3 scripts/get_node_os.py \
+                                            ${INVENTORY_FILE} \
+                                            ${machine}
+                                        """,
+                                        returnStdout: true
+                                    ).trim()
 
-                                    sh """
-                                    python3 scripts/sync_labels.py \
-                                        --file ${INVENTORY_FILE} \
-                                        --nodes ${nodeName} \
-                                        --jenkins_url $JENKINS_URL \
-                                        --user $JENKINS_USER \
-                                        --token $JENKINS_TOKEN
-                                    """
+                                    env.DETECTED_OS = DETECTED_OS
+                                    echo "Detected OS for ${machine} is ${DETECTED_OS}"
                                 }
 
-                                // Detect OS from labels
-                                def DETECTED_OS = sh(
-                                    script: """
-                                    python3 scripts/get_node_os.py \
-                                        ${INVENTORY_FILE} \
-                                        ${nodeName}
-                                    """,
-                                    returnStdout: true
-                                ).trim()
-
-                                echo "Detected OS for ${nodeName} is ${DETECTED_OS}"
-
-                                // Reimage
-                                if (!params.SKIP_REIMAGE) {
-                                    sh """
-                                    python3 scripts/maas_deploy.py \
-                                        --node ${nodeName} \
-                                        --os ${DETECTED_OS}
-                                    """
-                                } else {
-                                    echo "Reimage skipped for ${nodeName}"
+                                stage("Reimage-${machine}") {
+                                    if (!params.SKIP_REIMAGE) {
+                                        sh """
+                                        python3 scripts/maas_deploy.py \
+                                            --node ${machine} \
+                                            --os ${env.DETECTED_OS}
+                                        """
+                                    } else {
+                                        echo "Reimage skipped for ${machine}"
+                                    }
                                 }
 
-                                // Run Ansible
-                                sh """
-                                builder-reimage/Jenkins-job/prod-jenkins/jenkins-pipeline/build/scripts/ansible_runner.sh \
-                                    ${nodeName} \
-                                    ${NODE_WORK_DIR} \
-                                    ${VENV_DIR} \
-                                    ${DETECTED_OS} \
-                                    ${BUILDER_TOKEN}
-                                """
+                                stage("Ansible-${machine}") {
+                                    withCredentials([
+                                        string(credentialsId: 'builder-api-token', variable: 'BUILDER_TOKEN'),
+                                        string(credentialsId: 'ansible-vault-pass', variable: 'VAULT_PASS'),
+                                        sshUserPrivateKey(credentialsId: 'ansible-ssh-key', keyFileVariable: 'SSH_KEY')
+                                    ]) {
 
-                                echo "Completed ${nodeName}"
+                                        sh """
+                                        TARGET_FQDN="${machine}"
+
+                                        mkdir -p ${NODE_WORK_DIR}
+
+                                        cp "${SSH_KEY}" /tmp/key_${machine}
+                                        chmod 600 /tmp/key_${machine}
+
+                                        VAULT_FILE="/home/jenkins-build/.vault_pass.txt"
+                                        echo "$VAULT_PASS" > "$VAULT_FILE"
+
+                                        bash builder-reimage/Jenkins-job/prod-jenkins/jenkins-pipeline/build/scripts/ansible_runner.sh \
+                                            "$TARGET_FQDN" \
+                                            "${NODE_WORK_DIR}" \
+                                            "${VENV_DIR}" \
+                                            "${env.DETECTED_OS}" \
+                                            "$BUILDER_TOKEN"
+                                        """
+                                    }
+                                }
                             }
                         }
                     }
 
-                    parallel parallelStages
+                    branches.failFast = false
+                    parallel branches
                 }
             }
         }
@@ -116,16 +119,17 @@ pipeline {
 
     post {
         always {
-            echo "Archiving logs"
+            sh 'rm -f /home/jenkins-build/.vault_pass.txt || true'
+            echo 'Build finished'
             archiveArtifacts artifacts: '**/ansible-logs/*.log', fingerprint: true
         }
 
         failure {
-            echo "One or more nodes failed"
+            echo 'One or more nodes failed'
         }
 
         success {
-            echo "All nodes completed successfully"
+            echo 'All nodes completed successfully'
         }
     }
 }
