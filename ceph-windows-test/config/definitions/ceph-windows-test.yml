@@ -1,7 +1,7 @@
 - job:
     name: ceph-windows-test
     description: 'Runs the unit tests from a Windows build uploaded to Chacra.'
-    node: amd64&&focal&&libvirt
+    node: x86_64&&noble&&libvirt
     project-type: freestyle
     defaults: global
     concurrent: true

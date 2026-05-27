@@ -1,6 +1,6 @@
 - project:
     name: ceph-ansible-prs-braggi-adami
-    builder_labels: 'vagrant && libvirt && (braggi||adami)'
+    builder_labels: 'libvirt'
     distribution:
       - centos
     deployment:
@@ -23,7 +23,7 @@
 
 - project:
     name: ceph-ansible-prs
-    builder_labels: 'vagrant && libvirt && (smithi || braggi)'
+    builder_labels: 'libvirt'
     distribution:
       - centos
     deployment:
@@ -40,7 +40,7 @@
 
 - project:
     name: ceph-ansible-prs-docker2podman
-    builder_labels: 'vagrant && libvirt && (smithi || braggi)'
+    builder_labels: 'libvirt'
     distribution:
       - centos
     deployment:
@@ -52,7 +52,7 @@
 
 - project:
     name: ceph-ansible-prs-cephadm
-    builder_labels: 'vagrant && libvirt && (adami || braggi)'
+    builder_labels: 'libvirt'
     distribution:
       - centos
     deployment:
@@ -65,7 +65,7 @@
 
 - project:
     name: ceph-ansible-prs-purge-dashboard
-    builder_labels: 'vagrant && libvirt && (adami || braggi)'
+    builder_labels: 'libvirt'
     distribution:
       - centos
     deployment:
@@ -78,7 +78,7 @@
 
 - project:
     name: ceph-ansible-prs-common-trigger
-    builder_labels: 'vagrant && libvirt && (smithi || braggi)'
+    builder_labels: 'libvirt'
     distribution:
       - centos
     deployment:

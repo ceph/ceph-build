@@ -1,7 +1,7 @@
 - job:
     name: ceph-windows-image-build
     description: 'Builds the Ceph Windows VM image used in the CI.'
-    node: amd64 && focal && libvirt
+    node: x86_64 && noble && libvirt
     project-type: freestyle
     defaults: global
     concurrent: false

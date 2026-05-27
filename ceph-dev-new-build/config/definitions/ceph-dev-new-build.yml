@@ -22,7 +22,7 @@
     execution-strategy:
        combination-filter: |
          DIST == AVAILABLE_DIST && ARCH == AVAILABLE_ARCH &&
-         (ARCH == "x86_64" || (ARCH == "arm64" && ["xenial", "bionic", "centos7", "centos8", "centos9"].contains(DIST)))
+         (ARCH == "x86_64" || (ARCH == "arm64" && ["jammy", "noble", "centos8", "centos9"].contains(DIST)))
     axes:
       - axis:
           type: label-expression
@@ -39,16 +39,10 @@
           type: label-expression
           name: AVAILABLE_DIST
           values:
-            - trusty
-            - xenial
-            - bionic
-            - focal
             - jammy
             - noble
             - jessie
             - precise
-            - centos6
-            - centos7
             - centos8
             - centos9
             - leap15

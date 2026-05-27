@@ -416,52 +416,12 @@ get_distro_and_target() {
             DIST=bookworm
             DISTRO="debian"
             ;;
-        bullseye*)
-            DIST=bullseye
-            DISTRO="debian"
-            ;;
-        buster*)
-            DIST=buster
-            DISTRO="debian"
-            ;;
-        stretch*)
-            DIST=stretch
-            DISTRO="debian"
-            ;;
-        jessie*)
-            DIST=jessie
-            DISTRO="debian"
-            ;;
-        wheezy*)
-            DIST=wheezy
-            DISTRO="debian"
-            ;;
         noble*)
             DIST=noble
             DISTRO="ubuntu"
             ;;
         jammy*)
             DIST=jammy
-            DISTRO="ubuntu"
-            ;;
-        focal*)
-            DIST=focal
-            DISTRO="ubuntu"
-            ;;
-        bionic*)
-            DIST=bionic
-            DISTRO="ubuntu"
-            ;;
-        xenial*)
-            DIST=xenial
-            DISTRO="ubuntu"
-            ;;
-        precise*)
-            DIST=precise
-            DISTRO="ubuntu"
-            ;;
-        trusty*)
-            DIST=trusty
             DISTRO="ubuntu"
             ;;
         centos*)
@@ -548,12 +508,6 @@ setup_pbuilder() {
     # build.
 
     os="debian"
-    [ "$DIST" = "precise" ] && os="ubuntu"
-    [ "$DIST" = "saucy" ] && os="ubuntu"
-    [ "$DIST" = "trusty" ] && os="ubuntu"
-    [ "$DIST" = "xenial" ] && os="ubuntu"
-    [ "$DIST" = "bionic" ] && os="ubuntu"
-    [ "$DIST" = "focal" ] && os="ubuntu"
     [ "$DIST" = "jammy" ] && os="ubuntu"
     [ "$DIST" = "noble" ] && os="ubuntu"
 
@@ -798,12 +752,6 @@ setup_pbuilder_for_old_gcc() {
     # point gcc,g++ to the ones shipped by distro
     local hookdir=$1
     case $DIST in
-        trusty)
-            old=4.8;;
-        xenial)
-            old=5;;
-        bionic)
-            old=8;;
         focal)
             old=9;;
         jammy)
@@ -838,26 +786,9 @@ get_bptag() {
     [ "$dist" = "sid" ] && dver=""
     [ "$dist" = "trixie" ] && dver="~bpo13+1"
     [ "$dist" = "bookworm" ] && dver="~bpo12+1"
-    [ "$dist" = "bullseye" ] && dver="~bpo11+1"
-    [ "$dist" = "buster" ] && dver="~bpo10+1"
-    [ "$dist" = "stretch" ] && dver="~bpo90+1"
-    [ "$dist" = "jessie" ] && dver="~bpo80+1"
-    [ "$dist" = "wheezy" ] && dver="~bpo70+1"
-    [ "$dist" = "squeeze" ] && dver="~bpo60+1"
-    [ "$dist" = "lenny" ] && dver="~bpo50+1"
     [ "$dist" = "noble" ] && dver="$dist"
     [ "$dist" = "jammy" ] && dver="$dist"
     [ "$dist" = "focal" ] && dver="$dist"
-    [ "$dist" = "bionic" ] && dver="$dist"
-    [ "$dist" = "xenial" ] && dver="$dist"
-    [ "$dist" = "trusty" ] && dver="$dist"
-    [ "$dist" = "saucy" ] && dver="$dist"
-    [ "$dist" = "precise" ] && dver="$dist"
-    [ "$dist" = "oneiric" ] && dver="$dist"
-    [ "$dist" = "natty" ] && dver="$dist"
-    [ "$dist" = "maverick" ] && dver="$dist"
-    [ "$dist" = "lucid" ] && dver="$dist"
-    [ "$dist" = "karmic" ] && dver="$dist"
 
     echo $dver
 }
