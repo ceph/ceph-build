@@ -173,7 +173,7 @@ EXTRA_VARS=""
 
 if [ "${LIBVIRT}" = "true" ]; then
     echo "[ansible_runner] libvirt detected for ${TARGET_FQDN}"
-    EXTRA_VARS="-e libvirt=True"
+    EXTRA_VARS='-e {"libvirt": true}'
 fi
 (
   cd "${MAIN_DIR}/ansible"
