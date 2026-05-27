@@ -1,7 +1,7 @@
 - job:
     name: wnbd-build
     description: 'Builds the Windows Network Block Device (WNBD) project.'
-    node: x86_64 && focal && libvirt
+    node: x86_64 && noble && libvirt
     project-type: freestyle
     defaults: global
     concurrent: true
