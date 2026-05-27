@@ -14,7 +14,16 @@ WORK_DIR="$2"
 VENV_DIR="$3"
 OS_VALUE="${4,,}"
 BUILDER_TOKEN="$5"
-LIBVIRT="${6:-false}"
+# Parse libvirt from JSON features
+LIBVIRT=$(echo "${LIBVIRT:-{}}" | python3 -c "
+import sys, json
+data = json.loads(sys.stdin.read() or '{}')
+if isinstance(data, dict) and 'features' in data:
+    print(str(data['features'].get('libvirt', False)).lower())
+else:
+    print('false')
+")
+
 
 ANSIBLE_DIR="${WORK_DIR}/repos/ansible"
 MAIN_DIR="${WORK_DIR}/repos/main"
@@ -173,8 +182,9 @@ EXTRA_VARS=""
 
 if [ "${LIBVIRT}" = "true" ]; then
     echo "[ansible_runner] libvirt detected for ${TARGET_FQDN}"
-    EXTRA_VARS='-e {"libvirt": true}'
+    EXTRA_VARS="-e libvirt=true"
 fi
+
 (
   cd "${MAIN_DIR}/ansible"
 
