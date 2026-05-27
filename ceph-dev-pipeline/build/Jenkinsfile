@@ -282,8 +282,8 @@ pipeline {
                   // as written during ceph-source-dist but we don't to be able to define
                   // ceph-releases.git or chacra.ceph.com as parameters for ceph-dev-pipeline.
                   def props = readProperties file: "${WORKSPACE}/dist/other_envvars"
-                  for (p in props) {
-                    env."${p.key}" = p.value
+                  for (def key in props.keySet()) {
+                    env."${key}" = props[key]
                   }
                 }
                 def branch_ui_value = env.BRANCH
