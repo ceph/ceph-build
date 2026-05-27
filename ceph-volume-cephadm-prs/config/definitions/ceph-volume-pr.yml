@@ -18,7 +18,7 @@
 - job-template:
     name: 'ceph-volume-prs-{distro}-{objectstore}-{method}-{scenario}'
     display-name: 'ceph-volume {method}: Pull Request [{distro}-{objectstore}-{scenario}]'
-    node: vagrant&&libvirt&&centos9
+    node: libvirt&&centos9
     concurrent: true
     project-type: freestyle
     defaults: global

@@ -1,7 +1,7 @@
 
 - job:
     name: 'ceph-ansible-scenario'
-    node: vagrant&&libvirt
+    node: libvirt
     concurrent: true
     defaults: global
     display-name: 'ceph-ansible: individual scenario testing'
