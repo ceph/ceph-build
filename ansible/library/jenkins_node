@@ -49,7 +49,7 @@ options:
 
   label:
     description:
-      - List of labels in a string, space-separated, to associate with a node, like "amd64" or "python"
+      - List of labels in a string, space-separated, to associate with a node, like "x86_64" or "python"
     required: false
     default: null
 
