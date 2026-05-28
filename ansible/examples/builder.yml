@@ -548,6 +548,47 @@
             state: present
           when: ansible_os_family == "Debian"
 
+        - name: Check if Vagrant needs reinstall (Jammy+)
+          shell: |
+            # Strip epoch (e.g. "1:2.2.19" -> "2.2.19") before comparing, since the
+            # Ubuntu-packaged vagrant carries epoch 1 which makes apt consider it newer
+            # than the chacra package which has no epoch.
+            installed=$(dpkg-query -W -f='${Version}' vagrant 2>/dev/null | sed 's/^[0-9]*://')
+            dpkg --compare-versions "$installed" lt "2.4" && echo "yes" || echo "no"
+          register: vagrant_needs_reinstall
+          changed_when: false
+          when: ansible_os_family == "Debian" and ansible_distribution_major_version|int >= 22
+
+        # To ensure a clean vagrant-libvirt install, uninstall and reinstall vagrant.
+        - name: Purge existing Vagrant before reinstall from chacra (Jammy+)
+          apt:
+            name: vagrant
+            state: absent
+            purge: yes
+          when:
+            - ansible_os_family == "Debian"
+            - ansible_distribution_major_version|int >= 22
+            - vagrant_needs_reinstall.stdout == "yes"
+
+        - name: Install Vagrant from chacra (Jammy+)
+          apt:
+            name: vagrant
+            state: latest
+            update_cache: yes
+          when:
+            - ansible_os_family == "Debian"
+            - ansible_distribution_major_version|int >= 22
+            - vagrant_needs_reinstall.stdout == "yes"
+
+        - name: Remove stale Vagrant plugin gems after reinstall (Jammy+)
+          file:
+            path: "/home/{{ jenkins_user }}/.vagrant.d/gems"
+            state: absent
+          when:
+            - ansible_os_family == "Debian"
+            - ansible_distribution_major_version|int >= 22
+            - vagrant_needs_reinstall.stdout == "yes"
+
         - name: Add our vagrant RPM repository
           yum_repository:
             name: vagrant
@@ -899,7 +940,7 @@
             CONFIGURE_ARGS: 'with-libvirt-include=/usr/include/libvirt with-libvirt-lib=/usr/lib64'
           when: ansible_os_family == "Suse"
 
-        - name: Install the vagrant-libvirt plugin (Focal)
+        - name: Install the vagrant-libvirt plugin (Focal and newer)
           command: vagrant plugin install vagrant-libvirt
           become_user: "{{ jenkins_user }}"
           environment:
