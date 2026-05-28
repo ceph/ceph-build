@@ -205,7 +205,7 @@
     # Libvirt DEBs (Focal and newer)
     - set_fact:
         libvirt_debs:
-          - qemu-kvm
+          - qemu-system-x86
           - libvirt-daemon-system
           - libvirt-clients
           - libvirt-dev
