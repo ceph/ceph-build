@@ -1,7 +1,7 @@
 - job:
     name: ceph-windows-installer-build
     description: 'Builds the Ceph Windows MSI installer.'
-    node: x86_64 && noble && libvirt
+    node: x86_64 && (installed-os-noble || installed-os-jammy) && libvirt
     project-type: freestyle
     defaults: global
     concurrent: true
