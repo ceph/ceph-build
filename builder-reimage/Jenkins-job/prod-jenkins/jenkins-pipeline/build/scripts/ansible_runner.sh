@@ -14,16 +14,9 @@ WORK_DIR="$2"
 VENV_DIR="$3"
 OS_VALUE="${4,,}"
 BUILDER_TOKEN="$5"
-# Parse libvirt from JSON features
-LIBVIRT=$(echo "${LIBVIRT:-{}}" | python3 -c "
-import sys, json
-data = json.loads(sys.stdin.read() or '{}')
-if isinstance(data, dict) and 'features' in data:
-    print(str(data['features'].get('libvirt', False)).lower())
-else:
-    print('false')
-")
-
+LIBVIRT=$(echo "${6:-false}" | tr '[:upper:]' '[:lower:]' | xargs)
+echo "[ansible_runner][DEBUG] LIBVIRT raw value: '${6:-unset}'"
+echo "[ansible_runner][DEBUG] LIBVIRT normalized: '${LIBVIRT}'"
 
 ANSIBLE_DIR="${WORK_DIR}/repos/ansible"
 MAIN_DIR="${WORK_DIR}/repos/main"
@@ -180,7 +173,7 @@ run_playbook() {
 ##############################################
 EXTRA_VARS=""
 
-if [ "${LIBVIRT}" = "true" ]; then
+if [[ "${LIBVIRT}" == "true" ]]; then
     echo "[ansible_runner] libvirt detected for ${TARGET_FQDN}"
     EXTRA_VARS="-e libvirt=true"
 fi
@@ -197,6 +190,9 @@ fi
         -e permanent=true \
         ${EXTRA_VARS} \
         --limit='${TARGET_FQDN}'"
+
+  echo "[ansible_runner][DEBUG] EXTRA_VARS=${EXTRA_VARS}"
+  echo "[ansible_runner][DEBUG] FINAL CMD=${CMD}"
 
   run_playbook "play4-main-builder" "${CMD}" || true
 )
