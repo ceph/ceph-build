@@ -162,7 +162,7 @@ pipeline {
                                               "\$WORK_DIR" \
                                               "${env.VENV_DIR}" \
                                               "${env.DETECTED_OS}" \
-                                              "\$BUILDER_TOKEN"
+                                              "\$BUILDER_TOKEN" \
                                               "${env.LIBVIRT_ENABLED}"
                                         """
 
