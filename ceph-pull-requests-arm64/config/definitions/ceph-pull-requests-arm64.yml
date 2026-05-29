@@ -17,6 +17,10 @@
         name: ghprbPullId
         description: "the GitHub pull id, like '72' in 'ceph/pull/72'"
         default: origin/main
+    - string:
+        name: DISTRO_BASE
+        default: jammy
+        description: "the distribution used to create the container that builds and hosts the tests (see build-with-container.py for supported values)"
     project-type: freestyle
     properties:
     - build-discarder:
