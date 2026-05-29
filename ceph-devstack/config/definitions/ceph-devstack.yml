@@ -6,7 +6,7 @@
     pipeline-scm:
       scm:
         - git:
-            url: https://github.com/zmc/ceph-devstack
+            url: https://github.com/ceph/ceph-devstack
             branches:
               - origin/${{CEPH_DEVSTACK_BRANCH}}
     parameters:
@@ -41,7 +41,7 @@
             - amathuria
           org-list:
             - ceph
-          trigger-phrase: 'jenkins test.*|jenkins retest.*'
+          trigger-phrase: "jenkins test.*|jenkins retest.*"
           only-trigger-phrase: false
           github-hooks: true
           permit-all: false
