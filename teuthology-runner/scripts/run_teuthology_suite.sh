@@ -1,8 +1,11 @@
 #!/usr/bin/env bash
 # Run teuthology-suite with fixed argv, intended for Jenkins (nightly cadence).
 # Required env: VIRTUALENV_PATH, SUITE_NAME, CEPH_BRANCH, CEPH_SHA1
-# Optional: TEUTH_CONFIG_OVERRIDE_YAML (legacy: OVERRIDE_YAML), MACHINE_TYPE, CEPH_REPO, SUITE_LIMIT, SUITE_JOB_THRESHOLD, SUITE_SUBSET,
-# SUITE_REPO, SUITE_SHA, SUITE_PRIORITY (-p), SUITE_KERNEL, SUITE_FILTER, SUITE_FLAVOR, SUITE_FORCE_PRIORITY
+# Optional: TEUTH_CONFIG_OVERRIDE_YAML (legacy: OVERRIDE_YAML), MACHINE_TYPE, CEPH_REPO, SUITE_LIMIT (omit for teuthology-suite default),
+# TEUTHOLOGY_SUITE_NEWEST (optional --newest N; ceph.git TEUTHOLOGY_SUITE_ARGS uses 100),
+# SUITE_JOB_THRESHOLD, SUITE_SUBSET,
+# SUITE_REPO, SUITE_SHA, SUITE_BRANCH (--suite-branch),
+# SUITE_PRIORITY (-p), SUITE_KERNEL, SUITE_FILTER, SUITE_FLAVOR, SUITE_FORCE_PRIORITY
 set -euo pipefail
 
 : "${VIRTUALENV_PATH:?VIRTUALENV_PATH must be set}"
@@ -33,15 +36,16 @@ fi
 
 MACHINE_TYPE="${MACHINE_TYPE:-trial}"
 CEPH_REPO="${CEPH_REPO:-https://github.com/ceph/ceph.git}"
-SUITE_LIMIT="${SUITE_LIMIT:-1}"
 
 if [[ ! "${MACHINE_TYPE}" =~ ^[a-zA-Z0-9_.-]+$ ]]; then
-  echo "run_teuthology_suite.sh: invalid MACHINE_TYPE: ${MACHINE_TYPE}" >&2
-  exit 1
+    echo "run_teuthology_suite.sh: invalid MACHINE_TYPE: ${MACHINE_TYPE}" >&2
+    exit 1
 fi
-if [[ ! "${SUITE_LIMIT}" =~ ^[0-9]+$ ]] || [[ "${SUITE_LIMIT}" == "0" ]]; then
-  echo "run_teuthology_suite.sh: invalid SUITE_LIMIT (positive integer): ${SUITE_LIMIT}" >&2
-  exit 1
+if [[ -n "${SUITE_LIMIT:-}" ]]; then
+    if [[ ! "${SUITE_LIMIT}" =~ ^[0-9]+$ ]] || [[ "${SUITE_LIMIT}" == "0" ]]; then
+        echo "run_teuthology_suite.sh: invalid SUITE_LIMIT (positive integer): ${SUITE_LIMIT}" >&2
+        exit 1
+    fi
 fi
 
 if [[ -n "${SUITE_REPO:-}" ]] && [[ ! "${SUITE_REPO}" =~ ^[a-zA-Z0-9@.:/_-]+$ ]]; then
@@ -86,6 +90,16 @@ if [[ -n "${SUITE_FLAVOR:-}" ]] && [[ ! "${SUITE_FLAVOR}" =~ ^[a-zA-Z0-9._-]+$ ]
   echo "run_teuthology_suite.sh: invalid SUITE_FLAVOR: ${SUITE_FLAVOR}" >&2
   exit 1
 fi
+if [[ -n "${SUITE_BRANCH:-}" ]] && [[ ! "${SUITE_BRANCH}" =~ ^[a-zA-Z0-9._-]+$ ]]; then
+  echo "run_teuthology_suite.sh: invalid SUITE_BRANCH: ${SUITE_BRANCH}" >&2
+  exit 1
+fi
+if [[ -n "${TEUTHOLOGY_SUITE_NEWEST:-}" ]]; then
+  if [[ ! "${TEUTHOLOGY_SUITE_NEWEST}" =~ ^[0-9]+$ ]] || [[ "${TEUTHOLOGY_SUITE_NEWEST}" == "0" ]]; then
+    echo "run_teuthology_suite.sh: invalid TEUTHOLOGY_SUITE_NEWEST (positive integer): ${TEUTHOLOGY_SUITE_NEWEST}" >&2
+    exit 1
+  fi
+fi
 
 set -- \
   "${TEUTHOLOGY_SUITE}" \
@@ -93,7 +107,15 @@ set -- \
   --machine-type "${MACHINE_TYPE}" \
   --ceph "${CEPH_BRANCH}" \
   --ceph-repo "${CEPH_REPO}" \
-  --limit "${SUITE_LIMIT}"
+  --non-interactive
+
+if [[ -n "${TEUTHOLOGY_SUITE_NEWEST:-}" ]]; then
+  set -- "$@" --newest="${TEUTHOLOGY_SUITE_NEWEST}"
+fi
+
+if [[ -n "${SUITE_LIMIT:-}" ]]; then
+    set -- "$@" --limit "${SUITE_LIMIT}"
+fi
 
 if [[ -n "${SUITE_PRIORITY:-}" ]]; then
   set -- "$@" -p "${SUITE_PRIORITY}"
@@ -112,6 +134,9 @@ if [[ -n "${SUITE_REPO:-}" ]]; then
 fi
 if [[ -n "${SUITE_SHA:-}" ]]; then
   set -- "$@" --suite-sha1 "${SUITE_SHA}"
+fi
+if [[ -n "${SUITE_BRANCH:-}" ]]; then
+  set -- "$@" --suite-branch "${SUITE_BRANCH}"
 fi
 if [[ -n "${SUITE_FILTER:-}" ]]; then
   set -- "$@" --filter "${SUITE_FILTER}"

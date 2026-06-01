@@ -7,10 +7,11 @@ When **CEPH_SHA1** is empty, the branch tip is resolved with **``git ls-remote``
 **SUITE_RUNS_JSON** (text parameter): JSON array of objects. Each object must include ``suite``
 (optional alias ``name``). Optional per-row fields: ``limit``, ``threshold``, ``subset``, ``priority``,
 ``flavor``, ``kernel``, ``filter``, ``forcePriority``, ``suiteSha``. Missing fields fall back to job
-parameters ``SUITE_LIMIT``, ``SUITE_JOB_THRESHOLD``, ``SUITE_SUBSET``, ``SUITE_SHA``.
+parameters ``SUITE_LIMIT``, ``SUITE_JOB_THRESHOLD``, ``SUITE_SUBSET``, ``SUITE_SHA``. Empty job-level
+``SUITE_LIMIT`` omits ``--limit`` for ``teuthology-suite``
 
 **SUITE_LIST** (comma-separated names): used when ``SUITE_RUNS_JSON`` is empty; each run uses the
-global ``SUITE_LIMIT`` / ``SUITE_JOB_THRESHOLD`` / ``SUITE_SUBSET`` / ``SUITE_SHA``.
+global ``SUITE_LIMIT`` / ``SUITE_JOB_THRESHOLD`` / ``SUITE_SUBSET`` / ``SUITE_SHA`` when set.
 
 Callers: **teuthology-nightly-cadence** builds JSON from its own cadence tables; **release-tracker-workflow**
 resolves a suite list and passes ``SUITE_LIST`` plus only the optional parameters that are set.

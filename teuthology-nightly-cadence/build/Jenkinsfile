@@ -1,9 +1,9 @@
 /**
  * teuthology-nightly-cadence: expands daily/weekly cadence into SUITE_RUNS_JSON and invokes teuthology-runner.
- * Cadence definitions live here (partition/subset).
  */
 import java.util.Calendar
 import java.util.TimeZone
+import java.util.concurrent.ThreadLocalRandom
 
 pipeline {
     agent { label 'built-in' }
@@ -16,8 +16,8 @@ pipeline {
         string(name: 'CEPH_BUILD_BRANCH', defaultValue: 'main', description: 'ceph-build branch for teuthology-runner SCM.')
         string(name: 'TEUTHOLOGY_RUNNER_JOB_NAME', defaultValue: 'teuthology-runner', description: 'Jenkins job name for the runner pipeline.')
         string(name: 'AGENT_LABEL', defaultValue: 'teuthology', description: 'Agent label for teuthology-runner.')
-        choice(name: 'CADENCE', choices: ['daily', 'weekly'], description: 'daily ≈ nop+smoke; weekly ≈ ceph.git teuthology-cronjobs style.')
-        choice(name: 'CEPH_BRANCH', choices: ['main', 'tentacle', 'squid', 'reef'], description: 'Ceph branch.')
+        choice(name: 'CADENCE', choices: ['daily', 'weekly'], description: 'daily: main gets nop+smoke+one rotating suite; tentacle/squid get one rotating suite (+smoke on Sundays); quincy rotates one upgrade suite. weekly: full per-branch suite list.')
+        choice(name: 'CEPH_BRANCH', choices: ['main', 'tentacle', 'squid', 'quincy'], description: 'Ceph branch.')
         string(name: 'CEPH_REPO', defaultValue: 'https://github.com/ceph/ceph.git', description: 'Ceph git URL.')
         string(name: 'CEPH_SHA1', defaultValue: '', description: 'Optional SHA1. Empty = resolve from Shaman for SHAMAN_WAIT_PLATFORMS, then pass explicitly to teuthology-runner.')
         booleanParam(name: 'USE_WORKSPACE_TEUTHOLOGY', defaultValue: true, description: 'Clone teuthology in runner workspace.')
@@ -26,7 +26,7 @@ pipeline {
         string(name: 'TEUTHOLOGY_SCRIPT_DIR', defaultValue: '', description: 'When USE_WORKSPACE_TEUTHOLOGY false.')
         string(name: 'TEUTHOLOGY_VIRTUALENV_PATH', defaultValue: '', description: 'When USE_WORKSPACE_TEUTHOLOGY false.')
         string(name: 'SUITE_REPO', defaultValue: 'https://github.com/ceph/ceph.git', description: 'teuthology-suite --suite-repo.')
-        string(name: 'SUITE_MACHINE_TYPE', defaultValue: 'smithi', description: 'teuthology-suite --machine-type.')
+        string(name: 'SUITE_MACHINE_TYPE', defaultValue: 'trial', description: 'teuthology-suite --machine-type.')
         string(name: 'TEUTH_CONFIG_OVERRIDE_YAML', defaultValue: '', description: 'Optional teuthology-suite argv.')
         string(name: 'SHAMAN_WAIT_TIMEOUT', defaultValue: '7200', description: 'Shaman wait timeout (seconds).')
         string(name: 'SHAMAN_WAIT_INTERVAL', defaultValue: '120', description: 'Shaman poll interval.')
@@ -37,6 +37,7 @@ pipeline {
         booleanParam(name: 'RUN_AGGREGATE', defaultValue: false, description: 'Aggregate in runner.')
         string(name: 'PADDLES_URL', defaultValue: '', description: 'Optional Paddles override.')
         string(name: 'PULPITO_BASE', defaultValue: 'https://pulpito.ceph.com', description: 'Pulpito base URL for teuthology-runner.')
+        string(name: 'TEUTHOLOGY_SUITE_NEWEST', defaultValue: '100', description: 'Passed to teuthology-runner: teuthology-suite --newest. Empty = omit.')
     }
     stages {
         stage('teuthology-runner') {
@@ -80,6 +81,7 @@ pipeline {
                     if (!rows) {
                         error("No suites for CADENCE=${params.CADENCE} CEPH_BRANCH=${params.CEPH_BRANCH}")
                     }
+                    echo "Cadence suites: ${rows.collect { it.suite }.join(', ')}"
                     def json = suiteRunsRowsToJson(rows)
                     def tp = []
                     tp << string(name: 'AGENT_LABEL', value: params.AGENT_LABEL.trim())
@@ -110,6 +112,10 @@ pipeline {
                     tp << booleanParam(name: 'WAIT_FOR_RUNS', value: params.WAIT_FOR_RUNS)
                     tp << string(name: 'SUITE_WAIT_SLEEP', value: params.SUITE_WAIT_SLEEP.trim())
                     tp << booleanParam(name: 'RUN_AGGREGATE', value: params.RUN_AGGREGATE)
+                    def newest = params.TEUTHOLOGY_SUITE_NEWEST?.trim()
+                    if (newest) {
+                        tp << string(name: 'TEUTHOLOGY_SUITE_NEWEST', value: newest)
+                    }
                     tp << text(name: 'SUITE_RUNS_JSON', value: json)
                     build job: runnerJob, wait: true, propagate: true, parameters: tp
                 }
@@ -123,24 +129,25 @@ List expandCadenceToRows(String cadence, String branch) {
     if (!steps) {
         return []
     }
-    def utcCal = Calendar.getInstance(TimeZone.getTimeZone('UTC'))
-    def doy = utcCal.get(Calendar.DAY_OF_YEAR)
+    def rnd = ThreadLocalRandom.current()
     def rows = []
     for (def st in steps) {
         def part = st.partitions as int
-        def idx = doy % part
+        def idx = rnd.nextInt(part)
         def subset = "${idx}/${part}"
-        def lim = st.limit != null ? st.limit as String : "${part}"
-        def thr = st.threshold != null ? st.threshold as String : "${part}"
         def pr = st.priority ?: ''
         def m = [
             suite: st.suite,
-            limit: lim,
-            threshold: thr,
             subset: subset,
             priority: pr,
             forcePriority: st.forcePriority ? true : false,
         ]
+        if (st.threshold != null) {
+            m.threshold = st.threshold as String
+        }
+        if (st.limit != null) {
+            m.limit = st.limit as String
+        }
         if (st.flavor) {
             m.flavor = st.flavor
         }
@@ -150,22 +157,16 @@ List expandCadenceToRows(String cadence, String branch) {
         if (st.filter) {
             m.filter = st.filter
         }
+        if (st.suiteBranch) {
+            m.suiteBranch = st.suiteBranch
+        }
         rows << m
     }
     return rows
 }
 
-def cadenceSteps(String cadence, String branch) {
+List weeklySuiteSteps(String branch) {
     def b = branch.toLowerCase()
-    if (cadence?.toLowerCase() == 'daily') {
-        return [
-            [suite: 'teuthology/nop', partitions: 1, priority: '1', forcePriority: true],
-            [suite: 'smoke', partitions: 1, priority: '100', forcePriority: true],
-        ]
-    }
-    if (cadence?.toLowerCase() != 'weekly') {
-        return []
-    }
     switch (b) {
         case 'main':
             return [
@@ -175,8 +176,9 @@ def cadenceSteps(String cadence, String branch) {
                 [suite: 'rbd', partitions: 128, priority: '950', forcePriority: false],
                 [suite: 'fs', partitions: 512, priority: '700', forcePriority: false],
                 [suite: 'powercycle', partitions: 4, priority: '950', forcePriority: false],
-                [suite: 'rgw', partitions: 30000, limit: '1', threshold: '1', priority: '150', forcePriority: false],
+                [suite: 'rgw', partitions: 30000, priority: '150', forcePriority: false],
                 [suite: 'krbd', partitions: 4, priority: '950', forcePriority: false, kernel: 'testing'],
+                [suite: 'upgrade', partitions: 32, priority: '850', forcePriority: false],
                 [suite: 'crimson-rados', partitions: 1, priority: '101', forcePriority: true, flavor: 'debug'],
                 [suite: 'crimson-rados', partitions: 1, priority: '101', forcePriority: true],
             ]
@@ -187,8 +189,9 @@ def cadenceSteps(String cadence, String branch) {
                 [suite: 'rbd', partitions: 128, priority: '830', forcePriority: false],
                 [suite: 'fs', partitions: 512, priority: '830', forcePriority: false],
                 [suite: 'powercycle', partitions: 4, priority: '830', forcePriority: false],
-                [suite: 'rgw', partitions: 30000, limit: '1', threshold: '1', priority: '830', forcePriority: false],
+                [suite: 'rgw', partitions: 1, priority: '830', forcePriority: false],
                 [suite: 'krbd', partitions: 4, priority: '830', forcePriority: false, kernel: 'testing'],
+                [suite: 'upgrade', partitions: 1, priority: '150', forcePriority: false],
             ]
         case 'squid':
             return [
@@ -197,22 +200,59 @@ def cadenceSteps(String cadence, String branch) {
                 [suite: 'rbd', partitions: 128, priority: '920', forcePriority: false],
                 [suite: 'fs', partitions: 512, priority: '920', forcePriority: false],
                 [suite: 'powercycle', partitions: 4, priority: '920', forcePriority: false],
-                [suite: 'rgw', partitions: 30000, limit: '1', threshold: '1', priority: '920', forcePriority: false],
+                [suite: 'rgw', partitions: 1, priority: '920', forcePriority: false],
                 [suite: 'krbd', partitions: 4, priority: '920', forcePriority: false, kernel: 'testing'],
+                [suite: 'upgrade', partitions: 32, priority: '840', forcePriority: true],
             ]
-        case 'reef':
+        case 'quincy':
             return [
-                [suite: 'rados', partitions: 100000, priority: '920', forcePriority: false],
-                [suite: 'orch', partitions: 64, priority: '920', forcePriority: false],
-                [suite: 'rbd', partitions: 128, priority: '920', forcePriority: false],
-                [suite: 'fs', partitions: 512, priority: '920', forcePriority: false],
-                [suite: 'powercycle', partitions: 4, priority: '920', forcePriority: false],
-                [suite: 'rgw', partitions: 30000, limit: '1', threshold: '1', priority: '920', forcePriority: false],
-                [suite: 'krbd', partitions: 4, priority: '920', forcePriority: false, kernel: 'testing'],
+                [suite: 'upgrade-clients/client-upgrade-octopus-quincy', partitions: 1, priority: '820', forcePriority: false, suiteBranch: 'octopus'],
+                [suite: 'upgrade-clients/client-upgrade-pacific-quincy', partitions: 1, priority: '820', forcePriority: false, suiteBranch: 'pacific'],
+                [suite: 'upgrade:octopus-x', partitions: 120000, priority: '820', forcePriority: false],
+                [suite: 'upgrade:pacific-x', partitions: 120000, priority: '820', forcePriority: false],
             ]
         default:
             return []
     }
+}
+
+def cadenceSteps(String cadence, String branch) {
+    def b = branch.toLowerCase()
+    def c = cadence?.toLowerCase()
+    def smokeStep = [suite: 'smoke', partitions: 1, priority: '100', forcePriority: true]
+    if (c == 'weekly') {
+        def weeklies = weeklySuiteSteps(b)
+        if (b in ['tentacle', 'squid']) {
+            return [smokeStep] + weeklies
+        }
+        return weeklies
+    }
+    if (c != 'daily') {
+        return []
+    }
+    def weeklies = weeklySuiteSteps(b)
+    if (!weeklies) {
+        return []
+    }
+    def utcCal = Calendar.getInstance(TimeZone.getTimeZone('UTC'))
+    def epochDay = utcCal.getTimeInMillis().intdiv(86400000L)
+    def idx = (epochDay % weeklies.size()) as int
+    if (b == 'main') {
+        return [
+            [suite: 'teuthology/nop', partitions: 1, priority: '1', forcePriority: true],
+            smokeStep,
+            weeklies[idx],
+        ]
+    }
+    // tentacle/squid: smoke runs on Sunday only, matching crontab (08/16 05 * * 0).
+    if (b in ['tentacle', 'squid']) {
+        def dow = Calendar.getInstance(TimeZone.getTimeZone('UTC')).get(Calendar.DAY_OF_WEEK)
+        if (dow == Calendar.SUNDAY) {
+            return [smokeStep, weeklies[idx]]
+        }
+        return [weeklies[idx]]
+    }
+    return [weeklies[idx]]
 }
 
 String suiteRunsRowsToJson(List rows) {
