@@ -1,0 +1,46 @@
+- job:
+    name: preserve-builder-reimage
+    project-type: pipeline
+    description: "Pipeline to reimage Jenkins builders and run post-reimage ansible tasks (OS auto-detected from labels)"
+
+    concurrent: false
+
+    parameters:
+      - choice:
+          name: ACTION
+          choices:
+            - reimage
+            - reimage-all
+            - wait_online (debug)
+          default: reimage
+          description: "Reimage action"
+
+      - string:
+          name: MACHINE
+          default: ""
+          description: |
+            Target node(s)
+            Examples:
+              node1
+              node1,node2
+
+      - bool:
+          name: SKIP_REIMAGE
+          default: false
+          description: "Skip reimage and only run post-reimage tasks"
+
+    scm:
+      - git:
+          url: https://github.com/ceph/ceph-build.git
+          branches:
+            - main
+          clean: true
+
+    pipeline-scm:
+      scm:
+        - git:
+            url: https://github.com/ceph/ceph-build.git
+            branches:
+              - main
+      script-path: builder-reimage/Jenkins-job/prod-jenkins/jenkins-pipeline/build/Jenkinsfile
+      lightweight-checkout: true
