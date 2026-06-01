@@ -9,7 +9,7 @@
       job in Jenkins. Ceph SHA from CEPH_SHA1 or branch tip via git ls-remote in teuthology-runner.
     project-type: pipeline
     quiet-period: 2
-    concurrent: false
+    concurrent: true
     pipeline-scm:
       scm:
         - git:
@@ -32,22 +32,22 @@
           name: TEUTHOLOGY_RUNNER_JOB_NAME
           description: "Jenkins job name for the runner pipeline (default teuthology-runner)"
           default: "teuthology-runner"
+      - string:
+          name: TEUTHOLOGY_SUITE_NEWEST
+          description: "teuthology-suite --newest; empty to omit"
+          default: "100"
 
 - job:
     name: teuthology-nightly-cadence-trigger
     description: |
-      Triggers teuthology-nightly-cadence with wait:false. Timed triggers follow the same schedule as
-      ceph.git qa/crontab/teuthology-cronjobs.
+      Triggers teuthology-nightly-cadence with wait:false. Timed builds run daily cadence for all branches (main, tentacle, squid, quincy). Each branch rotates one suite per day; tentacle and squid also run smoke on Sundays.
     project-type: pipeline
     quiet-period: 0
     concurrent: true
     triggers:
       - timed: |
           TZ=Etc/UTC
-          # Daily tier: weekday morning.
-          0 6 * * 1-5
-          # Weekly tier: Sunday 20:00 UTC.
-          0 20 * * 0
+          0 6 * * *
     pipeline-scm:
       scm:
         - git:
@@ -74,3 +74,7 @@
           name: TEUTHOLOGY_NIGHTLY_CADENCE_JOB
           description: "Jenkins job name of the cadence pipeline to trigger"
           default: "teuthology-nightly-cadence"
+      - string:
+          name: TEUTHOLOGY_SUITE_NEWEST
+          description: "Forwarded to cadence job: teuthology-suite --newest (empty to omit)"
+          default: "100"

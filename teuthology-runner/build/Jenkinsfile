@@ -31,8 +31,9 @@ pipeline {
         string(name: 'SUITE_REPO', defaultValue: 'https://github.com/ceph/ceph.git', description: 'teuthology-suite --suite-repo.')
         string(name: 'SUITE_SHA', defaultValue: '', description: 'Optional --suite-sha1.')
         string(name: 'SUITE_MACHINE_TYPE', defaultValue: 'trial', description: 'teuthology-suite --machine-type.')
-        string(name: 'SUITE_LIMIT', defaultValue: '1', description: 'Default --limit')
+        string(name: 'SUITE_LIMIT', defaultValue: '', description: 'Optional teuthology-suite --limit. Empty = omit (default).')
         string(name: 'SUITE_JOB_THRESHOLD', defaultValue: '', description: 'Default --job-threshold for SUITE_LIST mode / JSON row fallback.')
+        string(name: 'TEUTHOLOGY_SUITE_NEWEST', defaultValue: '', description: 'Optional teuthology-suite --newest. Empty = omit.')
         string(name: 'SUITE_SUBSET', defaultValue: '', description: 'Default --subset for SUITE_LIST mode / JSON row fallback.')
         string(name: 'SUITE_LIST', defaultValue: '', description: 'Comma-separated suite names when SUITE_RUNS_JSON empty.')
         text(name: 'SUITE_RUNS_JSON', defaultValue: '', description: 'JSON array of objects: suite (required), optional limit, threshold, subset, priority, flavor, kernel, filter, forcePriority, suiteSha.')
@@ -161,6 +162,10 @@ pipeline {
                         "SCRIPT_DIR=${env.SCRIPT_DIR}",
                         "VIRTUALENV_PATH=${env.VIRTUALENV_PATH}",
                     ]
+                    def newest = params.TEUTHOLOGY_SUITE_NEWEST?.trim()
+                    if (newest) {
+                        runEnvBase << "TEUTHOLOGY_SUITE_NEWEST=${newest}"
+                    }
 
                     def runInfos = []
                     def jsonText = params.SUITE_RUNS_JSON?.trim()
@@ -198,7 +203,7 @@ pipeline {
                             for (suite in suites) {
                                 def runName = scheduleFromRow([
                                     suite: suite,
-                                    limit: params.SUITE_LIMIT?.trim() ?: '1',
+                                    limit: params.SUITE_LIMIT?.trim() ?: '',
                                     threshold: params.SUITE_JOB_THRESHOLD?.trim() ?: '',
                                     subset: params.SUITE_SUBSET?.trim() ?: '',
                                 ])
@@ -328,7 +333,7 @@ String scheduleFromRow(Map row) {
     if (!suite) {
         error('Each schedule row must include "suite" (or "name")')
     }
-    def lim = coalesceRow(row, 'limit', params.SUITE_LIMIT?.trim() ?: '1')
+    def lim = coalesceRow(row, 'limit', params.SUITE_LIMIT?.trim() ?: '')
     def thr = coalesceRow(row, 'threshold', params.SUITE_JOB_THRESHOLD?.trim() ?: '')
     def subset = coalesceRow(row, 'subset', params.SUITE_SUBSET?.trim() ?: '')
     def priority = coalesceRow(row, 'priority', '')
@@ -337,6 +342,7 @@ String scheduleFromRow(Map row) {
     def filter = coalesceRow(row, 'filter', '')
     def fp = rowForcePriority(row) ? 'true' : ''
     def suiteSha = coalesceRow(row, 'suiteSha', params.SUITE_SHA?.trim() ?: '')
+    def suiteBranch = coalesceRow(row, 'suiteBranch', '')
 
     def safeName = suite.replaceAll('/', '_')
     def runName = null
@@ -346,7 +352,7 @@ String scheduleFromRow(Map row) {
         if (!fileExists(runner)) {
             error("run_teuthology_suite.sh not found: ${runner}")
         }
-        def machineType = params.SUITE_MACHINE_TYPE?.trim() ?: 'smithi'
+        def machineType = params.SUITE_MACHINE_TYPE?.trim() ?: 'trial'
         def suiteRepo = params.SUITE_REPO?.trim() ?: ''
         def overrideYaml = env.TEUTH_CONFIG_OVERRIDE_YAML?.trim() ?: ''
         def envList = [
@@ -355,7 +361,6 @@ String scheduleFromRow(Map row) {
             "CEPH_SHA1=${env.SHA1}",
             "TEUTH_CONFIG_OVERRIDE_YAML=${overrideYaml}",
             "CEPH_REPO=${params.CEPH_REPO}",
-            "SUITE_LIMIT=${lim}",
             "MACHINE_TYPE=${machineType}",
             "SUITE_REPO=${suiteRepo}",
             "SUITE_JOB_THRESHOLD=${thr}",
@@ -367,6 +372,12 @@ String scheduleFromRow(Map row) {
             "SUITE_FORCE_PRIORITY=${fp}",
             "SUITE_SHA=${suiteSha}",
         ]
+        if (lim) {
+            envList << "SUITE_LIMIT=${lim}"
+        }
+        if (suiteBranch) {
+            envList << "SUITE_BRANCH=${suiteBranch}"
+        }
         withEnv(envList) {
             sh(script: "bash \"${runner}\" > \"${outFile}\" 2>&1; true", returnStatus: true)
         }
