@@ -97,7 +97,7 @@ pipeline {
                                             sh """#!/bin/bash
                                                 set -euo pipefail
 
-                                                REPO_DIR="\$WORKSPACE/builder-reimage"
+                                                REPO_DIR="\$WORKSPACE/builder-reimage/build"
                                                 VENV_PATH="\$REPO_DIR/.venv"
 
                                                 cd "\$REPO_DIR"
