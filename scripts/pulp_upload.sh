@@ -1,4 +1,25 @@
 #!/bin/bash
+
+# Upload Ceph build artifacts to a Pulp repository and publish distributions.
+
+# Intended for CI jobs after package builds complete. Discovers RPM or DEB
+# packages under WORKSPACE/dist/ceph, uploads them to Pulp, attaches the
+# uploaded content to per-arch repositories, and creates publications and
+# distributions with metadata labels for Shaman discovery.
+
+# Required environment variables:
+#   WORKSPACE       - Jenkins workspace root containing dist/ceph artifacts
+#   CEPH_VERSION    - Full Ceph version string (used to derive release branch)
+#   SHA1            - Git commit SHA for this build
+#   OS_NAME         - Target OS (e.g. centos, ubuntu)
+#   OS_VERSION      - Target OS version
+#   OS_VERSION_NAME - Ubuntu codename (used when OS_NAME=ubuntu)
+#   OS_PKG_TYPE     - Package format: "rpm" or "deb"
+#   FLAVOR          - Build flavor label (e.g. default, crimson)
+#   ARCH            - Target architecture (deb uploads only)
+#   VERSION         - Package version (deb uploads only)
+#
+
 set -ex
 
 source ./scripts/build_utils.sh
@@ -8,10 +29,13 @@ export PATH="$HOME/.local/bin:$PATH"
 PULP_PROJECT="ceph"
 SHORT_SHA1=${SHA1: -8}
 
+# Log a message to stderr with a consistent prefix.
 log() {
     echo "[pulp_upload] $*" >&2
 }
 
+# Return the OS version label used in Pulp repository and endpoint names.
+# For Ubuntu, OS_VERSION_NAME (codename) is used instead of OS_VERSION.
 resolve_os_version_for_repo() {
     local os_label="${OS_VERSION}"
     if [ "$OS_NAME" == "ubuntu" ]; then
@@ -20,6 +44,36 @@ resolve_os_version_for_repo() {
     printf '%s\n' "$os_label"
 }
 
+# Locate the directory containing .deb packages for upload.
+# Prefers pool/main (APT pool layout), then WORKDIR, then the deb tree root.
+# Arguments:
+#   $1 - ceph dist directory (typically ${WORKSPACE}/dist/ceph)
+# Prints the chosen upload directory path on stdout.
+resolve_deb_upload_dir() {
+    local ceph_dist_dir="${1%/}"
+    local deb_tree="${ceph_dist_dir}/debs/${OS_NAME}"
+    local pool_main="${deb_tree}/pool/main"
+
+    if [ -d "${pool_main}" ]; then
+        log "Using APT pool layout under ${pool_main}"
+        printf '%s\n' "${pool_main}"
+        return 0
+    fi
+    local workdir="${deb_tree}/WORKDIR"
+    if [ -d "${workdir}" ]; then
+        log "pool/main not found; falling back to ${workdir}"
+        printf '%s\n' "${workdir}"
+        return 0
+    fi
+    log "WARNING: no pool/main or WORKDIR under ${deb_tree}; searching ${deb_tree}"
+    printf '%s\n' "${deb_tree}"
+}
+
+# Attach previously uploaded package content to a Pulp repository.
+# Arguments:
+#   $1 - Pulp content type ("rpm" or "deb")
+#   $2 - Pulp repository name
+#   $3 - Name of a nameref array variable holding uploaded content UUIDs
 add_pulp_uploaded_packages_to_repository() {
     local content_type="$1"
     local repo_name="$2"
@@ -41,6 +95,12 @@ add_pulp_uploaded_packages_to_repository() {
         --add-content "$add_content_json" --base-version 0
 }
 
+# Discover and upload RPM files from a build directory to Pulp.
+# Arguments:
+#   $1 - Directory to search for .rpm files
+#   $2 - Pulp repository name
+#   $3 - Name of a nameref array variable to populate with uploaded UUIDs
+# Returns 0 when at least one RPM was uploaded, 1 otherwise.
 upload_rpm_to_pulp() {
     local rpmbuild_dir="${1%/}"
     local repo_name="$2"
@@ -62,6 +122,14 @@ upload_rpm_to_pulp() {
     [[ ${#pulp_uuid[@]} -gt 0 ]]
 }
 
+# Discover and upload .deb packages for a given architecture to Pulp.
+# Maps x86_64->amd64 and aarch64->arm64 for Debian naming conventions.
+# Arguments:
+#   $1 - Directory to search for .deb files
+#   $2 - Pulp repository name
+#   $3 - Build architecture (x86_64, aarch64, etc.)
+#   $4 - Name of a nameref array variable to populate with uploaded UUIDs
+# Returns 0 when at least one package was uploaded, 1 otherwise.
 upload_deb_to_pulp() {
     local deb_dir="${1%/}"
     local repo_name="$2"
@@ -77,7 +145,7 @@ upload_deb_to_pulp() {
     fi
 
     pulp_uuid=()
-    log "Discovering binary .deb packages under ${deb_dir}/"
+    log "Discovering .deb packages (${_arch} and all) under ${deb_dir}/"
     while IFS= read -r deb_file; do
         [ -z "$deb_file" ] && continue
         pulp_uuid+=($(pulp deb content -t package upload \
@@ -85,12 +153,23 @@ upload_deb_to_pulp() {
             jq -r '.prn | split(":") | last'
         ))
     done < <(
-        find "${deb_dir}/" -regextype egrep -regex ".*(${_arch}\.deb)$"
+        find "${deb_dir}/" -regextype egrep \
+            -regex ".*(${_arch}|all)\.deb$" |
+            awk -F/ '{name = $NF; if (!seen[name]++) print $0}'
     )
-    log "Finished DEB uploads (repository=${repo_name})"
+    log "Finished DEB uploads (repository=${repo_name}, count=${#pulp_uuid[@]})"
     [[ ${#pulp_uuid[@]} -gt 0 ]]
 }
 
+# Create a Pulp publication and distribution, then apply metadata labels.
+# Arguments:
+#   $1 - Pulp repository name
+#   $2 - Distribution base path (URL segment under the Pulp content root)
+#   $3 - Architecture label stored on the distribution
+#   $4 - Package manager version string for the version label
+# Uses OS_PKG_TYPE, OS_NAME, OS_VERSION, BRANCH, SHA1, FLAVOR, and SHORT_SHA1
+# from the environment. Exits on unsupported OS_PKG_TYPE; returns early on
+# publication or distribution creation failure.
 publish_pulp_distribution() {
     local repo_name="$1"
     local repo_endpoint="$2"
@@ -132,16 +211,21 @@ publish_pulp_distribution() {
         return
     fi
 
-    local i
+    local i distro_version
+    distro_version="${OS_VERSION}"
+    if [ "$OS_NAME" == "centos" ] && [ "$OS_VERSION" -ge 8 ]; then
+        distro_version="${OS_VERSION}.stream"
+    fi
     local -a labels=(
         project "${PULP_PROJECT}"
         version "${package_version}"
         ref "${BRANCH}"
+        branch "${BRANCH}"
         arch "${repo_arch}"
         sha1 "${SHA1}"
         distro "${OS_NAME}"
-        distro_version "${OS_VERSION_NAME}"
-        flavor "${FLAVOR}"
+        distro_version "${distro_version}"
+        flavors "${FLAVOR}"
     )
     log "Setting distribution labels: ${labels[@]}"
     for ((i = 0; i < ${#labels[@]}; i += 2)); do
@@ -179,19 +263,19 @@ if [ "$OS_PKG_TYPE" = "rpm" ]; then
         _rpm_pulp_uuids=()
         case "$_kind" in
             SRPMS)
-                log "Uploading SRPMS to ${REPO_NAME}-SRPMS"
-                if upload_rpm_to_pulp "${_rpm_root}/SRPMS" "${REPO_NAME}-SRPMS" \
+                log "Uploading SRPMS to ${REPO_NAME}-source"
+                if upload_rpm_to_pulp "${_rpm_root}/SRPMS" "${REPO_NAME}-source" \
                     _rpm_pulp_uuids; then
                     add_pulp_uploaded_packages_to_repository rpm \
-                        "${REPO_NAME}-SRPMS" _rpm_pulp_uuids
+                        "${REPO_NAME}-source" _rpm_pulp_uuids
                     publish_pulp_distribution \
-                        "${REPO_NAME}-SRPMS" \
+                        "${REPO_NAME}-source" \
                         "${REPO_ENDPOINT}/SRPMS" \
                         "source" \
                         "${PACKAGE_MANAGER_VERSION}"
                 else
                     log "WARNING: SRPMS upload failed;" \
-                        "skipping content modification and publication for ${REPO_NAME}-SRPMS"
+                        "skipping content modification and publication for ${REPO_NAME}-source"
                 fi
                 ;;
             x86_64)
@@ -250,9 +334,10 @@ elif [ "$OS_PKG_TYPE" = "deb" ]; then
     PACKAGE_MANAGER_VERSION="${VERSION}-1${OS_VERSION_NAME}"
     log "Starting DEB upload (OS_PKG_TYPE=${OS_PKG_TYPE})"
 
-    log "Uploading DEB artifacts to ${REPO_NAME}-${ARCH}"
+    _deb_upload_dir=$(resolve_deb_upload_dir "${WORKSPACE}/dist/ceph")
+    log "Uploading DEB artifacts to ${REPO_NAME}-${ARCH} from ${_deb_upload_dir}"
     _deb_pulp_uuids=()
-    if upload_deb_to_pulp "${WORKSPACE}/dist/ceph" "${REPO_NAME}-${ARCH}" \
+    if upload_deb_to_pulp "${_deb_upload_dir}" "${REPO_NAME}-${ARCH}" \
         "${ARCH}" _deb_pulp_uuids; then
         add_pulp_uploaded_packages_to_repository deb "${REPO_NAME}-${ARCH}" \
             _deb_pulp_uuids
@@ -265,7 +350,7 @@ elif [ "$OS_PKG_TYPE" = "deb" ]; then
         log "WARNING: DEB upload failed;" \
             "skipping content modification and publication for ${REPO_NAME}-${ARCH}"
     fi
-    unset _deb_pulp_uuids
+    unset _deb_pulp_uuids _deb_upload_dir
 
 else
     log "ERROR: Unsupported OS_PKG_TYPE='${OS_PKG_TYPE}' (expected rpm or deb)"
