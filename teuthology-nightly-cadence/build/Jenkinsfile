@@ -1,9 +1,9 @@
 /**
  * teuthology-nightly-cadence: expands daily/weekly cadence into SUITE_RUNS_JSON and invokes teuthology-runner.
  */
+import com.cloudbees.groovy.cps.NonCPS
 import java.util.Calendar
 import java.util.TimeZone
-import java.util.concurrent.ThreadLocalRandom
 
 pipeline {
     agent { label 'built-in' }
@@ -30,7 +30,7 @@ pipeline {
         string(name: 'TEUTH_CONFIG_OVERRIDE_YAML', defaultValue: '', description: 'Optional teuthology-suite argv.')
         string(name: 'SHAMAN_WAIT_TIMEOUT', defaultValue: '7200', description: 'Shaman wait timeout (seconds).')
         string(name: 'SHAMAN_WAIT_INTERVAL', defaultValue: '120', description: 'Shaman poll interval.')
-        string(name: 'SHAMAN_WAIT_PLATFORMS', defaultValue: 'rocky-10-default,ubuntu-jammy-default,centos-9-default', description: 'Shaman platforms.')
+        string(name: 'SHAMAN_WAIT_PLATFORMS', defaultValue: '', description: 'Optional Shaman --platform override. Empty = branch defaults (main/tentacle: rocky-10+ubuntu-noble+centos-9; squid: ubuntu-jammy+centos-9; quincy: ubuntu-jammy+debian-bullseye).')
         booleanParam(name: 'SKIP_SHAMAN_WAIT', defaultValue: false, description: 'Skip Shaman wait.')
         booleanParam(name: 'WAIT_FOR_RUNS', defaultValue: false, description: 'teuthology-wait in runner.')
         string(name: 'SUITE_WAIT_SLEEP', defaultValue: '15', description: 'Sleep before teuthology-wait.')
@@ -47,12 +47,13 @@ pipeline {
                     if (!runnerJob) {
                         runnerJob = 'teuthology-runner'
                     }
+                    def branch = params.CEPH_BRANCH?.trim() ?: ''
+                    if (!(branch ==~ '^[a-zA-Z0-9/._-]+$')) {
+                        error("CEPH_BRANCH contains unsupported characters: ${branch}")
+                    }
+                    def platforms = resolveShamanWaitPlatforms(branch, params.SHAMAN_WAIT_PLATFORMS?.trim())
                     def resolvedSha = params.CEPH_SHA1?.trim()
                     if (!resolvedSha) {
-                        def branch = params.CEPH_BRANCH?.trim() ?: ''
-                        if (!(branch ==~ '^[a-zA-Z0-9/._-]+$')) {
-                            error("CEPH_BRANCH contains unsupported characters: ${branch}")
-                        }
                         def timeout = params.SHAMAN_WAIT_TIMEOUT?.trim() ?: '7200'
                         def interval = params.SHAMAN_WAIT_INTERVAL?.trim() ?: '120'
                         if (!(timeout ==~ '^[0-9]+$') || timeout == '0') {
@@ -61,7 +62,6 @@ pipeline {
                         if (!(interval ==~ '^[0-9]+$') || interval == '0') {
                             error("SHAMAN_WAIT_INTERVAL must be a positive integer: ${interval}")
                         }
-                        def platforms = params.SHAMAN_WAIT_PLATFORMS?.trim() ?: 'rocky-10-default,ubuntu-jammy-default,centos-9-default'
                         def shamanScript = "${env.WORKSPACE}/teuthology-runner/scripts/wait_for_shaman_sha1.py"
                         if (!fileExists(shamanScript)) {
                             error("Missing ${shamanScript}")
@@ -106,7 +106,7 @@ pipeline {
                     }
                     tp << string(name: 'SHAMAN_WAIT_TIMEOUT', value: params.SHAMAN_WAIT_TIMEOUT.trim())
                     tp << string(name: 'SHAMAN_WAIT_INTERVAL', value: params.SHAMAN_WAIT_INTERVAL.trim())
-                    tp << string(name: 'SHAMAN_WAIT_PLATFORMS', value: params.SHAMAN_WAIT_PLATFORMS.trim())
+                    tp << string(name: 'SHAMAN_WAIT_PLATFORMS', value: platforms)
                     tp << string(name: 'PULPITO_BASE', value: (params.PULPITO_BASE ?: 'https://pulpito.ceph.com').trim())
                     tp << booleanParam(name: 'SKIP_SHAMAN_WAIT', value: params.SKIP_SHAMAN_WAIT)
                     tp << booleanParam(name: 'WAIT_FOR_RUNS', value: params.WAIT_FOR_RUNS)
@@ -124,16 +124,34 @@ pipeline {
     }
 }
 
+@NonCPS
+String resolveShamanWaitPlatforms(String branch, String override) {
+    if (override) {
+        return override
+    }
+    switch (branch.toLowerCase()) {
+        case 'main':
+        case 'tentacle':
+            return 'rocky-10-default,ubuntu-noble-default,centos-9-default'
+        case 'squid':
+            return 'ubuntu-jammy-default,centos-9-default'
+        case 'quincy':
+            return 'ubuntu-jammy-default,debian-bullseye-default'
+        default:
+            return 'ubuntu-jammy-default,debian-bullseye-default'
+    }
+}
+
+@NonCPS
 List expandCadenceToRows(String cadence, String branch) {
     def steps = cadenceSteps(cadence, branch.toLowerCase())
     if (!steps) {
         return []
     }
-    def rnd = ThreadLocalRandom.current()
     def rows = []
     for (def st in steps) {
         def part = st.partitions as int
-        def idx = rnd.nextInt(part)
+        def idx = (int) (Math.random() * part)
         def subset = "${idx}/${part}"
         def pr = st.priority ?: ''
         def m = [
