@@ -87,32 +87,32 @@ If set to true, the MaaS reimage step is skipped and only the post-reimage Ansib
 
 ***Jenkins pipeline***
 ```
-builder-reimage/Jenkins-job/prod-jenkins/jenkins-pipeline/build/Jenkinsfile
+builder-reimage/build/Jenkinsfile
 ```
 Defines the pipeline stages, parallel execution, OS detection, reimage, Ansible execution, and log archiving.
 
 ***Environment preparation***
 
 ```
-builder-reimage/Jenkins-job/prod-jenkins/jenkins-pipeline/build/scripts/ansible_runner.sh
+builder-reimage/build/prepare_env.sh
 ```
 Clones or updates required repositories, creates the virtual environment, installs Ansible if needed, and prepares workspace-local Ansible configuration.
 
 ***Ansible runner***
 ```
-builder-reimage/Jenkins-job/prod-jenkins/jenkins-pipeline/build/scripts/ansible_runner.sh
+builder-reimage/build/ansible_runner.sh
 ```
 Runs the post-reimage Ansible playbooks, handles retries, writes logs, and prints the final execution summary.
 
 ***OS and feature detection***
 ```
-builder-reimage/Jenkins-job/prod-jenkins/jenkins-pipeline/build/scripts/get_node_os.py
+builder-reimage/build/get_node_os.py
 ```
 Reads jenkins_builders.yml and extracts the installed OS and relevant labels such as libvirt.
 
 ***Reimage utility***
 ```
-builder-reimage/Jenkins-job/prod-jenkins/Jenkins_builder-reimage.py
+builder-reimage/build/Jenkins_builder-reimage.py
 ```
 Performs the MaaS-based release and deploy operations.
 
@@ -156,7 +156,7 @@ ansible_runner.sh retries each playbook up to three times and prints a final sum
 ## Reproducing this pipeline
 To reproduce this pipeline, the following are required:
 
-- Jenkins pipeline job configured with the JJB definition `builder-reimage/Jenkins-job/prod-jenkins/jenkins-pipeline/config/definitions/builder-reimage-pipeline.yml`
+- Jenkins pipeline job configured with the JJB definition `builder-reimage/config/definitions/builder-reimage.yml`
 - Jenkins agent with the teuthology label
 - Jenkins credentials:
 
