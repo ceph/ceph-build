@@ -33,7 +33,7 @@
       - git:
           url: https://github.com/ceph/ceph-build.git
           branches:
-            - builder-reimage-final
+            - main
           clean: true
 
     pipeline-scm:
@@ -41,6 +41,6 @@
         - git:
             url: https://github.com/ceph/ceph-build.git
             branches:
-              - builder-reimage-final
+              - main
       script-path: builder-reimage/build/Jenkinsfile
       lightweight-checkout: true
