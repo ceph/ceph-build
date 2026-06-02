@@ -1,5 +1,5 @@
 - job:
-    name: preserve-builder-reimage
+    name: builder-reimage
     project-type: pipeline
     description: "Pipeline to reimage Jenkins builders and run post-reimage ansible tasks (OS auto-detected from labels)"
 
