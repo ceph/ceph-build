@@ -75,5 +75,13 @@ echo "Installing Python dependencies..."
 pip install --upgrade pip
 pip install -r requirements.txt
 
+# -----------------------------------------------------------------------------
+# Step 3: Check for encrypted secrets
+# -----------------------------------------------------------------------------
+if [[ ! -f "maas_api.key" || ! -f "maas_api_key.encrypted" ]]; then
+    echo "Missing 'maas_api.key' or 'maas_api_key.encrypted'. Ensure both files are present."
+    exit 1
+fi
+
 echo
 echo "Setup complete."

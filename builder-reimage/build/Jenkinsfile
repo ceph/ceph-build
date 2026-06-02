@@ -54,7 +54,7 @@ pipeline {
                                             cp "${SSH_KEY}" /tmp/jenkins_git_key
                                             chmod 600 /tmp/jenkins_git_key
 
-                                            bash builder-reimage/Jenkins-job/prod-jenkins/jenkins-pipeline/build/scripts/prepare_env.sh \
+                                            bash builder-reimage/build/prepare_env.sh \
                                                 "${TARGET_FQDN}" \
                                                 "${WORK_DIR}" \
                                                 true \
@@ -68,7 +68,7 @@ pipeline {
                                 stage("Detect OS-${machine}") {
                                     def DETECTED_OS = sh(
                                         script: """#!/bin/bash
-                                            python3 builder-reimage/Jenkins-job/prod-jenkins/jenkins-pipeline/build/scripts/get_node_os.py \
+                                            python3 builder-reimage/build/get_node_os.py \
                                                 "${INVENTORY_FILE}" \
                                                 "${machine}"
                                         """,
@@ -97,7 +97,7 @@ pipeline {
                                             sh """#!/bin/bash
                                                 set -euo pipefail
 
-                                                REPO_DIR="\$WORKSPACE/builder-reimage/Jenkins-job/prod-jenkins"
+                                                REPO_DIR="\$WORKSPACE/builder-reimage"
                                                 VENV_PATH="\$REPO_DIR/.venv"
 
                                                 cd "\$REPO_DIR"
@@ -133,8 +133,8 @@ pipeline {
                                         sh """#!/bin/bash
                                             set -euo pipefail
 
-                                            REPO_DIR="\$WORKSPACE/builder-reimage/Jenkins-job/prod-jenkins"
-                                            BUILD_DIR="\$REPO_DIR/jenkins-pipeline/build"
+                                            REPO_DIR="\$WORKSPACE/builder-reimage"
+                                            BUILD_DIR="\$REPO_DIR/build"
                                             WORK_DIR="${WORK_DIR}"
                                             TARGET_FQDN="${TARGET_FQDN}"
 
@@ -152,12 +152,12 @@ pipeline {
 
                                             cd "\$BUILD_DIR"
 
-                                            bash scripts/prepare_env.sh "\$TARGET_FQDN" "\$WORK_DIR" true \
+                                            bash prepare_env.sh "\$TARGET_FQDN" "\$WORK_DIR" true \
                                               git@github.com:ceph/ceph-build.git \
                                               git@github.com:ceph/ceph-cm-ansible.git \
                                               git@github.com:ceph/ceph-sepia-secrets.git
 
-                                            bash scripts/ansible_runner.sh \
+                                            bash ansible_runner.sh \
                                               "\$TARGET_FQDN" \
                                               "\$WORK_DIR" \
                                               "${env.VENV_DIR}" \
