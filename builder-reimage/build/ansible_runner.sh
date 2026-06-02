@@ -7,7 +7,12 @@ export ANSIBLE_RETRY_FILES_ENABLED=False
 # ansible_runner.sh
 #
 # Usage:
-#   ansible_runner.sh <target_fqdn> <work_dir> <venv_dir> <os> <builder_token>
+#   ansible_runner.sh <target_fqdn> <work_dir> <venv_dir> <os> <builder_token> <libvirt_flag>
+#
+#   libvirt_flag:
+#       "true"  -> enable libvirt-specific configuration
+#       "false" -> default behavior
+#
 
 TARGET_FQDN="$1"
 WORK_DIR="$2"
