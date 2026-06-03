@@ -1,9 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-export ANSIBLE_STDOUT_CALLBACK=default
-export ANSIBLE_RETRY_FILES_ENABLED=False
-
 # ansible_runner.sh
 #
 # Usage:
@@ -12,19 +9,43 @@ export ANSIBLE_RETRY_FILES_ENABLED=False
 #   libvirt_flag:
 #       "true"  -> enable libvirt-specific configuration
 #       "false" -> default behavior
-#
 
+
+# Use default Ansible output format
+export ANSIBLE_STDOUT_CALLBACK=default
+
+# Disable creation of retry files
+export ANSIBLE_RETRY_FILES_ENABLED=False
+
+# Fully qualified domain name of the target node
 TARGET_FQDN="$1"
+
+# Per-node workspace directory used for execution
 WORK_DIR="$2"
+
+# Virtual environment directory name
 VENV_DIR="$3"
+
+# Detected OS value (converted to lowercase)
 OS_VALUE="${4,,}"
+
+# Token used by builder playbook for authentication
 BUILDER_TOKEN="$5"
+
+# Libvirt flag passed from pipeline (normalized to true/false)
 LIBVIRT=$(echo "${6:-false}" | tr '[:upper:]' '[:lower:]' | xargs)
+
+# Debug logs for libvirt flag
 echo "[ansible_runner][DEBUG] LIBVIRT raw value: '${6:-unset}'"
 echo "[ansible_runner][DEBUG] LIBVIRT normalized: '${LIBVIRT}'"
 
+# Path to Ansible repository (playbooks, roles)
 ANSIBLE_DIR="${WORK_DIR}/repos/ansible"
+
+# Path to main repository containing builder playbook
 MAIN_DIR="${WORK_DIR}/repos/main"
+
+# Path to store log files
 LOG_DIR="${WORK_DIR}/ansible-logs"
 
 # failure tracking
