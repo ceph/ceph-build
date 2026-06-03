@@ -1,3 +1,30 @@
+#!/usr/bin/env python3
+
+"""
+get_node_os.py
+
+Description:
+------------
+This script reads the Jenkins builders inventory file and extracts:
+  - The target operating system from the "installed-os-*" label
+  - Whether the "libvirt" label is present
+
+It returns the result in the format:
+  <os_name>,<libvirt_flag>
+
+Where:
+  os_name        -> e.g. jammy, centos9
+  libvirt_flag   -> "true" or "false"
+
+This output is consumed by the Jenkins pipeline to:
+  - determine which OS to use for MaaS reimage
+  - optionally enable libvirt-specific configuration in Ansible
+
+Usage:
+------
+  get_node_os.py <inventory_file> <node_name>
+"""
+
 import yaml
 import sys
 
