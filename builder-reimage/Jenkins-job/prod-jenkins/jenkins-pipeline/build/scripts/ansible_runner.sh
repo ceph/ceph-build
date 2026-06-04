@@ -3,6 +3,7 @@ set -euo pipefail
 
 export ANSIBLE_STDOUT_CALLBACK=default
 export ANSIBLE_RETRY_FILES_ENABLED=False
+export ANSIBLE_HOST_KEY_CHECKING=False
 
 # ansible_runner.sh
 #
