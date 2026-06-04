@@ -39,16 +39,15 @@ nvm install
 nvm use
 popd
 
-sudo apt install -y libvirt-daemon-system libvirt-daemon-driver-qemu qemu-kvm libvirt-clients
+sudo apt install -y libvirt-daemon-system libvirt-daemon-driver-qemu qemu-kvm libvirt-clients crun
 
 sudo usermod -aG libvirt $(id -un)
-newgrp libvirt  # Avoid having to log out and log in for group addition to take effect.
 sudo systemctl enable --now libvirtd
 
 KCLI_CONFIG_DIR="${HOME}/.kcli"
 mkdir -p ${KCLI_CONFIG_DIR}
 if [[ ! -f "${KCLI_CONFIG_DIR}/id_rsa" ]]; then
-    sudo ssh-keygen -t rsa -q -f "${KCLI_CONFIG_DIR}/id_rsa" -N "" <<< y
+    ssh-keygen -t rsa -q -f "${KCLI_CONFIG_DIR}/id_rsa" -N "" <<< y
 fi
 
 : ${KCLI_CONTAINER_IMAGE:='quay.io/karmab/kcli:2543a61'}
@@ -58,7 +57,7 @@ podman pull ${KCLI_CONTAINER_IMAGE}
 echo "#!/usr/bin/env bash
 
 podman run --rm --net host --security-opt label=disable \
-    --group-add keep-groups \
+    --runtime crun --group-add keep-groups \
     -v ${KCLI_CONFIG_DIR}:/root/.kcli \
     -v ${PWD}:/workdir \
     -v /var/lib/libvirt/images:/var/lib/libvirt/images \
@@ -70,6 +69,7 @@ sudo chmod +x /usr/local/bin/kcli
 
 # KCLI cleanup function can be found here: https://github.com/ceph/ceph/blob/main/src/pybind/mgr/dashboard/ci/cephadm/start-cluster.sh
 sudo mkdir -p /var/lib/libvirt/images/ceph-dashboard
+sudo chown "$(id -u):$(id -g)" /var/lib/libvirt/images/ceph-dashboard
 
 with_libvirt() {
     sg libvirt -c "$1"
