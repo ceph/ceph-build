@@ -81,7 +81,12 @@ pipeline {
                     if (!rows) {
                         error("No suites for CADENCE=${params.CADENCE} CEPH_BRANCH=${params.CEPH_BRANCH}")
                     }
-                    echo "Cadence suites: ${rows.collect { it.suite }.join(', ')}"
+                    rows.each { r ->
+                        if (!r.subset?.toString()?.trim()) {
+                            error("Cadence row ${r.suite} has no subset (would schedule the full suite). Check for CPS method-mismatch in the log above.")
+                        }
+                        echo "Cadence schedule: ${r.suite} subset=${r.subset} priority=${r.priority}"
+                    }
                     def json = suiteRunsRowsToJson(rows)
                     def tp = []
                     tp << string(name: 'AGENT_LABEL', value: params.AGENT_LABEL.trim())
@@ -89,6 +94,7 @@ pipeline {
                     tp << string(name: 'CEPH_BRANCH', value: params.CEPH_BRANCH)
                     tp << string(name: 'CEPH_REPO', value: params.CEPH_REPO.trim())
                     tp << string(name: 'CEPH_SHA1', value: resolvedSha)
+                    tp << string(name: 'SUITE_SHA', value: resolvedSha)
                     tp << booleanParam(name: 'USE_WORKSPACE_TEUTHOLOGY', value: params.USE_WORKSPACE_TEUTHOLOGY)
                     tp << string(name: 'TEUTHOLOGY_REPO_URL', value: params.TEUTHOLOGY_REPO_URL.trim())
                     tp << string(name: 'TEUTHOLOGY_BRANCH', value: params.TEUTHOLOGY_BRANCH.trim())
@@ -183,6 +189,7 @@ List expandCadenceToRows(String cadence, String branch) {
     return rows
 }
 
+@NonCPS
 List weeklySuiteSteps(String branch) {
     def b = branch.toLowerCase()
     switch (b) {
@@ -234,6 +241,7 @@ List weeklySuiteSteps(String branch) {
     }
 }
 
+@NonCPS
 def cadenceSteps(String cadence, String branch) {
     def b = branch.toLowerCase()
     def c = cadence?.toLowerCase()
@@ -273,6 +281,7 @@ def cadenceSteps(String cadence, String branch) {
     return [weeklies[idx]]
 }
 
+@NonCPS
 String suiteRunsRowsToJson(List rows) {
     def sb = new StringBuilder()
     sb.append('[')
@@ -304,6 +313,7 @@ String suiteRunsRowsToJson(List rows) {
     return sb.toString()
 }
 
+@NonCPS
 String jsonStringEscape(String s) {
     if (s == null) {
         return ''
