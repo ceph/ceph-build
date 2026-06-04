@@ -26,6 +26,8 @@ LOG_DIR="${WORK_DIR}/ansible-logs"
 FAILED_PLAYBOOKS=()
 FAILED_LOGS=()
 
+# SSH USER
+SSH_USER="cm"
 
 # Ensure secrets path exists (independent of prepare_env.sh)
 
@@ -56,14 +58,6 @@ else
     echo "[ansible_runner] WARNING: venv not found at ${WORK_DIR}/${VENV_DIR}. Continuing without venv."
 fi
 
-# Determine SSH user based on OS
-if [[ "$OS_VALUE" =~ (rhel|centos|rocky|almai|9-stream|rhel10|centos70|8) ]]; then
-    SSH_USER="cloud-user"
-else
-    SSH_USER="ubuntu"
-fi
-
-echo "[ansible_runner] SSH user selected = ${SSH_USER}"
 echo "[ansible_runner] Using inventory = ${INVENTORY_PATH}"
 echo "[ansible_runner] Using secrets = ${SECRETS_PATH}"
 
