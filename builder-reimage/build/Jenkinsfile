@@ -73,22 +73,27 @@ pipeline {
                                             passwordVariable: 'JOB_BUILDER_PASS'
                                         )
                                     ]) {
-                                        sh '''#!/bin/bash
-                                            set -euo pipefail
-
-                                            echo "[INFO] Syncing Jenkins labels for ${machine}"
-                                            echo "JENKINS_URL is: ${env.JENKINS_URL}"
-
-                                            python3 builder-reimage/build/sync_labels.py \
-                                              --file "${INVENTORY_FILE}" \
-                                              --jenkins_url "${env.JENKINS_URL}" \
-                                              --user "$JOB_BUILDER_USER" \
-                                              --token "$JOB_BUILDER_PASS" \
-                                              --node "${TARGET_FQDN}"
-                                        '''
+                                        withEnv([
+                                            "SYNC_MACHINE=${machine}",
+                                            "SYNC_TARGET_FQDN=${TARGET_FQDN}",
+                                            "SYNC_INVENTORY_FILE=${INVENTORY_FILE}"
+                                        ]) {
+                                            sh '''#!/bin/bash
+                                                set -euo pipefail
+                                
+                                                echo "[INFO] Syncing Jenkins labels for $SYNC_MACHINE"
+                                                echo "JENKINS_URL is: $JENKINS_URL"
+                                
+                                                python3 builder-reimage/build/sync_labels.py \
+                                                  --file "$SYNC_INVENTORY_FILE" \
+                                                  --jenkins_url "$JENKINS_URL" \
+                                                  --user "$JOB_BUILDER_USER" \
+                                                  --token "$JOB_BUILDER_PASS" \
+                                                  --node "$SYNC_TARGET_FQDN"
+                                            '''
+                                        }
                                     }
                                 }
-
                                 stage("Detect OS-${machine}") {
                                     def DETECTED_OS = sh(
                                         script: """#!/bin/bash
