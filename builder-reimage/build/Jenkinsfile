@@ -64,6 +64,30 @@ pipeline {
                                         """
                                     }
                                 }
+                                
+                                stage("Sync Labels-${machine}") {
+                                    withCredentials([
+                                        usernamePassword(
+                                            credentialsId: 'jenkins-api-token',
+                                            usernameVariable: 'JOB_BUILDER_USER',
+                                            passwordVariable: 'JOB_BUILDER_PASS'
+                                        )
+                                    ]) {
+                                        sh """#!/bin/bash
+                                            set -euo pipefail
+
+                                            echo "[INFO] Syncing Jenkins labels for ${machine}"
+                                            echo "JENKINS_URL is: ${env.JENKINS_URL}"
+
+                                            python3 builder-reimage/build/sync_labels.py \
+                                              --file "${INVENTORY_FILE}" \
+                                              --jenkins_url "${env.JENKINS_URL}" \
+                                              --user "${JOB_BUILDER_USER}" \
+                                              --token "${JOB_BUILDER_PASS}" \
+                                              --node "${TARGET_FQDN}"
+                                        """
+                                    }
+                                }
 
                                 stage("Detect OS-${machine}") {
                                     def DETECTED_OS = sh(
