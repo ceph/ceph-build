@@ -13,7 +13,7 @@ import yaml
 import requests
 import argparse
 from urllib.parse import quote
-from lxml import etree as ET
+import xml.etree.ElementTree as ET
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--file", required=True)
@@ -76,8 +76,11 @@ r.raise_for_status()
 
 xml_data = r.text
 
-# Parse XML safely (supports XML 1.1)
-root = ET.fromstring(xml_data.encode())
+# Strip XML declaration if needed (handles XML 1.1 safely)
+if xml_data.startswith("<?xml"):
+    xml_data = xml_data.split("?>", 1)[1]
+
+root = ET.fromstring(xml_data)
 
 label_node = root.find("label")
 

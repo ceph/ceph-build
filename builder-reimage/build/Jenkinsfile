@@ -73,7 +73,7 @@ pipeline {
                                             passwordVariable: 'JOB_BUILDER_PASS'
                                         )
                                     ]) {
-                                        sh """#!/bin/bash
+                                        sh '''#!/bin/bash
                                             set -euo pipefail
 
                                             echo "[INFO] Syncing Jenkins labels for ${machine}"
@@ -85,7 +85,7 @@ pipeline {
                                               --user "$JOB_BUILDER_USER" \
                                               --token "$JOB_BUILDER_PASS" \
                                               --node "${TARGET_FQDN}"
-                                        """
+                                        '''
                                     }
                                 }
 
