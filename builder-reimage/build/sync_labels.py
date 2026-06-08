@@ -37,7 +37,10 @@ if not inventory_labels:
 inventory_labels = " ".join(sorted(inventory_labels.split()))
 
 # --- Fetch Jenkins config ---
-url = f"{args.jenkins_url}/computer/{args.node.split('.')[0]}/config.xml"
+base_url = args.jenkins_url.rstrip('/')
+node_name = args.node.split('.')[0]
+
+url = f"{base_url}/computer/{node_name}/config.xml"
 
 r = requests.get(url, auth=(args.user, args.token))
 r.raise_for_status()

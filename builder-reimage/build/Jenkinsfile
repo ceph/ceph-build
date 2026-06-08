@@ -82,8 +82,8 @@ pipeline {
                                             python3 builder-reimage/build/sync_labels.py \
                                               --file "${INVENTORY_FILE}" \
                                               --jenkins_url "${env.JENKINS_URL}" \
-                                              --user "${JOB_BUILDER_USER}" \
-                                              --token "${JOB_BUILDER_PASS}" \
+                                              --user "$JOB_BUILDER_USER" \
+                                              --token "$JOB_BUILDER_PASS" \
                                               --node "${TARGET_FQDN}"
                                         """
                                     }
