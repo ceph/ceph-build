@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # Builder Reimage Pipeline
 
 ## Overview
@@ -301,4 +300,3 @@ GitHub: jitendrasahu1803
 ## License
 
 This project is licensed under the MIT License.
->>>>>>> 5c056f6f (Add builder reimage Jenkins pipelines and configs)
