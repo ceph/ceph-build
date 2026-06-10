@@ -381,7 +381,7 @@ pipeline {
                   podman pull ${env.CEPH_BUILDER_IMAGE}:${ceph_builder_tag_short} || \
                   true
                 """
-                def withCrimson = !(env.BRANCH in ['tentacle', 'squid', 'reef'])
+                def withCrimson = !(env.BRANCH in ['umbrella', 'tentacle', 'squid', 'reef'])
                 sh """#!/bin/bash
                   set -ex
                   echo > .env
