@@ -4,6 +4,7 @@ import groovy.transform.Field
 @Field String ceph_build_branch = "main"
 @Field String base_node_label = "gigantic"
 @Field Map ubuntu_releases = [
+  "resolute": "26.04",
   "noble": "24.04",
   "jammy": "22.04",
   "focal": "20.04",
