@@ -20,7 +20,7 @@ def pretty(obj) {
 // These are the default parameter values for the pipeline
 @Field def defaults = [
   'CEPH_BUILD_JOB': 'ceph-dev-pipeline',
-  'DISTROS': 'rocky10 centos9 jammy noble windows',
+  'DISTROS': 'rocky10 centos9 noble resolute windows',
   'ARCHS': 'x86_64',
   'FLAVOR': 'default',
 ]
