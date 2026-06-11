@@ -22,7 +22,7 @@ node('built-in') {
           ]
       ],
       umbrella: [
-          distros: 'noble rocky10 centos9 windows',
+          distros: 'noble jammy rocky10 centos9 windows',
           extras : [
               [distros:'centos9 rocky10', flavors:'debug', archs:'x86_64']
           ]
