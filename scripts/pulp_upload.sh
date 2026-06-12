@@ -26,6 +26,8 @@ source ./scripts/build_utils.sh
 export PATH="$HOME/.local/bin:$PATH"
 
 PULP_PROJECT="ceph"
+# Must match the base URL the Pulp client is configured with in setup_pulp.sh
+PULP_SERVER_URL="https://pulp.front.sepia.ceph.com"
 SHORT_SHA1=${SHA1: -8}
 
 # Log a message to stderr with a consistent prefix.
@@ -520,3 +522,14 @@ else
     log "ERROR: Unsupported OS_PKG_TYPE='${OS_PKG_TYPE}' (expected rpm or deb)"
     exit 1
 fi
+
+# Hand off repo metadata to the shaman notify step, which runs as a
+# separate process. PACKAGE_MANAGER_VERSION is included in the repo
+# record's extra metadata; the repository's API URL becomes the record's
+# chacra_url. See notify_shaman_pulp_repo.sh.
+_repo_href=$(pulp "${OS_PKG_TYPE}" repository show \
+    --name "${REPO_NAME}-${ARCH}" | jq -r '.pulp_href')
+{
+    printf 'PACKAGE_MANAGER_VERSION=%q\n' "${PACKAGE_MANAGER_VERSION}"
+    printf 'PULP_REPO_API_URL=%q\n' "${PULP_SERVER_URL}${_repo_href}"
+} > "${WORKSPACE}/pulp_repo_info"
