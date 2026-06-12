@@ -210,17 +210,45 @@ pipeline {
     }
 
     post {
-        always {
-            sh 'rm -f /home/jenkins-build/.vault_pass.txt || true'
-            echo 'Build finished'
-        }
+    always {
+        sh 'rm -f /home/jenkins-build/.vault_pass.txt || true'
+        echo 'Build finished'
+    }
 
-        failure {
-            echo 'One or more nodes failed'
-        }
+    aborted {
+        script {
+            def machines = params.MACHINE.split(',').collect { it.trim() }
 
-        success {
-            echo 'All nodes completed successfully'
+            for (m in machines) {
+                withCredentials([string(credentialsId: 'maas-api-key', variable: 'MAAS_API_KEY')]) {
+                    sh """#!/bin/bash
+                        set +e
+
+                        REPO_DIR="\$WORKSPACE/builder-reimage/build"
+                        VENV_PATH="\$REPO_DIR/.venv"
+
+                        cd "\$REPO_DIR"
+
+                        if [ -d "\$VENV_PATH" ]; then
+                            source "\$VENV_PATH/bin/activate"
+                        fi
+
+                        echo "Aborting MAAS deployment for ${m}"
+
+                        python Jenkins_builder-reimage.py \
+                          --action abort_deploy \
+                          --machine ${m}
+                    """
+                }
+            }
         }
+    }
+
+    failure {
+        echo 'One or more nodes failed'
+    }
+
+    success {
+        echo 'All nodes completed successfully'
     }
 }
