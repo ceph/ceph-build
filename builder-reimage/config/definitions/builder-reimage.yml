@@ -1,5 +1,5 @@
 - job:
-    name: builder-reimage
+    name: preserve-builder-reimage
     project-type: pipeline
     description: "Pipeline to reimage Jenkins builders and run post-reimage ansible tasks (OS auto-detected from labels)"
 
@@ -33,7 +33,7 @@
       - git:
           url: https://github.com/ceph/ceph-build.git
           branches:
-            - main  
+            - main
           clean: true
 
     pipeline-scm:
