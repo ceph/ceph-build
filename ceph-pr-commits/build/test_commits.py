@@ -39,9 +39,13 @@ class TestCommits(object):
 
     @pytest.mark.doc_test
     def test_doc_title(self):
-        doc_regex = '\nDate:[^\n]+\n\n    doc'
-        all_commits = 'git log -z --no-merges origin/%s..%s' % (
-            self.target_branch, self.source_branch)
+        if self.target_branch == 'main':
+            doc_regex = '^doc'
+        else:
+            # the title of a non-cherry-pick commit starts with the target branch name, like
+            # "squid: doc: ...." instead of "doc: ..."
+            doc_regex = f'^({self.target_branch}: )?doc'
+        all_commits = f'git log -z --no-merges --pretty=format:%s origin/{self.target_branch}..{self.source_branch}'
         wrong_commits = list(filterfalse(
             re.compile(doc_regex).search,
             self.command(all_commits).split('\0')))
