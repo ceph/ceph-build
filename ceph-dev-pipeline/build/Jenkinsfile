@@ -606,6 +606,7 @@ pipeline {
                     export FLAVOR="${env.FLAVOR}"
 
                     ./scripts/pulp_upload.sh
+                    ./scripts/notify_shaman_pulp_repo.sh ready ceph ${os.name} ${os.version_name} $ARCH https://pulp.front.sepia.ceph.com/pulp/content/repos/ceph/${env.BRANCH}/${env.SHA1}/${os.name}/${os.version_name}/flavors/${env.FLAVOR}/
                   else
                     echo "Skipping pulp upload because PULP_UPLOAD=$PULP_UPLOAD"
                   fi

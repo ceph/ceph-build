@@ -417,3 +417,9 @@ else
     log "ERROR: Unsupported OS_PKG_TYPE='${OS_PKG_TYPE}' (expected rpm or deb)"
     exit 1
 fi
+
+# Hand off the computed package-manager version to the shaman notify step,
+# which runs as a separate process and includes it in the repo's extra
+# metadata. See notify_shaman_pulp_repo.sh.
+printf 'PACKAGE_MANAGER_VERSION=%q\n' "${PACKAGE_MANAGER_VERSION}" \
+    > "${WORKSPACE}/pulp_repo_info"
