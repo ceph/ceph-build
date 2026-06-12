@@ -50,5 +50,11 @@ for label in labels:
     if label == "libvirt":
         libvirt = "true"
 
+# Validate that an OS label exists
+if not os_name:
+    # Fail early if required installed-os-* label is missing
+    print(f"[ERROR] No installed-os-* label found for {node_name}")
+    sys.exit(1)
+
 # Print both values in structured way
 print(f"{os_name},{libvirt}")

@@ -87,12 +87,16 @@ async def get_cached_machines(client):
 # Wait for status
 # -------------------------------------------------------------------------
 async def wait_for_status(client, system_id, expected):
-    expected = expected.lower()
+    if isinstance(expected, str):
+        expected_states = {expected.lower()}
+    else:
+        expected_states = {x.lower() for x in expected}
+
     start = time.time()
 
     while time.time() - start < STATUS_WAIT_TIMEOUT:
         m = await client.machines.get(system_id=system_id)
-        if get_normalized_status(m) == expected:
+        if get_normalized_status(m) in expected_states:
             return True
         await asyncio.sleep(5)
 
@@ -142,8 +146,16 @@ async def release_machine(machine):
         await machine.release()
 
 # -------------------------------------------------------------------------
+# Commission
+# -------------------------------------------------------------------------
+async def commission_machine(machine):
+    if get_normalized_status(machine) == "new":
+        await machine.commission()
+
+# -------------------------------------------------------------------------
 # Reimage
 # -------------------------------------------------------------------------
+
 async def reimage_machine(client, hostname, os_release, log_file):
     machines = await get_cached_machines(client)
     m = next((x for x in machines if x.hostname == hostname), None)
@@ -155,6 +167,7 @@ async def reimage_machine(client, hostname, os_release, log_file):
     m = await client.machines.get(system_id=m.system_id)
 
     status = get_normalized_status(m)
+    log(f"[INFO] Current state for {hostname}: {status}", log_file)
 
     if status == "deployed":
         log(f"[ACTION] Releasing {hostname}", log_file)
@@ -162,7 +175,40 @@ async def reimage_machine(client, hostname, os_release, log_file):
         if not await wait_for_status(client, m.system_id, "ready"):
             return False
 
+    if status == "new":
+        log(f"[ACTION] Commissioning {hostname}", log_file)
+        await commission_machine(m)
+        if not await wait_for_status(client, m.system_id, "ready"):
+            return False
+
     return await deploy_machine(client, hostname, os_release, log_file)
+
+# -------------------------------------------------------------------------
+# Abort Deploy
+# -------------------------------------------------------------------------
+async def abort_deploy_machine(client, hostname, log_file):
+    machines = await get_cached_machines(client)
+    m = next((x for x in machines if x.hostname == hostname), None)
+
+    if not m:
+        log(f"[WARN] {hostname} not found", log_file)
+        return False
+
+    m = await client.machines.get(system_id=m.system_id)
+    status = get_normalized_status(m)
+
+    if status == "deploying":
+        log(f"[ACTION] Aborting deployment for {hostname}", log_file)
+        try:
+            await m.abort()
+            log(f"[SUCCESS] Deployment aborted for {hostname}", log_file)
+            return True
+        except Exception as e:
+            log(f"[ERROR] Failed to abort deployment for {hostname}: {e}", log_file)
+            return False
+
+    log(f"[INFO] No active deployment to abort for {hostname} (state: {status})", log_file)
+    return True
 
 # -------------------------------------------------------------------------
 # Main
@@ -180,7 +226,6 @@ async def main():
     client = await connect_maas()
     client._machines_cache = await client.machines.list()
 
-    # UPDATED: multi-machine support
     if args.action == "reimage":
         if not args.machine:
             print("Missing --machine")
@@ -207,6 +252,43 @@ async def main():
         log(f"Total: {len(machine_list)}", log_file)
         log(f"Success: {success}", log_file)
         log(f"Failed: {failed}", log_file)
+
+        if failed > 0:
+            sys.exit(1)
+
+        sys.exit(0)
+
+    if args.action == "abort_deploy":
+        if not args.machine:
+            print("Missing --machine")
+            return
+
+        machine_list = parse_machine_list(args.machine, args.os)
+
+        success = 0
+        failed = 0
+
+        for hostname, _ in machine_list:
+            log(f"\n[ABORT CHECK] {hostname}", log_file)
+            try:
+                result = await abort_deploy_machine(client, hostname, log_file)
+                if result:
+                    success += 1
+                else:
+                    failed += 1
+            except Exception as e:
+                log(f"[ERROR] {hostname}: {e}", log_file)
+                failed += 1
+
+        log("\n===== ABORT SUMMARY =====", log_file)
+        log(f"Total: {len(machine_list)}", log_file)
+        log(f"Success: {success}", log_file)
+        log(f"Failed: {failed}", log_file)
+
+        if failed > 0:
+            sys.exit(1)
+
+        sys.exit(0)
 
 # -------------------------------------------------------------------------
 
