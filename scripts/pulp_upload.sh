@@ -240,7 +240,6 @@ publish_pulp_distribution() {
 
 log "Uploading artifacts to Pulp repository ..."
 
-BRANCH=$(release_from_version "${CEPH_VERSION}")
 _OS_VERSION=$(resolve_os_version_for_repo)
 
 REPO_NAME="${PULP_PROJECT}-${BRANCH}-${OS_NAME}-${_OS_VERSION}"
