@@ -592,7 +592,7 @@ pipeline {
                   export OS_VERSION="${os.version}"
                   export OS_VERSION_NAME="${os.version_name}"
                   export OS_PKG_TYPE="${os.pkg_type}"
-                  if [ "$THROWAWAY" != "true" ]; then ./scripts/chacra_upload.sh; fi
+                  if [ "$THROWAWAY" != "true" ] && [ "$CHACRA_UPLOAD" == "true" ]; then ./scripts/chacra_upload.sh; fi
                 """
 
                 sh """#!/bin/bash
