@@ -61,6 +61,14 @@ pipeline {
                                                 git@github.com:ceph/ceph-build.git \
                                                 git@github.com:ceph/ceph-cm-ansible.git \
                                                 git@github.com:ceph/ceph-sepia-secrets.git
+                                            
+                                            # Temporary test helper to use a non-default secrets repo branch.
+                                            # Uncomment the lines below only for branch-based inventory validation.
+
+                                            # export GIT_SSH_COMMAND="ssh -i /tmp/jenkins_git_key -o StrictHostKeyChecking=no"
+                                            # cd "${WORK_DIR}/repos/secret-repo"    
+                                            # git fetch origin <local_branch_name>
+                                            # git checkout -B <local_branch_name> FETCH_HEAD
                                         """
                                     }
                                 }
@@ -210,45 +218,56 @@ pipeline {
     }
 
     post {
-    always {
-        sh 'rm -f /home/jenkins-build/.vault_pass.txt || true'
-        echo 'Build finished'
-    }
+        always {
+            sh 'rm -f /home/jenkins-build/.vault_pass.txt || true'
+            echo 'Build finished'
+        }
 
-    aborted {
-        script {
-            def machines = params.MACHINE.split(',').collect { it.trim() }
-
-            for (m in machines) {
-                withCredentials([string(credentialsId: 'maas-api-key', variable: 'MAAS_API_KEY')]) {
-                    sh """#!/bin/bash
-                        set +e
-
-                        REPO_DIR="\$WORKSPACE/builder-reimage/build"
-                        VENV_PATH="\$REPO_DIR/.venv"
-
-                        cd "\$REPO_DIR"
-
-                        if [ -d "\$VENV_PATH" ]; then
-                            source "\$VENV_PATH/bin/activate"
-                        fi
-
-                        echo "Aborting MAAS deployment for ${m}"
-
-                        python Jenkins_builder-reimage.py \
-                          --action abort_deploy \
-                          --machine ${m}
-                    """
+        aborted {
+            script {
+                def machines = params.MACHINE.split(',').collect { it.trim() }
+        
+                for (m in machines) {
+                    withCredentials([string(credentialsId: 'maas-api-key', variable: 'MAAS_API_KEY')]) {
+                        withEnv(["ABORT_MACHINE=${m}"]) {
+                            sh '''#!/bin/bash
+                                set +e
+        
+                                REPO_DIR="$WORKSPACE/builder-reimage/build"
+                                VENV_PATH="$REPO_DIR/.venv"
+        
+                                cd "$REPO_DIR"
+        
+                                if [ ! -d "$VENV_PATH" ]; then
+                                    echo "Creating virtual environment for abort cleanup"
+                                    python3 -m venv "$VENV_PATH"
+                                    source "$VENV_PATH/bin/activate"
+                                    pip install --upgrade pip
+                                    pip install -r requirements.txt
+                                else
+                                    source "$VENV_PATH/bin/activate"
+                                fi
+        
+                                echo "Aborting MAAS deployment for $ABORT_MACHINE"
+        
+                                python3 Jenkins_builder-reimage.py \
+                                  --action abort_deploy \
+                                  --machine "$ABORT_MACHINE"
+        
+                                exit 0
+                            '''
+                        }
+                    }
                 }
             }
         }
-    }
 
-    failure {
-        echo 'One or more nodes failed'
-    }
+        failure {
+            echo 'One or more nodes failed'
+        }
 
-    success {
-        echo 'All nodes completed successfully'
+        success {
+            echo 'All nodes completed successfully'
+        }
     }
-}
+}    
