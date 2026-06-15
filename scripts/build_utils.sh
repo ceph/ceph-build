@@ -1629,6 +1629,13 @@ pr_only_for() {
   # receive by creating another local array ("$@")
   local -n local_patterns=$1
   local files
+  # Manually-triggered jobs don't get the ghprb* variables set by the GitHub
+  # Pull Request Builder plugin.  Assume ceph/ceph and look up the PR's target
+  # branch from the GitHub API.
+  if [ "$BUILD_CAUSE" = "MANUALTRIGGER" ]; then
+    ghprbGhRepository="ceph/ceph"
+    ghprbTargetBranch="$(curl -s -u ${GITHUB_USER}:${GITHUB_PASS} https://api.github.com/repos/${ghprbGhRepository}/pulls/${ghprbPullId} | jq -r '.base.ref')"
+  fi
   pushd .
   # cd to ceph repo if we need to.
   # The ceph-pr-commits job checks out ceph.git and ceph-build.git but most
