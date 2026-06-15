@@ -1,7 +1,7 @@
 /**
  * Triggers teuthology-nightly-cadence with wait:false. Timer builds use CADENCE=daily for all branches
- * (main, tentacle, squid, quincy). Each branch rotates one suite per day from its pool; tentacle and squid
- * also prepend smoke on Sundays. Manual builds use the selected CEPH_BRANCH and CADENCE.
+ * (main, tentacle, squid, umbrella). main and umbrella: smoke plus one rotating suite daily.
+ * tentacle and squid: one rotating suite daily (+smoke on Sundays). Manual builds use the selected CEPH_BRANCH and CADENCE.
  */
 pipeline {
     agent any
@@ -13,7 +13,7 @@ pipeline {
     }
     parameters {
         choice(name: 'CADENCE', choices: ['daily', 'weekly'], description: 'Cadence tier.')
-        choice(name: 'CEPH_BRANCH', choices: ['main', 'tentacle', 'squid', 'quincy'], description: 'Ceph branch (manual builds only; timer fires all branches).')
+        choice(name: 'CEPH_BRANCH', choices: ['main', 'tentacle', 'squid', 'umbrella'], description: 'Ceph branch (manual builds only; timer fires all branches).')
         string(
             name: 'CEPH_BUILD_BRANCH',
             defaultValue: 'main',
@@ -51,7 +51,7 @@ pipeline {
 
                     def branches
                     if (timerCause && !timerCause.isEmpty()) {
-                        branches = ['main', 'tentacle', 'squid', 'quincy']
+                        branches = ['main', 'tentacle', 'squid', 'umbrella']
                     } else {
                         branches = [params.CEPH_BRANCH]
                     }

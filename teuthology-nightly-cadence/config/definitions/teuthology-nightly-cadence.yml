@@ -40,7 +40,7 @@
 - job:
     name: teuthology-nightly-cadence-trigger
     description: |
-      Triggers teuthology-nightly-cadence with wait:false. Timed builds run daily cadence for all branches (main, tentacle, squid, quincy). Each branch rotates one suite per day; tentacle and squid also run smoke on Sundays.
+      Triggers teuthology-nightly-cadence with wait:false. Timed builds run daily cadence for all branches (main, tentacle, squid, umbrella). main and umbrella: smoke plus one rotating suite daily. tentacle and squid: one rotating suite daily (smoke on Sundays).
     project-type: pipeline
     quiet-period: 0
     concurrent: true

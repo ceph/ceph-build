@@ -5,6 +5,9 @@ import com.cloudbees.groovy.cps.NonCPS
 import java.util.Calendar
 import java.util.TimeZone
 
+// Nightly tier: ahead of the old 800+ backlog but behind dev/release jobs (50–75).
+final String NIGHTLY_PRIORITY = '200'
+
 pipeline {
     agent { label 'built-in' }
     options {
@@ -16,8 +19,8 @@ pipeline {
         string(name: 'CEPH_BUILD_BRANCH', defaultValue: 'main', description: 'ceph-build branch for teuthology-runner SCM.')
         string(name: 'TEUTHOLOGY_RUNNER_JOB_NAME', defaultValue: 'teuthology-runner', description: 'Jenkins job name for the runner pipeline.')
         string(name: 'AGENT_LABEL', defaultValue: 'teuthology', description: 'Agent label for teuthology-runner.')
-        choice(name: 'CADENCE', choices: ['daily', 'weekly'], description: 'daily: main gets nop+smoke+one rotating suite; tentacle/squid get one rotating suite (+smoke on Sundays); quincy rotates one upgrade suite. weekly: full per-branch suite list.')
-        choice(name: 'CEPH_BRANCH', choices: ['main', 'tentacle', 'squid', 'quincy'], description: 'Ceph branch.')
+        choice(name: 'CADENCE', choices: ['daily', 'weekly'], description: 'daily: main/umbrella get smoke+one rotating suite; tentacle/squid get one rotating suite (+smoke on Sundays). weekly: full per-branch suite list.')
+        choice(name: 'CEPH_BRANCH', choices: ['main', 'tentacle', 'squid', 'umbrella'], description: 'Ceph branch.')
         string(name: 'CEPH_REPO', defaultValue: 'https://github.com/ceph/ceph.git', description: 'Ceph git URL.')
         string(name: 'CEPH_SHA1', defaultValue: '', description: 'Optional SHA1. Empty = resolve from Shaman for SHAMAN_WAIT_PLATFORMS, then pass explicitly to teuthology-runner.')
         booleanParam(name: 'USE_WORKSPACE_TEUTHOLOGY', defaultValue: true, description: 'Clone teuthology in runner workspace.')
@@ -30,7 +33,7 @@ pipeline {
         string(name: 'TEUTH_CONFIG_OVERRIDE_YAML', defaultValue: '', description: 'Optional teuthology-suite argv.')
         string(name: 'SHAMAN_WAIT_TIMEOUT', defaultValue: '7200', description: 'Shaman wait timeout (seconds).')
         string(name: 'SHAMAN_WAIT_INTERVAL', defaultValue: '120', description: 'Shaman poll interval.')
-        string(name: 'SHAMAN_WAIT_PLATFORMS', defaultValue: '', description: 'Optional Shaman --platform override. Empty = branch defaults (main/tentacle: rocky-10+ubuntu-noble+centos-9; squid: ubuntu-jammy+centos-9; quincy: ubuntu-jammy+debian-bullseye).')
+        string(name: 'SHAMAN_WAIT_PLATFORMS', defaultValue: '', description: 'Optional Shaman --platform override. Empty = branch defaults (main/tentacle/umbrella: rocky-10+ubuntu-noble+centos-9; squid: ubuntu-jammy+centos-9).')
         booleanParam(name: 'SKIP_SHAMAN_WAIT', defaultValue: false, description: 'Skip Shaman wait.')
         booleanParam(name: 'WAIT_FOR_RUNS', defaultValue: false, description: 'teuthology-wait in runner.')
         string(name: 'SUITE_WAIT_SLEEP', defaultValue: '15', description: 'Sleep before teuthology-wait.')
@@ -138,13 +141,12 @@ String resolveShamanWaitPlatforms(String branch, String override) {
     switch (branch.toLowerCase()) {
         case 'main':
         case 'tentacle':
+        case 'umbrella':
             return 'rocky-10-default,ubuntu-noble-default,centos-9-default'
         case 'squid':
             return 'ubuntu-jammy-default,centos-9-default'
-        case 'quincy':
-            return 'ubuntu-jammy-default,debian-bullseye-default'
         default:
-            return 'ubuntu-jammy-default,debian-bullseye-default'
+            return 'ubuntu-jammy-default,centos-9-default'
     }
 }
 
@@ -194,47 +196,41 @@ List weeklySuiteSteps(String branch) {
     def b = branch.toLowerCase()
     switch (b) {
         case 'main':
+        case 'umbrella':
             return [
                 [suite: 'rados', partitions: 100000, priority: '101', forcePriority: true],
                 [suite: 'rados', partitions: 100000, priority: '101', forcePriority: true, flavor: 'debug'],
-                [suite: 'orch', partitions: 64, priority: '950', forcePriority: false],
-                [suite: 'rbd', partitions: 128, priority: '950', forcePriority: false],
-                [suite: 'fs', partitions: 512, priority: '700', forcePriority: false],
-                [suite: 'powercycle', partitions: 4, priority: '950', forcePriority: false],
+                [suite: 'orch', partitions: 64, priority: NIGHTLY_PRIORITY, forcePriority: false],
+                [suite: 'rbd', partitions: 128, priority: NIGHTLY_PRIORITY, forcePriority: false],
+                [suite: 'fs', partitions: 512, priority: NIGHTLY_PRIORITY, forcePriority: false],
+                [suite: 'powercycle', partitions: 4, priority: NIGHTLY_PRIORITY, forcePriority: false],
                 [suite: 'rgw', partitions: 30000, priority: '150', forcePriority: false],
-                [suite: 'krbd', partitions: 4, priority: '950', forcePriority: false, kernel: 'testing'],
-                [suite: 'upgrade', partitions: 32, priority: '850', forcePriority: false],
+                [suite: 'krbd', partitions: 4, priority: NIGHTLY_PRIORITY, forcePriority: false, kernel: 'testing'],
+                [suite: 'upgrade', partitions: 32, priority: NIGHTLY_PRIORITY, forcePriority: false],
                 [suite: 'crimson-rados', partitions: 1, priority: '101', forcePriority: true, flavor: 'debug'],
                 [suite: 'crimson-rados', partitions: 1, priority: '101', forcePriority: true],
             ]
         case 'tentacle':
             return [
-                [suite: 'rados', partitions: 100000, priority: '831', forcePriority: false],
-                [suite: 'orch', partitions: 64, priority: '830', forcePriority: false],
-                [suite: 'rbd', partitions: 128, priority: '830', forcePriority: false],
-                [suite: 'fs', partitions: 512, priority: '830', forcePriority: false],
-                [suite: 'powercycle', partitions: 4, priority: '830', forcePriority: false],
-                [suite: 'rgw', partitions: 1, priority: '830', forcePriority: false],
-                [suite: 'krbd', partitions: 4, priority: '830', forcePriority: false, kernel: 'testing'],
+                [suite: 'rados', partitions: 100000, priority: NIGHTLY_PRIORITY, forcePriority: false],
+                [suite: 'orch', partitions: 64, priority: NIGHTLY_PRIORITY, forcePriority: false],
+                [suite: 'rbd', partitions: 128, priority: NIGHTLY_PRIORITY, forcePriority: false],
+                [suite: 'fs', partitions: 512, priority: NIGHTLY_PRIORITY, forcePriority: false],
+                [suite: 'powercycle', partitions: 4, priority: NIGHTLY_PRIORITY, forcePriority: false],
+                [suite: 'rgw', partitions: 1, priority: NIGHTLY_PRIORITY, forcePriority: false],
+                [suite: 'krbd', partitions: 4, priority: NIGHTLY_PRIORITY, forcePriority: false, kernel: 'testing'],
                 [suite: 'upgrade', partitions: 1, priority: '150', forcePriority: false],
             ]
         case 'squid':
             return [
-                [suite: 'rados', partitions: 100000, priority: '921', forcePriority: false],
-                [suite: 'orch', partitions: 64, priority: '920', forcePriority: false],
-                [suite: 'rbd', partitions: 128, priority: '920', forcePriority: false],
-                [suite: 'fs', partitions: 512, priority: '920', forcePriority: false],
-                [suite: 'powercycle', partitions: 4, priority: '920', forcePriority: false],
-                [suite: 'rgw', partitions: 1, priority: '920', forcePriority: false],
-                [suite: 'krbd', partitions: 4, priority: '920', forcePriority: false, kernel: 'testing'],
-                [suite: 'upgrade', partitions: 32, priority: '840', forcePriority: true],
-            ]
-        case 'quincy':
-            return [
-                [suite: 'upgrade-clients/client-upgrade-octopus-quincy', partitions: 1, priority: '820', forcePriority: false, suiteBranch: 'octopus'],
-                [suite: 'upgrade-clients/client-upgrade-pacific-quincy', partitions: 1, priority: '820', forcePriority: false, suiteBranch: 'pacific'],
-                [suite: 'upgrade:octopus-x', partitions: 120000, priority: '820', forcePriority: false],
-                [suite: 'upgrade:pacific-x', partitions: 120000, priority: '820', forcePriority: false],
+                [suite: 'rados', partitions: 100000, priority: NIGHTLY_PRIORITY, forcePriority: false],
+                [suite: 'orch', partitions: 64, priority: NIGHTLY_PRIORITY, forcePriority: false],
+                [suite: 'rbd', partitions: 128, priority: NIGHTLY_PRIORITY, forcePriority: false],
+                [suite: 'fs', partitions: 512, priority: NIGHTLY_PRIORITY, forcePriority: false],
+                [suite: 'powercycle', partitions: 4, priority: NIGHTLY_PRIORITY, forcePriority: false],
+                [suite: 'rgw', partitions: 1, priority: NIGHTLY_PRIORITY, forcePriority: false],
+                [suite: 'krbd', partitions: 4, priority: NIGHTLY_PRIORITY, forcePriority: false, kernel: 'testing'],
+                [suite: 'upgrade', partitions: 32, priority: NIGHTLY_PRIORITY, forcePriority: true],
             ]
         default:
             return []
@@ -263,9 +259,8 @@ def cadenceSteps(String cadence, String branch) {
     def utcCal = Calendar.getInstance(TimeZone.getTimeZone('UTC'))
     def epochDay = utcCal.getTimeInMillis().intdiv(86400000L)
     def idx = (epochDay % weeklies.size()) as int
-    if (b == 'main') {
+    if (b in ['main', 'umbrella']) {
         return [
-            [suite: 'teuthology/nop', partitions: 1, priority: '1', forcePriority: true],
             smokeStep,
             weeklies[idx],
         ]
