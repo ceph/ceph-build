@@ -52,6 +52,16 @@ function setup_container_runtime () {
           sudo find "$PODMAN_STORAGE_DIR/overlay" -xdev -type d -path '*/work/work' -exec chmod u+rwx {} + 2>/dev/null || true
         fi
         if [ "$(podman unshare du -s --block-size=1G "$PODMAN_STORAGE_DIR" | awk '{print $1}')" -ge 50 ]; then
+          # Interrupted builds (OOM, killed jobs) leak buildah "working
+          # containers" into storage. They are external containers that
+          # "podman system prune" refuses to remove and then errors on
+          # (exit 125), aborting this block before anything is reclaimed.
+          # Builds are serialized per node (single ceph_build container),
+          # so at setup time any leftover is stale debris and safe to drop.
+          # A container that genuinely can't be removed still fails loudly.
+          if command -v buildah; then
+            time buildah rm --all
+          fi
           time podman system prune --force
           time podman image prune --filter=until="$((24*7))h" --all --force --external
           if [ "$(podman version -f "{{ ge .Client.Version \"5\" }}")" = "true" ]; then
