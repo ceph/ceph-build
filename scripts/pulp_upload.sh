@@ -9,7 +9,8 @@
 
 # Required environment variables:
 #   WORKSPACE       - Jenkins workspace root containing dist/ceph artifacts
-#   CEPH_VERSION    - Full Ceph version string (used to derive release branch)
+#   BRANCH          - Ceph branch/ref name for this build (used in repository
+#                     names and distribution base paths)
 #   SHA1            - Git commit SHA for this build
 #   OS_NAME         - Target OS (e.g. centos, ubuntu)
 #   OS_VERSION      - Target OS version
@@ -69,6 +70,41 @@ resolve_deb_upload_dir() {
     printf '%s\n' "${deb_tree}"
 }
 
+# Ensure a Pulp repository exists, creating it if necessary.
+# Repository creation is idempotent and tolerant of concurrent creation by
+# other matrix arches that share repositories (e.g. noarch and source RPMs).
+# Arguments:
+#   $1 - Pulp content type ("rpm" or "deb")
+#   $2 - Pulp repository name
+# Returns 0 when the repository exists (or was created), 1 otherwise.
+ensure_pulp_repository() {
+    local content_type="$1"
+    local repo_name="$2"
+
+    if pulp "${content_type}" repository show --name "${repo_name}" \
+        >/dev/null 2>&1; then
+        log "Repository ${repo_name} already exists"
+        return 0
+    fi
+
+    log "Creating ${content_type} repository ${repo_name}"
+    if pulp "${content_type}" repository create --name "${repo_name}"; then
+        return 0
+    fi
+
+    # A concurrent job (e.g. another arch in the same matrix uploading shared
+    # noarch/source packages) may have created it first; tolerate that as long
+    # as the repository now exists.
+    if pulp "${content_type}" repository show --name "${repo_name}" \
+        >/dev/null 2>&1; then
+        log "Repository ${repo_name} created concurrently; continuing"
+        return 0
+    fi
+
+    log "ERROR: Failed to create ${content_type} repository ${repo_name}"
+    return 1
+}
+
 # Attach previously uploaded package content to a Pulp repository.
 # Arguments:
 #   $1 - Pulp content type ("rpm" or "deb")
@@ -106,18 +142,31 @@ upload_rpm_to_pulp() {
     local repo_name="$2"
     local out_array_name="$3"
     local -n pulp_uuid="$out_array_name"
+    local -a rpm_files=()
 
     pulp_uuid=()
     log "Discovering RPM artifacts under ${rpmbuild_dir}"
+    if [ ! -d "${rpmbuild_dir}" ]; then
+        log "Directory ${rpmbuild_dir} does not exist; nothing to upload"
+        return 1
+    fi
     while IFS= read -r rpm_file; do
         [ -z "$rpm_file" ] && continue
+        rpm_files+=("$rpm_file")
+    done < <(
+        find "${rpmbuild_dir}" -regextype egrep -regex ".*(\.rpm)$"
+    )
+    if [[ ${#rpm_files[@]} -eq 0 ]]; then
+        log "No RPM artifacts found under ${rpmbuild_dir}"
+        return 1
+    fi
+    ensure_pulp_repository rpm "${repo_name}" || return 1
+    for rpm_file in "${rpm_files[@]}"; do
         pulp_uuid+=($(pulp rpm content -t package upload \
             --repository "$repo_name" --file "$rpm_file" --no-publish | \
             jq -r '.prn | split(":") | last'
         ))
-    done < <(
-        find "${rpmbuild_dir}" -regextype egrep -regex ".*(\.rpm)$"
-    )
+    done
     log "Finished RPM uploads (repository=${repo_name})"
     [[ ${#pulp_uuid[@]} -gt 0 ]]
 }
@@ -137,6 +186,7 @@ upload_deb_to_pulp() {
     local out_array_name="$4"
     local -n pulp_uuid="$out_array_name"
     local _arch="$arch"
+    local -a deb_files=()
 
     if [ "$arch" == "x86_64" ]; then
         _arch="amd64"
@@ -146,17 +196,29 @@ upload_deb_to_pulp() {
 
     pulp_uuid=()
     log "Discovering .deb packages (${_arch} and all) under ${deb_dir}/"
+    if [ ! -d "${deb_dir}" ]; then
+        log "Directory ${deb_dir} does not exist; nothing to upload"
+        return 1
+    fi
     while IFS= read -r deb_file; do
         [ -z "$deb_file" ] && continue
-        pulp_uuid+=($(pulp deb content -t package upload \
-            --repository "$repo_name" --file "$deb_file" | \
-            jq -r '.prn | split(":") | last'
-        ))
+        deb_files+=("$deb_file")
     done < <(
         find "${deb_dir}/" -regextype egrep \
             -regex ".*(${_arch}|all)\.deb$" |
             awk -F/ '{name = $NF; if (!seen[name]++) print $0}'
     )
+    if [[ ${#deb_files[@]} -eq 0 ]]; then
+        log "No .deb packages found under ${deb_dir}/"
+        return 1
+    fi
+    ensure_pulp_repository deb "${repo_name}" || return 1
+    for deb_file in "${deb_files[@]}"; do
+        pulp_uuid+=($(pulp deb content -t package upload \
+            --repository "$repo_name" --file "$deb_file" | \
+            jq -r '.prn | split(":") | last'
+        ))
+    done
     log "Finished DEB uploads (repository=${repo_name}, count=${#pulp_uuid[@]})"
     [[ ${#pulp_uuid[@]} -gt 0 ]]
 }
