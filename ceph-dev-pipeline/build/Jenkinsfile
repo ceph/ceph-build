@@ -426,6 +426,21 @@ def doUploadPackagesStage() {
     returnStdout: true,
   ).trim()
   def os = get_os_info(env.DIST)
+  // Push packages to chacra.ceph.com under the 'test' ref if ceph-release-pipeline's TEST=true
+  if ( os.pkg_type == "rpm" ) {
+    env.SHA1 = env.TEST?.toBoolean() ? 'test' : env.SHA1
+  }
+  // The ceph-release RPM's /etc/yum.repos.d/ceph.repo baseurls and the repo
+  // URL reported to shaman must match where packages were actually
+  // published: pulp when PULP_UPLOAD=true, otherwise chacra.
+  // chacra_url already ends with a trailing slash.
+  def repo_base_url
+  if ( env.PULP_UPLOAD == "true" ) {
+    repo_base_url = "https://pulp.front.sepia.ceph.com/pulp/content/repos/ceph/${env.BRANCH}/${env.SHA1}/${os.name}/${os.version_name}/flavors/${env.FLAVOR}"
+  } else {
+    repo_base_url = "${chacra_url}r/ceph/${env.BRANCH}/${env.SHA1}/${os.name}/${os.version_name}/flavors/${env.FLAVOR}"
+  }
+  def spec_project_url = "${repo_base_url}/"
   if ( os.pkg_type == "rpm" ) {
     sh """#!/bin/bash
         set -ex
@@ -433,14 +448,12 @@ def doUploadPackagesStage() {
         mkdir -p ./rpmbuild/SRPMS/
         ln ceph-*.src.rpm ./rpmbuild/SRPMS/
     """
-    // Push packages to chacra.ceph.com under the 'test' ref if ceph-release-pipeline's TEST=true
-    env.SHA1 = env.TEST?.toBoolean() ? 'test' : env.SHA1
-    def spec_text = get_ceph_release_spec_text("${chacra_url}r/ceph/${env.BRANCH}/${env.SHA1}/${os.name}/${os.version_name}/flavors/${env.FLAVOR}/")
+    def spec_text = get_ceph_release_spec_text(spec_project_url)
     writeFile(
       file: "dist/ceph/rpmbuild/SPECS/ceph-release.spec",
       text: spec_text,
     )
-    def repo_text = get_ceph_release_repo_text("${chacra_url}/r/ceph/${env.BRANCH}/${env.SHA1}/${os.name}/${os.version_name}/flavors/${env.FLAVOR}")
+    def repo_text = get_ceph_release_repo_text(repo_base_url)
     writeFile(
       file: "dist/ceph/rpmbuild/SOURCES/ceph.repo",
       text: repo_text,
@@ -475,7 +488,7 @@ def doUploadPackagesStage() {
       export FLAVOR="${env.FLAVOR}"
 
       ./scripts/pulp_upload.sh
-      ./scripts/notify_shaman_pulp_repo.sh ready ceph ${os.name} ${os.version_name} ${env.ARCH} https://pulp.front.sepia.ceph.com/pulp/content/repos/ceph/${env.BRANCH}/${env.SHA1}/${os.name}/${os.version_name}/flavors/${env.FLAVOR}/${env.ARCH}/
+      ./scripts/notify_shaman_pulp_repo.sh ready ceph ${os.name} ${os.version_name} ${env.ARCH} ${spec_project_url}${env.ARCH}/
     else
       echo "Skipping pulp upload because PULP_UPLOAD=${env.PULP_UPLOAD}"
     fi
