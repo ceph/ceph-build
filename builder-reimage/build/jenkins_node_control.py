@@ -86,14 +86,14 @@ def wait_until_idle(session, base_url, node_name, timeout=3600, interval=15):
         node_info = get_node_info(session, base_url, node_name)
 
         if not node_is_busy(node_info):
-            print(f"[INFO] {node_name} is now idle")
+            print(f"[INFO] {node_name} is now idle", flush=True)
             return True
 
-        print(f"[INFO] {node_name} is still running a job, waiting...")
+        print(f"[INFO] {node_name} is currently running a job. Waiting for it to finish before reimage.", flush=True)
         time.sleep(interval)
         waited += interval
 
-    print(f"[ERROR] Timed out waiting for {node_name} to become idle")
+    print(f"[ERROR] Timed out waiting for {node_name} to become idle", flush=True)
     return False
 
 
@@ -153,20 +153,26 @@ def main():
         }
 
         if node_info.get("offline"):
-            print(f"[INFO] {short_name} is already offline in Jenkins")
+            print(f"[INFO] {short_name} is already offline in Jenkins", flush=True)
             save_state(args.state_file, state)
+
+            if node_is_busy(node_info):
+                print(f"[INFO] {short_name} is currently running a job. Waiting for it to finish before reimage.", flush=True)
 
             if not wait_until_idle(session, base_url, node_name):
                 sys.exit(1)
 
             sys.exit(0)
 
-        print(f"[ACTION] Marking {short_name} temporarily offline")
+        print(f"[ACTION] Marking {short_name} temporarily offline", flush=True)
         mark_offline(session, base_url, node_name, args.message, headers)
 
         state["marked_offline_by_job"] = True
         save_state(args.state_file, state)
-        print(f"[SUCCESS] {short_name} marked temporarily offline")
+        print(f"[SUCCESS] {short_name} marked temporarily offline", flush=True)
+
+        if node_is_busy(node_info):
+            print(f"[INFO] {short_name} is currently running a job. Waiting for it to finish before reimage.", flush=True)
 
         if not wait_until_idle(session, base_url, node_name):
             sys.exit(1)
