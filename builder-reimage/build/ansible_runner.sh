@@ -238,10 +238,62 @@ for i in "${!FAILED_PLAYBOOKS[@]}"; do
     echo "----------------------------------------"
     echo "Playbook : ${FAILED_PLAYBOOKS[$i]}"
     echo "Log file : ${FAILED_LOGS[$i]}"
+
     echo "Extracting failure details..."
 
-    # Extract Ansible failures
-    grep -E "FAILED!|fatal:|unreachable|ERROR|Traceback|Permission denied|No such file|rc=" "${FAILED_LOGS[$i]}" || echo "No detailed failure lines found"
+    python3 - <<PY "${FAILED_LOGS[$i]}"
+    import json
+    import sys
+    
+    log_file = sys.argv[1]
+    
+    try:
+        with open(log_file) as f:
+            data = json.load(f)
+    
+        found = False
+    
+        for play in data.get("plays", []):
+            for task_entry in play.get("tasks", []):
+                task = task_entry.get("task", {})
+                task_name = task.get("name", "unknown task")
+    
+                for host, result in task_entry.get("hosts", {}).items():
+                    if result.get("failed") or result.get("unreachable") or result.get("failures", 0):
+                        found = True
+                        print(f"Task    : {task_name}")
+                        print(f"Host    : {host}")
+    
+                        msg = result.get("msg")
+                        if msg:
+                            print(f"Message : {msg}")
+    
+                        stderr = result.get("stderr")
+                        if stderr:
+                            print(f"Stderr  : {stderr}")
+    
+                        stdout = result.get("stdout")
+                        if stdout:
+                            print(f"Stdout  : {stdout}")
+    
+                        print("----------------------------------------")
+    
+        if not found:
+            print("No structured failure details found")
+    
+    except Exception:
+        import subprocess
+        cmd = [
+            "grep", "-E",
+            "FAILED!|fatal:|Traceback|Permission denied|No such file|rc=",
+            log_file
+        ]
+        result = subprocess.run(cmd, capture_output=True, text=True)
+        if result.stdout.strip():
+            print(result.stdout.strip())
+        else:
+            print("No detailed failure lines found")
+    PY
 done
 
 echo "========================================"
