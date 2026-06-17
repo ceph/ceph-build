@@ -38,6 +38,7 @@ pipeline {
                                 def TARGET_FQDN = "${machine}.${env.DOMAIN}"
                                 def INVENTORY_FILE = "${WORK_DIR}/repos/secret-repo/ansible/inventory/group_vars/jenkins_builders.yml"
                                 def JENKINS_NODE_STATE_FILE = "${WORK_DIR}/jenkins-node-state.json"
+                                def JENKINS_GIT_KEY_FILE = "${WORK_DIR}/jenkins_git_key"
 
                                 try {
 
@@ -54,8 +55,8 @@ pipeline {
 
                                                 mkdir -p "${WORK_DIR}"
 
-                                                cp "${SSH_KEY}" /tmp/jenkins_git_key
-                                                chmod 600 /tmp/jenkins_git_key
+                                                cp "${SSH_KEY}" "${JENKINS_GIT_KEY_FILE}"
+                                                chmod 600 "${JENKINS_GIT_KEY_FILE}"
 
                                                 bash builder-reimage/build/prepare_env.sh \
                                                     "${TARGET_FQDN}" \
@@ -68,7 +69,7 @@ pipeline {
                                                 # Temporary test helper to use a non-default secrets repo branch.
                                                 # Uncomment the lines below only for branch-based inventory validation.
 
-                                                # export GIT_SSH_COMMAND="ssh -i /tmp/jenkins_git_key -o StrictHostKeyChecking=no"
+                                                # export GIT_SSH_COMMAND="ssh -i ${JENKINS_GIT_KEY_FILE} -o StrictHostKeyChecking=no"
                                                 # cd "${WORK_DIR}/repos/secret-repo"    
                                                 # git fetch origin <local_branch_name>
                                                 # git checkout -B <local_branch_name> FETCH_HEAD
@@ -216,10 +217,10 @@ pipeline {
 
                                                 mkdir -p "\$WORK_DIR"
 
-                                                cp "${SSH_KEY}" /tmp/jenkins_git_key
-                                                chmod 600 /tmp/jenkins_git_key
+                                                cp "${SSH_KEY}" "${JENKINS_GIT_KEY_FILE}"
+                                                chmod 600 "${JENKINS_GIT_KEY_FILE}"
 
-                                                export GIT_SSH_COMMAND="ssh -i /tmp/jenkins_git_key -o StrictHostKeyChecking=no"
+                                                export GIT_SSH_COMMAND="ssh -i ${JENKINS_GIT_KEY_FILE} -o StrictHostKeyChecking=no"
 
                                                 VAULT_FILE="/home/jenkins-build/.vault_pass.txt"
                                                 echo "\$VAULT_PASS" > "\$VAULT_FILE"
@@ -274,6 +275,10 @@ pipeline {
                                             '''
                                         }
                                     }
+
+                                    sh """#!/bin/bash
+                                            rm -f "${JENKINS_GIT_KEY_FILE}" || true
+                                        """
                                 }
                             }
                         }

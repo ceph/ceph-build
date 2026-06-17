@@ -18,6 +18,7 @@ import argparse
 import json
 import os
 import sys
+import time
 from urllib.parse import quote
 
 import requests
@@ -59,49 +60,40 @@ def get_node_info(session, base_url, node_name):
     api_url = (
         f"{base_url}/computer/{encoded}/api/json"
         "?tree=displayName,offline,temporarilyOffline,offlineCauseReason,"
-        "executors[currentExecutable[url]],oneOffExecutors[currentExecutable[url]],"
-        "assignedLabels[name]"
+        "executors[currentExecutable[url]],oneOffExecutors[currentExecutable[url]]"
     )
     r = session.get(api_url)
     r.raise_for_status()
     return r.json()
 
 
-def get_queue_info(session, base_url):
-    api_url = f"{base_url}/queue/api/json"
-    r = session.get(api_url)
-    r.raise_for_status()
-    return r.json().get("items", [])
-
-
 def node_is_busy(node_info):
     for executor in node_info.get("executors", []):
         if executor.get("currentExecutable"):
             return True
+
     for executor in node_info.get("oneOffExecutors", []):
         if executor.get("currentExecutable"):
             return True
+
     return False
 
 
-def queue_targets_node(node_info, queue_items):
-    labels = {x.get("name") for x in node_info.get("assignedLabels", []) if x.get("name")}
-    display_name = node_info.get("displayName", "")
+def wait_until_idle(session, base_url, node_name, timeout=3600, interval=15):
+    waited = 0
 
-    for item in queue_items:
-        assigned = item.get("assignedLabel")
-        assigned_name = assigned.get("name") if assigned else None
+    while waited < timeout:
+        node_info = get_node_info(session, base_url, node_name)
 
-        if assigned_name and assigned_name in labels:
+        if not node_is_busy(node_info):
+            print(f"[INFO] {node_name} is now idle")
             return True
 
-        task = item.get("task", {})
-        why = item.get("why", "") or ""
-        if display_name and display_name in why:
-            return True
-        if display_name and task.get("name") == display_name:
-            return True
+        print(f"[INFO] {node_name} is still running a job, waiting...")
+        time.sleep(interval)
+        waited += interval
 
+    print(f"[ERROR] Timed out waiting for {node_name} to become idle")
     return False
 
 
@@ -163,16 +155,11 @@ def main():
         if node_info.get("offline"):
             print(f"[INFO] {short_name} is already offline in Jenkins")
             save_state(args.state_file, state)
+
+            if not wait_until_idle(session, base_url, node_name):
+                sys.exit(1)
+
             sys.exit(0)
-
-        if node_is_busy(node_info):
-            print(f"[ERROR] {short_name} is not idle. A build is currently running on the node.")
-            sys.exit(1)
-
-        queue_items = get_queue_info(session, base_url)
-        if queue_targets_node(node_info, queue_items):
-            print(f"[ERROR] {short_name} has queued work targeting this node or its labels.")
-            sys.exit(1)
 
         print(f"[ACTION] Marking {short_name} temporarily offline")
         mark_offline(session, base_url, node_name, args.message, headers)
@@ -180,6 +167,10 @@ def main():
         state["marked_offline_by_job"] = True
         save_state(args.state_file, state)
         print(f"[SUCCESS] {short_name} marked temporarily offline")
+
+        if not wait_until_idle(session, base_url, node_name):
+            sys.exit(1)
+
         sys.exit(0)
 
     if args.action == "restore_after_reimage":
