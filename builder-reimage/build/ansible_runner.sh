@@ -241,7 +241,7 @@ for i in "${!FAILED_PLAYBOOKS[@]}"; do
     echo "Extracting failure details..."
 
     # Extract Ansible failures
-    grep -E "FAILED!|fatal:" "${FAILED_LOGS[$i]}" || echo "No detailed failure lines found"
+    grep -E "FAILED!|fatal:|unreachable|ERROR|Traceback|Permission denied|No such file|rc=" "${FAILED_LOGS[$i]}" || echo "No detailed failure lines found"
 done
 
 echo "========================================"
