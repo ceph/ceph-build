@@ -153,7 +153,7 @@ run_playbook() {
 ##############################################
 # PLAYBOOK 1 — ansible_managed.yml
 ##############################################
-(
+{
   cd "${ANSIBLE_DIR}"
 
   CMD="ANSIBLE_HOST_KEY_CHECKING=False ANSIBLE_STDOUT_CALLBACK=json ansible-playbook ansible_managed.yml \
@@ -162,12 +162,12 @@ run_playbook() {
         -e ansible_ssh_user='${SSH_USER}'"
 
   run_playbook "play1-ansible_managed" "${CMD}" || true
-)
+}
 
 ##############################################
 # PLAYBOOK 2 — users.yml
 ##############################################
-(
+{
   cd "${ANSIBLE_DIR}"
 
   ADMIN_USERS_JSON="$(build_admin_users_json)"
@@ -179,12 +179,12 @@ run_playbook() {
         --extra-vars='${ADMIN_USERS_JSON}'"
 
   run_playbook "play2-users" "${CMD}" || true
-)
+}
 
 ##############################################
 # PLAYBOOK 3 — jenkins-builder-disk.yml
 ##############################################
-(
+{
   cd "${ANSIBLE_DIR}"
 
   CMD="ANSIBLE_HOST_KEY_CHECKING=False ANSIBLE_STDOUT_CALLBACK=json ansible-playbook -v tools/jenkins-builder-disk.yml \
@@ -192,7 +192,7 @@ run_playbook() {
         --limit='${TARGET_FQDN}'"
 
   run_playbook "play3-tools-disk" "${CMD}" || true
-)
+}
 
 ##############################################
 # PLAYBOOK 4 — builder.yml (USES VAULT)
@@ -204,7 +204,7 @@ if [[ "${LIBVIRT}" == "true" ]]; then
     EXTRA_VARS="-e libvirt=true"
 fi
 
-(
+{
   cd "${MAIN_DIR}/ansible"
 
   CMD="ANSIBLE_HOST_KEY_CHECKING=False ANSIBLE_STDOUT_CALLBACK=json ansible-playbook -v \
@@ -221,7 +221,7 @@ fi
   echo "[ansible_runner][DEBUG] FINAL CMD=${CMD}"
 
   run_playbook "play4-main-builder" "${CMD}" || true
-)
+}
 
 echo "========================================"
 echo "[ansible_runner] FINAL EXECUTION SUMMARY"
