@@ -310,6 +310,7 @@ if not found:
         print(line)
     print("----------------------------------------")
 PY
+done
 
 echo "========================================"
 echo "Build FAILED due to above errors"
