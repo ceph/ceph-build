@@ -44,6 +44,41 @@ resolve_os_version_for_repo() {
     printf '%s\n' "$os_label"
 }
 
+# Return the distro_version label for Pulp distribution metadata (OS-specific mapping).
+get_distro_version_label() {
+    case "${OS_NAME}" in
+        centos)
+            case "${OS_VERSION}" in
+                [0-7])
+                    printf '%s\n' "${OS_VERSION}"
+                    ;;
+                *)
+                    printf '%s.stream\n' "${OS_VERSION}"
+                    ;;
+            esac
+            ;;
+        rocky)
+            case "${OS_VERSION}" in
+                8)
+                    printf '%s\n' '8.10'
+                    ;;
+                9)
+                    printf '%s\n' '9.7'
+                    ;;
+                10)
+                    printf '%s\n' '10.1'
+                    ;;
+                *)
+                    printf '%s\n' "${OS_VERSION}"
+                    ;;
+            esac
+            ;;
+        *)
+            printf '%s\n' "${OS_VERSION}"
+            ;;
+    esac
+}
+
 # Locate the directory containing .deb packages for upload.
 # Prefers pool/main (APT pool layout), then WORKDIR, then the deb tree root.
 # Arguments:
@@ -212,10 +247,7 @@ publish_pulp_distribution() {
     fi
 
     local i distro_version
-    distro_version="${OS_VERSION}"
-    if [ "$OS_NAME" == "centos" ] && [ "$OS_VERSION" -ge 8 ]; then
-        distro_version="${OS_VERSION}.stream"
-    fi
+    distro_version=$(get_distro_version_label)
     local -a labels=(
         project "${PULP_PROJECT}"
         version "${package_version}"
