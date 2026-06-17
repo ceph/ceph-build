@@ -567,12 +567,25 @@ pipeline {
                   """
                   // Push packages to chacra.ceph.com under the 'test' ref if ceph-release-pipeline's TEST=true
                   env.SHA1 = env.TEST?.toBoolean() ? 'test' : env.SHA1
-                  def spec_text = get_ceph_release_spec_text("${chacra_url}r/ceph/${env.BRANCH}/${env.SHA1}/${os.name}/${os.version_name}/flavors/${env.FLAVOR}/")
+                  // The ceph-release RPM ships /etc/yum.repos.d/ceph.repo, so its
+                  // baseurls must match where packages were actually published:
+                  // pulp when PULP_UPLOAD=true, otherwise chacra.
+                  def spec_project_url
+                  def repo_base_url
+                  if ( env.PULP_UPLOAD == "true" ) {
+                    def pulp_repo_base = "https://pulp.front.sepia.ceph.com/pulp/content/repos/ceph/${env.BRANCH}/${env.SHA1}/${os.name}/${os.version_name}/flavors/${env.FLAVOR}"
+                    spec_project_url = "${pulp_repo_base}/"
+                    repo_base_url = pulp_repo_base
+                  } else {
+                    spec_project_url = "${chacra_url}r/ceph/${env.BRANCH}/${env.SHA1}/${os.name}/${os.version_name}/flavors/${env.FLAVOR}/"
+                    repo_base_url = "${chacra_url}/r/ceph/${env.BRANCH}/${env.SHA1}/${os.name}/${os.version_name}/flavors/${env.FLAVOR}"
+                  }
+                  def spec_text = get_ceph_release_spec_text(spec_project_url)
                   writeFile(
                     file: "dist/ceph/rpmbuild/SPECS/ceph-release.spec",
                     text: spec_text,
                   )
-                  def repo_text = get_ceph_release_repo_text("${chacra_url}/r/ceph/${env.BRANCH}/${env.SHA1}/${os.name}/${os.version_name}/flavors/${env.FLAVOR}")
+                  def repo_text = get_ceph_release_repo_text(repo_base_url)
                   writeFile(
                     file: "dist/ceph/rpmbuild/SOURCES/ceph.repo",
                     text: repo_text,
