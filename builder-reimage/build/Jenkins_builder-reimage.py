@@ -87,12 +87,16 @@ async def get_cached_machines(client):
 # Wait for status
 # -------------------------------------------------------------------------
 async def wait_for_status(client, system_id, expected):
-    expected = expected.lower()
+    if isinstance(expected, str):
+        expected_states = {expected.lower()}
+    else:
+        expected_states = {x.lower() for x in expected}
+
     start = time.time()
 
     while time.time() - start < STATUS_WAIT_TIMEOUT:
         m = await client.machines.get(system_id=system_id)
-        if get_normalized_status(m) == expected:
+        if get_normalized_status(m) in expected_states:
             return True
         await asyncio.sleep(5)
 
