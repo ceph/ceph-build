@@ -33,7 +33,7 @@
       - git:
           url: https://github.com/ceph/ceph-build.git
           branches:
-            - main  
+            - main
           clean: true
 
     pipeline-scm:
