@@ -142,8 +142,16 @@ async def release_machine(machine):
         await machine.release()
 
 # -------------------------------------------------------------------------
+# Commission
+# -------------------------------------------------------------------------
+async def commission_machine(machine):
+    if get_normalized_status(machine) == "new":
+        await machine.commission()
+
+# -------------------------------------------------------------------------
 # Reimage
 # -------------------------------------------------------------------------
+
 async def reimage_machine(client, hostname, os_release, log_file):
     machines = await get_cached_machines(client)
     m = next((x for x in machines if x.hostname == hostname), None)
@@ -155,10 +163,17 @@ async def reimage_machine(client, hostname, os_release, log_file):
     m = await client.machines.get(system_id=m.system_id)
 
     status = get_normalized_status(m)
+    log(f"[INFO] Current state for {hostname}: {status}", log_file)
 
     if status == "deployed":
         log(f"[ACTION] Releasing {hostname}", log_file)
         await release_machine(m)
+        if not await wait_for_status(client, m.system_id, "ready"):
+            return False
+
+    if status == "new":
+        log(f"[ACTION] Commissioning {hostname}", log_file)
+        await commission_machine(m)
         if not await wait_for_status(client, m.system_id, "ready"):
             return False
 
