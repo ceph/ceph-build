@@ -243,74 +243,73 @@ for i in "${!FAILED_PLAYBOOKS[@]}"; do
     python3 - "${FAILED_LOGS[$i]}" <<'PY'
 import json
 import sys
-import subprocess
 
 log_file = sys.argv[1]
 
-try:
-    with open(log_file) as f:
-        data = json.load(f)
+with open(log_file, errors="replace") as f:
+    content = f.read()
 
-    found = False
+found = False
 
-    for play in data.get("plays", []):
-        for task_entry in play.get("tasks", []):
-            task = task_entry.get("task", {})
-            task_name = task.get("name", "unknown task")
+# Try to extract the JSON payload from mixed log output
+start = content.find("{")
+end = content.rfind("}")
 
-            for host, result in task_entry.get("hosts", {}).items():
-                if result.get("failed") or result.get("unreachable"):
-                    found = True
-                    print(f"Task    : {task_name}")
-                    print(f"Host    : {host}")
+if start != -1 and end != -1 and end > start:
+    try:
+        data = json.loads(content[start:end + 1])
 
-                    msg = result.get("msg")
-                    if msg:
-                        print(f"Message : {msg}")
+        for play in data.get("plays", []):
+            for task_entry in play.get("tasks", []):
+                task = task_entry.get("task", {})
+                task_name = task.get("name", "unknown task")
 
-                    stderr = result.get("stderr")
-                    if stderr:
-                        print(f"Stderr  : {stderr}")
+                for host, result in task_entry.get("hosts", {}).items():
+                    is_failure = (
+                        result.get("failed")
+                        or result.get("unreachable")
+                        or result.get("rc", 0) not in (0, None)
+                        or "exception" in result
+                    )
 
-                    stdout = result.get("stdout")
-                    if stdout:
-                        print(f"Stdout  : {stdout}")
+                    if is_failure:
+                        found = True
+                        print(f"Task    : {task_name}")
+                        print(f"Host    : {host}")
 
-                    print("----------------------------------------")
+                        msg = result.get("msg")
+                        if msg:
+                            print(f"Message : {msg}")
 
-    if not found:
-        result = subprocess.run(
-            [
-                "grep", "-E",
-                "FAILED!|fatal:|Traceback|Permission denied|No such file|rc=",
-                log_file
-            ],
-            capture_output=True,
-            text=True
-        )
+                        stderr = result.get("stderr")
+                        if stderr:
+                            print(f"Stderr  : {stderr}")
 
-        if result.stdout.strip():
-            print(result.stdout.strip())
-        else:
-            print("No detailed failure lines found")
+                        stdout = result.get("stdout")
+                        if stdout:
+                            print(f"Stdout  : {stdout}")
 
-except Exception:
-    result = subprocess.run(
-        [
-            "grep", "-E",
-            "FAILED!|fatal:|Traceback|Permission denied|No such file|rc=",
-            log_file
-        ],
-        capture_output=True,
-        text=True
-    )
+                        exception = result.get("exception")
+                        if exception:
+                            print(f"Exception : {exception}")
 
-    if result.stdout.strip():
-        print(result.stdout.strip())
-    else:
-        print("No detailed failure lines found")
+                        rc = result.get("rc")
+                        if rc not in (None, 0):
+                            print(f"Return code : {rc}")
+
+                        print("----------------------------------------")
+    except Exception:
+        pass
+
+# Fallback: show the last part of the log if structured details were not found
+if not found:
+    print("No structured failure details found. Showing last 80 log lines:")
+    print("----------------------------------------")
+    tail_lines = content.splitlines()[-80:]
+    for line in tail_lines:
+        print(line)
+    print("----------------------------------------")
 PY
-done
 
 echo "========================================"
 echo "Build FAILED due to above errors"
