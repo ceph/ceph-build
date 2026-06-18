@@ -5,9 +5,6 @@ import com.cloudbees.groovy.cps.NonCPS
 import java.util.Calendar
 import java.util.TimeZone
 
-// Nightly tier: ahead of the old 800+ backlog but behind dev/release jobs (50–75).
-final String NIGHTLY_PRIORITY = '200'
-
 pipeline {
     agent { label 'built-in' }
     options {
@@ -193,6 +190,8 @@ List expandCadenceToRows(String cadence, String branch) {
 
 @NonCPS
 List weeklySuiteSteps(String branch) {
+    // Nightly tier: ahead of the old 800+ backlog but behind dev/release jobs (50–75).
+    def nightlyPriority = '200'
     def b = branch.toLowerCase()
     switch (b) {
         case 'main':
@@ -200,37 +199,37 @@ List weeklySuiteSteps(String branch) {
             return [
                 [suite: 'rados', partitions: 100000, priority: '101', forcePriority: true],
                 [suite: 'rados', partitions: 100000, priority: '101', forcePriority: true, flavor: 'debug'],
-                [suite: 'orch', partitions: 64, priority: NIGHTLY_PRIORITY, forcePriority: false],
-                [suite: 'rbd', partitions: 128, priority: NIGHTLY_PRIORITY, forcePriority: false],
-                [suite: 'fs', partitions: 512, priority: NIGHTLY_PRIORITY, forcePriority: false],
-                [suite: 'powercycle', partitions: 4, priority: NIGHTLY_PRIORITY, forcePriority: false],
+                [suite: 'orch', partitions: 64, priority: nightlyPriority, forcePriority: false],
+                [suite: 'rbd', partitions: 128, priority: nightlyPriority, forcePriority: false],
+                [suite: 'fs', partitions: 512, priority: nightlyPriority, forcePriority: false],
+                [suite: 'powercycle', partitions: 4, priority: nightlyPriority, forcePriority: false],
                 [suite: 'rgw', partitions: 30000, priority: '150', forcePriority: false],
-                [suite: 'krbd', partitions: 4, priority: NIGHTLY_PRIORITY, forcePriority: false, kernel: 'testing'],
-                [suite: 'upgrade', partitions: 32, priority: NIGHTLY_PRIORITY, forcePriority: false],
+                [suite: 'krbd', partitions: 4, priority: nightlyPriority, forcePriority: false, kernel: 'testing'],
+                [suite: 'upgrade', partitions: 32, priority: nightlyPriority, forcePriority: false],
                 [suite: 'crimson-rados', partitions: 1, priority: '101', forcePriority: true, flavor: 'debug'],
                 [suite: 'crimson-rados', partitions: 1, priority: '101', forcePriority: true],
             ]
         case 'tentacle':
             return [
-                [suite: 'rados', partitions: 100000, priority: NIGHTLY_PRIORITY, forcePriority: false],
-                [suite: 'orch', partitions: 64, priority: NIGHTLY_PRIORITY, forcePriority: false],
-                [suite: 'rbd', partitions: 128, priority: NIGHTLY_PRIORITY, forcePriority: false],
-                [suite: 'fs', partitions: 512, priority: NIGHTLY_PRIORITY, forcePriority: false],
-                [suite: 'powercycle', partitions: 4, priority: NIGHTLY_PRIORITY, forcePriority: false],
-                [suite: 'rgw', partitions: 1, priority: NIGHTLY_PRIORITY, forcePriority: false],
-                [suite: 'krbd', partitions: 4, priority: NIGHTLY_PRIORITY, forcePriority: false, kernel: 'testing'],
+                [suite: 'rados', partitions: 100000, priority: nightlyPriority, forcePriority: false],
+                [suite: 'orch', partitions: 64, priority: nightlyPriority, forcePriority: false],
+                [suite: 'rbd', partitions: 128, priority: nightlyPriority, forcePriority: false],
+                [suite: 'fs', partitions: 512, priority: nightlyPriority, forcePriority: false],
+                [suite: 'powercycle', partitions: 4, priority: nightlyPriority, forcePriority: false],
+                [suite: 'rgw', partitions: 1, priority: nightlyPriority, forcePriority: false],
+                [suite: 'krbd', partitions: 4, priority: nightlyPriority, forcePriority: false, kernel: 'testing'],
                 [suite: 'upgrade', partitions: 1, priority: '150', forcePriority: false],
             ]
         case 'squid':
             return [
-                [suite: 'rados', partitions: 100000, priority: NIGHTLY_PRIORITY, forcePriority: false],
-                [suite: 'orch', partitions: 64, priority: NIGHTLY_PRIORITY, forcePriority: false],
-                [suite: 'rbd', partitions: 128, priority: NIGHTLY_PRIORITY, forcePriority: false],
-                [suite: 'fs', partitions: 512, priority: NIGHTLY_PRIORITY, forcePriority: false],
-                [suite: 'powercycle', partitions: 4, priority: NIGHTLY_PRIORITY, forcePriority: false],
-                [suite: 'rgw', partitions: 1, priority: NIGHTLY_PRIORITY, forcePriority: false],
-                [suite: 'krbd', partitions: 4, priority: NIGHTLY_PRIORITY, forcePriority: false, kernel: 'testing'],
-                [suite: 'upgrade', partitions: 32, priority: NIGHTLY_PRIORITY, forcePriority: true],
+                [suite: 'rados', partitions: 100000, priority: nightlyPriority, forcePriority: false],
+                [suite: 'orch', partitions: 64, priority: nightlyPriority, forcePriority: false],
+                [suite: 'rbd', partitions: 128, priority: nightlyPriority, forcePriority: false],
+                [suite: 'fs', partitions: 512, priority: nightlyPriority, forcePriority: false],
+                [suite: 'powercycle', partitions: 4, priority: nightlyPriority, forcePriority: false],
+                [suite: 'rgw', partitions: 1, priority: nightlyPriority, forcePriority: false],
+                [suite: 'krbd', partitions: 4, priority: nightlyPriority, forcePriority: false, kernel: 'testing'],
+                [suite: 'upgrade', partitions: 32, priority: nightlyPriority, forcePriority: true],
             ]
         default:
             return []
