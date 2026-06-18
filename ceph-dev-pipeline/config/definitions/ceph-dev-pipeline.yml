@@ -72,7 +72,7 @@
       - bool:
           name: PULP_UPLOAD
           description: "Whether to upload packages to Pulp"
-          default: false
+          default: true
 
       - bool:
           name: PULP_REGISTRY_UPLOAD
