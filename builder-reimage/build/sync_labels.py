@@ -58,8 +58,8 @@ for n in nodes:
         break
 
 if not node_name:
-    print(f"[ERROR] Could not find Jenkins node for {short_name}")
-    exit(1)
+    print(f"[WARN] No Jenkins node found for {short_name}; skipping label sync")
+    exit(0)
 
 # Encode node name (important for '+' → '%2B')
 encoded_node = quote(node_name, safe='')
