@@ -201,7 +201,7 @@ pipeline {
             values 'default', 'debug'
           }
         }
-        // debug flavor is currently only supported on centos9, rocky10 and noble, x86_64
+        // debug flavor is currently only supported on centos9 and rocky10, x86_64
         excludes {
           exclude {
             axis {
@@ -210,7 +210,7 @@ pipeline {
             }
             axis {
               name 'DIST'
-              notValues 'centos9', 'rocky10', 'noble'
+              notValues 'centos9', 'rocky10'
             }
           }
           exclude {
