@@ -44,6 +44,7 @@ def params_from_branch(initialParams) {
   def params = [initialParams.clone()]
   switch (initialParams.BRANCH) {
     case "main":
+      params[0]['DISTROS'] = 'rocky10 jammy noble windows'
       params[0]['ARCHS'] += ' arm64'
       break
     case ~/.*reef.*/:
