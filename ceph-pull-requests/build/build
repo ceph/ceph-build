@@ -1,5 +1,14 @@
 #!/bin/bash -ex
 
+# For manually-triggered jobs, report the final result back to GitHub as a
+# commit status (webhook-triggered jobs get this from the PR Builder plugin).
+# Installed as an EXIT trap so it fires no matter where the job exits, including
+# the docs-only early exit below (which reports success).
+trap 'report_github_pr_status $? "make check"' EXIT
+
+# Report that the job has started (manual triggers only).
+update_github_pr_status "pending" "running make check" "make check"
+
 docs_pr_only
 container_pr_only
 gha_pr_only
@@ -25,3 +34,14 @@ bwc 4 -e tests
 npm_cache_info
 sleep 5
 ps -ef | grep -v jnlp | grep ceph || true
+
+# `bwc -e tests` exits 0 even when individual tests fail so that the CTest
+# results are always published; the xUnit publisher is what fails the build (its
+# threshold fails on any failed test).  A non-test failure (e.g. compile) would
+# have aborted above under `set -e`.  Mirror xUnit here so the EXIT trap reports
+# the matching GitHub status for manual triggers.
+test_xml="$(find build/Testing -name Test.xml 2>/dev/null)"
+if [ -n "$test_xml" ] && grep -q 'Status="failed"' $test_xml; then
+    echo "CTest reported one or more failed tests; marking the build as failed."
+    exit 1
+fi

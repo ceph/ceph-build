@@ -2,6 +2,16 @@
 set -o errexit
 set -o pipefail
 
+# For manually-triggered jobs, report the final result back to GitHub as a
+# commit status (webhook-triggered jobs get this from the PR Builder plugin).
+# Installed as an EXIT trap so a failure anywhere in the setup stages (or the
+# docs-only early exit below) is reported.  Note: run_tests installs its own
+# EXIT trap later in the chain which supersedes this one and also reports.
+trap 'report_github_pr_status $? "ceph windows tests"' EXIT
+
+# Report that the job has started (manual triggers only).
+update_github_pr_status "pending" "running ceph windows tests" "ceph windows tests"
+
 docs_pr_only
 container_pr_only
 gha_pr_only

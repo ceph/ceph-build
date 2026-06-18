@@ -1250,6 +1250,76 @@ github_status_setup() {
 
 }
 
+# Report a Pull Request job's result back to GitHub as a commit status (check).
+# The GitHub Pull Request Builder plugin does this automatically when a webhook
+# triggers the job, but manually-triggered jobs don't get that, so post the
+# status directly via the GitHub API.
+#   $1 - state: one of pending, success, failure, error
+#   $2 - description shown alongside the check (optional)
+#   $3 - status context/name (optional, defaults to "make check")
+#   $4 - target URL the check links to in the GitHub UI (optional, defaults to
+#        this Jenkins build's URL)
+update_github_pr_status() {
+  local state=$1
+  local description=$2
+  local context=${3:-"make check"}
+  # Link the check back to this Jenkins build so clicking the context in the
+  # GitHub UI opens the job.
+  local target_url=${4:-$BUILD_URL}
+
+  # Only post a status for manually-triggered jobs.  Webhook-triggered jobs
+  # already have their status managed by the GitHub Pull Request Builder plugin,
+  # so posting here would just be a duplicate.  Check ROOT_BUILD_CAUSE too so a
+  # job kicked off down an upstream chain from a manual trigger is still covered.
+  if [ "$BUILD_CAUSE" != "MANUALTRIGGER" ] && [ "$ROOT_BUILD_CAUSE" != "MANUALTRIGGER" ]; then
+    return 0
+  fi
+
+  # Manually-triggered jobs don't have the ghprb* variables set by the plugin.
+  # Assume ceph/ceph and look up the PR's head commit from the GitHub API.
+  ghprbGhRepository="ceph/ceph"
+  ghprbActualCommit="$(curl -s -u ${GITHUB_USER}:${GITHUB_PASS} https://api.github.com/repos/${ghprbGhRepository}/pulls/${ghprbPullId} | jq -r '.head.sha')"
+
+  if [ -z "$ghprbActualCommit" ] || [ -z "$ghprbGhRepository" ]; then
+    echo "Could not determine commit or repository; skipping GitHub status update"
+    return 0
+  fi
+
+  echo "Setting GitHub status '$context' to '$state' for ${ghprbGhRepository}@${ghprbActualCommit}"
+  # Posting a status needs a token with write access, unlike the read-only token
+  # in GITHUB_USER/GITHUB_PASS used for the lookup above.
+  curl -s -u ${GITHUB_STATUS_USER}:${GITHUB_STATUS_TOKEN} \
+    -X POST \
+    -H "Accept: application/vnd.github+json" \
+    "https://api.github.com/repos/${ghprbGhRepository}/statuses/${ghprbActualCommit}" \
+    -d "$(jq -n \
+      --arg state "$state" \
+      --arg target_url "$target_url" \
+      --arg description "$description" \
+      --arg context "$context" \
+      '{state: $state, target_url: $target_url, description: $description, context: $context}')"
+}
+
+# Convenience wrapper meant to be installed as a bash EXIT trap so a Pull Request
+# job reports its overall pass/fail to GitHub regardless of which stage failed.
+# Like update_github_pr_status, it's a no-op unless the job was triggered
+# manually.  Pass $? explicitly from the trap so the exit code is captured before
+# anything in this function clobbers it, e.g.:
+#   trap 'report_github_pr_status $? "make check"' EXIT
+#   $1 - exit code (0 == success)
+#   $2 - status context/name (e.g. "make check (arm64)")
+#   $3 - label used in the description (optional, defaults to $2)
+report_github_pr_status() {
+  local rc=$1
+  local context=$2
+  local label=${3:-$context}
+  if [ "$rc" -eq 0 ]; then
+    update_github_pr_status "success" "$label succeeded" "$context"
+  else
+    update_github_pr_status "failure" "$label failed" "$context"
+  fi
+}
+
 write_collect_logs_playbook() {
     cat > $WORKSPACE/collect-logs.yml << EOF
 - hosts: all
@@ -1629,6 +1699,13 @@ pr_only_for() {
   # receive by creating another local array ("$@")
   local -n local_patterns=$1
   local files
+  # Manually-triggered jobs don't get the ghprb* variables set by the GitHub
+  # Pull Request Builder plugin.  Assume ceph/ceph and look up the PR's target
+  # branch from the GitHub API.
+  if [ "$BUILD_CAUSE" = "MANUALTRIGGER" ]; then
+    ghprbGhRepository="ceph/ceph"
+    ghprbTargetBranch="$(curl -s -u ${GITHUB_USER}:${GITHUB_PASS} https://api.github.com/repos/${ghprbGhRepository}/pulls/${ghprbPullId} | jq -r '.base.ref')"
+  fi
   pushd .
   # cd to ceph repo if we need to.
   # The ceph-pr-commits job checks out ceph.git and ceph-build.git but most

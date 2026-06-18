@@ -4,6 +4,16 @@ if [[ "${ROOT_BUILD_CAUSE}" == "MANUALTRIGGER" ]]; then
     ghprbGhRepository="ceph/ceph"
 fi
 
+# For manually-triggered jobs, report the final result back to GitHub as a
+# commit status (webhook-triggered jobs get this from the PR Builder plugin).
+# Installed as an EXIT trap so it fires no matter which stage (make check, dep
+# install, or API tests) the job exits on, including the docs-only early exit
+# below (which reports success).
+trap 'report_github_pr_status $? "ceph API tests"' EXIT
+
+# Report that the job has started (manual triggers only).
+update_github_pr_status "pending" "running API tests" "ceph API tests"
+
 docs_pr_only
 container_pr_only
 gha_pr_only
