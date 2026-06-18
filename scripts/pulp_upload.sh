@@ -9,7 +9,7 @@
 
 # Required environment variables:
 #   WORKSPACE       - Jenkins workspace root containing dist/ceph artifacts
-#   CEPH_VERSION    - Full Ceph version string (used to derive release branch)
+#   BRANCH          - Branch name
 #   SHA1            - Git commit SHA for this build
 #   OS_NAME         - Target OS (e.g. centos, ubuntu)
 #   OS_VERSION      - Target OS version
@@ -18,7 +18,6 @@
 #   FLAVOR          - Build flavor label (e.g. default, crimson)
 #   ARCH            - Target architecture (deb uploads only)
 #   VERSION         - Package version (deb uploads only)
-#
 
 set -ex
 
@@ -44,6 +43,86 @@ resolve_os_version_for_repo() {
     printf '%s\n' "$os_label"
 }
 
+# Return the number of repository versions to retain.
+get_repo_versions_to_retain() {
+    local versions=10
+    if [[ "$CEPH_REPO" == *-ci ]]; then
+        versions=3
+    fi
+    printf '%s\n' "$versions"
+}
+
+# Create a Pulp repository if it doesn't exist.
+# Arguments:
+#   $1 - Pulp repository name
+#   $2 - Package type: "rpm" or "deb"
+#   $3 - Number of repository versions to retain
+#   $4 - Architecture label stored on the repository
+#   $5 - Package manager version string for the version label
+# Returns 0 if the repository was created or already exists,
+#        1 if an error occurred.
+create_pulp_repository() {
+    local repo_name="$1"
+    local os_pkg_type="$2"
+    local retain_repo_versions="$3"
+    local repo_arch="$4"
+    local package_version="$5"
+    local labels_json key value
+
+    log "Checking if Pulp repository ${repo_name} already exists"
+    if pulp "${os_pkg_type}" repository show "${repo_name}" \
+            > /dev/null 2>&1; then
+        log "Pulp repository ${repo_name} already exists"
+        return 0
+    fi
+
+    labels_json=$(
+        get_pulp_distribution_labels "${repo_arch}" \
+            "${package_version}" \
+            | jq -Rs '
+                split("\n") | map(select(length > 0)) as $lines
+                | reduce range(0; ($lines | length); 2) as $i
+                    ({}; . + {($lines[$i]): $lines[$i + 1]})
+            '
+    )
+
+    log "Creating Pulp repository ${repo_name} (OS_PKG_TYPE=${os_pkg_type})"
+    if [ "$os_pkg_type" == "rpm" ]; then
+        if ! pulp rpm repository create --name "${repo_name}" \
+                --no-autopublish \
+                --retain-repo-versions "${retain_repo_versions}" \
+                --labels "${labels_json}"; then
+            log "ERROR: Failed to create ${os_pkg_type} repository" \
+                "${repo_name}"
+            exit 1
+        fi
+    elif [ "$os_pkg_type" == "deb" ]; then
+        if ! pulp deb repository create --name "${repo_name}" \
+                --retain-repo-versions "${retain_repo_versions}"; then
+            log "ERROR: Failed to create ${os_pkg_type} repository" \
+                "${repo_name}"
+            exit 1
+        fi
+    else
+        log "ERROR: Unsupported OS_PKG_TYPE='${os_pkg_type}'"
+        exit 1
+    fi
+
+    log "Pulp repository ${repo_name} created"
+    if [ "$os_pkg_type" == "deb" ]; then
+        log "Setting repository labels: ${labels_json}"
+        while IFS=$'\t' read -r key value; do
+            pulp deb repository label set \
+                --repository "${repo_name}" \
+                --key "${key}" --value "${value}"
+        done < <(
+            jq -r 'to_entries[] | "\(.key)\t\(.value)"' \
+                <<< "${labels_json}"
+        )
+    fi
+    return 0
+}
+
 # Locate the directory containing .deb packages for upload.
 # Prefers pool/main (APT pool layout), then WORKDIR, then the deb tree root.
 # Arguments:
@@ -65,7 +144,8 @@ resolve_deb_upload_dir() {
         printf '%s\n' "${workdir}"
         return 0
     fi
-    log "WARNING: no pool/main or WORKDIR under ${deb_tree}; searching ${deb_tree}"
+    log "WARNING: no pool/main or WORKDIR under ${deb_tree};" \
+        "searching ${deb_tree}"
     printf '%s\n' "${deb_tree}"
 }
 
@@ -91,8 +171,32 @@ add_pulp_uploaded_packages_to_repository() {
         done | sed 's/,$//'
         printf ']'
     )"
-    pulp "${content_type}" repository content modify --repository "$repo_name" \
-        --add-content "$add_content_json" --base-version 0
+    pulp "${content_type}" repository content modify \
+        --repository "$repo_name" --add-content "$add_content_json"
+}
+
+# Extract the content UUID from pulp upload command output.
+# Pulp prints progress and status text before the final JSON object.
+# Arguments:
+#   $1 - Combined stdout/stderr from a pulp upload command
+# Prints the UUID (last segment of .prn) on stdout.
+# Returns 1 if the UUID cannot be parsed.
+parse_pulp_upload_uuid() {
+    local upload_output="$1"
+    local json_line uuid
+
+    json_line=$(printf '%s\n' "$upload_output" | sed -n '/^{/p' | tail -1)
+    if [ -z "$json_line" ]; then
+        log "ERROR: No JSON found in pulp upload output"
+        return 1
+    fi
+    uuid=$(printf '%s\n' "$json_line" | \
+        jq -r '.prn | split(":") | last')
+    if [ -z "$uuid" ] || [ "$uuid" = "null" ]; then
+        log "ERROR: Failed to parse pulp upload UUID from output"
+        return 1
+    fi
+    printf '%s\n' "$uuid"
 }
 
 # Discover and upload RPM files from a build directory to Pulp.
@@ -100,21 +204,29 @@ add_pulp_uploaded_packages_to_repository() {
 #   $1 - Directory to search for .rpm files
 #   $2 - Pulp repository name
 #   $3 - Name of a nameref array variable to populate with uploaded UUIDs
-# Returns 0 when at least one RPM was uploaded, 1 otherwise.
+# Returns 0 when all RPMs were uploaded, 1 on upload failure or if none found.
 upload_rpm_to_pulp() {
     local rpmbuild_dir="${1%/}"
     local repo_name="$2"
     local out_array_name="$3"
     local -n pulp_uuid="$out_array_name"
 
+    local upload_output uuid
     pulp_uuid=()
     log "Discovering RPM artifacts under ${rpmbuild_dir}"
     while IFS= read -r rpm_file; do
         [ -z "$rpm_file" ] && continue
-        pulp_uuid+=($(pulp rpm content -t package upload \
-            --repository "$repo_name" --file "$rpm_file" --no-publish | \
-            jq -r '.prn | split(":") | last'
-        ))
+        if ! upload_output=$(pulp rpm content -t package upload \
+                --repository "$repo_name" --file "$rpm_file" \
+                --no-publish 2>&1); then
+            log "WARNING: Failed to upload ${rpm_file} to ${repo_name}"
+            return 1
+        fi
+        if ! uuid=$(parse_pulp_upload_uuid "$upload_output"); then
+            log "WARNING: Failed to parse upload UUID for ${rpm_file}"
+            return 1
+        fi
+        pulp_uuid+=("$uuid")
     done < <(
         find "${rpmbuild_dir}" -regextype egrep -regex ".*(\.rpm)$"
     )
@@ -129,7 +241,8 @@ upload_rpm_to_pulp() {
 #   $2 - Pulp repository name
 #   $3 - Build architecture (x86_64, aarch64, etc.)
 #   $4 - Name of a nameref array variable to populate with uploaded UUIDs
-# Returns 0 when at least one package was uploaded, 1 otherwise.
+# Returns 0 when all packages were uploaded, 1 on upload failure or if
+# none found.
 upload_deb_to_pulp() {
     local deb_dir="${1%/}"
     local repo_name="$2"
@@ -137,6 +250,7 @@ upload_deb_to_pulp() {
     local out_array_name="$4"
     local -n pulp_uuid="$out_array_name"
     local _arch="$arch"
+    local upload_output uuid
 
     if [ "$arch" == "x86_64" ]; then
         _arch="amd64"
@@ -148,17 +262,45 @@ upload_deb_to_pulp() {
     log "Discovering .deb packages (${_arch} and all) under ${deb_dir}/"
     while IFS= read -r deb_file; do
         [ -z "$deb_file" ] && continue
-        pulp_uuid+=($(pulp deb content -t package upload \
-            --repository "$repo_name" --file "$deb_file" | \
-            jq -r '.prn | split(":") | last'
-        ))
+        if ! upload_output=$(pulp deb content -t package upload \
+                --repository "$repo_name" --file "$deb_file" 2>&1); then
+            log "WARNING: Failed to upload ${deb_file} to ${repo_name}"
+            return 1
+        fi
+        if ! uuid=$(parse_pulp_upload_uuid "$upload_output"); then
+            log "WARNING: Failed to parse upload UUID for ${deb_file}"
+            return 1
+        fi
+        pulp_uuid+=("$uuid")
     done < <(
         find "${deb_dir}/" -regextype egrep \
             -regex ".*(${_arch}|all)\.deb$" |
             awk -F/ '{name = $NF; if (!seen[name]++) print $0}'
     )
-    log "Finished DEB uploads (repository=${repo_name}, count=${#pulp_uuid[@]})"
+    log "Finished DEB uploads (repository=${repo_name}," \
+        "count=${#pulp_uuid[@]})"
     [[ ${#pulp_uuid[@]} -gt 0 ]]
+}
+
+# Return Pulp distribution metadata labels as a flat key/value array.
+# Arguments:
+#   $1 - Architecture label stored on the distribution
+#   $2 - Package manager version string for the version label
+# Prints one label element per line (key, value, key, value, ...).
+get_pulp_distribution_labels() {
+    local repo_arch="$1"
+    local package_version="$2"
+
+    printf '%s\n' \
+        project "${PULP_PROJECT}" \
+        version "${package_version}" \
+        ref "${BRANCH}" \
+        branch "${BRANCH}" \
+        arch "${repo_arch}" \
+        sha1 "${SHA1}" \
+        distro "${OS_NAME}" \
+        distro_version "${OS_VERSION}" \
+        flavors "${FLAVOR}"
 }
 
 # Create a Pulp publication and distribution, then apply metadata labels.
@@ -175,7 +317,7 @@ publish_pulp_distribution() {
     local repo_endpoint="$2"
     local repo_arch="$3"
     local package_version="$4"
-    local final_version pub_href dist_name labels lookup_flag
+    local final_version pub_href dist_name lookup_flag
 
     if [ "$OS_PKG_TYPE" == "rpm" ]; then
         pub_href=$(
@@ -211,21 +353,9 @@ publish_pulp_distribution() {
         return
     fi
 
-    local i distro_version
-    distro_version="${OS_VERSION}"
-    if [ "$OS_NAME" == "centos" ] && [ "$OS_VERSION" -ge 8 ]; then
-        distro_version="${OS_VERSION}.stream"
-    fi
-    local -a labels=(
-        project "${PULP_PROJECT}"
-        version "${package_version}"
-        ref "${BRANCH}"
-        branch "${BRANCH}"
-        arch "${repo_arch}"
-        sha1 "${SHA1}"
-        distro "${OS_NAME}"
-        distro_version "${distro_version}"
-        flavors "${FLAVOR}"
+    local i labels
+    mapfile -t labels < <(
+        get_pulp_distribution_labels "${repo_arch}" "${package_version}"
     )
     log "Setting distribution labels: ${labels[@]}"
     for ((i = 0; i < ${#labels[@]}; i += 2)); do
@@ -240,8 +370,8 @@ publish_pulp_distribution() {
 
 log "Uploading artifacts to Pulp repository ..."
 
-BRANCH=$(release_from_version "${CEPH_VERSION}")
 _OS_VERSION=$(resolve_os_version_for_repo)
+REPO_VERSIONS_TO_RETAIN=$(get_repo_versions_to_retain)
 
 REPO_NAME="${PULP_PROJECT}-${BRANCH}-${OS_NAME}-${_OS_VERSION}"
 REPO_ENDPOINT="repos/${PULP_PROJECT}/${BRANCH}/${SHA1}/${OS_NAME}"
@@ -263,67 +393,94 @@ if [ "$OS_PKG_TYPE" = "rpm" ]; then
         _rpm_pulp_uuids=()
         case "$_kind" in
             SRPMS)
-                log "Uploading SRPMS to ${REPO_NAME}-source"
-                if upload_rpm_to_pulp "${_rpm_root}/SRPMS" "${REPO_NAME}-source" \
+                repo_name="${REPO_NAME}-source"
+                create_pulp_repository "${repo_name}" "rpm" \
+                        "${REPO_VERSIONS_TO_RETAIN}" "source" \
+                        "${PACKAGE_MANAGER_VERSION}"
+
+                log "Uploading SRPMS to ${repo_name}"
+                if upload_rpm_to_pulp "${_rpm_root}/SRPMS" "${repo_name}" \
                     _rpm_pulp_uuids; then
                     add_pulp_uploaded_packages_to_repository rpm \
-                        "${REPO_NAME}-source" _rpm_pulp_uuids
+                        "${repo_name}" _rpm_pulp_uuids
                     publish_pulp_distribution \
-                        "${REPO_NAME}-source" \
+                        "${repo_name}" \
                         "${REPO_ENDPOINT}/SRPMS" \
                         "source" \
                         "${PACKAGE_MANAGER_VERSION}"
                 else
                     log "WARNING: SRPMS upload failed;" \
-                        "skipping content modification and publication for ${REPO_NAME}-source"
+                        "skipping content modification and publication" \
+                        "for ${repo_name}"
                 fi
                 ;;
+
             x86_64)
-                log "Uploading x86_64 RPMs to ${REPO_NAME}-x86_64"
+                repo_name="${REPO_NAME}-x86_64"
+                create_pulp_repository "${repo_name}" "rpm" \
+                    "${REPO_VERSIONS_TO_RETAIN}" "x86_64" \
+                    "${PACKAGE_MANAGER_VERSION}"
+
+                log "Uploading x86_64 RPMs to ${repo_name}"
                 if upload_rpm_to_pulp "${_rpm_root}/RPMS/x86_64" \
-                    "${REPO_NAME}-x86_64" _rpm_pulp_uuids; then
+                    "${repo_name}" _rpm_pulp_uuids; then
                     add_pulp_uploaded_packages_to_repository rpm \
-                        "${REPO_NAME}-x86_64" _rpm_pulp_uuids
+                        "${repo_name}" _rpm_pulp_uuids
                     publish_pulp_distribution \
-                        "${REPO_NAME}-x86_64" \
+                        "${repo_name}" \
                         "${REPO_ENDPOINT}/x86_64" \
                         "x86_64" \
                         "${PACKAGE_MANAGER_VERSION}"
                 else
                     log "WARNING: x86_64 RPM upload failed;" \
-                        "skipping content modification and publication for ${REPO_NAME}-x86_64"
+                        "skipping content modification and publication" \
+                        "for ${repo_name}"
                 fi
                 ;;
+
             noarch)
-                log "Uploading noarch RPMs to ${REPO_NAME}-noarch"
+                repo_name="${REPO_NAME}-noarch"
+                create_pulp_repository "${repo_name}" "rpm" \
+                    "${REPO_VERSIONS_TO_RETAIN}" "noarch" \
+                    "${PACKAGE_MANAGER_VERSION}"
+
+                log "Uploading noarch RPMs to ${repo_name}"
                 if upload_rpm_to_pulp "${_rpm_root}/RPMS/noarch" \
-                    "${REPO_NAME}-noarch" _rpm_pulp_uuids; then
+                    "${repo_name}" _rpm_pulp_uuids; then
                     add_pulp_uploaded_packages_to_repository rpm \
-                        "${REPO_NAME}-noarch" _rpm_pulp_uuids
+                        "${repo_name}" _rpm_pulp_uuids
                     publish_pulp_distribution \
-                        "${REPO_NAME}-noarch" \
+                        "${repo_name}" \
                         "${REPO_ENDPOINT}/noarch" \
                         "noarch" \
                         "${PACKAGE_MANAGER_VERSION}"
                 else
                     log "WARNING: noarch RPM upload failed;" \
-                        "skipping content modification and publication for ${REPO_NAME}-noarch"
+                        "skipping content modification and publication" \
+                        "for ${repo_name}"
                 fi
                 ;;
+
             aarch64)
-                log "Uploading aarch64 RPMs to ${REPO_NAME}-aarch64"
+                repo_name="${REPO_NAME}-aarch64"
+                create_pulp_repository "${repo_name}" "rpm" \
+                    "${REPO_VERSIONS_TO_RETAIN}" "aarch64" \
+                    "${PACKAGE_MANAGER_VERSION}"
+
+                log "Uploading aarch64 RPMs to ${repo_name}"
                 if upload_rpm_to_pulp "${_rpm_root}/RPMS/aarch64" \
-                    "${REPO_NAME}-aarch64" _rpm_pulp_uuids; then
+                    "${repo_name}" _rpm_pulp_uuids; then
                     add_pulp_uploaded_packages_to_repository rpm \
-                        "${REPO_NAME}-aarch64" _rpm_pulp_uuids
+                        "${repo_name}" _rpm_pulp_uuids
                     publish_pulp_distribution \
-                        "${REPO_NAME}-aarch64" \
+                        "${repo_name}" \
                         "${REPO_ENDPOINT}/aarch64" \
                         "aarch64" \
                         "${PACKAGE_MANAGER_VERSION}"
                 else
                     log "WARNING: aarch64 RPM upload failed;" \
-                        "skipping content modification and publication for ${REPO_NAME}-aarch64"
+                        "skipping content modification and publication" \
+                        "for ${repo_name}"
                 fi
                 ;;
         esac
@@ -331,24 +488,31 @@ if [ "$OS_PKG_TYPE" = "rpm" ]; then
     unset _kind _rpm_root _rpm_pulp_uuids
 
 elif [ "$OS_PKG_TYPE" = "deb" ]; then
-    PACKAGE_MANAGER_VERSION="${VERSION}-1${OS_VERSION_NAME}"
     log "Starting DEB upload (OS_PKG_TYPE=${OS_PKG_TYPE})"
 
+    PACKAGE_MANAGER_VERSION="${VERSION}-1${OS_VERSION_NAME}"
+
+    repo_name="${REPO_NAME}-${ARCH}"
+    create_pulp_repository "${repo_name}" "deb" \
+        "${REPO_VERSIONS_TO_RETAIN}" "${ARCH}" \
+        "${PACKAGE_MANAGER_VERSION}"
+
+    log "Uploading DEB packages to ${repo_name}"
     _deb_upload_dir=$(resolve_deb_upload_dir "${WORKSPACE}/dist/ceph")
-    log "Uploading DEB artifacts to ${REPO_NAME}-${ARCH} from ${_deb_upload_dir}"
     _deb_pulp_uuids=()
-    if upload_deb_to_pulp "${_deb_upload_dir}" "${REPO_NAME}-${ARCH}" \
+    if upload_deb_to_pulp "${_deb_upload_dir}" "${repo_name}" \
         "${ARCH}" _deb_pulp_uuids; then
-        add_pulp_uploaded_packages_to_repository deb "${REPO_NAME}-${ARCH}" \
+        add_pulp_uploaded_packages_to_repository deb "${repo_name}" \
             _deb_pulp_uuids
         publish_pulp_distribution \
-            "${REPO_NAME}-${ARCH}" \
+            "${repo_name}" \
             "${REPO_ENDPOINT}/${ARCH}" \
             "${ARCH}" \
             "${PACKAGE_MANAGER_VERSION}"
     else
         log "WARNING: DEB upload failed;" \
-            "skipping content modification and publication for ${REPO_NAME}-${ARCH}"
+            "skipping content modification and publication" \
+            "for ${repo_name}"
     fi
     unset _deb_pulp_uuids _deb_upload_dir
 
