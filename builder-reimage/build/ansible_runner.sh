@@ -186,7 +186,41 @@ if ! (
 fi
 
 ##############################################
-# PLAYBOOK 3 — jenkins-builder-disk.yml
+# PLAYBOOK 3 — common.yml
+##############################################
+if ! (
+  cd "${ANSIBLE_DIR}"
+
+  CMD="ANSIBLE_HOST_KEY_CHECKING=False ANSIBLE_STDOUT_CALLBACK=json ansible-playbook common.yml \
+        -i '${INVENTORY_PATH}' \
+        --limit='${TARGET_FQDN}' \
+        -e ansible_ssh_user='${SSH_USER}'"
+
+  run_playbook "play3-common" "${CMD}"
+); then
+    FAILED_PLAYBOOKS+=("play3-common")
+    FAILED_LOGS+=("${LOG_DIR}/${TARGET_FQDN}-play3-common.log")
+fi
+
+##############################################
+# PLAYBOOK 4 — container-host.yml
+##############################################
+if ! (
+  cd "${ANSIBLE_DIR}"
+
+  CMD="ANSIBLE_HOST_KEY_CHECKING=False ANSIBLE_STDOUT_CALLBACK=json ansible-playbook container-host.yml \
+        -i '${INVENTORY_PATH}' \
+        --limit='${TARGET_FQDN}' \
+        -e ansible_ssh_user='${SSH_USER}'"
+
+  run_playbook "play4-container-host" "${CMD}"
+); then
+    FAILED_PLAYBOOKS+=("play4-container-host")
+    FAILED_LOGS+=("${LOG_DIR}/${TARGET_FQDN}-play4-container-host.log")
+fi
+
+##############################################
+# PLAYBOOK 5 — jenkins-builder-disk.yml
 ##############################################
 if ! (
   cd "${ANSIBLE_DIR}"
@@ -195,14 +229,14 @@ if ! (
         -i '${INVENTORY_PATH}' \
         --limit='${TARGET_FQDN}'"
 
-  run_playbook "play3-tools-disk" "${CMD}"
+  run_playbook "play5-tools-disk" "${CMD}"
 ); then
-    FAILED_PLAYBOOKS+=("play3-tools-disk")
-    FAILED_LOGS+=("${LOG_DIR}/${TARGET_FQDN}-play3-tools-disk.log")
+    FAILED_PLAYBOOKS+=("play5-tools-disk")
+    FAILED_LOGS+=("${LOG_DIR}/${TARGET_FQDN}-play5-tools-disk.log")
 fi
 
 ##############################################
-# PLAYBOOK 4 — builder.yml (USES VAULT)
+# PLAYBOOK 6 — builder.yml (USES VAULT)
 ##############################################
 EXTRA_VARS=""
 
@@ -227,10 +261,10 @@ if ! (
   echo "[ansible_runner][DEBUG] EXTRA_VARS=${EXTRA_VARS}"
   echo "[ansible_runner][DEBUG] FINAL CMD=${CMD}"
 
-  run_playbook "play4-main-builder" "${CMD}"
+  run_playbook "play6-main-builder" "${CMD}"
 ); then
-    FAILED_PLAYBOOKS+=("play4-main-builder")
-    FAILED_LOGS+=("${LOG_DIR}/${TARGET_FQDN}-play4-main-builder.log")
+    FAILED_PLAYBOOKS+=("play6-main-builder")
+    FAILED_LOGS+=("${LOG_DIR}/${TARGET_FQDN}-play6-main-builder.log")
 fi
 
 echo "========================================"
