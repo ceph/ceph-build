@@ -5,16 +5,27 @@ PROJECT=ceph-iscsi
 BRANCH=`branch_slash_filter $BRANCH`
 
 # Only do actual work when we are an RPM distro
-if test "$DISTRO" != "fedora" -a "$DISTRO" != "centos" -a "$DISTRO" != "rhel"; then
+if test "$DISTRO" != "fedora" -a "$DISTRO" != "centos" -a "$DISTRO" != "rhel" -a "$DISTRO" != "rocky"; then
     exit 0
 fi
 
-# Install the dependencies
-sudo yum install -y mock
+# Determine the target distro/release.  rocky10 has no dedicated builders, so
+# it is built inside a rockylinux:10 container running on a centos9 host (see
+# the combination-filter in config/definitions/ceph-iscsi.yml).  In that case
+# derive the target from $DIST rather than the host's /etc/os-release.
+CONTAINER_IMAGE=""
+if [ "$DIST" = "rocky10" ]; then
+    DISTRO=rocky
+    RELEASE=10
+    CONTAINER_IMAGE=docker.io/rockylinux/rockylinux:10
+else
+    # Install the dependencies
+    sudo yum install -y mock
+    get_rpm_dist
+fi
 
 ## Get some basic information about the system and the repository
 # Get version
-get_rpm_dist
 VERSION="$(git describe --abbrev=0 --tags HEAD)"
 REVISION="$(git describe --tags HEAD | cut -d - -f 2- | sed 's/-/./')"
 if [ "$VERSION" = "$REVISION" ]; then
@@ -38,21 +49,48 @@ sed -i "s/version=\"[^\"]*\"/version=\"${VERSION}\"/g" $WORKSPACE/setup.py
 # for debugging
 cat $WORKSPACE/setup.py
 
-## Create the source rpm
-echo "Building SRPM"
-rpmbuild \
-    --define "_sourcedir $WORKSPACE/dist" \
-    --define "_specdir $WORKSPACE/dist" \
-    --define "_builddir $WORKSPACE/dist" \
-    --define "_srcrpmdir $WORKSPACE/dist/SRPMS" \
-    --define "_rpmdir $WORKSPACE/dist/RPMS" \
-    --nodeps -bs $WORKSPACE/${PROJECT}.spec
-SRPM=$(readlink -f $WORKSPACE/dist/SRPMS/*.src.rpm)
+if [ -n "$CONTAINER_IMAGE" ]; then
+    ## Build the binaries inside a container of the target distro
+    echo "Building RPMs in $CONTAINER_IMAGE"
+    # Generate the build steps as a script so it can run inside the container
+    # with the workspace bind-mounted.  Rootless podman maps the container
+    # root to the host build user, so the resulting RPMs are owned by us.
+    cat > $WORKSPACE/dist/container_build.sh <<PODMAN_EOF
+#!/bin/bash
+set -ex
+dnf install -y epel-release dnf-plugins-core rpm-build
+dnf config-manager --set-enabled crb || true
+dnf builddep -y $WORKSPACE/${PROJECT}.spec
+rpmbuild \\
+    --define "_sourcedir $WORKSPACE/dist" \\
+    --define "_specdir $WORKSPACE/dist" \\
+    --define "_builddir $WORKSPACE/dist" \\
+    --define "_srcrpmdir $WORKSPACE/dist/SRPMS" \\
+    --define "_rpmdir $WORKSPACE/dist/RPMS" \\
+    -bb $WORKSPACE/${PROJECT}.spec
+PODMAN_EOF
+    podman run --rm \
+        -v "$WORKSPACE":"$WORKSPACE":Z \
+        -w "$WORKSPACE" \
+        "$CONTAINER_IMAGE" \
+        /bin/bash -ex $WORKSPACE/dist/container_build.sh
+else
+    ## Create the source rpm
+    echo "Building SRPM"
+    rpmbuild \
+        --define "_sourcedir $WORKSPACE/dist" \
+        --define "_specdir $WORKSPACE/dist" \
+        --define "_builddir $WORKSPACE/dist" \
+        --define "_srcrpmdir $WORKSPACE/dist/SRPMS" \
+        --define "_rpmdir $WORKSPACE/dist/RPMS" \
+        --nodeps -bs $WORKSPACE/${PROJECT}.spec
+    SRPM=$(readlink -f $WORKSPACE/dist/SRPMS/*.src.rpm)
 
-## Build the binaries with mock
-echo "Building RPMs"
-sudo mock --verbose -r ${MOCK_TARGET}-${RELEASE}-${ARCH} --scrub=all
-sudo mock --verbose -r ${MOCK_TARGET}-${RELEASE}-${ARCH} --resultdir=$WORKSPACE/dist/RPMS/ ${SRPM} || ( tail -n +1 $WORKSPACE/dist/RPMS/{root,build}.log && exit 1 )
+    ## Build the binaries with mock
+    echo "Building RPMs"
+    sudo mock --verbose -r ${MOCK_TARGET}-${RELEASE}-${ARCH} --scrub=all
+    sudo mock --verbose -r ${MOCK_TARGET}-${RELEASE}-${ARCH} --resultdir=$WORKSPACE/dist/RPMS/ ${SRPM} || ( tail -n +1 $WORKSPACE/dist/RPMS/{root,build}.log && exit 1 )
+fi
 
 ## Upload the created RPMs to chacra
 chacra_endpoint="${PROJECT}/${BRANCH}/${GIT_COMMIT}/${DISTRO}/${RELEASE}"

@@ -437,6 +437,10 @@ get_distro_and_target() {
             DISTRO="rhel"
             MOCK_TARGET="epel"
             ;;
+        rocky*)
+            DISTRO="rocky"
+            MOCK_TARGET="rocky+epel"
+            ;;
         fedora*)
             DISTRO="fedora"
             MOCK_TARGET="fedora"
