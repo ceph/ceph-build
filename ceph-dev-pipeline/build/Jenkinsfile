@@ -643,8 +643,35 @@ pipeline {
                   export DISTRO=${os.name}
                   export RELEASE=${os.version}
                   export cephver=${cephver}
+                  if [ "\$PULP_REGISTRY_UPLOAD" == "true" ]; then
+                    export REMOVE_LOCAL_IMAGES=false
+                  fi
                   ./scripts/build_container
                 """
+              }
+            }
+          }
+          stage("registry upload") {
+            when {
+              allOf {
+                expression { env.CI_CONTAINER == 'true' && container_distros.contains(env.DIST) }
+                expression { env.PULP_REGISTRY_UPLOAD == 'true' }
+              }
+            }
+            steps {
+              script {
+                withCredentials([
+                  usernamePassword(
+                    credentialsId: 'pulp-auth',
+                    usernameVariable: 'PULP_USERNAME',
+                    passwordVariable: 'PULP_PASSWORD'
+                  )
+                ]) {
+                  sh """#!/bin/bash
+                    set -ex
+                    ./scripts/pulp_container_push.sh
+                  """
+                }
               }
             }
           }
