@@ -14,8 +14,8 @@
 
       - string:
           name: DISTROS
-          description: "A list of distros to build for. Available options are: centos7, centos8, centos9"
-          default: "centos7 centos8 centos9"
+          description: "A list of distros to build for. Available options are: centos7, centos8, centos9, rocky10"
+          default: "centos7 centos8 centos9 rocky10"
 
       - string:
           name: ARCHS
@@ -35,8 +35,12 @@ If this is checked, then the binaries will be built and pushed to chacra even if
           default: "/tmp/"
 
     execution-strategy:
+       # rocky10 has no dedicated builders; it is built in a rockylinux:10
+       # container on a centos9 builder (see build/build_rpm), so route that
+       # DIST onto the centos9 node label instead of a matching AVAILABLE_DIST.
        combination-filter: |
-         DIST == AVAILABLE_DIST && ARCH == AVAILABLE_ARCH &&
+         ARCH == AVAILABLE_ARCH &&
+         ((DIST == AVAILABLE_DIST && DIST != "rocky10") || (DIST == "rocky10" && AVAILABLE_DIST == "centos9")) &&
          (ARCH == "x86_64" || (ARCH == "arm64" && ["centos7", "centos8", "centos9"].contains(DIST)))
     axes:
       - axis:
