@@ -126,8 +126,11 @@ run_playbook() {
     until [[ $attempts -ge $max_attempts ]]; do
         attempts=$((attempts + 1))
 
-        eval "${cmd}" 2>&1 | tee "${logfile}"
-        rc=${PIPESTATUS[0]}
+        if eval "${cmd}" 2>&1 | tee "${logfile}"; then
+            rc=0
+        else
+            rc=${PIPESTATUS[0]}
+        fi
 
         if [[ $rc -eq 0 ]]; then
             echo "[ansible_runner] ${pb_name} succeeded on attempt ${attempts}"
@@ -140,11 +143,6 @@ run_playbook() {
             sleep $((attempts * 10))
         else
             echo "[ansible_runner] Max attempts reached for ${pb_name}"
-
-            # NEW: Track failure instead of exiting
-            FAILED_PLAYBOOKS+=("${pb_name}")
-            FAILED_LOGS+=("${logfile}")
-
             return 1
         fi
     done
@@ -153,7 +151,7 @@ run_playbook() {
 ##############################################
 # PLAYBOOK 1 — ansible_managed.yml
 ##############################################
-(
+if ! (
   cd "${ANSIBLE_DIR}"
 
   CMD="ANSIBLE_HOST_KEY_CHECKING=False ANSIBLE_STDOUT_CALLBACK=json ansible-playbook ansible_managed.yml \
@@ -161,13 +159,16 @@ run_playbook() {
         --limit='${TARGET_FQDN}' \
         -e ansible_ssh_user='${SSH_USER}'"
 
-  run_playbook "play1-ansible_managed" "${CMD}" || true
-)
+  run_playbook "play1-ansible_managed" "${CMD}"
+); then
+    FAILED_PLAYBOOKS+=("play1-ansible_managed")
+    FAILED_LOGS+=("${LOG_DIR}/${TARGET_FQDN}-play1-ansible_managed.log")
+fi
 
 ##############################################
 # PLAYBOOK 2 — users.yml
 ##############################################
-(
+if ! (
   cd "${ANSIBLE_DIR}"
 
   ADMIN_USERS_JSON="$(build_admin_users_json)"
@@ -178,21 +179,27 @@ run_playbook() {
         --tags='user,pubkeys' \
         --extra-vars='${ADMIN_USERS_JSON}'"
 
-  run_playbook "play2-users" "${CMD}" || true
-)
+  run_playbook "play2-users" "${CMD}"
+); then
+    FAILED_PLAYBOOKS+=("play2-users")
+    FAILED_LOGS+=("${LOG_DIR}/${TARGET_FQDN}-play2-users.log")
+fi
 
 ##############################################
 # PLAYBOOK 3 — jenkins-builder-disk.yml
 ##############################################
-(
+if ! (
   cd "${ANSIBLE_DIR}"
 
   CMD="ANSIBLE_HOST_KEY_CHECKING=False ANSIBLE_STDOUT_CALLBACK=json ansible-playbook -v tools/jenkins-builder-disk.yml \
         -i '${INVENTORY_PATH}' \
         --limit='${TARGET_FQDN}'"
 
-  run_playbook "play3-tools-disk" "${CMD}" || true
-)
+  run_playbook "play3-tools-disk" "${CMD}"
+); then
+    FAILED_PLAYBOOKS+=("play3-tools-disk")
+    FAILED_LOGS+=("${LOG_DIR}/${TARGET_FQDN}-play3-tools-disk.log")
+fi
 
 ##############################################
 # PLAYBOOK 4 — builder.yml (USES VAULT)
@@ -204,7 +211,7 @@ if [[ "${LIBVIRT}" == "true" ]]; then
     EXTRA_VARS="-e libvirt=true"
 fi
 
-(
+if ! (
   cd "${MAIN_DIR}/ansible"
 
   CMD="ANSIBLE_HOST_KEY_CHECKING=False ANSIBLE_STDOUT_CALLBACK=json ansible-playbook -v \
@@ -220,8 +227,11 @@ fi
   echo "[ansible_runner][DEBUG] EXTRA_VARS=${EXTRA_VARS}"
   echo "[ansible_runner][DEBUG] FINAL CMD=${CMD}"
 
-  run_playbook "play4-main-builder" "${CMD}" || true
-)
+  run_playbook "play4-main-builder" "${CMD}"
+); then
+    FAILED_PLAYBOOKS+=("play4-main-builder")
+    FAILED_LOGS+=("${LOG_DIR}/${TARGET_FQDN}-play4-main-builder.log")
+fi
 
 echo "========================================"
 echo "[ansible_runner] FINAL EXECUTION SUMMARY"
