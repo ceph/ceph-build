@@ -846,10 +846,17 @@
             path: "/home/{{ jenkins_user }}/.local/share/containers/cache"
             state: absent
 
+        - name: Check for rootless containers directory
+          stat:
+            path: "/home/{{ jenkins_user }}/.local/share/containers"
+          register: containers_dir
+
         - name: Restore SELinux labels on containers directory (if applicable)
           command: >
             restorecon -R -T0 -x /home/{{ jenkins_user }}/.local/share/containers
-          when: ansible_selinux.status == "enabled"
+          when:
+            - ansible_selinux.status == "enabled"
+            - containers_dir.stat.exists
       tags:
         - podman-reset
 
