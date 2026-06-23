@@ -1,0 +1,89 @@
+def postGithubStatus(scriptContext, String state, String context, String description) {
+    scriptContext.withCredentials([usernamePassword(
+        credentialsId: 'github-readwrite-token',
+        usernameVariable: 'GITHUB_USER',
+        passwordVariable: 'GITHUB_PASS'
+    )]) {
+        scriptContext.sh """
+          set +x
+          curl --fail -L \
+            -X POST \
+            -H 'Accept: application/vnd.github+json' \
+            -H "Authorization: Bearer \$GITHUB_PASS" \
+            https://api.github.com/repos/jitendrasahu1803/ceph/statuses/${scriptContext.params.GH_PULL_REQUEST_SHA} \
+            -d '{
+              "state": "${state}",
+              "target_url": "${scriptContext.env.BUILD_URL}",
+              "description": "${description}",
+              "context": "${context}"
+            }'
+        """
+    }
+}
+
+pipeline {
+    agent any
+
+    stages {
+        stage('Show Parameters') {
+            steps {
+                script {
+                    currentBuild.displayName = "#${env.BUILD_NUMBER} PR-${params.GH_PULL_REQUEST_ID}"
+                    currentBuild.description = "sha=${params.GH_PULL_REQUEST_SHA}"
+                }
+
+                echo "=== POC Jenkins Job Parameters ==="
+                echo "GH_PULL_REQUEST_ID = ${params.GH_PULL_REQUEST_ID}"
+                echo "GH_PULL_REQUEST_SHA = ${params.GH_PULL_REQUEST_SHA}"
+                echo "TRIGGER_METHOD     = ${params.TRIGGER_METHOD}"
+                echo "TRIGGERED_BY       = ${params.TRIGGERED_BY}"
+            }
+        }
+
+        stage('Sleep For Cancellation Test') {
+            steps {
+                echo "Sleeping for 300 seconds so stale-build cancellation can be tested..."
+                sh 'sleep 300'
+            }
+        }
+    }
+
+    post {
+        success {
+            script {
+                postGithubStatus(
+                    this,
+                    'success',
+                    'jenkins poc test',
+                    'POC Jenkins job completed successfully'
+                )
+            }
+        }
+
+        failure {
+            script {
+                postGithubStatus(
+                    this,
+                    'failure',
+                    'jenkins poc test',
+                    'POC Jenkins job failed'
+                )
+            }
+        }
+
+        aborted {
+            script {
+                postGithubStatus(
+                    this,
+                    'error',
+                    'jenkins poc test',
+                    'POC Jenkins job was aborted'
+                )
+            }
+        }
+
+        always {
+            echo 'POC job finished.'
+        }
+    }
+}
