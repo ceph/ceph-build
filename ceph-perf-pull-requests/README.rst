@@ -15,7 +15,8 @@ The ``ceph-perf`` project generates two freestyle jobs:
   (``crimson-osd`` via ``vstart.sh --crimson``)
 
 Both run on ``performance`` nodes, build ``ceph-main`` and the PR merge ref
-(``WITH_CRIMSON=ON``, ``vstart-base`` + ``crimson-osd``; clang-19+ or GCC/G++ 13+),
+(``WITH_CRIMSON=ON``, ``vstart-base`` + ``crimson-osd``; clang-19 via ``run-make.sh`` on Jenkins,
+same as make-check),
 execute the ``radosbench_4K_read.yaml`` workload from ``ceph-main``, and compare
 results with ``cbt/compare.py``. A GitHub check (``perf-test-{osd-flavor}``) is
 updated with the comparison report.
