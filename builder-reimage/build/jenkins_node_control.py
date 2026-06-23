@@ -52,7 +52,7 @@ def resolve_node_name(session, base_url, short_name):
         if short_name in display_name:
             return display_name
 
-    raise RuntimeError(f"Could not resolve Jenkins node name for {short_name}")
+    return None
 
 
 def get_node_info(session, base_url, node_name):
@@ -143,6 +143,10 @@ def main():
 
     if args.action == "prepare_for_reimage":
         node_name = resolve_node_name(session, base_url, short_name)
+        if node_name is None:
+            print(f"[WARN] No Jenkins node found for {short_name}; skipping offline preparation", flush=True)
+            sys.exit(0)
+
         node_info = get_node_info(session, base_url, node_name)
 
         state = {
