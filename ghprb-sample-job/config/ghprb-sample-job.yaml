@@ -1,0 +1,39 @@
+- job:
+    name: preserve-ceph-pr-trigger-poc
+    project-type: pipeline
+    description: |
+      Temporary POC job for GitHub Actions -> Jenkins testing.
+
+      Purpose:
+      - Accept PR metadata as parameters
+      - Print the values
+      - Sleep for a while so stale-build cancellation can be tested
+
+    sandbox: true
+
+    parameters:
+      - string:
+          name: GH_PULL_REQUEST_ID
+          default: ''
+          description: 'GitHub Pull Request number'
+      - string:
+          name: GH_PULL_REQUEST_SHA
+          default: ''
+          description: 'GitHub Pull Request head SHA'
+      - string:
+          name: TRIGGER_METHOD
+          default: ''
+          description: 'How this job was triggered'
+      - string:
+          name: TRIGGERED_BY
+          default: ''
+          description: 'URL of the GitHub workflow/comment that triggered this job'
+
+    pipeline-scm:
+      scm:
+        - git:
+            url: https://github.com/ceph/ceph-build.git
+            branches:
+              - ghprb-sample-job
+      script-path: ghprb-sample-job/build/Jenkinsfile
+      lightweight-checkout: true
