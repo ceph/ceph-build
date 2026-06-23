@@ -49,32 +49,47 @@
     name: run-cbt
     builders:
       - shell: |
+          set -euxo pipefail
           cd {src-dir}
+          git submodule update --init --recursive
           archive_dir={archive-basedir}/$(git rev-parse --short HEAD)
           if test -d $archive_dir ; then
               exit 0
           fi
           export NPROC=$(nproc)
           export FOR_MAKE_CHECK=true
-          cxx_compiler=g++
-          c_compiler=gcc
-          for i in $(seq 15 -1 10); do
+          # Same Crimson-inclusive build as ceph-pull-requests (WITH_CRIMSON=true).
+          # Classic vs crimson perf is selected at CBT runtime via run-cbt.sh.
+          # Crimson/Seastar needs a recent compiler: prefer clang-19+, and
+          # only fall back to GCC/G++ when the host has version 13+.
+          cxx_compiler=
+          c_compiler=
+          for i in $(seq 25 -1 19); do
               if type -t clang-$i > /dev/null; then
                   cxx_compiler="clang++-$i"
                   c_compiler="clang-$i"
                   break
               fi
           done
-          if test {osd-flavor} = "crimson" ; then
-              export WITH_CRIMSON=true
-              # TODO use clang-10 on ubuntu/focal
-              timeout 7200 src/script/run-make.sh \
-                --cmake-args "-DCMAKE_CXX_COMPILER=$cxx_compiler -DCMAKE_C_COMPILER=$c_compiler -DCMAKE_BUILD_TYPE=Release -DWITH_CRIMSON=ON -DWITH_TESTS=OFF" \
-                vstart-base crimson-osd
-              src/script/run-cbt.sh --build-dir $PWD/build --source-dir $PWD --cbt ${{WORKSPACE}}/cbt -a $archive_dir src/test/crimson/cbt/radosbench_4K_read.yaml
+          if test -z "$cxx_compiler"; then
+              gcc_major=$(gcc -dumpfullversion -dumpversion | cut -d. -f1)
+              gxx_major=$(g++ -dumpfullversion -dumpversion | cut -d. -f1)
+              if test "$gcc_major" -lt 13 || test "$gxx_major" -lt 13; then
+                  echo "Need clang-19+ or GCC/G++ 13+ for Crimson build (found gcc=$gcc_major g++=$gxx_major)" >&2
+                  exit 1
+              fi
+              cxx_compiler=g++
+              c_compiler=gcc
+          fi
+          export WITH_CRIMSON=true
+          cmake_args="-DCMAKE_CXX_COMPILER=$cxx_compiler -DCMAKE_C_COMPILER=$c_compiler -DCMAKE_BUILD_TYPE=Release -DWITH_CRIMSON=ON -DWITH_TESTS=OFF -DWITH_SPDK=OFF -DWITH_DPDK=OFF -DWITH_QATLIB=OFF -DWITH_QATZIP=OFF $CEPH_PERF_EXTRA_CMAKE_ARGS"
+          timeout 7200 src/script/run-make.sh \
+            --cmake-args "$cmake_args" \
+            vstart-base crimson-osd
+          if test {osd-flavor} = "classic" ; then
+              src/script/run-cbt.sh --build-dir $PWD/build --source-dir $PWD --cbt $WORKSPACE/cbt -a $archive_dir {benchmark-yaml} --classical
           else
-              timeout 7200 src/script/run-make.sh --cmake-args "-DCMAKE_BUILD_TYPE=Release -DWITH_TESTS=OFF" vstart-base
-              src/script/run-cbt.sh --build-dir $PWD/build --source-dir $PWD --cbt ${{WORKSPACE}}/cbt -a $archive_dir src/test/crimson/cbt/radosbench_4K_read.yaml --classical
+              src/script/run-cbt.sh --build-dir $PWD/build --source-dir $PWD --cbt $WORKSPACE/cbt -a $archive_dir {benchmark-yaml}
           fi
 
 - builder:
@@ -101,7 +116,7 @@
             --external-id ${{BUILD_ID}}                  \
             --details-url ${{BUILD_URL}}                 \
             --status completed --conclusion ${{result}}  \
-            --title perf-test                            \
+            --title {check-name}                         \
             --summary ${{result}}                        \
             --text report.md
 
@@ -110,16 +125,17 @@
     project-type: freestyle
     defaults: global
     concurrent: true
-    # use lastest rhel and ubuntu for crimson for clang build
     node: performance
     display-name: 'ceph: {osd-flavor} perf test'
+    description: 'CBT performance regression check ({osd-flavor} flavor): builds ceph-pr and ceph-main, runs the checked-in radosbench 4K read workload, and compares results via cbt/compare.py. The GitHub check fails when compare.py reports a statistically worse result, too much noise, or errors.'
     quiet-period: 5
     block-downstream: false
     block-upstream: false
     retry-count: 3
+    disabled: false
     check-app-id: "62865"
     check-install-id: "8465036"
-    check-name: "perf-test"
+    check-name: "perf-test-{osd-flavor}"
     check-repo-owner: "ceph"
     check-repo-name: "ceph"
 
@@ -138,6 +154,10 @@
       - string:
           name: ghprbPullId
           description: "the GitHub pull id, like '72' in 'ceph/pull/72'"
+      - string:
+          name: CEPH_PERF_EXTRA_CMAKE_ARGS
+          default: ''
+          description: 'Extra CMake arguments appended to the build (use this to disable additional components for a more minimal build).'
 
     triggers:
       - github-pull-request:
@@ -149,11 +169,14 @@
           only-trigger-phrase: false
           white-list-labels:
             - performance
-            - crimson
           github-hooks: true
           permit-all: false
           auto-close-on-fail: false
           cancel-builds-on-update: true
+          status-context: 'ceph {osd-flavor} perf regression'
+          started-status: 'running ceph {osd-flavor} perf regression'
+          success-status: 'ceph {osd-flavor} perf regression passed'
+          failure-status: 'ceph {osd-flavor} perf regression failed'
 
     scm:
       - ceph-main
@@ -166,15 +189,15 @@
           . /etc/os-release || ID=ubuntu
           case $ID in
           debian|ubuntu)
-              sudo env DEBIAN_FRONTEND=noninteractive apt-get install -y python3-yaml python3-lxml python3-prettytable clang-12
+              sudo env DEBIAN_FRONTEND=noninteractive apt-get install -y python3-yaml python3-lxml python3-prettytable python3-matplotlib cython3 clang
               ;;
           centos|rhel)
               sudo dnf copr remove tchaikov/llvm-toolset-10 || true
               sudo dnf module enable -y llvm-toolset
               sudo dnf install -y llvm-toolset
-              sudo yum install -y python3-pyyaml python3-lxml python3-prettytable
+              sudo yum install -y python3-pyyaml python3-lxml python3-prettytable python3-matplotlib python3-Cython
               sudo yum update -y libarchive
-              gcc_toolset_ver=9
+              gcc_toolset_ver=13
               # so clang is able to find gcc-toolset-${{gcc_toolset_ver}} which is listed as a
               # BuildRequires in ceph.spec.in, and it is installed by `run-make.sh`.
               # clang searches for GCC in a bunch of well known places:
@@ -183,7 +206,7 @@
                           /usr/lib/gcc/x86_64-redhat-linux/${{gcc_toolset_ver}}
               ;;
           fedora)
-              sudo yum install -y python3-pyyaml python3-lxml python3-prettytable clang
+              sudo yum install -y python3-pyyaml python3-lxml python3-prettytable python3-matplotlib python3-Cython clang
               ;;
           *)
               echo "unknown distro: $ID"
@@ -192,6 +215,9 @@
           esac
           virtualenv -q --python python3 ${{WORKSPACE}}/gh-venv
           . ${{WORKSPACE}}/gh-venv/bin/activate
+          pip install setuptools
+          pip install cython
+          pip install -r ${{WORKSPACE}}/cbt/requirements.txt
           pip install git+https://github.com/ceph/githubcheck.git
           echo "please hold tight..." | github-check     \
             --owner {check-repo-owner}                   \
@@ -204,17 +230,21 @@
             --external-id ${{BUILD_ID}}                  \
             --details-url ${{BUILD_URL}}                 \
             --status in_progress                         \
-            --title perf-test                            \
+            --title {check-name}                         \
             --summary running
 
       - run-cbt:
-          src-dir: "ceph-main"
           osd-flavor: '{osd-flavor}'
+          src-dir: "ceph-main"
+          benchmark-yaml: "$WORKSPACE/ceph-main/src/test/crimson/cbt/radosbench_4K_read.yaml"
           # ideally cbt-results should be persited across jobs, so the test result can be reused
           archive-basedir: "$WORKSPACE/cbt-results"
       - run-cbt:
-          src-dir: "ceph-pr"
           osd-flavor: '{osd-flavor}'
+          src-dir: "ceph-pr"
+          # use the same benchmark definition as ceph-main for apples-to-apples
+          # comparison and to avoid PR-side benchmark drift.
+          benchmark-yaml: "$WORKSPACE/ceph-main/src/test/crimson/cbt/radosbench_4K_read.yaml"
           # use the basedir of git checkout, so it can be wiped
           archive-basedir: "$WORKSPACE/ceph-pr"
       - compare-cbt-results:
@@ -243,10 +273,11 @@
           - file:
               credential-id: cephacheck.2020-04-29.private-key.pem
               variable: GITHUB_CHECK_PKEY_PEM
+
 - project:
     name: ceph-perf
     osd-flavor:
       - classic
       - crimson
     jobs:
-      - ceph-perf-{osd-flavor}
+      - 'ceph-perf-{osd-flavor}'
