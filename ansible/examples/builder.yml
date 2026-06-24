@@ -623,11 +623,11 @@
         disablerepo: epel
       when: ansible_os_family == "RedHat"
 
-    - name: Install RPMs with EPEL
+    - name: Install RPMs with EPEL,CRB
       yum:
         name: "{{ epel_rpms|default([]) }}"
         state: latest
-        enablerepo: epel
+        enablerepo: "epel,crb"
       when: ansible_os_family == "RedHat"
 
     - name: Install Suse RPMs
