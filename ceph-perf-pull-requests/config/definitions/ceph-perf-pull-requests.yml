@@ -199,9 +199,9 @@
           pip install setuptools
           pip install cython
           pip install -r ${{WORKSPACE}}/cbt/requirements.txt
-          # github3 passes app_id as int to PyJWT; 2.13+ requires iss to be str
-          pip install 'pyjwt<2.13'
           pip install git+https://github.com/ceph/githubcheck.git
+          # github3.py 4.0.1 passes app_id as int; PyJWT 2.11+ requires iss to be str.
+          pip install 'pyjwt<2.11'
           echo "please hold tight..." | github-check     \
             --owner {check-repo-owner}                   \
             --repo {check-repo-name}                     \
