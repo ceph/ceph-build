@@ -34,8 +34,8 @@ cd ~/ceph
     -DCMAKE_BUILD_TYPE=Release \
     -DWITH_RADOSGW=OFF \
     -DWITH_MGR_DASHBOARD_FRONTEND=OFF \
-    -WITH_MGR=OFF \
-    -WITH_LTTNG=OFF \
+    -DWITH_MGR=OFF \
+    -DWITH_LTTNG=OFF \
     -DWITH_TESTS=OFF
 cd ./build
 ninja vstart
@@ -59,7 +59,8 @@ cat > ${VSTART_DIR}/ceph-vstart.sh << EOF
 mkdir -p \$HOME/ceph-vstart/out
 
 cd ~/ceph/build
-VSTART_DEST=\$HOME/ceph-vstart ../src/vstart.sh \
+# WITH_MGR=OFF above means ceph-mgr is not built; tell vstart not to start one.
+CEPH_NUM_MGR=0 VSTART_DEST=\$HOME/ceph-vstart ../src/vstart.sh \
     -n $OBJECTSTORE_ARGS \
     --without-dashboard -i "$UBUNTU_VM_IP" \
     2>&1 | tee \$HOME/ceph-vstart/vstart.log
