@@ -58,31 +58,12 @@
           fi
           export NPROC=$(nproc)
           export FOR_MAKE_CHECK=true
+          export WITH_CRIMSON=true
           # Same Crimson-inclusive build as ceph-pull-requests (WITH_CRIMSON=true).
           # Classic vs crimson perf is selected at CBT runtime via run-cbt.sh.
-          # Crimson/Seastar needs a recent compiler: prefer clang-19+, and
-          # only fall back to GCC/G++ when the host has version 13+.
-          cxx_compiler=
-          c_compiler=
-          for i in $(seq 25 -1 19); do
-              if type -t clang-$i > /dev/null; then
-                  cxx_compiler="clang++-$i"
-                  c_compiler="clang-$i"
-                  break
-              fi
-          done
-          if test -z "$cxx_compiler"; then
-              gcc_major=$(gcc -dumpfullversion -dumpversion | cut -d. -f1)
-              gxx_major=$(g++ -dumpfullversion -dumpversion | cut -d. -f1)
-              if test "$gcc_major" -lt 13 || test "$gxx_major" -lt 13; then
-                  echo "Need clang-19+ or GCC/G++ 13+ for Crimson build (found gcc=$gcc_major g++=$gxx_major)" >&2
-                  exit 1
-              fi
-              cxx_compiler=g++
-              c_compiler=gcc
-          fi
-          export WITH_CRIMSON=true
-          cmake_args="-DCMAKE_CXX_COMPILER=$cxx_compiler -DCMAKE_C_COMPILER=$c_compiler -DCMAKE_BUILD_TYPE=Release -DWITH_CRIMSON=ON -DWITH_TESTS=OFF -DWITH_SPDK=OFF -DWITH_DPDK=OFF -DWITH_QATLIB=OFF -DWITH_QATZIP=OFF $CEPH_PERF_EXTRA_CMAKE_ARGS"
+          # Compiler: run-make.sh installs clang-19 on Jenkins (src/script/run-make.sh
+          # get_llvm) and selects it via discover_compiler — same as make-check nodes.
+          cmake_args="-DCMAKE_BUILD_TYPE=Release -DWITH_CRIMSON=ON -DWITH_TESTS=OFF -DWITH_SPDK=OFF -DWITH_DPDK=OFF -DWITH_QATLIB=OFF -DWITH_QATZIP=OFF $CEPH_PERF_EXTRA_CMAKE_ARGS"
           timeout 7200 src/script/run-make.sh \
             --cmake-args "$cmake_args" \
             vstart-base crimson-osd
@@ -109,8 +90,8 @@
             --owner {check-repo-owner}                   \
             --repo {check-repo-name}                     \
             --pkey-file ${{GITHUB_CHECK_PKEY_PEM}}       \
-            --app-id {check-app-id}                      \
-            --install-id {check-install-id}              \
+            --app-id "{check-app-id}"                    \
+            --install-id "{check-install-id}"            \
             --name {check-name}                          \
             --sha ${{ghprbActualCommit}}                 \
             --external-id ${{BUILD_ID}}                  \
@@ -189,7 +170,7 @@
           . /etc/os-release || ID=ubuntu
           case $ID in
           debian|ubuntu)
-              sudo env DEBIAN_FRONTEND=noninteractive apt-get install -y python3-yaml python3-lxml python3-prettytable python3-matplotlib cython3 clang
+              sudo env DEBIAN_FRONTEND=noninteractive apt-get install -y python3-yaml python3-lxml python3-prettytable python3-matplotlib cython3
               ;;
           centos|rhel)
               sudo dnf copr remove tchaikov/llvm-toolset-10 || true
@@ -218,13 +199,15 @@
           pip install setuptools
           pip install cython
           pip install -r ${{WORKSPACE}}/cbt/requirements.txt
+          # github3 passes app_id as int to PyJWT; 2.13+ requires iss to be str
+          pip install 'pyjwt<2.13'
           pip install git+https://github.com/ceph/githubcheck.git
           echo "please hold tight..." | github-check     \
             --owner {check-repo-owner}                   \
             --repo {check-repo-name}                     \
             --pkey-file ${{GITHUB_CHECK_PKEY_PEM}}       \
-            --app-id {check-app-id}                      \
-            --install-id {check-install-id}              \
+            --app-id "{check-app-id}"                    \
+            --install-id "{check-install-id}"            \
             --name {check-name}                          \
             --sha ${{ghprbActualCommit}}                 \
             --external-id ${{BUILD_ID}}                  \
