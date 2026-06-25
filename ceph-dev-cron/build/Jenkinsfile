@@ -28,10 +28,10 @@ node('built-in') {
           ]
       ],
       main: [
-          distros: 'noble jammy rocky10 centos9 windows',
+          distros: 'noble jammy rocky10 windows',
           extras : [
-              [distros:'centos9 rocky10', flavors:'debug', archs:'x86_64'],
-              [distros:'centos9 rocky10', flavors:'default', archs:'arm64'],
+              [distros:'rocky10', flavors:'debug', archs:'x86_64'],
+              [distros:'rocky10', flavors:'default', archs:'arm64'],
           ]
       ]
   ]
