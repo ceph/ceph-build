@@ -1,6 +1,6 @@
 - job:
     name: ceph-website-prs
-    description: This job builds PRs from github.com/ceph/ceph.io and serves them at $branch.ceph.io.
+    description: This job builds PRs from github.com/ceph/ceph.io and serves them at $prnumber.ceph.io.
     node: www
     project-type: freestyle
     defaults: global
@@ -36,7 +36,7 @@
           started-status: "Compiling site"
           success-status: "Site compiled successfully!"
           failure-status: "Site compilation failed"
-          success-comment: "Site built/updated successfully!  https://${{GIT_BRANCH}}.ceph.io"
+          success-comment: "Site built/updated successfully!  https://${{ghprbPullId}}.ceph.io"
 
     scm:
       - git:
