@@ -69,6 +69,11 @@
           description: "Whether to upload packages to Pulp"
           default: false
 
+      - bool:
+          name: PULP_REGISTRY_UPLOAD
+          description: "Whether to upload dev container images to the Pulp container registry"
+          default: false
+
       - choice:
           name: FLAVOR
           choices:
