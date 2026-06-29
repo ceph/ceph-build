@@ -64,7 +64,7 @@
           # Classic vs crimson perf is selected at CBT runtime via run-cbt.sh.
           # Compiler: run-make.sh installs clang-19 on Jenkins (src/script/run-make.sh
           # get_llvm) and selects it via discover_compiler — same as make-check nodes.
-          cmake_args="-DCMAKE_BUILD_TYPE=Release -DWITH_CRIMSON=ON -DWITH_TESTS=OFF -DWITH_SPDK=OFF -DWITH_DPDK=OFF -DWITH_QATLIB=OFF -DWITH_QATZIP=OFF $CEPH_PERF_EXTRA_CMAKE_ARGS"
+          cmake_args="-DCMAKE_BUILD_TYPE=Release -DWITH_CRIMSON=ON -DWITH_TESTS=OFF -DWITH_SPDK=OFF -DWITH_DPDK=OFF -DWITH_QATLIB=OFF -DWITH_QATZIP=OFF ${{CEPH_PERF_EXTRA_CMAKE_ARGS:-}}"
           timeout 7200 src/script/run-make.sh \
             --cmake-args "$cmake_args" \
             vstart-base crimson-osd
