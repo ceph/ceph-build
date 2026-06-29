@@ -54,9 +54,10 @@
           cd {src-dir}
           git submodule update --init --recursive
           archive_dir={archive-basedir}/$(git rev-parse --short HEAD)
-          if test -d $archive_dir ; then
+          if test -d "$archive_dir" && test -n "$(find "$archive_dir" -mindepth 1 -print -quit 2>/dev/null)" ; then
               exit 0
           fi
+          mkdir -p "$archive_dir"
           export NPROC=$(nproc)
           export FOR_MAKE_CHECK=true
           export WITH_CRIMSON=true
@@ -68,25 +69,41 @@
           timeout 7200 src/script/run-make.sh \
             --cmake-args "$cmake_args" \
             vstart-base crimson-osd
+          . ${{WORKSPACE}}/gh-venv/bin/activate
           if test {osd-flavor} = "classic" ; then
-              src/script/run-cbt.sh --build-dir $PWD/build --source-dir $PWD --cbt $WORKSPACE/cbt -a $archive_dir {benchmark-yaml} --classical
+              env PATH="${{WORKSPACE}}/gh-venv/bin:$PATH" \
+                src/script/run-cbt.sh --build-dir $PWD/build --source-dir $PWD --cbt $WORKSPACE/cbt -a $archive_dir {benchmark-yaml} --classical
           else
-              src/script/run-cbt.sh --build-dir $PWD/build --source-dir $PWD --cbt $WORKSPACE/cbt -a $archive_dir {benchmark-yaml}
+              env PATH="${{WORKSPACE}}/gh-venv/bin:$PATH" \
+                src/script/run-cbt.sh --build-dir $PWD/build --source-dir $PWD --cbt $WORKSPACE/cbt -a $archive_dir {benchmark-yaml}
           fi
+          # run-cbt.sh is /bin/sh without set -e; a failed cbt.py still exits 0.
+          test -n "$(find "$archive_dir" -mindepth 1 -print -quit 2>/dev/null)"
 
 - builder:
     name: compare-cbt-results
     builders:
       - shell: |
+          #!/bin/bash
+          set -euxo pipefail
           cd ${{WORKSPACE}}/{src-dir-main}
           archive_dir_main={archive-main}/$(git rev-parse --short HEAD)
           cd ${{WORKSPACE}}/{src-dir-pr}
           archive_dir_pr={archive-pr}/$(git rev-parse --short HEAD)
           . ${{WORKSPACE}}/gh-venv/bin/activate
-          ${{WORKSPACE}}/cbt/compare.py -v \
+          report=${{WORKSPACE}}/report.md
+          # compare.py has #!/usr/bin/python3; must invoke via venv python3
+          if python3 ${{WORKSPACE}}/cbt/compare.py -v \
             -a $archive_dir_pr             \
             -b $archive_dir_main         \
-            --output report.md && result=success || result=failure
+            --output $report; then
+              result=success
+          else
+              result=failure
+              if test ! -f $report; then
+                  echo "cbt/compare.py failed; see Jenkins console for details." > $report
+              fi
+          fi
           github-check                                   \
             --owner {check-repo-owner}                   \
             --repo {check-repo-name}                     \
@@ -100,7 +117,7 @@
             --status completed --conclusion ${{result}}  \
             --title {check-name}                         \
             --summary ${{result}}                        \
-            --text report.md
+            --text $report
 
 - job-template:
     name: 'ceph-perf-{osd-flavor}'
@@ -167,6 +184,8 @@
 
     builders:
       - shell: |
+          #!/bin/bash
+          set -euxo pipefail
           cd ${{WORKSPACE}}/cbt
           . /etc/os-release || ID=ubuntu
           case $ID in
@@ -199,7 +218,9 @@
           . ${{WORKSPACE}}/gh-venv/bin/activate
           pip install setuptools
           pip install cython
-          pip install -r ${{WORKSPACE}}/cbt/requirements.txt
+          # cbt imports mdutils; not listed in ceph/cbt master requirements.txt
+          pip install -r ${{WORKSPACE}}/cbt/requirements.txt mdutils
+          python3 -c "import yaml, lxml, matplotlib, mdutils, cython, setuptools"
           pip install git+https://github.com/ceph/githubcheck.git
           # github3.py 4.0.1 passes app_id as int; PyJWT 2.11+ requires iss to be str.
           pip install 'pyjwt<2.11'
