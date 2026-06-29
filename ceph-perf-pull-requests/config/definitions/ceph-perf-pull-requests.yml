@@ -49,6 +49,7 @@
     name: run-cbt
     builders:
       - shell: |
+          #!/bin/bash
           set -euxo pipefail
           cd {src-dir}
           git submodule update --init --recursive
