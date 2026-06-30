@@ -56,18 +56,23 @@
 
       - bool:
           name: THROWAWAY
-          description: "Whether to push any binaries to Chacra"
+          description: "Whether to push any binaries to Chacra or Pulp"
           default: false
 
       - bool:
           name: FORCE
-          description: "Whether to push new binaries to Chacra if some are already present"
+          description: "Whether to push new binaries even if some are already present"
           default: false
 
       - bool:
+          name: CHACRA_UPLOAD
+          description: "Whether to push new binaries to Chacra"
+          default: true
+
+      - bool:
           name: PULP_UPLOAD
-          description: "Whether to upload packages to Pulp"
-          default: false
+          description: "Whether to push new binaries to Pulp"
+          default: true
 
       - bool:
           name: PULP_REGISTRY_UPLOAD
