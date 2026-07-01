@@ -45,6 +45,9 @@ pipeline {
         booleanParam(name: 'WAIT_FOR_RUNS', defaultValue: false, description: 'Run teuthology-wait after scheduling.')
         string(name: 'SUITE_WAIT_SLEEP', defaultValue: '15', description: 'Sleep before teuthology-wait.')
         booleanParam(name: 'RUN_AGGREGATE', defaultValue: false, description: 'Write aggregate_table.txt.')
+        booleanParam(name: 'POST_AUTO_PTL_PR_STATUS', defaultValue: false, description: 'After teuthology completes, post auto-ptl-batch success/failure on AUTO_PTL_PR_STATUS_SHAS (requires WAIT_FOR_RUNS).')
+        string(name: 'AUTO_PTL_PR_STATUS_SHAS', defaultValue: '', description: 'Comma-separated PR HEAD SHAs for auto-ptl-batch result posting.')
+        string(name: 'AUTO_PTL_BATCH_BRANCH', defaultValue: '', description: 'Batch branch name for auto-ptl-batch status description (defaults to CEPH_BRANCH).')
     }
     stages {
         stage('Checkout ceph-build') {
@@ -215,6 +218,7 @@ pipeline {
 
                     env.TEUTHOLOGY_RUN_NAMES = runInfos.collect { it[1] }.join(',')
                     env.TEUTHOLOGY_RUN_NAME = runInfos ? runInfos[0][1] : ''
+                    env.TEUTHOLOGY_WAIT_FAILED = 'false'
                     writeFile file: "${WORKSPACE}/teuthology_run_infos.txt", text: runInfos.collect { "${it[0]}|${it[1]}" }.join('\n')
                 }
             }
@@ -237,10 +241,13 @@ pipeline {
                     withEnv(waitEnv) {
                         dir(env.SCRIPT_DIR) {
                             for (runName in runNameList) {
-                                try {
-                                    sh "${env.VIRTUALENV_PATH}/bin/teuthology-wait --run ${runName}"
-                                } catch (Exception e) {
-                                    echo "teuthology-wait failed for ${runName}: ${e.message}"
+                                def waitRc = sh(
+                                    script: "${env.VIRTUALENV_PATH}/bin/teuthology-wait --run ${runName}",
+                                    returnStatus: true,
+                                )
+                                if (waitRc != 0) {
+                                    echo "teuthology-wait failed for ${runName} (exit ${waitRc})"
+                                    env.TEUTHOLOGY_WAIT_FAILED = 'true'
                                 }
                             }
                         }
@@ -249,7 +256,7 @@ pipeline {
             }
         }
         stage('Aggregate results') {
-            when { expression { return params.RUN_AGGREGATE && env.TEUTHOLOGY_RUN_NAMES?.trim() } }
+            when { expression { return (params.RUN_AGGREGATE || params.POST_AUTO_PTL_PR_STATUS) && env.TEUTHOLOGY_RUN_NAMES?.trim() } }
             steps {
                 script {
                     def runNames = env.TEUTHOLOGY_RUN_NAMES.split(',').collect { it.trim() }.findAll { it }
@@ -261,6 +268,77 @@ pipeline {
                         withEnv(paddlesTlsSslEnv()) {
                             sh "python3 ${aggScript} ${runFlags} --paddles-url ${env.AGG_PADDLES_URL} --out ${WORKSPACE}/aggregate_table.txt"
                         }
+                    }
+                }
+            }
+        }
+        stage('Post auto-ptl-batch PR status') {
+            when {
+                expression {
+                    return params.POST_AUTO_PTL_PR_STATUS &&
+                           params.AUTO_PTL_PR_STATUS_SHAS?.trim() &&
+                           params.WAIT_FOR_RUNS
+                }
+            }
+            steps {
+                withCredentials([
+                    usernamePassword(
+                        credentialsId: 'github-readonly-token',
+                        usernameVariable: 'GITHUB_USER',
+                        passwordVariable: 'GITHUB_PASS',
+                    ),
+                ]) {
+                    script {
+                        def statusScript = "${env.WORKSPACE}/auto-ptl-batch/scripts/check_pr_ci_status.py"
+                        if (!fileExists(statusScript)) {
+                            error("Missing ${statusScript} (use a ceph-build branch that includes auto-ptl-batch/)")
+                        }
+                        def shas = params.AUTO_PTL_PR_STATUS_SHAS.split(',')
+                            .collect { it.trim() }
+                            .findAll { it }
+                        if (!shas) {
+                            error('AUTO_PTL_PR_STATUS_SHAS is empty')
+                        }
+                        def batchBranch = params.AUTO_PTL_BATCH_BRANCH?.trim() ?: params.CEPH_BRANCH.trim()
+                        def runNames = env.TEUTHOLOGY_RUN_NAMES.split(',')
+                            .collect { it.trim() }
+                            .findAll { it }
+                        def aggScript = "${env.PIPELINE_DIR}/scripts/aggregate_suite_results.py"
+                        def suitesPassed = true
+                        if (fileExists(aggScript) && runNames) {
+                            def runFlags = runNames.collect { "--run ${it}" }.join(' ')
+                            def aggRc = withEnv(paddlesTlsSslEnv()) {
+                                sh(
+                                    script: "python3 ${aggScript} ${runFlags} --paddles-url ${env.AGG_PADDLES_URL} --fail-on-fail",
+                                    returnStatus: true,
+                                )
+                            }
+                            if (aggRc != 0) {
+                                suitesPassed = false
+                            }
+                        } else {
+                            echo 'aggregate_suite_results.py unavailable; using teuthology-wait result only'
+                        }
+                        def waitFailed = env.TEUTHOLOGY_WAIT_FAILED == 'true'
+                        def finalState = (!waitFailed && suitesPassed) ? 'success' : 'failure'
+                        def desc = (finalState == 'success')
+                            ? "Teuthology passed: ${batchBranch}"
+                            : "Teuthology failed: ${batchBranch}"
+                        def shaArgs = shas.join(' ')
+                        def postRc = sh(
+                            script: """
+                                python3 '${statusScript}' \
+                                    --post-status-batch '${finalState}' \
+                                    '${desc}' \
+                                    '${env.BUILD_URL}' \
+                                    ${shaArgs}
+                            """,
+                            returnStatus: true,
+                        )
+                        if (postRc != 0) {
+                            error("Failed to post auto-ptl-batch=${finalState} on PR commit SHAs")
+                        }
+                        echo "Posted auto-ptl-batch=${finalState} for ${shas.size()} PR SHA(s)"
                     }
                 }
             }
