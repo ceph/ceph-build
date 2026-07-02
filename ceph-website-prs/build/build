@@ -22,8 +22,7 @@ npm ci
 
 npm run build:development
 
-# This will support "/" and "." in branch names - specific usecase being depadabot branches
-OUTPUT_DIR=$(echo "$BRANCH" | tr '/.' '-')
+OUTPUT_DIR="$ghprbPullId"
 
 if [ ! -d /opt/www/${OUTPUT_DIR} ]; then
   mkdir -p /opt/www/${OUTPUT_DIR}
