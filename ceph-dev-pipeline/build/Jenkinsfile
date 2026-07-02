@@ -345,6 +345,8 @@ def doArtifactsChecksStage() {
 
 // Stage 6 (builder container): log into container registries and pull/build/push the ceph-build container image for this matrix cell.
 def doBuilderContainerStage() {
+  def os = get_os_info(env.DIST)
+  sh "./scripts/update_shaman.sh started ceph ${os.name} ${os.version_name} ${env.ARCH}"
   env.CEPH_BUILDER_IMAGE = "${env.CONTAINER_REPO_HOSTNAME}/${env.CONTAINER_REPO_ORGANIZATION}/ceph-build"
   // Pin podman auth to a persistent authfile. The agent runs as a systemd
   // service with no login session and no XDG_RUNTIME_DIR, so podman derives
@@ -825,6 +827,7 @@ pipeline {
           }
           stage("builder container") {
             environment {
+              SHAMAN_API_KEY = credentials('shaman-api-key')
               // Use quay-int.front cred if cve-pipeline, otherwise default to quay.ceph.io cred
               CONTAINER_REPO_CREDS = credentials("${env.JOB_NAME == 'cve-pipeline' ? 'quay-int-login' : 'quay-ceph-io-ceph-ci'}")
               DOCKER_HUB_CREDS = credentials('dgalloway-docker-hub')
@@ -834,6 +837,14 @@ pipeline {
             }
             steps {
               script { doBuilderContainerStage() }
+            }
+            post {
+              unsuccessful {
+                script {
+                  def os = get_os_info(env.DIST)
+                  sh "./scripts/update_shaman.sh failed ceph ${os.name} ${os.version_name} ${env.ARCH}"
+                }
+              }
             }
           }
           stage("build") {
