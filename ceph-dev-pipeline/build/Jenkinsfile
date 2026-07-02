@@ -263,6 +263,8 @@ def doCheckForBuiltPackagesStage() {
 
 // Stage 6 (builder container): log into container registries and pull/build/push the ceph-build container image for this matrix cell.
 def doBuilderContainerStage() {
+  def os = get_os_info(env.DIST)
+  sh "./scripts/update_shaman.sh started ceph ${os.name} ${os.version_name} ${env.ARCH}"
   env.CEPH_BUILDER_IMAGE = "${env.CONTAINER_REPO_HOSTNAME}/${env.CONTAINER_REPO_ORGANIZATION}/ceph-build"
   sh '''#!/bin/bash
     set -ex
@@ -623,6 +625,7 @@ pipeline {
           }
           stage("builder container") {
             environment {
+              SHAMAN_API_KEY = credentials('shaman-api-key')
               CONTAINER_REPO_CREDS = credentials('quay-ceph-io-ceph-ci')
               DOCKER_HUB_CREDS = credentials('dgalloway-docker-hub')
             }
@@ -631,6 +634,14 @@ pipeline {
             }
             steps {
               script { doBuilderContainerStage() }
+            }
+            post {
+              unsuccessful {
+                script {
+                  def os = get_os_info(env.DIST)
+                  sh "./scripts/update_shaman.sh failed ceph ${os.name} ${os.version_name} ${env.ARCH}"
+                }
+              }
             }
           }
           stage("build") {
