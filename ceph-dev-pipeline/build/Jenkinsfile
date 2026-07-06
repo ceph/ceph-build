@@ -465,6 +465,7 @@ def doUploadPackagesStage() {
 
   sh """#!/bin/bash
     if [ "${env.THROWAWAY}" != "true" ] && [ "${env.PULP_UPLOAD}" == "true" ]; then
+      export CEPH_REPO="${env.CEPH_REPO}"
       export CEPH_VERSION="${env.VERSION}"
       export OS_NAME="${os.name}"
       export OS_VERSION="${os.version}"
