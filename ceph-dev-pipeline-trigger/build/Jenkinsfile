@@ -1,3 +1,5 @@
+import groovy.transform.Field
+
 JOB = "ceph-dev-pipeline"
 VALID_PARAMETERS = [
   "CEPH_BUILD_BRANCH",
@@ -10,7 +12,7 @@ VALID_PARAMETERS = [
   "FLAVOR",
   "SCCACHE",
 ]
-def params = []
+@Field List build_params = []
 
 pipeline {
   agent any
@@ -33,12 +35,12 @@ pipeline {
             }
           }
           def branch = env.ref.replace("refs/heads/", "")
-          params.push(string(name: "BRANCH", value: branch))
+          build_params.push(string(name: "BRANCH", value: branch))
           println("Looking for parameters: ${VALID_PARAMETERS}")
           for (key in VALID_PARAMETERS) {
             value = paramsMap[key]
             if ( value ) {
-              params.push(string(name: key, value: value))
+              build_params.push(string(name: key, value: value))
               println("${key}=${value}")
             }
           }
@@ -50,7 +52,7 @@ pipeline {
         script {
           build(
             job: JOB,
-            parameters: params
+            parameters: build_params
           )
         }
       }
