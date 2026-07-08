@@ -1,0 +1,48 @@
+# ref.<name>.keep_minimum: repo version retention on upload (pulp_upload.sh)
+# default.days: age cutoff for unlisted refs (pulp-cleanup)
+# default.keep_minimum: fallback keep_minimum for listed refs without an override
+ceph:
+  default:
+    days: 14
+    keep_minimum: 3
+  ref:
+    reef-nvmeof:
+      keep_minimum: 2
+    squid-nvmeof:
+      keep_minimum: 2
+    squid-nvmeof-8.0:
+      keep_minimum: 2
+    wip-rbd-cgsm-base:
+      keep_minimum: 2
+    hammer:
+      keep_minimum: 5
+    infernalis:
+      keep_minimum: 5
+    jewel:
+      keep_minimum: 10
+    kraken:
+      keep_minimum: 10
+    luminous:
+      keep_minimum: 10
+    mimic:
+      keep_minimum: 10
+    nautilus:
+      keep_minimum: 10
+    octopus:
+      keep_minimum: 10
+    pacific:
+      keep_minimum: 10
+    quincy:
+      keep_minimum: 10
+    reef:
+      keep_minimum: 10
+    squid:
+      keep_minimum: 10
+    tentacle:
+      keep_minimum: 10
+    umbrella:
+      keep_minimum: 10
+    vampire:
+      keep_minimum: 10
+    main:
+      keep_minimum: 10
