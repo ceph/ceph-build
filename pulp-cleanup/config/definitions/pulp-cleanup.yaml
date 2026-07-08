@@ -1,0 +1,37 @@
+- job:
+    name: pulp-cleanup-nightly
+    disabled: true
+    display-name: 'Pulp: Cleanup Nightly'
+    project-type: pipeline
+    description: >
+      Nightly parameterized cleanup of stale Teuthology Pulp resources.
+    defaults: global
+
+    pipeline-scm:
+      scm:
+        - git:
+            url: https://github.com/ceph/ceph-build
+            branches:
+              - ${{CEPH_BUILD_BRANCH}}
+            shallow-clone: true
+            submodule:
+              disable: true
+            wipe-workspace: true
+      script-path: pulp-cleanup/build/Jenkinsfile
+      lightweight-checkout: true
+      do-not-fetch-tags: true
+
+    triggers:
+      - timed: '@midnight'
+      
+    parameters:
+      - string:
+          name: CEPH_BUILD_BRANCH
+          description: 'Use the Jenkinsfile from this ceph-build branch'
+          default: 'main'
+      - bool:
+          name: CEPH
+          description: >
+            When true, clean up stale Pulp resources for the ceph project
+            per purge-policy.yaml.
+          default: true
