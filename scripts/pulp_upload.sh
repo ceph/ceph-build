@@ -25,7 +25,12 @@ source ./scripts/build_utils.sh
 
 export PATH="$HOME/.local/bin:$PATH"
 
+# Pulp project name
 PULP_PROJECT="ceph"
+
+# Set purge policy file
+PURGE_POLICY_FILE="${WORKSPACE}/scripts/purge-policy.yaml"
+
 # Must match the base URL the Pulp client is configured with in setup_pulp.sh
 PULP_SERVER_URL="https://pulp.front.sepia.ceph.com"
 SHORT_SHA1=${SHA1: -8}
@@ -45,13 +50,36 @@ resolve_os_version_for_repo() {
     printf '%s\n' "$os_label"
 }
 
-# Return the number of repository versions to retain.
+# Return the number of repository versions to retain from purge-policy.yaml.
+# Uses keep_minimum for BRANCH under ceph.ref when present; else default.
 get_repo_versions_to_retain() {
-    local versions=10
-    if [[ "$CEPH_REPO" == *-ci ]]; then
-        versions=3
+    local default_json ref_json keep_minimum
+
+    if ! default_json=$(
+        python3 "${WORKSPACE}/scripts/purge_policy.py" \
+            --project "${PULP_PROJECT}" --label default \
+            --file "${PURGE_POLICY_FILE}" 2>&1
+    ); then
+        log "ERROR: Failed to read default purge policy: ${default_json}"
+        exit 1
     fi
-    printf '%s\n' "$versions"
+    if ! ref_json=$(
+        python3 "${WORKSPACE}/scripts/purge_policy.py" \
+            --project "${PULP_PROJECT}" --label ref \
+            --file "${PURGE_POLICY_FILE}" 2>&1
+    ); then
+        log "ERROR: Failed to read ref purge policy: ${ref_json}"
+        exit 1
+    fi
+
+    keep_minimum=$(
+        echo "${ref_json}" \
+            | jq -r --arg ref "${BRANCH}" \
+                --argjson default "${default_json}" '
+            .[$ref].keep_minimum // $default.keep_minimum
+        '
+    )
+    printf '%s\n' "${keep_minimum}"
 }
 
 # Create a Pulp repository if it doesn't exist.
@@ -364,10 +392,12 @@ publish_pulp_distribution() {
         --base-path "${repo_endpoint}" 2> /dev/null \
         | jq -r '.[0].name // empty' || true)
     if [ -n "$stale_dist" ] && [ "$stale_dist" != "$dist_name" ]; then
-        log "Distribution ${stale_dist} owns base_path ${repo_endpoint}; deleting"
+        log "Distribution ${stale_dist} owns base_path" \
+            "${repo_endpoint}; deleting"
         if ! pulp "${OS_PKG_TYPE}" distribution destroy \
                 "${lookup_flag}" "${stale_dist}"; then
-            log "ERROR: Failed to delete ${OS_PKG_TYPE} distribution ${stale_dist}"
+            log "ERROR: Failed to delete ${OS_PKG_TYPE} distribution" \
+                "${stale_dist}"
             return
         fi
     fi
