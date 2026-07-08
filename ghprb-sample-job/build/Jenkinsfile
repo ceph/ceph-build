@@ -1,4 +1,50 @@
-def postGithubStatus(scriptContext, String state, String context, String description) {
+import groovy.json.JsonOutput
+
+def resolveGithubRepository(scriptContext) {
+    if (scriptContext.params.GITHUB_REPOSITORY?.trim()) {
+        return scriptContext.params.GITHUB_REPOSITORY.trim()
+    }
+
+    def triggeredBy = scriptContext.params.TRIGGERED_BY ?: ''
+    def matcher = triggeredBy =~ /github\.com\/([^\/]+\/[^\/]+)\//
+
+    if (matcher.find()) {
+        def repo = matcher.group(1)
+        scriptContext.echo "GITHUB_REPOSITORY was empty. Derived repository from TRIGGERED_BY: ${repo}"
+        return repo
+    }
+
+    scriptContext.echo "Unable to determine GitHub repository. GITHUB_REPOSITORY and TRIGGERED_BY are missing/invalid."
+    return ''
+}
+
+def postGithubStatus(scriptContext, String state, String description) {
+    def githubRepository = resolveGithubRepository(scriptContext)
+
+    if (!githubRepository?.trim()) {
+        scriptContext.echo "GitHub repository is empty; skipping GitHub status update."
+        return
+    }
+
+    if (!scriptContext.params.GH_PULL_REQUEST_SHA?.trim()) {
+        scriptContext.echo "GH_PULL_REQUEST_SHA is empty; skipping GitHub status update."
+        return
+    }
+
+    def statusContext = scriptContext.params.STATUS_CONTEXT ?: 'jenkins poc test'
+
+    def payload = JsonOutput.toJson([
+        state      : state,
+        target_url : scriptContext.env.BUILD_URL,
+        description: description,
+        context    : statusContext
+    ])
+
+    scriptContext.writeFile(
+        file: 'github_status_payload.json',
+        text: payload
+    )
+
     scriptContext.withCredentials([usernamePassword(
         credentialsId: 'github-readwrite-token',
         usernameVariable: 'GITHUB_USER',
@@ -6,23 +52,36 @@ def postGithubStatus(scriptContext, String state, String context, String descrip
     )]) {
         scriptContext.sh """
           set +x
-          curl --fail -L \
-            -X POST \
-            -H 'Accept: application/vnd.github+json' \
-            -H "Authorization: Bearer \$GITHUB_PASS" \
-            https://api.github.com/repos/jitendrasahu1803/ceph/statuses/${scriptContext.params.GH_PULL_REQUEST_SHA} \
-            -d '{
-              "state": "${state}",
-              "target_url": "${scriptContext.env.BUILD_URL}",
-              "description": "${description}",
-              "context": "${context}"
-            }'
+
+          response_file=\$(mktemp)
+
+          http_code=\$(curl -sS -o "\$response_file" -w "%{http_code}" -L \\
+            -u "\$GITHUB_USER:\$GITHUB_PASS" \\
+            -X POST \\
+            -H 'Accept: application/vnd.github+json' \\
+            "https://api.github.com/repos/${githubRepository}/statuses/${scriptContext.params.GH_PULL_REQUEST_SHA}" \\
+            --data @github_status_payload.json)
+
+          echo "GitHub status API HTTP_CODE=\$http_code"
+          echo "GitHub status API response body:"
+          cat "\$response_file" || true
+
+          test "\$http_code" -ge 200 -a "\$http_code" -lt 300
         """
     }
 }
 
 pipeline {
     agent any
+
+    parameters {
+        string(name: 'GH_PULL_REQUEST_ID', defaultValue: '', description: 'GitHub Pull Request number')
+        string(name: 'GH_PULL_REQUEST_SHA', defaultValue: '', description: 'GitHub Pull Request head SHA')
+        string(name: 'GITHUB_REPOSITORY', defaultValue: '', description: 'GitHub repository, for example ceph/ceph-ghprb')
+        string(name: 'STATUS_CONTEXT', defaultValue: 'jenkins poc test', description: 'GitHub status context')
+        string(name: 'TRIGGER_METHOD', defaultValue: '', description: 'How this job was triggered')
+        string(name: 'TRIGGERED_BY', defaultValue: '', description: 'URL of GitHub workflow/comment that triggered this job')
+    }
 
     stages {
         stage('Show Parameters') {
@@ -35,6 +94,8 @@ pipeline {
                 echo "=== POC Jenkins Job Parameters ==="
                 echo "GH_PULL_REQUEST_ID = ${params.GH_PULL_REQUEST_ID}"
                 echo "GH_PULL_REQUEST_SHA = ${params.GH_PULL_REQUEST_SHA}"
+                echo "GITHUB_REPOSITORY  = ${params.GITHUB_REPOSITORY}"
+                echo "STATUS_CONTEXT     = ${params.STATUS_CONTEXT}"
                 echo "TRIGGER_METHOD     = ${params.TRIGGER_METHOD}"
                 echo "TRIGGERED_BY       = ${params.TRIGGERED_BY}"
             }
@@ -51,34 +112,43 @@ pipeline {
     post {
         success {
             script {
-                postGithubStatus(
-                    this,
-                    'success',
-                    'jenkins poc test',
-                    'POC Jenkins job completed successfully'
-                )
+                try {
+                    postGithubStatus(
+                        this,
+                        'success',
+                        'POC Jenkins job completed successfully'
+                    )
+                } catch (err) {
+                    echo "Failed to post GitHub success status: ${err}"
+                }
             }
         }
 
         failure {
             script {
-                postGithubStatus(
-                    this,
-                    'failure',
-                    'jenkins poc test',
-                    'POC Jenkins job failed'
-                )
+                try {
+                    postGithubStatus(
+                        this,
+                        'failure',
+                        'POC Jenkins job failed'
+                    )
+                } catch (err) {
+                    echo "Failed to post GitHub failure status: ${err}"
+                }
             }
         }
 
         aborted {
             script {
-                postGithubStatus(
-                    this,
-                    'error',
-                    'jenkins poc test',
-                    'POC Jenkins job was aborted'
-                )
+                try {
+                    postGithubStatus(
+                        this,
+                        'error',
+                        'POC Jenkins job was aborted'
+                    )
+                } catch (err) {
+                    echo "Failed to post GitHub aborted/error status: ${err}"
+                }
             }
         }
 
