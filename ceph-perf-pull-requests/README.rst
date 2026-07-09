@@ -24,12 +24,16 @@ updated with the comparison report.
 Triggering
 ----------
 
-On a ``ceph/ceph`` pull request, comment::
+On a ``ceph/ceph`` pull request, comment (required; case-insensitive)::
 
     jenkins test classic perf
     jenkins test crimson perf
 
-Pull requests with the ``performance`` label may also be built automatically.
+Builds are comment-only (``only-trigger-phrase: true``). The ``performance``
+label is not used as an auto-trigger. See an explicit comment for each flavor.
+Each CBT run is bounded to 1 hour and the whole job to 8 hours so a hung
+``radosbench`` cannot hold a performance node indefinitely.
+
 See ``doc/dev/continuous-integration.rst`` in the Ceph tree for an overview of
 how this job fits into CI.
 

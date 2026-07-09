@@ -69,15 +69,42 @@
           timeout 7200 src/script/run-make.sh \
             --cmake-args "$cmake_args" \
             vstart-base crimson-osd
-          . ${{WORKSPACE}}/gh-venv/bin/activate
-          if test {osd-flavor} = "classic" ; then
-              env PATH="${{WORKSPACE}}/gh-venv/bin:$PATH" \
-                src/script/run-cbt.sh --build-dir $PWD/build --source-dir $PWD --cbt $WORKSPACE/cbt -a $archive_dir {benchmark-yaml} --classical
-          else
-              env PATH="${{WORKSPACE}}/gh-venv/bin:$PATH" \
-                src/script/run-cbt.sh --build-dir $PWD/build --source-dir $PWD --cbt $WORKSPACE/cbt -a $archive_dir {benchmark-yaml}
+          # Leftover daemons from a previous hung run can wedge radosbench forever.
+          if test -x build/../src/stop.sh || test -x src/stop.sh ; then
+              src/stop.sh --crimson || true
+              src/stop.sh || true
           fi
-          # run-cbt.sh is /bin/sh without set -e; a failed cbt.py still exits 0.
+          sudo pkill -9 -f '(crimson-osd|ceph-osd|ceph-mon|ceph-mgr|rados bench)' || true
+          sleep 2
+          . ${{WORKSPACE}}/gh-venv/bin/activate
+          # CBT itself has no set -e / timeout; radosbench prefill has hung for days on
+          # bath01. Bound the whole run-cbt.sh (vstart + bench + stop) to 1h.
+          set +e
+          if test {osd-flavor} = "classic" ; then
+              timeout --foreground --signal=KILL 3600 \
+                env PATH="${{WORKSPACE}}/gh-venv/bin:$PATH" \
+                src/script/run-cbt.sh --build-dir $PWD/build --source-dir $PWD --cbt $WORKSPACE/cbt -a $archive_dir {benchmark-yaml} --classical
+              cbt_rc=$?
+          else
+              timeout --foreground --signal=KILL 3600 \
+                env PATH="${{WORKSPACE}}/gh-venv/bin:$PATH" \
+                src/script/run-cbt.sh --build-dir $PWD/build --source-dir $PWD --cbt $WORKSPACE/cbt -a $archive_dir {benchmark-yaml}
+              cbt_rc=$?
+          fi
+          set -e
+          # Always try to tear down; ignore failures so we still report the CBT status.
+          src/stop.sh --crimson || true
+          src/stop.sh || true
+          sudo pkill -9 -f '(crimson-osd|ceph-osd|ceph-mon|ceph-mgr|rados bench)' || true
+          if test "$cbt_rc" -eq 124 -o "$cbt_rc" -eq 137 ; then
+              echo "ERROR: run-cbt.sh timed out after 3600s (rc=$cbt_rc); likely hung radosbench/Crimson on this node" >&2
+              exit 1
+          fi
+          if test "$cbt_rc" -ne 0 ; then
+              echo "ERROR: run-cbt.sh failed with rc=$cbt_rc" >&2
+              exit "$cbt_rc"
+          fi
+          # run-cbt.sh is /bin/sh without set -e; a failed cbt.py can still exit 0.
           test -n "$(find "$archive_dir" -mindepth 1 -print -quit 2>/dev/null)"
 
 - builder:
@@ -126,7 +153,7 @@
     concurrent: true
     node: performance
     display-name: 'ceph: {osd-flavor} perf test'
-    description: 'CBT performance regression check ({osd-flavor} flavor): builds ceph-pr and ceph-main, runs the checked-in radosbench 4K read workload, and compares results via cbt/compare.py. The GitHub check fails when compare.py reports a statistically worse result, too much noise, or errors.'
+    description: 'CBT performance regression check ({osd-flavor} flavor): builds ceph-pr and ceph-main, runs the checked-in radosbench 4K read workload, and compares results via cbt/compare.py. The GitHub check fails when compare.py reports a statistically worse result, too much noise, or errors. Trigger with comment: jenkins test {osd-flavor} perf'
     quiet-period: 5
     block-downstream: false
     block-upstream: false
@@ -163,11 +190,14 @@
           allow-whitelist-orgs-as-admins: true
           org-list:
             - ceph
-          trigger-phrase: 'jenkins test {osd-flavor} perf'
-          skip-build-phrase: '^jenkins do not test.*'
-          only-trigger-phrase: false
-          white-list-labels:
-            - performance
+          # Comment-only: reliable path. Auto-build on every push with the
+          # performance label was confusing when the sole performance node was
+          # wedged (builds queued forever and looked like "trigger never works").
+          # Use an explicit comment for each flavor.
+          # ghprb matches trigger-phrase as a Java regex (case-insensitive).
+          trigger-phrase: '(?i)jenkins\s+test\s+{osd-flavor}\s+perf\b'
+          skip-build-phrase: '(?i)^jenkins do not test.*'
+          only-trigger-phrase: true
           github-hooks: true
           permit-all: false
           auto-close-on-fail: false
@@ -214,6 +244,9 @@
               exit 1
               ;;
           esac
+          # Clear leftover cluster processes from a previous hung/aborted run on
+          # this performance node before we spend hours rebuilding.
+          sudo pkill -9 -f '(crimson-osd|ceph-osd|ceph-mon|ceph-mgr|rados bench)' || true
           virtualenv -q --python python3 ${{WORKSPACE}}/gh-venv
           . ${{WORKSPACE}}/gh-venv/bin/activate
           pip install setuptools
@@ -271,9 +304,21 @@
                   - FAILURE
                   - ABORTED
               build-steps:
-                - shell: "sudo reboot"
+                - shell: |
+                    #!/bin/bash
+                    # Kill hung CBT/Ceph first so reboot is not the only recovery path
+                    # when the agent is still responsive enough to run this step.
+                    sudo pkill -9 -f '(crimson-osd|ceph-osd|ceph-mon|ceph-mgr|rados bench|cbt\.py|run-cbt\.sh)' || true
+                    sudo reboot
 
     wrappers:
+      - timeout:
+          # Two Crimson builds (≤2h each) + two CBT runs (≤1h each) + setup/compare.
+          # Absolute ceiling so a wedged radosbench cannot hold the node for days.
+          timeout: 480
+          timeout-var: 'BUILD_TIMEOUT'
+          fail: true
+          type: absolute
       - credentials-binding:
           - file:
               credential-id: cephacheck.2020-04-29.private-key.pem
