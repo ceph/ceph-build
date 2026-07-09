@@ -534,23 +534,16 @@ def doUploadChacraStage() {
   def chacra_url = sh(
     script: "grep '^url' ~/.chacractl", returnStdout: true,
   ).trim().split('"')[1].trim().replaceAll(/\/+$/, '')
-  // Push packages to chacra.ceph.com under the 'test' ref if
-  // ceph-release-pipeline's TEST=true. Scoped with withEnv below instead of
-  // mutating env.SHA1, which is shared with the Pulp stage and with every
-  // other matrix cell.
-  def target_sha1 = env.TEST?.toBoolean() ? "test" : env.SHA1
   withUploadEnv {
     if (os.pkg_type == "rpm") {
-      def repo_url = "${chacra_url}/r/ceph/${env.BRANCH}/${target_sha1}/${os.name}/${os.version_name}/flavors/${env.FLAVOR}"
+      def repo_url = "${chacra_url}/r/ceph/${env.BRANCH}/${env.SHA1}/${os.name}/${os.version_name}/flavors/${env.FLAVOR}"
       buildCephReleaseRpm(repo_url)
     }
     // CHACRACTL_KEY/SHAMAN_API_KEY come from the "upload packages" stage
     // environment{} block, which also covers its post{} shaman updates.
-    withEnv(["SHA1=${target_sha1}"]) {
-      sh """#!/bin/bash -ex
-        export CHACRA_URL="${chacra_url}/" && ./scripts/chacra_upload.sh
-      """
-    }
+    sh """#!/bin/bash -ex
+      export CHACRA_URL="${chacra_url}/" && ./scripts/chacra_upload.sh
+    """
   }
 }
 
