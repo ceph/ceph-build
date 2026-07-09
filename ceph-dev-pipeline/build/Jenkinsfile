@@ -326,7 +326,7 @@ def doArtifactsChecksStage() {
       "To override, use THROWAWAY=true (to skip this check) " +
       "or FORCE=true (to re-upload artifacts)."
     )
-    build_matrix["${DIST}_${ARCH}"] = false
+    build_matrix[cell] = false
   }
 }
 
@@ -702,7 +702,7 @@ pipeline {
             name 'ARCH'
             values 'x86_64', 'arm64'
           }
-          axes {
+          axis {
             name 'FLAVOR'
             values 'default', 'debug'
           }
@@ -735,7 +735,7 @@ pipeline {
           stage("node") {
             steps {
               script {
-                build_matrix["${DIST}_${ARCH}"] = env.CI_COMPILE.toBoolean()
+                build_matrix["${DIST}_${ARCH}_${FLAVOR}"] = env.CI_COMPILE.toBoolean()
                 println("Building: DIST=${env.DIST} ARCH=${env.ARCH} FLAVOR=${env.FLAVOR}")
                 def node_shortname = env.NODE_NAME.split('\\+')[-1]
                 def node_url = new URI([env.JENKINS_URL, "computer", env.NODE_NAME].join("/")).normalize()
@@ -766,7 +766,7 @@ pipeline {
           stage("check for built packages") {
             when {
               expression {
-                return build_matrix["${DIST}_${ARCH}"] == true && params.THROWAWAY == false
+                return build_matrix["${DIST}_${ARCH}_${FLAVOR}"] == true && params.THROWAWAY == false
               }
             }
             stages {
@@ -807,7 +807,7 @@ pipeline {
               DOCKER_HUB_CREDS = credentials('dgalloway-docker-hub')
             }
             when {
-              expression { return build_matrix["${DIST}_${ARCH}"] == true }
+              expression { return build_matrix["${DIST}_${ARCH}_${FLAVOR}"] == true }
             }
             steps {
               script { doBuilderContainerStage() }
@@ -819,7 +819,7 @@ pipeline {
               SCCACHE_BUCKET_CREDS = credentials('ibm-cloud-sccache-bucket')
             }
             when {
-              expression { return build_matrix["${DIST}_${ARCH}"] == true }
+              expression { return build_matrix["${DIST}_${ARCH}_${FLAVOR}"] == true }
             }
             steps {
               script { doBuildStage() }
@@ -846,7 +846,7 @@ pipeline {
             }
             when {
               expression {
-                return build_matrix["${DIST}_${ARCH}"] == true && params.THROWAWAY == false && (params.CHACRA_UPLOAD || params.PULP_UPLOAD)
+                return build_matrix["${DIST}_${ARCH}_${FLAVOR}"] == true && params.THROWAWAY == false && (params.CHACRA_UPLOAD || params.PULP_UPLOAD)
               }
             }
             stages {
