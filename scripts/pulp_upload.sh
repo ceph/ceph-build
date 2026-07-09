@@ -319,7 +319,7 @@ publish_pulp_distribution() {
     local repo_endpoint="$2"
     local repo_arch="$3"
     local package_version="$4"
-    local final_version pub_href dist_name lookup_flag
+    local final_version pub_href dist_name lookup_flag stale_dist
 
     if [ "$OS_PKG_TYPE" == "rpm" ]; then
         pub_href=$(
@@ -357,6 +357,21 @@ publish_pulp_distribution() {
         fi
     fi
 
+    # A distribution created before FLAVOR was part of the naming scheme may
+    # still own this base_path under a different name; base_paths are unique
+    # in pulp, so it has to be removed before the new distribution is created.
+    stale_dist=$(pulp "${OS_PKG_TYPE}" distribution list \
+        --base-path "${repo_endpoint}" 2> /dev/null \
+        | jq -r '.[0].name // empty' || true)
+    if [ -n "$stale_dist" ] && [ "$stale_dist" != "$dist_name" ]; then
+        log "Distribution ${stale_dist} owns base_path ${repo_endpoint}; deleting"
+        if ! pulp "${OS_PKG_TYPE}" distribution destroy \
+                "${lookup_flag}" "${stale_dist}"; then
+            log "ERROR: Failed to delete ${OS_PKG_TYPE} distribution ${stale_dist}"
+            return
+        fi
+    fi
+
     log "Creating distribution ${dist_name} " \
         "with base_path=${repo_endpoint}"
     if ! pulp "${OS_PKG_TYPE}" distribution create \
@@ -387,7 +402,10 @@ log "Uploading artifacts to Pulp repository ..."
 _OS_VERSION=$(resolve_os_version_for_repo)
 REPO_VERSIONS_TO_RETAIN=$(get_repo_versions_to_retain)
 
-REPO_NAME="${PULP_PROJECT}-${BRANCH}-${OS_NAME}-${_OS_VERSION}"
+# FLAVOR is part of the repository (and therefore distribution) name so that
+# default and debug builds of the same branch/sha1 don't share repositories
+# or clobber each other's distributions.
+REPO_NAME="${PULP_PROJECT}-${BRANCH}-${OS_NAME}-${_OS_VERSION}-${FLAVOR}"
 REPO_ENDPOINT="repos/${PULP_PROJECT}/${BRANCH}/${SHA1}/${OS_NAME}"
 REPO_ENDPOINT="${REPO_ENDPOINT}/${_OS_VERSION}/flavors/${FLAVOR}"
 

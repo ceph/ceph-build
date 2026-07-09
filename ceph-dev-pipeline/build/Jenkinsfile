@@ -274,15 +274,13 @@ def doCheckForPulpPackagesStage() {
   def os = get_os_info(env.DIST)
 
   // pulp_upload.sh reuses branch-scoped repositories; only its per-sha1
-  // distribution (dist-ceph-<branch>-<os>-<version>-<arch>-<short_sha1>)
+  // distribution (dist-ceph-<branch>-<os>-<version>-<flavor>-<arch>-<short_sha1>)
   // proves this sha1 was uploaded. The name must mirror pulp_upload.sh:
   // ubuntu uses the codename, rpm arches use aarch64 (not arm64), and rpm
-  // lookups use --distribution while deb uses --name. Distribution names
-  // don't include the flavor (a pulp_upload.sh limitation), so this check
-  // can't tell default and debug builds of the same sha1 apart.
+  // lookups use --distribution while deb uses --name.
   def os_version = (os.name == "ubuntu") ? os.version_name : os.version
   def dist_arch = (os.pkg_type == "rpm" && env.ARCH == "arm64") ? "aarch64" : env.ARCH
-  def dist_name = "dist-ceph-${env.BRANCH}-${os.name}-${os_version}-${dist_arch}-${env.SHA1[-8..-1]}"
+  def dist_name = "dist-ceph-${env.BRANCH}-${os.name}-${os_version}-${env.FLAVOR}-${dist_arch}-${env.SHA1[-8..-1]}"
   def lookup_flag = (os.pkg_type == "rpm") ? "--distribution" : "--name"
   def pulp_dist_rc = sh(
     script: """#!/bin/bash -ex
