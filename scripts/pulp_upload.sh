@@ -539,8 +539,14 @@ fi
 # separate process. PACKAGE_MANAGER_VERSION is included in the repo
 # record's extra metadata; the repository's API URL becomes the record's
 # chacra_url. See notify_shaman_pulp_repo.sh.
+# rpm repositories are named after the rpm arch (aarch64), not the Jenkins
+# matrix arch (arm64); see the SRPMS/noarch/aarch64/x86_64 loop above.
+_repo_arch="${ARCH}"
+if [ "$OS_PKG_TYPE" = "rpm" ] && [ "$ARCH" = "arm64" ]; then
+    _repo_arch="aarch64"
+fi
 _repo_href=$(pulp "${OS_PKG_TYPE}" repository show \
-    --name "${REPO_NAME}-${ARCH}" | jq -r '.pulp_href')
+    --name "${REPO_NAME}-${_repo_arch}" | jq -r '.pulp_href')
 {
     printf 'PACKAGE_MANAGER_VERSION=%q\n' "${PACKAGE_MANAGER_VERSION}"
     printf 'PULP_REPO_API_URL=%q\n' "${PULP_SERVER_URL}${_repo_href}"
