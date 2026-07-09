@@ -1,12 +1,15 @@
 #!/bin/bash -ex
 
 echo "Setting up Pulp client"
-source "$WORKSPACE/scripts/setup_uv.sh"
+if [ -z "$PULP_SERVER_URL" ] || [ -z "$PULP_USERNAME" ] || [ -z "$PULP_PASSWORD" ]; then
+    echo "PULP_SERVER_URL, PULP_USERNAME, or PULP_PASSWORD is not set"
+    exit 1
+fi
 
 export PATH="$HOME/.local/bin:$PATH"
+source "$WORKSPACE/scripts/setup_uv.sh"
 
-PULP_SERVER_URL="https://pulp.front.sepia.ceph.com"
-
+echo "Installing Pulp client"
 uv tool install pulp-cli --with pulp-cli-deb
 
 echo "Configuring Pulp client"

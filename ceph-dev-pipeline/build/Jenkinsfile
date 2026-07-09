@@ -1,5 +1,6 @@
 import groovy.transform.Field
 
+@Field String pulp_server_url = "https://pulp.front.sepia.ceph.com"
 @Field String ceph_build_repo = "https://github.com/ceph/ceph-build"
 @Field String ceph_build_branch = "main"
 @Field String base_node_label = "gigantic"
@@ -14,6 +15,11 @@ import groovy.transform.Field
   "bullseye": "11",
 ]
 @Field Map build_matrix = [:]
+// Per-cell results of the artifact-existence checks. `env.` assignments are
+// global to the whole build and shared by every parallel matrix branch (last
+// write wins), so per-cell state must be keyed by cell, like build_matrix.
+@Field Map chacra_exists_rc = [:]
+@Field Map pulp_dist_exists = [:]
 @Field List container_distros = [
   'centos9',
   'rocky10',
@@ -233,32 +239,109 @@ def doCopyArtifactsStage() {
   '''
 }
 
-// Stage 5 (check for built packages): check chacra for an existing build (and skip compilation if found, unless FORCE) and set up the Pulp client if needed.
-def doCheckForBuiltPackagesStage() {
-  sh './scripts/setup_chacractl.sh'
-  def chacra_url = sh(
-    script: '''grep url ~/.chacractl | cut -d'"' -f2''',
-    returnStdout: true,
-  ).trim()
-  def os = get_os_info(env.DIST)
-  def chacra_endpoint = "ceph/${env.BRANCH}/${env.SHA1}/${os.name}/${os.version_name}/${env.ARCH}/flavors/${env.FLAVOR}/"
-  def chacractl_rc = sh(
-    script: "${env.HOME}/.local/bin/chacractl exists binaries/${chacra_endpoint}",
-    returnStatus: true,
-  )
-  if ( chacractl_rc == 0 && env.FORCE != "true" ) {
-    println("Skipping compilation since chacra already has artifacts. To override, use THROWAWAY=true (to skip this check) or FORCE=true (to re-upload artifacts).")
-    build_matrix["${env.DIST}_${env.ARCH}"] = false
+// Stage 5.1 (check for chacra packages): check chacra for an existing build (and skip compilation if found, unless FORCE).
+def doCheckForChacraPackagesStage() {
+  withCredentials([
+    string(credentialsId: "chacractl-key", variable: "CHACRACTL_KEY"),
+    string(credentialsId: "shaman-api-key", variable: "SHAMAN_API_KEY")
+  ]) {
+    sh """#!/bin/bash -ex
+      ./scripts/setup_chacractl.sh
+    """
+    def os = get_os_info(env.DIST)
+    def chacra_endpoint = "ceph/${env.BRANCH}/${env.SHA1}/${os.name}/${os.version_name}/${env.ARCH}/flavors/${env.FLAVOR}/"
+    chacra_exists_rc["${DIST}_${ARCH}_${FLAVOR}"] = sh(
+      script: """#!/bin/bash -ex
+        \$HOME/.local/bin/chacractl exists binaries/${chacra_endpoint}
+      """,
+      returnStatus: true,
+    )
+  }
+}
+
+// Stage 5.2 (check for pulp packages): check pulp for an existing build (and skip compilation if found, unless FORCE).
+def doCheckForPulpPackagesStage() {
+  withCredentials([
+    usernamePassword(
+      credentialsId: "pulp-auth", usernameVariable: "PULP_USERNAME", passwordVariable: "PULP_PASSWORD"
+    )
+  ]) {
+    sh """#!/bin/bash -ex
+      export PULP_SERVER_URL="${pulp_server_url}" && ./scripts/setup_pulp.sh
+    """
   }
 
-  // Set up Pulp client
-  if ( env.PULP_UPLOAD == "true" ) {
-    withCredentials([
-      usernamePassword(credentialsId: 'pulp-auth', usernameVariable: 'PULP_USERNAME', passwordVariable: 'PULP_PASSWORD')
-    ]) {
-        sh './scripts/setup_pulp.sh'
-    }
+  def os = get_os_info(env.DIST)
+
+  // pulp_upload.sh reuses branch-scoped repositories; only its per-sha1
+  // distribution (dist-ceph-<branch>-<os>-<version>-<arch>-<short_sha1>)
+  // proves this sha1 was uploaded. The name must mirror pulp_upload.sh:
+  // ubuntu uses the codename, rpm arches use aarch64 (not arm64), and rpm
+  // lookups use --distribution while deb uses --name. Distribution names
+  // don't include the flavor (a pulp_upload.sh limitation), so this check
+  // can't tell default and debug builds of the same sha1 apart.
+  def os_version = (os.name == "ubuntu") ? os.version_name : os.version
+  def dist_arch = (os.pkg_type == "rpm" && env.ARCH == "arm64") ? "aarch64" : env.ARCH
+  def dist_name = "dist-ceph-${env.BRANCH}-${os.name}-${os_version}-${dist_arch}-${env.SHA1[-8..-1]}"
+  def lookup_flag = (os.pkg_type == "rpm") ? "--distribution" : "--name"
+  def pulp_dist_rc = sh(
+    script: """#!/bin/bash -ex
+      export PATH="\$HOME/.local/bin:\$PATH"
+      pulp ${os.pkg_type} distribution show ${lookup_flag} "${dist_name}"
+    """,
+    returnStatus: true,
+  )
+  pulp_dist_exists["${DIST}_${ARCH}_${FLAVOR}"] = (pulp_dist_rc == 0)
+}
+
+// Stage 5.3 (validate artifact checks): decide whether to skip compilation based on Chacra/Pulp checks.
+def doArtifactsChecksStage() {
+  def force = env.FORCE == "true"
+  if (force) {
+    println("FORCE=true: compiling and re-uploading even if artifacts exist.")
+    return
   }
+
+  if (!params.CHACRA_UPLOAD && !params.PULP_UPLOAD) {
+    println("Neither CHACRA_UPLOAD nor PULP_UPLOAD enabled; skipping artifact existence checks.")
+    return
+  }
+
+  def cell = "${DIST}_${ARCH}_${FLAVOR}"
+  // -1 means "not checked" when that backend's upload is disabled.
+  def chacractl_rc = params.CHACRA_UPLOAD ? chacra_exists_rc[cell] : -1
+  def pulp_repo_exists = params.PULP_UPLOAD && pulp_dist_exists[cell] == true
+  def skip_reasons = []
+
+  if (params.CHACRA_UPLOAD && chacractl_rc == 0) {
+    skip_reasons << "Chacra already has artifacts (chacractl_rc=${chacractl_rc})"
+  }
+  if (pulp_repo_exists) {
+    skip_reasons << "Pulp already has this build (distribution exists)"
+  }
+
+  if (shouldSkipCompilation(chacractl_rc, pulp_repo_exists, params.CHACRA_UPLOAD, params.PULP_UPLOAD, force)) {
+    println("Skipping compilation:\n- " + skip_reasons.join("\n- "))
+    println(
+      "To override, use THROWAWAY=true (to skip this check) " +
+      "or FORCE=true (to re-upload artifacts)."
+    )
+    build_matrix["${DIST}_${ARCH}"] = false
+  }
+}
+
+// Helper function to determine if compilation should be skipped.
+def shouldSkipCompilation(chacractl_rc, pulp_repo_exists, chacra_upload_enabled, pulp_upload_enabled, force) {
+  if (force) {
+    return false
+  }
+  if (chacra_upload_enabled && chacractl_rc == 0) {
+    return true
+  }
+  if (pulp_upload_enabled && pulp_repo_exists) {
+    return true
+  }
+  return false
 }
 
 // Stage 6 (builder container): log into container registries and pull/build/push the ceph-build container image for this matrix cell.
@@ -419,80 +502,81 @@ def doBuildPostAlways() {
   }
 }
 
-// Stage 8 (upload packages): build the ceph-release rpm (for rpm distros) and upload the packages to chacra and optionally Pulp.
-def doUploadPackagesStage() {
-  def chacra_url = sh(
-    script: '''grep url ~/.chacractl | cut -d'"' -f2''',
-    returnStdout: true,
-  ).trim()
+// Stage 8.0 (prepare upload): link SRPMS for RPM uploads.
+def doPrepareUploadStage() {
   def os = get_os_info(env.DIST)
-  // Push packages to chacra.ceph.com under the 'test' ref if ceph-release-pipeline's TEST=true
-  if ( os.pkg_type == "rpm" ) {
-    env.SHA1 = env.TEST?.toBoolean() ? 'test' : env.SHA1
-  }
-  // The ceph-release RPM's /etc/yum.repos.d/ceph.repo baseurls and the repo
-  // URL reported to shaman must match where packages were actually
-  // published: pulp when PULP_UPLOAD=true, otherwise chacra.
-  // chacra_url already ends with a trailing slash.
-  def repo_base_url
-  if ( env.PULP_UPLOAD == "true" ) {
-    repo_base_url = "https://pulp.front.sepia.ceph.com/pulp/content/repos/ceph/${env.BRANCH}/${env.SHA1}/${os.name}/${os.version_name}/flavors/${env.FLAVOR}"
-  } else {
-    repo_base_url = "${chacra_url}r/ceph/${env.BRANCH}/${env.SHA1}/${os.name}/${os.version_name}/flavors/${env.FLAVOR}"
-  }
-  def spec_project_url = "${repo_base_url}/"
-  if ( os.pkg_type == "rpm" ) {
-    sh """#!/bin/bash
-        set -ex
-        cd ./dist/ceph
-        mkdir -p ./rpmbuild/SRPMS/
-        ln ceph-*.src.rpm ./rpmbuild/SRPMS/
-    """
-    def spec_text = get_ceph_release_spec_text(spec_project_url)
-    writeFile(
-      file: "dist/ceph/rpmbuild/SPECS/ceph-release.spec",
-      text: spec_text,
-    )
-    def repo_text = get_ceph_release_repo_text(repo_base_url)
-    writeFile(
-      file: "dist/ceph/rpmbuild/SOURCES/ceph.repo",
-      text: repo_text,
-    )
-    def ceph_builder_tag = "${env.SHA1[0..6]}.${env.BRANCH}.${env.DIST}.${env.ARCH}.${env.FLAVOR}"
-    def bwc_command_base = "python3 src/script/build-with-container.py --image-repo=${env.CEPH_BUILDER_IMAGE} --tag=${ceph_builder_tag} -d ${env.DIST} --image-variant=packages --ceph-version ${env.VERSION}"
-    def bwc_command = "${bwc_command_base} -e custom -- rpmbuild -bb --define \\'_topdir /ceph/rpmbuild\\' /ceph/rpmbuild/SPECS/ceph-release.spec"
-    sh """#!/bin/bash
-      set -ex
-      cd ${env.WORKSPACE}/dist/ceph
-      ${bwc_command}
+  if (os.pkg_type == "rpm") {
+    sh """#!/bin/bash -ex
+      cd "${env.WORKSPACE}/dist/ceph"
+      mkdir -p ./rpmbuild/SRPMS/
+      ln -f ceph-*.src.rpm ./rpmbuild/SRPMS/
     """
   }
-  sh """#!/bin/bash
-    export CHACRA_URL="${chacra_url}"
-    export OS_NAME="${os.name}"
-    export OS_VERSION="${os.version}"
-    export OS_VERSION_NAME="${os.version_name}"
-    export OS_PKG_TYPE="${os.pkg_type}"
-    if [ "${env.THROWAWAY}" != "true" ] && [ "${env.CHACRA_UPLOAD}" == "true" ]; then ./scripts/chacra_upload.sh; fi
-  """
+}
 
-  sh """#!/bin/bash
-    if [ "${env.THROWAWAY}" != "true" ] && [ "${env.PULP_UPLOAD}" == "true" ]; then
-      export CEPH_REPO="${env.CEPH_REPO}"
-      export CEPH_VERSION="${env.VERSION}"
-      export OS_NAME="${os.name}"
-      export OS_VERSION="${os.version}"
-      export OS_VERSION_NAME="${os.version_name}"
-      export OS_PKG_TYPE="${os.pkg_type}"
-      export SHA1="${env.SHA1}"
-      export FLAVOR="${env.FLAVOR}"
+// OS_*/CEPH_VERSION are consumed by chacra_upload.sh, pulp_upload.sh and
+// notify_shaman_pulp_repo.sh. withEnv is scoped to the current matrix cell,
+// unlike `env.FOO =` assignments, which leak across parallel cells.
+def withUploadEnv(Closure body) {
+  def os = get_os_info(env.DIST)
+  withEnv([
+    "OS_NAME=${os.name}",
+    "OS_VERSION=${os.version}",
+    "OS_VERSION_NAME=${os.version_name}",
+    "OS_PKG_TYPE=${os.pkg_type}",
+    "CEPH_VERSION=${env.VERSION}",
+  ]) {
+    body()
+  }
+}
 
+// Stage 8.1 (upload packages to Chacra): build ceph-release RPM (rpm distros) and upload packages to Chacra.
+def doUploadChacraStage() {
+  def os = get_os_info(env.DIST)
+  def chacra_url = sh(
+    script: "grep '^url' ~/.chacractl", returnStdout: true,
+  ).trim().split('"')[1].trim().replaceAll(/\/+$/, '')
+  // Push packages to chacra.ceph.com under the 'test' ref if
+  // ceph-release-pipeline's TEST=true. Scoped with withEnv below instead of
+  // mutating env.SHA1, which is shared with the Pulp stage and with every
+  // other matrix cell.
+  def target_sha1 = env.TEST?.toBoolean() ? "test" : env.SHA1
+  withUploadEnv {
+    if (os.pkg_type == "rpm") {
+      def repo_url = "${chacra_url}/r/ceph/${env.BRANCH}/${target_sha1}/${os.name}/${os.version_name}/flavors/${env.FLAVOR}"
+      buildCephReleaseRpm(repo_url)
+    }
+    // CHACRACTL_KEY/SHAMAN_API_KEY come from the "upload packages" stage
+    // environment{} block, which also covers its post{} shaman updates.
+    withEnv(["SHA1=${target_sha1}"]) {
+      sh """#!/bin/bash -ex
+        export CHACRA_URL="${chacra_url}/" && ./scripts/chacra_upload.sh
+      """
+    }
+  }
+}
+
+// Stage 8.2 (upload packages to Pulp): build ceph-release RPM (rpm distros) and upload packages to Pulp.
+def doUploadPulpStage() {
+  def os = get_os_info(env.DIST)
+  // pulp_upload.sh publishes under the codename for ubuntu and the numeric
+  // version otherwise (resolve_os_version_for_repo), so the URL reported to
+  // shaman must do the same: os.version_name would yield debian/bookworm
+  // while the content actually lives under debian/12.
+  def os_version = (os.name == "ubuntu") ? os.version_name : os.version
+  def repo_url = "${pulp_server_url}/pulp/content/repos/ceph/"
+  repo_url += "${env.BRANCH}/${env.SHA1}/${os.name}/${os_version}"
+  repo_url += "/flavors/${env.FLAVOR}"
+
+  withUploadEnv {
+    if (os.pkg_type == "rpm") {
+      buildCephReleaseRpm(repo_url)
+    }
+    sh """#!/bin/bash -ex
       ./scripts/pulp_upload.sh
-      ./scripts/notify_shaman_pulp_repo.sh ready ceph ${os.name} ${os.version_name} ${env.ARCH} ${spec_project_url}${env.ARCH}/
-    else
-      echo "Skipping pulp upload because PULP_UPLOAD=${env.PULP_UPLOAD}"
-    fi
-  """
+      ./scripts/notify_shaman_pulp_repo.sh ready ceph ${os.name} ${os.version_name} ${env.ARCH} ${repo_url}/${env.ARCH}/
+    """
+  }
 }
 
 // Stage 9 (container): build the Ceph container image via scripts/build_container.
@@ -526,6 +610,62 @@ def doRegistryUploadStage() {
       ./scripts/pulp_container_push.sh
     """
   }
+}
+
+def buildCephReleaseRpm(repo_url) {
+  def ceph_release_spec_file = "ceph-release.spec"
+  def ceph_repo_file = "ceph.repo"
+  def ceph_release_spec = "dist/ceph/rpmbuild/SPECS/${ceph_release_spec_file}"
+  def ceph_repo = "dist/ceph/rpmbuild/SOURCES/${ceph_repo_file}"
+  def ceph_release_rpm = "dist/ceph/rpmbuild/RPMS/noarch/ceph-release-1-0.el*.noarch.rpm"
+
+  sh """#!/bin/bash -ex
+    shopt -s nullglob
+    for rpm in ${ceph_release_rpm}; do
+      if [ -f "\$rpm" ]; then
+        echo "Removing existing ceph-release RPM: \$rpm"
+        rm -f "\$rpm"
+      fi
+    done
+    if [ -f "${ceph_release_spec}" ]; then
+      echo "Removing existing ceph-release spec: ${ceph_release_spec}"
+      rm -f "${ceph_release_spec}"
+    fi
+    if [ -f "${ceph_repo}" ]; then
+      echo "Removing existing ceph.repo: ${ceph_repo}"
+      rm -f "${ceph_repo}"
+    fi
+  """
+
+  def spec_text = get_ceph_release_spec_text("${repo_url}")
+  writeFile(file: ceph_release_spec, text: spec_text)
+
+  def repo_text = get_ceph_release_repo_text("${repo_url}")
+  writeFile(file: ceph_repo, text: repo_text)
+
+  echo "ceph_release_spec: ${ceph_release_spec}"
+  sh "cat ${ceph_release_spec}"
+
+  echo "ceph_repo: ${ceph_repo}"
+  sh "cat ${ceph_repo}"
+
+  def ceph_builder_tag = (
+    "${env.SHA1[0..6]}.${env.BRANCH}.${env.DIST}.${env.ARCH}.${env.FLAVOR}"
+  )
+  def bwc_command_base = (
+    "python3 src/script/build-with-container.py " +
+    "--image-repo=${env.CEPH_BUILDER_IMAGE} " +
+    "--tag=${ceph_builder_tag} -d ${DIST} " +
+    "--image-variant=packages --ceph-version ${env.VERSION}"
+  )
+  def bwc_command = (
+    "${bwc_command_base} -e custom -- rpmbuild -bb " +
+    "--define \\'_topdir /ceph/rpmbuild\\' " +
+    "/ceph/rpmbuild/SPECS/${ceph_release_spec_file}"
+  )
+  sh """#!/bin/bash -ex
+    cd $WORKSPACE/dist/ceph && ${bwc_command}
+  """
 }
 
 pipeline {
@@ -625,15 +765,39 @@ pipeline {
           }
           stage("check for built packages") {
             when {
-              environment name: 'THROWAWAY', value: 'false'
-              expression { return build_matrix["${DIST}_${ARCH}"] == true }
+              expression {
+                return build_matrix["${DIST}_${ARCH}"] == true && params.THROWAWAY == false
+              }
             }
-            environment {
-              CHACRACTL_KEY = credentials('chacractl-key')
-              SHAMAN_API_KEY = credentials('shaman-api-key')
-            }
-            steps {
-              script { doCheckForBuiltPackagesStage() }
+            stages {
+              stage("configure Chacra") {
+                when {
+                  expression {
+                    return params.CHACRA_UPLOAD
+                  }
+                }
+                steps {
+                  script { doCheckForChacraPackagesStage() }
+                }
+              }
+              stage("configure Pulp") {
+                when {
+                  expression {
+                    return params.PULP_UPLOAD
+                  }
+                }
+                steps {
+                  script { doCheckForPulpPackagesStage() }
+                }
+              }
+              stage("validate artifact checks") {
+                when {
+                  expression { params.CHACRA_UPLOAD || params.PULP_UPLOAD }
+                }
+                steps {
+                  script { doArtifactsChecksStage() }
+                }
+              }
             }
           }
           stage("builder container") {
@@ -673,16 +837,48 @@ pipeline {
             }
           }
           stage("upload packages") {
+            // Covers the steps of both upload stages and the post{} shaman
+            // status updates below; notify_shaman_pulp_repo.sh and
+            // update_shaman.sh both need SHAMAN_API_KEY.
             environment {
               CHACRACTL_KEY = credentials('chacractl-key')
               SHAMAN_API_KEY = credentials('shaman-api-key')
             }
             when {
-              expression { return build_matrix["${DIST}_${ARCH}"] == true }
+              expression {
+                return build_matrix["${DIST}_${ARCH}"] == true && params.THROWAWAY == false && (params.CHACRA_UPLOAD || params.PULP_UPLOAD)
+              }
             }
-            steps {
-              script { doUploadPackagesStage() }
+            stages {
+              stage("prepare upload") {
+                steps {
+                  script { doPrepareUploadStage() }
+                }
+              }
+              stage("upload packages to Chacra") {
+                when {
+                  expression {
+                    return params.CHACRA_UPLOAD
+                  }
+                }
+                steps {
+                  script { doUploadChacraStage() }
+                }
+              }
+              stage("upload packages to Pulp") {
+                when {
+                  expression {
+                    return params.PULP_UPLOAD
+                  }
+                }
+                steps {
+                  script { doUploadPulpStage() }
+                }
+              }
             }
+            // The shaman build status must be updated regardless of which
+            // upload backend is enabled (cve-pipeline runs with
+            // CHACRA_UPLOAD=false), so this lives on the parent stage.
             post {
               success {
                 script {

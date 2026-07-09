@@ -72,9 +72,9 @@ create_pulp_repository() {
     local labels_json key value
 
     log "Checking if Pulp repository ${repo_name} already exists"
-    if pulp "${os_pkg_type}" repository show "${repo_name}" \
+    if pulp "${os_pkg_type}" repository show --name "${repo_name}" \
             > /dev/null 2>&1; then
-        log "Pulp repository ${repo_name} already exists"
+        log "WARNING: Pulp repository ${repo_name} already exists"
         return 0
     fi
 
@@ -345,6 +345,18 @@ publish_pulp_distribution() {
     log "Created ${OS_PKG_TYPE} publication: ${pub_href}"
 
     dist_name="dist-${repo_name}-${SHORT_SHA1}"
+
+    log "Checking if Pulp distribution ${dist_name} already exists"
+    if pulp "${OS_PKG_TYPE}" distribution show \
+            "${lookup_flag}" "${dist_name}" > /dev/null 2>&1; then
+        log "Pulp distribution ${dist_name} already exists; deleting"
+        if ! pulp "${OS_PKG_TYPE}" distribution destroy \
+                "${lookup_flag}" "${dist_name}"; then
+            log "ERROR: Failed to delete existing ${OS_PKG_TYPE} distribution"
+            return
+        fi
+    fi
+
     log "Creating distribution ${dist_name} " \
         "with base_path=${repo_endpoint}"
     if ! pulp "${OS_PKG_TYPE}" distribution create \
