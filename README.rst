@@ -206,18 +206,20 @@ See the "jenkins-job-builder" job as an example.
 
 Testing JJB changes by hand, before merging to main
 ---------------------------------------------------
-
 Sometimes it's useful to test a JJB change by hand prior to merging a pull
 request.
 
+Jenkins is locked down using Role-Based Access Control (RBAC), so regular
+users can no longer modify production jobs directly (e.g., running
+``jenkins-jobs update`` against an existing job will fail with a permissions
+error). Instead, you create your *own copy* of the job to test with. The
+job definition includes an ``authorization`` block granting your user full
+rights to that copy only.
+
 1. Log in to the Jenkins Web UI with GitHub OAuth
-
 2. Click your User icon in the top right and go to Security
-
 3. Create an API key
-
 4. Install ``jenkins-job-builder`` on your local computer.
-
 5. Create ``$HOME/.jenkins_jobs.ini`` on your local computer::
 
     [jenkins]
@@ -234,24 +236,75 @@ is your Jenkins API token.
 
 Let's say this git branch makes a change in the ``my-cool-job`` job.
 
-7. Run JJB to test the syntax of your changes::
+7. Make a *copy* of the job definition to use for testing::
 
-    jenkins-jobs --conf ~/.jenkins_jobs.ini test my-cool-job/config/definitions/my-cool-job.yml
+    cp my-cool-job/config/definitions/my-cool-job.yml \
+       my-cool-job/config/definitions/preserve-my-cool-job-<yourusername>.yml
 
-   If everything goes ok, this will cause JJB to output the XML of your job(s).
-   If there is a problem, JJB will print an error/backtrace instead.
+8. Edit your copy and set the job ``name`` to match, using the ``preserve-``
+   prefix (e.g., ``preserve-my-cool-job-djgalloway``). The ``preserve-``
+   prefix is important: it ensures your test job won't be deleted if the
+   global jenkins-job-builder job runs — jobs named ``preserve-*`` are left
+   alone.
 
-8. Run JJB to push your changes live to job on the main::
+   Then add an ``authorization`` property to the job. With
+   ``inheritance-strategy: none``, this matrix replaces the global RBAC for
+   this job only, giving your user full rights to it without granting you
+   access to any other jobs. Replace ``<your-username>`` with your Jenkins
+   (GitHub) username::
 
-    jenkins-jobs --conf ~/.jenkins_jobs.ini update my-cool-job/config/definitions/my-cool-job.yml
+    - job:
+        name: preserve-my-cool-job-<your-username>
+        properties:
+          - authorization:
+              inheritance-strategy: none
+              USER:<your-username>:
+                - job-read
+                - job-discover
+                - job-build
+                - job-cancel
+                - job-configure
+                - job-delete
+                - job-move
+                - job-workspace
+                - run-replay
+                - run-update
+                - run-delete
+                - scm-tag
 
-9. Run a throwaway build with your change, and verify that your change didn't
-   break anything and does what you want it to do.
+9. Run JJB to test the syntax of your changes::
 
-(Note: if anyone merges anything to main during this time, Jenkins will reset
-all jobs to the state of what is in main, and your customizations will be
-wiped out. This "by-hand" testing procedure is only intended for short-lived
-tests.)
+    jenkins-jobs --conf ~/.jenkins_jobs.ini test my-cool-job/config/definitions/preserve-my-cool-job-<yourusername>.yml
+
+   If everything goes ok, this will cause JJB to output the XML of your
+   job(s). If there is a problem, JJB will print an error/backtrace instead.
+
+10. Creating a new job requires job creation permissions in Jenkins. If you
+    don't already have them, open a ticket asking to be added to the
+    ``jenkins-create`` GitHub team:
+    https://tracker.ceph.com/projects/ci/issues/new
+
+11. Run JJB to create your test job on Jenkins::
+
+     jenkins-jobs --conf ~/.jenkins_jobs.ini update my-cool-job/config/definitions/preserve-my-cool-job-<yourusername>.yml
+
+    Because the job doesn't exist yet, ``update`` will create it. Subsequent
+    runs of the same command will update your test job in place, which the
+    ``authorization`` block permits.
+
+12. Run a throwaway build of your test job, and verify that your change
+    didn't break anything and does what you want it to do.
+
+13. When you're finished testing, delete your test job::
+
+     jenkins-jobs --conf ~/.jenkins_jobs.ini delete preserve-my-cool-job-<yourusername>
+
+    Your ``authorization`` block includes ``job-delete``, so you can clean up
+    after yourself.
+
+14. Open your pull request with the changes to the *original* job definition
+    only. Do **not** commit your test copy or its ``authorization`` block to
+    main.
 
 Assigning a job to a different Jenkins Master
 ---------------------------------------------
