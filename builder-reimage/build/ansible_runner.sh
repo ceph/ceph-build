@@ -73,6 +73,11 @@ VAULT_ARG="--vault-password-file=${VAULT_FILE}"
 
 mkdir -p "${LOG_DIR}"
 
+CONNECTIVITY_FAILED_FILE="${WORK_DIR}/ansible-connectivity-failed"
+CONNECTIVITY_LOG="${LOG_DIR}/${TARGET_FQDN}-wait-online.log"
+
+rm -f "${CONNECTIVITY_FAILED_FILE}"
+
 # Activate virtualenv if present
 if [[ -f "${WORK_DIR}/${VENV_DIR}/bin/activate" ]]; then
     echo "[ansible_runner] Activating venv: ${WORK_DIR}/${VENV_DIR}"
@@ -92,6 +97,50 @@ fi
 echo "[ansible_runner] SSH user selected = ${SSH_USER}"
 echo "[ansible_runner] Using inventory = ${INVENTORY_PATH}"
 echo "[ansible_runner] Using secrets = ${SECRETS_PATH}"
+
+# Wait until the reimaged node is reachable by Ansible.
+# MAAS may mark the node as deployed before SSH/cloud-init is fully ready.
+# This prevents playbooks from starting too early and failing with connection errors.
+wait_for_ansible_connectivity() {
+    local attempts=0
+    local max_attempts=40
+    local interval=15
+
+    echo "[ansible_runner] Waiting for SSH/Ansible connectivity on ${TARGET_FQDN}"
+
+    until [[ $attempts -ge $max_attempts ]]; do
+        attempts=$((attempts + 1))
+
+        # Use Ansible ping to confirm SSH access and remote Python readiness.
+        ANSIBLE_HOST_KEY_CHECKING=False ansible all \
+            -i "${INVENTORY_PATH}" \
+            --limit "${TARGET_FQDN}" \
+            -m ping \
+            -e "ansible_ssh_user=${SSH_USER}" \
+            > "${CONNECTIVITY_LOG}" 2>&1
+
+        rc=$?
+
+        if [[ $rc -eq 0 ]]; then
+            echo "[ansible_runner] ${TARGET_FQDN} is reachable by Ansible"
+            return 0
+        fi
+
+        # Node is deployed but not ready yet, retry after a short wait.
+        echo "[ansible_runner] ${TARGET_FQDN} not ready yet, attempt ${attempts}/${max_attempts}"
+        tail -n 10 "${CONNECTIVITY_LOG}" || true
+
+        sleep "${interval}"
+    done
+
+    # Fail clearly if the node never becomes reachable after deployment.
+    echo "[ansible_runner] ERROR: ${TARGET_FQDN} did not become reachable by Ansible"
+    echo "[ansible_runner] Last connectivity check output:"
+    cat "${CONNECTIVITY_LOG}" || true
+
+    touch "${CONNECTIVITY_FAILED_FILE}"
+    return 1
+}
 
 # Admin user JSON builder
 ADMIN_USERS=(
@@ -147,6 +196,12 @@ run_playbook() {
         fi
     done
 }
+
+# Ensure the node is actually reachable before running post-reimage playbooks.
+if ! wait_for_ansible_connectivity; then
+    FAILED_PLAYBOOKS+=("precheck-ansible-connectivity")
+    FAILED_LOGS+=("${CONNECTIVITY_LOG}")
+else
 
 ##############################################
 # PLAYBOOK 1 — ansible_managed.yml
@@ -265,6 +320,8 @@ if ! (
 ); then
     FAILED_PLAYBOOKS+=("play6-main-builder")
     FAILED_LOGS+=("${LOG_DIR}/${TARGET_FQDN}-play6-main-builder.log")
+fi
+
 fi
 
 echo "========================================"
