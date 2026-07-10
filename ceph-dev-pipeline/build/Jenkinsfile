@@ -587,10 +587,17 @@ def doContainerStage() {
   env.CONTAINER_REPO_PASSWORD = env.CONTAINER_REPO_CREDS_PSW
   def os = get_os_info(env.DIST)
   def cephver = env.VERSION.trim()
+  // Whether this cell pushed packages this run. If not (existence check
+  // skipped compilation, or THROWAWAY), build_container accepts any ready
+  // shaman repo for this sha1 instead of waiting for one with our BUILD_URL.
+  def uploaded = build_matrix["${DIST}_${ARCH}_${FLAVOR}"] == true &&
+      params.THROWAWAY == false &&
+      (params.CHACRA_UPLOAD || params.PULP_UPLOAD)
   sh """#!/bin/bash
     export DISTRO=${os.name}
     export RELEASE=${os.version}
     export cephver=${cephver}
+    export UPLOADED=${uploaded}
     if [ "\$PULP_REGISTRY_UPLOAD" == "true" ]; then
       export REMOVE_LOCAL_IMAGES=false
     fi
