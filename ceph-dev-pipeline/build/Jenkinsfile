@@ -239,24 +239,34 @@ def doCopyArtifactsStage() {
   '''
 }
 
-// Stage 5.1 (check for chacra packages): check chacra for an existing build (and skip compilation if found, unless FORCE).
+// Stage 5.1 (check for chacra packages): ask shaman whether a chacra repo is ready for this build (and skip compilation if so, unless FORCE).
 def doCheckForChacraPackagesStage() {
   withCredentials([
     string(credentialsId: "chacractl-key", variable: "CHACRACTL_KEY"),
     string(credentialsId: "shaman-api-key", variable: "SHAMAN_API_KEY")
   ]) {
+    // Configures ~/.chacractl for the upload stage later in this cell.
     sh """#!/bin/bash -ex
       ./scripts/setup_chacractl.sh
     """
-    def os = get_os_info(env.DIST)
-    def chacra_endpoint = "ceph/${env.BRANCH}/${env.SHA1}/${os.name}/${os.version_name}/${env.ARCH}/flavors/${env.FLAVOR}/"
-    chacra_exists_rc["${DIST}_${ARCH}_${FLAVOR}"] = sh(
-      script: """#!/bin/bash -ex
-        \$HOME/.local/bin/chacractl exists binaries/${chacra_endpoint}
-      """,
-      returnStatus: true,
-    )
   }
+  def os = get_os_info(env.DIST)
+  // Uploads go to whichever chacra node shaman's /api/nodes/next/ hands out,
+  // so `chacractl exists` against a freshly allocated node only succeeds when
+  // the rotation happens to repeat (e.g. binaries on 2.chacra, check asks
+  // 1.chacra -> false 404). Shaman's repo records are the source of truth for
+  // which node holds a build; pulp records live in the same collection, so
+  // filter on chacra_url.
+  def search_url = "https://shaman.ceph.com/api/search/?project=ceph" +
+      "&distros=${os.name}/${os.version_name}/${env.ARCH}" +
+      "&flavor=${env.FLAVOR}&ref=${env.BRANCH}&sha1=${env.SHA1}"
+  chacra_exists_rc["${DIST}_${ARCH}_${FLAVOR}"] = sh(
+    script: """#!/bin/bash -ex
+      curl -fs --max-time 30 "${search_url}" | \\
+        jq -e '[.[] | select((.chacra_url // "") | contains("chacra.ceph.com")) | select(.status == "ready")] | length > 0'
+    """,
+    returnStatus: true,
+  )
 }
 
 // Stage 5.2 (check for pulp packages): check pulp for an existing build (and skip compilation if found, unless FORCE).
