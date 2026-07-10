@@ -563,9 +563,13 @@ def doUploadPulpStage() {
     if (os.pkg_type == "rpm") {
       buildCephReleaseRpm(repo_url)
     }
+    // The shaman record's url must be the flavor-level repo root with the
+    // arch dirs (x86_64/, noarch/, SRPMS/) beneath it, matching chacra's
+    // convention: consumers like ceph.git's Containerfile append
+    // noarch/Packages/... to it to fetch the ceph-release RPM.
     sh """#!/bin/bash -ex
       ./scripts/pulp_upload.sh
-      ./scripts/notify_shaman_pulp_repo.sh ready ceph ${os.name} ${os.version_name} ${env.ARCH} ${repo_url}/${env.ARCH}/
+      ./scripts/notify_shaman_pulp_repo.sh ready ceph ${os.name} ${os.version_name} ${env.ARCH} ${repo_url}/
     """
   }
 }
