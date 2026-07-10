@@ -46,6 +46,12 @@ TEMPDIR=$(mktemp -d)
 # Test every definition if available in the current repository and update the jobs
 # if they do define one (they should always define their definitions)
 for dir in `find . -maxdepth 1 -path ./.git -prune -o -type d -print`; do
+    # The CVE jobs are intentionally not managed here.  Changes to them must be
+    # made manually by a Jenkins admin.
+    if [[ "$dir" == "./cve-pipeline" || "$dir" == "./cve-source-dist" ]]; then
+        echo "skipping $dir: CVE jobs must be updated manually by a Jenkins admin"
+        continue
+    fi
     definitions_dir="$dir/config/definitions"
     if [ -d "$definitions_dir" ]; then
         echo "found definitions directory: $definitions_dir"
@@ -81,7 +87,10 @@ JJB_CONFIG="$HOME/.jenkins_jobs.$JENKINS_FQDN.ini"
 # jenkins-job-builder doesn't get a config written so we `grep -v it` so it doesn't get deleted.
 # Jobs that start with 'preserve-' will also be kept, as it's assumed they're jobs under
 # development that will be deleted (perhaps renamed) once development is finished.
-for JOB in $(curl -s https://$JENKINS_FQDN/api/json | jq -r '.jobs[].name' | egrep -v 'jenkins-job-builder|^preserve-' | sort); do
+# The cve-pipeline and cve-source-dist jobs are skipped above, so no XML gets written
+# for them during `jenkins-jobs test`.  Exclude them here so they don't get deleted;
+# changes to them must be made manually by a Jenkins admin.
+for JOB in $(curl -s https://$JENKINS_FQDN/api/json | jq -r '.jobs[].name' | egrep -v 'jenkins-job-builder|^preserve-|^cve-pipeline$|^cve-source-dist$' | sort); do
     if [ ! -f $TEMPDIR/$JOB ]; then
         echo "Did not find job definition for $JOB.  Deleting!"
         $VENV/jenkins-jobs --log_level DEBUG --conf $JJB_CONFIG delete $JOB
