@@ -316,40 +316,37 @@ def doArtifactsChecksStage() {
   }
 
   def cell = "${DIST}_${ARCH}_${FLAVOR}"
-  // -1 means "not checked" when that backend's upload is disabled.
-  def chacractl_rc = params.CHACRA_UPLOAD ? chacra_exists_rc[cell] : -1
-  def pulp_repo_exists = params.PULP_UPLOAD && pulp_dist_exists[cell] == true
-  def skip_reasons = []
+  def chacra_exists = chacra_exists_rc[cell] == 0
+  def pulp_exists = pulp_dist_exists[cell] == true
 
-  if (params.CHACRA_UPLOAD && chacractl_rc == 0) {
-    skip_reasons << "Chacra already has artifacts (chacractl_rc=${chacractl_rc})"
-  }
-  if (pulp_repo_exists) {
-    skip_reasons << "Pulp already has this build (distribution exists)"
-  }
+  // Compilation can only be skipped when every enabled backend already has
+  // this build; if one of them is missing it, we must compile so that its
+  // upload stage has packages to push. The upload stage of a backend that
+  // already has the build is skipped individually (see the upload stages'
+  // when{} expressions).
+  def chacra_satisfied = !params.CHACRA_UPLOAD || chacra_exists
+  def pulp_satisfied = !params.PULP_UPLOAD || pulp_exists
 
-  if (shouldSkipCompilation(chacractl_rc, pulp_repo_exists, params.CHACRA_UPLOAD, params.PULP_UPLOAD, force)) {
+  if (chacra_satisfied && pulp_satisfied) {
+    def skip_reasons = []
+    if (params.CHACRA_UPLOAD) {
+      skip_reasons << "Chacra already has this build (per shaman)"
+    }
+    if (params.PULP_UPLOAD) {
+      skip_reasons << "Pulp already has this build (distribution exists)"
+    }
     println("Skipping compilation:\n- " + skip_reasons.join("\n- "))
     println(
       "To override, use THROWAWAY=true (to skip this check) " +
       "or FORCE=true (to re-upload artifacts)."
     )
     build_matrix[cell] = false
+  } else {
+    def missing = []
+    if (params.CHACRA_UPLOAD && !chacra_exists) missing << "Chacra"
+    if (params.PULP_UPLOAD && !pulp_exists) missing << "Pulp"
+    println("Compiling: ${missing.join(' and ')} missing this build.")
   }
-}
-
-// Helper function to determine if compilation should be skipped.
-def shouldSkipCompilation(chacractl_rc, pulp_repo_exists, chacra_upload_enabled, pulp_upload_enabled, force) {
-  if (force) {
-    return false
-  }
-  if (chacra_upload_enabled && chacractl_rc == 0) {
-    return true
-  }
-  if (pulp_upload_enabled && pulp_repo_exists) {
-    return true
-  }
-  return false
 }
 
 // Stage 6 (builder container): log into container registries and pull/build/push the ceph-build container image for this matrix cell.
@@ -862,8 +859,11 @@ pipeline {
               }
               stage("upload packages to Chacra") {
                 when {
+                  // If chacra already had this build when the cell started,
+                  // compilation only ran because pulp was missing it, so
+                  // don't re-push the same build to chacra (unless FORCE).
                   expression {
-                    return params.CHACRA_UPLOAD
+                    return params.CHACRA_UPLOAD && (env.FORCE == "true" || chacra_exists_rc["${DIST}_${ARCH}_${FLAVOR}"] != 0)
                   }
                 }
                 steps {
@@ -872,8 +872,11 @@ pipeline {
               }
               stage("upload packages to Pulp") {
                 when {
+                  // If pulp already had this build when the cell started,
+                  // compilation only ran because chacra was missing it, so
+                  // don't re-push the same build to pulp (unless FORCE).
                   expression {
-                    return params.PULP_UPLOAD
+                    return params.PULP_UPLOAD && (env.FORCE == "true" || pulp_dist_exists["${DIST}_${ARCH}_${FLAVOR}"] != true)
                   }
                 }
                 steps {
