@@ -241,15 +241,6 @@ def doCopyArtifactsStage() {
 
 // Stage 5.1 (check for chacra packages): ask shaman whether a chacra repo is ready for this build (and skip compilation if so, unless FORCE).
 def doCheckForChacraPackagesStage() {
-  withCredentials([
-    string(credentialsId: "chacractl-key", variable: "CHACRACTL_KEY"),
-    string(credentialsId: "shaman-api-key", variable: "SHAMAN_API_KEY")
-  ]) {
-    // Configures ~/.chacractl for the upload stage later in this cell.
-    sh """#!/bin/bash -ex
-      ./scripts/setup_chacractl.sh
-    """
-  }
   def os = get_os_info(env.DIST)
   // Uploads go to whichever chacra node shaman's /api/nodes/next/ hands out,
   // so `chacractl exists` against a freshly allocated node only succeeds when
@@ -538,6 +529,14 @@ def withUploadEnv(Closure body) {
 // Stage 8.1 (upload packages to Chacra): build ceph-release RPM (rpm distros) and upload packages to Chacra.
 def doUploadChacraStage() {
   def os = get_os_info(env.DIST)
+  // Point ~/.chacractl at the chacra node shaman allocates for uploads.
+  // Runs here rather than in the check stage (which asks shaman, not
+  // chacra) so that shaman having no healthy chacra nodes only fails
+  // builds that actually need to upload to chacra. CHACRACTL_KEY and
+  // SHAMAN_API_KEY come from the "upload packages" stage environment{}.
+  sh """#!/bin/bash -ex
+    ./scripts/setup_chacractl.sh
+  """
   def chacra_url = sh(
     script: "grep '^url' ~/.chacractl", returnStdout: true,
   ).trim().split('"')[1].trim().replaceAll(/\/+$/, '')
