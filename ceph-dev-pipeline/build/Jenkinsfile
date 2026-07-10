@@ -253,8 +253,11 @@ def doCheckForChacraPackagesStage() {
       "&flavor=${env.FLAVOR}&ref=${env.BRANCH}&sha1=${env.SHA1}"
   chacra_exists_rc["${DIST}_${ARCH}_${FLAVOR}"] = sh(
     script: """#!/bin/bash -ex
-      curl -fs --max-time 30 "${search_url}" | \\
-        jq -e '[.[] | select((.chacra_url // "") | contains("chacra.ceph.com")) | select(.status == "ready")] | length > 0'
+      chacra_url=\$(curl -fs --max-time 30 "${search_url}" | \\
+        jq -er '[.[] | select((.chacra_url // "") | contains("chacra.ceph.com")) | select(.status == "ready")][0].chacra_url')
+      # A shaman record can outlive the repo it points at (chacra nodes get
+      # rotated/rebuilt), so only trust it if the repo URL actually answers.
+      curl -fs -o /dev/null --max-time 30 "\$chacra_url"
     """,
     returnStatus: true,
   )
