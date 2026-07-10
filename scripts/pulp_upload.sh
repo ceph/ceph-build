@@ -72,9 +72,9 @@ create_pulp_repository() {
     local labels_json key value
 
     log "Checking if Pulp repository ${repo_name} already exists"
-    if pulp "${os_pkg_type}" repository show "${repo_name}" \
+    if pulp "${os_pkg_type}" repository show --name "${repo_name}" \
             > /dev/null 2>&1; then
-        log "Pulp repository ${repo_name} already exists"
+        log "WARNING: Pulp repository ${repo_name} already exists"
         return 0
     fi
 
@@ -319,7 +319,7 @@ publish_pulp_distribution() {
     local repo_endpoint="$2"
     local repo_arch="$3"
     local package_version="$4"
-    local final_version pub_href dist_name lookup_flag
+    local final_version pub_href dist_name lookup_flag stale_dist
 
     if [ "$OS_PKG_TYPE" == "rpm" ]; then
         pub_href=$(
@@ -345,6 +345,33 @@ publish_pulp_distribution() {
     log "Created ${OS_PKG_TYPE} publication: ${pub_href}"
 
     dist_name="dist-${repo_name}-${SHORT_SHA1}"
+
+    log "Checking if Pulp distribution ${dist_name} already exists"
+    if pulp "${OS_PKG_TYPE}" distribution show \
+            "${lookup_flag}" "${dist_name}" > /dev/null 2>&1; then
+        log "Pulp distribution ${dist_name} already exists; deleting"
+        if ! pulp "${OS_PKG_TYPE}" distribution destroy \
+                "${lookup_flag}" "${dist_name}"; then
+            log "ERROR: Failed to delete existing ${OS_PKG_TYPE} distribution"
+            return
+        fi
+    fi
+
+    # A distribution created before FLAVOR was part of the naming scheme may
+    # still own this base_path under a different name; base_paths are unique
+    # in pulp, so it has to be removed before the new distribution is created.
+    stale_dist=$(pulp "${OS_PKG_TYPE}" distribution list \
+        --base-path "${repo_endpoint}" 2> /dev/null \
+        | jq -r '.[0].name // empty' || true)
+    if [ -n "$stale_dist" ] && [ "$stale_dist" != "$dist_name" ]; then
+        log "Distribution ${stale_dist} owns base_path ${repo_endpoint}; deleting"
+        if ! pulp "${OS_PKG_TYPE}" distribution destroy \
+                "${lookup_flag}" "${stale_dist}"; then
+            log "ERROR: Failed to delete ${OS_PKG_TYPE} distribution ${stale_dist}"
+            return
+        fi
+    fi
+
     log "Creating distribution ${dist_name} " \
         "with base_path=${repo_endpoint}"
     if ! pulp "${OS_PKG_TYPE}" distribution create \
@@ -375,7 +402,10 @@ log "Uploading artifacts to Pulp repository ..."
 _OS_VERSION=$(resolve_os_version_for_repo)
 REPO_VERSIONS_TO_RETAIN=$(get_repo_versions_to_retain)
 
-REPO_NAME="${PULP_PROJECT}-${BRANCH}-${OS_NAME}-${_OS_VERSION}"
+# FLAVOR is part of the repository (and therefore distribution) name so that
+# default and debug builds of the same branch/sha1 don't share repositories
+# or clobber each other's distributions.
+REPO_NAME="${PULP_PROJECT}-${BRANCH}-${OS_NAME}-${_OS_VERSION}-${FLAVOR}"
 REPO_ENDPOINT="repos/${PULP_PROJECT}/${BRANCH}/${SHA1}/${OS_NAME}"
 REPO_ENDPOINT="${REPO_ENDPOINT}/${_OS_VERSION}/flavors/${FLAVOR}"
 
@@ -527,8 +557,14 @@ fi
 # separate process. PACKAGE_MANAGER_VERSION is included in the repo
 # record's extra metadata; the repository's API URL becomes the record's
 # chacra_url. See notify_shaman_pulp_repo.sh.
+# rpm repositories are named after the rpm arch (aarch64), not the Jenkins
+# matrix arch (arm64); see the SRPMS/noarch/aarch64/x86_64 loop above.
+_repo_arch="${ARCH}"
+if [ "$OS_PKG_TYPE" = "rpm" ] && [ "$ARCH" = "arm64" ]; then
+    _repo_arch="aarch64"
+fi
 _repo_href=$(pulp "${OS_PKG_TYPE}" repository show \
-    --name "${REPO_NAME}-${ARCH}" | jq -r '.pulp_href')
+    --name "${REPO_NAME}-${_repo_arch}" | jq -r '.pulp_href')
 {
     printf 'PACKAGE_MANAGER_VERSION=%q\n' "${PACKAGE_MANAGER_VERSION}"
     printf 'PULP_REPO_API_URL=%q\n' "${PULP_SERVER_URL}${_repo_href}"

@@ -4,7 +4,10 @@
 ~/.local/bin/uv tool install chacractl
 
 if [ -z "$chacra_url" ]; then
-  chacra_url=$(curl -u "$SHAMAN_API_USER:$SHAMAN_API_KEY" https://shaman.ceph.com/api/nodes/next/)
+  # -f: shaman answers 404 ("no healthy chacra nodes available") when it has
+  # no node to allocate; fail here instead of writing the HTML error page
+  # into ~/.chacractl.
+  chacra_url=$(curl -fs -u "$SHAMAN_API_USER:$SHAMAN_API_KEY" https://shaman.ceph.com/api/nodes/next/)
 fi
 cat > $HOME/.chacractl << EOF
 url = "$chacra_url"
