@@ -24,10 +24,20 @@ pipeline {
             env.checkout_ref = params.RELEASE_BUILD ? "v${params.VERSION}" : env.BRANCH
             env.CEPH_REPO = repoUrl
 
+            // Only fetch the ref being built. ceph-ci has thousands of stale
+            // branches; fetching them all at depth 100 dominates checkout time.
+            // Release builds check out a tag by name and manual builds may omit
+            // BRANCH, so those keep the wide refspec.
+            def refspec = '+refs/heads/*:refs/remotes/origin/* +refs/tags/v*:refs/tags/v*'
+            if (!params.RELEASE_BUILD?.toBoolean() && env.BRANCH) {
+              refspec = "+refs/heads/${env.BRANCH}:refs/remotes/origin/${env.BRANCH}"
+            }
+
             checkout scmGit(
               branches: [[name: checkout_ref]],
               userRemoteConfigs: [[
                 url: env.CEPH_REPO,
+                refspec: refspec,
                 credentialsId: 'jenkins-build'
               ]],
               extensions: [
@@ -36,14 +46,18 @@ pipeline {
                   $class: 'CloneOption',
                   shallow: true,
                   depth: 100,
+                  noTags: true,
+                  honorRefspec: true,
                   timeout: 90
                 ]
               ]
             )
 
-            // No need to fetch tags if this is a release build
+            // No need to fetch tags if this is a release build.
+            // Only v* tags matter for git describe; --no-tags keeps the
+            // junk tags in ceph.git from being auto-followed.
             if (!params.RELEASE_BUILD?.toBoolean()) {
-              sh 'git fetch --tags https://github.com/ceph/ceph.git'
+              sh "git fetch --no-tags https://github.com/ceph/ceph.git '+refs/tags/v*:refs/tags/v*'"
             }
           }
         }
@@ -54,8 +68,13 @@ pipeline {
         script {
           dir("ceph") {
             sh '''#!/bin/bash
+              # A branch can be thousands of commits past the last v* tag;
+              # grow the deepen step so that takes a handful of fetches
+              # instead of dozens of fixed-size round trips.
+              step=50
               while [ -z "$(git describe --abbrev=8 --match 'v*' | sed s/^v//)" ]; do
-                git fetch --deepen 50
+                git fetch --deepen $step
+                step=$((step * 2))
               done
             '''
             def ceph_version_git = sh(
@@ -63,6 +82,9 @@ pipeline {
               returnStdout: true,
             ).trim()
             sh """
+              # The workspace is no longer wiped between builds, so clear
+              # the previous build's dist dir before "mv dist .." below.
+              rm -rf ../dist
               mkdir dist
               echo ${ceph_version_git} > dist/version
               rm -f ceph-*.tar.*
@@ -104,7 +126,9 @@ pipeline {
 
                 echo "Creating tar.gz for upstream release"
                 pushd dist
-                bzip2 -dc ceph-$ceph_version_tarball.$extension | gzip > ceph-$ceph_version_tarball.tar.gz
+                bzip2_cmd=$(command -v pbzip2 || command -v lbzip2 || command -v bzip2)
+                gzip_cmd=$(command -v pigz || command -v gzip)
+                $bzip2_cmd -dc ceph-$ceph_version_tarball.$extension | $gzip_cmd > ceph-$ceph_version_tarball.tar.gz
                 popd
               else
                 echo "BRANCH=${BRANCH}" > dist/branch

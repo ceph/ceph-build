@@ -11,7 +11,10 @@
             shallow-clone: true
             submodule:
               disable: true
-            wipe-workspace: true
+            # Keep the workspace between builds so the ceph clone, its tags,
+            # and the submodule cache in .git/modules stay warm on the agent.
+            # The Jenkinsfile cleans everything a build actually touches.
+            wipe-workspace: false
       script-path: ceph-source-dist/build/Jenkinsfile
       lightweight-checkout: true
       do-not-fetch-tags: true
