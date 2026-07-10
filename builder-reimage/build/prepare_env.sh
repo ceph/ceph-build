@@ -34,6 +34,8 @@ adjust_url() {
   fi
 }
 
+# SSH access relies on the caller exporting GIT_SSH_COMMAND pointing at the
+# deploy key (the Jenkinsfile does this before invoking us).
 clone_repo() {
   local url="$1"
   local dir="$2"
@@ -42,11 +44,7 @@ clone_repo() {
     (cd "${dir}" && git fetch --all --prune)
   else
     log "Cloning ${url} -> ${dir}"
-    if [ "${SSH_AVAILABLE}" = "true" ] && [ -f /tmp/jenkins_git_key ]; then
-      GIT_SSH_COMMAND='ssh -i /tmp/jenkins_git_key -o StrictHostKeyChecking=no' git clone --depth 1 "${url}" "${dir}"
-    else
-      git clone --depth 1 "${url}" "${dir}"
-    fi
+    git clone --depth 1 "${url}" "${dir}"
   fi
 }
 
