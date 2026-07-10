@@ -1,7 +1,15 @@
-// Global variables to use across stages
-def CEPH_TAG_CREATE_JOB_ID, CEPH_TAG_CREATE_JOB_URL
-def PACKAGE_BUILD_ID, PACKAGE_BUILD_URL
-def CEPH_TAG_PUSH_JOB_ID, CEPH_TAG_PUSH_JOB_URL
+import groovy.transform.Field
+
+// Global variables to use across stages.
+// @Field is required because SCRIPT_SPLITTING_TRANSFORMATION is enabled on
+// jenkins.ceph.com (JENKINS-37984); plain script-level 'def' declarations
+// fail compilation with it.
+@Field def CEPH_TAG_CREATE_JOB_ID
+@Field def CEPH_TAG_CREATE_JOB_URL
+@Field def PACKAGE_BUILD_ID
+@Field def PACKAGE_BUILD_URL
+@Field def CEPH_TAG_PUSH_JOB_ID
+@Field def CEPH_TAG_PUSH_JOB_URL
 
 pipeline {
   agent any
