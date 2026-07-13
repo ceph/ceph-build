@@ -150,7 +150,10 @@ async def release_machine(machine):
 # -------------------------------------------------------------------------
 async def commission_machine(machine):
     if get_normalized_status(machine) == "new":
-        await machine.commission()
+        # skip_networking is the API equivalent of checking "Retain network
+        # configuration" in the MAAS UI: keep the machine's existing interface
+        # config instead of replacing it with what commissioning discovers.
+        await machine.commission(skip_networking=True)
 
 # -------------------------------------------------------------------------
 # Reimage

@@ -14,6 +14,11 @@ pipeline {
             defaultValue: '',
             description: 'node1 or node1,node2'
         )
+        string(
+            name: 'CEPH_BUILD_BRANCH',
+            defaultValue: 'main',
+            description: 'Use the Jenkinsfile and scripts from this ceph-build branch'
+        )
     }
 
     stages {
@@ -55,8 +60,10 @@ pipeline {
 
                                                 mkdir -p "${WORK_DIR}"
 
-                                                cp "${SSH_KEY}" "${JENKINS_GIT_KEY_FILE}"
+                                                cp "\$SSH_KEY" "${JENKINS_GIT_KEY_FILE}"
                                                 chmod 600 "${JENKINS_GIT_KEY_FILE}"
+
+                                                export GIT_SSH_COMMAND="ssh -i ${JENKINS_GIT_KEY_FILE} -o StrictHostKeyChecking=no"
 
                                                 bash builder-reimage/build/prepare_env.sh \
                                                     "${TARGET_FQDN}" \
@@ -64,7 +71,8 @@ pipeline {
                                                     true \
                                                     git@github.com:ceph/ceph-build.git \
                                                     git@github.com:ceph/ceph-cm-ansible.git \
-                                                    git@github.com:ceph/ceph-sepia-secrets.git
+                                                    git@github.com:ceph/ceph-sepia-secrets.git \
+                                                    "${params.CEPH_BUILD_BRANCH}"
                                                 
                                                 # Temporary test helper to use a non-default secrets repo branch.
                                                 # Uncomment the lines below only for branch-based inventory validation.
@@ -217,7 +225,7 @@ pipeline {
 
                                                 mkdir -p "\$WORK_DIR"
 
-                                                cp "${SSH_KEY}" "${JENKINS_GIT_KEY_FILE}"
+                                                cp "\$SSH_KEY" "${JENKINS_GIT_KEY_FILE}"
                                                 chmod 600 "${JENKINS_GIT_KEY_FILE}"
 
                                                 export GIT_SSH_COMMAND="ssh -i ${JENKINS_GIT_KEY_FILE} -o StrictHostKeyChecking=no"
@@ -230,7 +238,8 @@ pipeline {
                                                 bash prepare_env.sh "\$TARGET_FQDN" "\$WORK_DIR" true \
                                                   git@github.com:ceph/ceph-build.git \
                                                   git@github.com:ceph/ceph-cm-ansible.git \
-                                                  git@github.com:ceph/ceph-sepia-secrets.git
+                                                  git@github.com:ceph/ceph-sepia-secrets.git \
+                                                  "${params.CEPH_BUILD_BRANCH}"
 
                                                 bash ansible_runner.sh \
                                                   "\$TARGET_FQDN" \

@@ -3,7 +3,7 @@ set -euo pipefail
 
 # prepare_env.sh
 # Usage:
-#   prepare_env.sh <target_fqdn> <work_dir> <ssh_available> <ansible_repo> <main_repo> <secrets_repo>
+#   prepare_env.sh <target_fqdn> <work_dir> <ssh_available> <main_repo> <ansible_repo> <secrets_repo> [ceph_build_branch]
 
 TARGET_FQDN="$1"
 WORK_DIR="$2"
@@ -11,6 +11,7 @@ SSH_AVAILABLE="${3:-false}"
 MAIN_REPO="${4:-git@github.com:ceph/ceph-build.git}"
 ANSIBLE_REPO="${5:-git@github.com:ceph/ceph-cm-ansible.git}"
 SECRETS_REPO="${6:-git@github.com:ceph/ceph-sepia-secrets.git}"
+CEPH_BUILD_BRANCH="${7:-main}"
 
 SHORTNAME="${TARGET_FQDN%%.*}"
 
@@ -34,19 +35,18 @@ adjust_url() {
   fi
 }
 
+# SSH access relies on the caller exporting GIT_SSH_COMMAND pointing at the
+# deploy key (the Jenkinsfile does this before invoking us).
 clone_repo() {
   local url="$1"
   local dir="$2"
+  local branch="${3:-}"
   if [ -d "${dir}/.git" ]; then
     log "Updating existing repo ${dir}"
     (cd "${dir}" && git fetch --all --prune)
   else
-    log "Cloning ${url} -> ${dir}"
-    if [ "${SSH_AVAILABLE}" = "true" ] && [ -f /tmp/jenkins_git_key ]; then
-      GIT_SSH_COMMAND='ssh -i /tmp/jenkins_git_key -o StrictHostKeyChecking=no' git clone --depth 1 "${url}" "${dir}"
-    else
-      git clone --depth 1 "${url}" "${dir}"
-    fi
+    log "Cloning ${url}${branch:+ (branch ${branch})} -> ${dir}"
+    git clone --depth 1 ${branch:+--branch "${branch}"} "${url}" "${dir}"
   fi
 }
 
@@ -55,7 +55,7 @@ MAIN_URL=$(adjust_url "${MAIN_REPO}")
 SECRETS_URL=$(adjust_url "${SECRETS_REPO}")
 
 clone_repo "${ANSIBLE_URL}" "${ANSIBLE_DIR}"
-clone_repo "${MAIN_URL}" "${MAIN_DIR}"
+clone_repo "${MAIN_URL}" "${MAIN_DIR}" "${CEPH_BUILD_BRANCH}"
 clone_repo "${SECRETS_URL}" "${SECRETS_DIR}"
 
 # Ensure venv exists
