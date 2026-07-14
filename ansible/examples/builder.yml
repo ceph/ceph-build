@@ -1196,8 +1196,8 @@
             - ansible_os_family == "RedHat"
             - ansible_distribution_major_version|int <= 7
 
-        # Ansible get_url was failing on EL9 with a Python SSL ASN1 NOT_ENOUGH_DATA
-        # error while downloading agent.jar from Jenkins, even after retries.
+        ### Ansible get_url was failing on EL9 with a Python SSL ASN1 NOT_ENOUGH_DATA
+        ## error while downloading agent.jar from Jenkins, even after retries.
         # Use curl here to avoid the Python SSL path and keep retry handling explicit.    
         - name: Download agent.jar
           ansible.builtin.command:
