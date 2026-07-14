@@ -616,12 +616,39 @@
         - ansible_os_family == "RedHat"
         - ansible_distribution_major_version|int <= 8
 
+     # Install common RedHat packages separately from libvirt packages.
+     # On EL9, some libvirt packages such as libvirt-devel are available from CRB.
+     # Keeping libvirt packages in a separate task lets us enable CRB only when needed.   
     - name: Install RPMs without EPEL
       yum:
-        name: "{{ universal_rpms + libvirt_rpms|default([]) + lsb_package|default([]) }}"
+        name: "{{ universal_rpms + lsb_package|default([]) }}"
         state: present
         disablerepo: epel
       when: ansible_os_family == "RedHat"
+   
+    # EL7/EL8 existing behavior is kept unchanged.
+    # These releases did not need the  EL9-specific CRB handling for libvirt packages.  
+    - name: Install Libvirt RPMs without EPEL
+      yum:
+        name: "{{ libvirt_rpms|default([]) }}"
+        state: present
+        disablerepo: epel
+      when:
+        - ansible_os_family == "RedHat"
+        - ansible_distribution_major_version|int <= 8
+        - libvirt|bool
+
+    # Keep common RPM installation separate from libvirt RPMs.
+    # EL9 needs CRB enabled for libvirt-devel, so libvirt packages are handled separately.    
+    - name: Install Libvirt RPMs with CRB
+      yum:
+        name: "{{ libvirt_rpms|default([]) }}"
+        state: present
+        enablerepo: crb
+      when:
+        - ansible_os_family == "RedHat"
+        - ansible_distribution_major_version|int == 9
+        - libvirt|bool  
 
     - name: Install RPMs with EPEL,CRB
       yum:
