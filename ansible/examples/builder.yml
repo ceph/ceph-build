@@ -932,11 +932,13 @@
           when: (ansible_os_family == "RedHat" and ansible_distribution_major_version|int <= 7) or
                 (ansible_os_family == "Debian" and ansible_distribution_major_version|int <= 18)
 
+        # Keep this EL8-only. On EL9, the old krb5/libssh source build fails
+        # with OpenSSL 3.x compiler errors.        
         - name: Install packages needed to build krb5 from source (EL8)
           dnf:
             name: "{{ hackery_packages }}"
             state: present
-          when: ansible_os_family == "RedHat" and ansible_distribution_major_version|int >= 8
+          when: ansible_os_family == "RedHat" and ansible_distribution_major_version|int == 8
 
         - name: Build krb5 library from source (EL8)
           shell: |
@@ -955,7 +957,7 @@
             cmake ../libssh-0.9.4 -DOPENSSL_ROOT_DIR=/opt/vagrant/embedded/
             make
             cp lib/libssh* /opt/vagrant/embedded/lib64
-          when: ansible_os_family == "RedHat" and ansible_distribution_major_version|int >= 8
+          when: ansible_os_family == "RedHat" and ansible_distribution_major_version|int == 8
 
         # https://github.com/vagrant-libvirt/vagrant-libvirt/issues/1127#issuecomment-713651332
         - name: Install the vagrant-libvirt plugin (EL8)
@@ -1194,12 +1196,28 @@
             - ansible_os_family == "RedHat"
             - ansible_distribution_major_version|int <= 7
 
+        # Ansible get_url was failing on EL9 with a Python SSL ASN1 NOT_ENOUGH_DATA
+        # error while downloading agent.jar from Jenkins, even after retries.
+        # Use curl here to avoid the Python SSL path and keep retry handling explicit.    
         - name: Download agent.jar
-          get_url:
-            url: "{{ api_uri }}/jnlpJars/agent.jar"
-            dest: "/home/{{ jenkins_user }}/agent.jar"
-            force: yes
+          ansible.builtin.command:
+            cmd: >
+              curl --fail --location
+              --retry 5
+              --retry-delay 10
+              --retry-all-errors
+              --connect-timeout 20
+              --output /home/{{ jenkins_user }}/agent.jar
+              {{ api_uri }}/jnlpJars/agent.jar
           register: jar_changed
+          changed_when: true    
+
+        - name: Ensure agent.jar ownership
+          ansible.builtin.file:
+            path: "/home/{{ jenkins_user }}/agent.jar"
+            owner: "{{ jenkins_user }}"
+            group: "{{ jenkins_user }}"
+            mode: "0644"  
 
         - name: look for templates/
           ansible.builtin.stat:
