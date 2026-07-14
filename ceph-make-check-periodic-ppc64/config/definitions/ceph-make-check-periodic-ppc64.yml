@@ -14,7 +14,7 @@
     parameters:
     - string:
         name: PullID
-        description: "the GitHub pull id, like '72' in 'ceph/pull/72'"
+        description: "The main branch ID"
         default: origin/main
     project-type: freestyle
     properties:
@@ -32,8 +32,8 @@
         url: https://github.com/ceph/ceph.git
         name: origin
         branches:
-          - origin/pr/${{PullID}}/merge
-        refspec: +refs/pull/${{PullID}}/*:refs/remotes/origin/pr/${{PullID}}/*
+          - ${{PullID}}
+        refspec: +refs/heads/*:refs/remotes/origin/*
         skip-tag: true
         shallow-clone: true
         honor-refspec: true
@@ -42,22 +42,6 @@
     triggers:
       - timed: '@weekly'
     publishers:
-      - cobertura:
-          report-file: "src/pybind/mgr/dashboard/frontend/coverage/cobertura-coverage.xml"
-          only-stable: "true"
-          health-auto-update: "false"
-          stability-auto-update: "false"
-          zoom-coverage-chart: "true"
-          source-encoding: "Big5"
-          targets:
-            - files:
-                healthy: 10
-                unhealthy: 20
-                failing: 30
-            - method:
-                healthy: 10
-                unhealthy: 20
-                failing: 30
       - postbuildscript:
           builders:
             - role: SLAVE
