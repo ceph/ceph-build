@@ -346,10 +346,22 @@ def doArtifactsChecksStage() {
 // Stage 6 (builder container): log into container registries and pull/build/push the ceph-build container image for this matrix cell.
 def doBuilderContainerStage() {
   env.CEPH_BUILDER_IMAGE = "${env.CONTAINER_REPO_HOSTNAME}/${env.CONTAINER_REPO_ORGANIZATION}/ceph-build"
+  // Pin podman auth to a persistent authfile. The agent runs as a systemd
+  // service with no login session and no XDG_RUNTIME_DIR, so podman derives
+  // the default auth.json location from ambient node state at each
+  // invocation, landing in runtime tmpfs the job doesn't control.
+  // Credentials written by podman login here have been observed unavailable
+  // to podman build in the same job minutes later, so the base image pull
+  // goes anonymous and hits Docker Hub's rate limit (toomanyrequests,
+  // https://tracker.ceph.com/issues/77920). Set via env so every subsequent
+  // sh step (pull/build/push here, and build-with-container.py in the build
+  // stage) resolves the same file.
+  env.REGISTRY_AUTH_FILE = "${env.HOME}/.config/containers/auth.json"
   sh '''#!/bin/bash
     set -ex
-    podman login -u ${CONTAINER_REPO_CREDS_USR} -p ${CONTAINER_REPO_CREDS_PSW} ${CONTAINER_REPO_HOSTNAME}/${CONTAINER_REPO_ORGANIZATION}
-    podman login -u ${DOCKER_HUB_CREDS_USR} -p ${DOCKER_HUB_CREDS_PSW} docker.io
+    mkdir -p "${REGISTRY_AUTH_FILE%/*}"
+    podman login --authfile ${REGISTRY_AUTH_FILE} -u ${CONTAINER_REPO_CREDS_USR} -p ${CONTAINER_REPO_CREDS_PSW} ${CONTAINER_REPO_HOSTNAME}/${CONTAINER_REPO_ORGANIZATION}
+    podman login --authfile ${REGISTRY_AUTH_FILE} -u ${DOCKER_HUB_CREDS_USR} -p ${DOCKER_HUB_CREDS_PSW} docker.io
   '''
   def ceph_builder_tag_short = "${env.BRANCH}.${env.DIST}.${env.ARCH}.${env.FLAVOR}"
   def ceph_builder_tag = "${env.SHA1[0..6]}.${ceph_builder_tag_short}"
