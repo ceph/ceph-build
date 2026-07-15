@@ -1025,9 +1025,18 @@
       when:
         - (ansible_os_family | lower) == 'debian'
 
-    - name: Set java version alternative for RedHat
-      shell:
-        cmd: update-alternatives --set java '{{ java_version }}-openjdk.{{ ansible_architecture }}'
+    - name: Set java alternative for redhat
+      block:
+        - name: Get java version alternative
+          shell: >-
+            alternatives --display java | awk '/^\// && /{{ java_version }}/ {print $1}'
+          register: java_alternatives_redhat
+          changed_when: false
+
+        - name: Set java version alternative
+          alternatives:
+            name: java
+            path: "{{ java_alternatives_redhat.stdout_lines | first }}"
       when:
         - (ansible_os_family | lower) == 'redhat'
 
