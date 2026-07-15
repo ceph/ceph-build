@@ -63,6 +63,8 @@ pipeline {
                                                 cp "\$SSH_KEY" "${JENKINS_GIT_KEY_FILE}"
                                                 chmod 600 "${JENKINS_GIT_KEY_FILE}"
 
+                                                # Set GIT_SSH_COMMAND to use the per-node Jenkins git key during prepare_env    
+
                                                 export GIT_SSH_COMMAND="ssh -i ${JENKINS_GIT_KEY_FILE} -o StrictHostKeyChecking=no"
 
                                                 bash builder-reimage/build/prepare_env.sh \
@@ -262,13 +264,25 @@ pipeline {
                                             passwordVariable: 'JOB_BUILDER_PASS'
                                         )
                                     ]) {
+
+                                        // If Ansible SSH/connectivity failed after reimage, do not restore
+                                        // the Jenkins node state. The node may be unreachable or only
+                                        // partially configured, so keep it offline for manual investigation.
+
                                         withEnv([
                                             "SYNC_MACHINE=${machine}",
                                             "SYNC_TARGET_FQDN=${TARGET_FQDN}",
-                                            "SYNC_STATE_FILE=${JENKINS_NODE_STATE_FILE}"
+                                            "SYNC_STATE_FILE=${JENKINS_NODE_STATE_FILE}",
+                                            "SYNC_CONNECTIVITY_FAILED_FILE=${WORK_DIR}/ansible-connectivity-failed"
                                         ]) {
                                             sh '''#!/bin/bash
                                                 set +e
+
+                                                if [ -f "$SYNC_CONNECTIVITY_FAILED_FILE" ]; then
+                                                    echo "[WARN] Skipping Jenkins node restore for $SYNC_MACHINE because Ansible connectivity failed after reimage"
+                                                    echo "[WARN] Keeping node offline for manual investigation"
+                                                    exit 0
+                                                fi
 
                                                 echo "[INFO] Restoring Jenkins node state for $SYNC_MACHINE"
 
