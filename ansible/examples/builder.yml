@@ -333,15 +333,6 @@
           - podman
         container_service_name: podman
         container_certs_path: "/etc/containers/certs.d/{{ container_mirror }}"
-        hackery_packages:
-          - gcc
-          - libguestfs-tools-c
-          - libvirt
-          - libvirt-devel
-          - libxml2-devel
-          - libxslt-devel
-          - make
-          - ruby-devel
       when:
         - ansible_os_family == "RedHat"
         - ansible_distribution_major_version|int == 8
@@ -358,15 +349,6 @@
           - pipx
         container_service_name: podman
         container_certs_path: "/etc/containers/certs.d/{{ container_mirror }}"
-        hackery_packages:
-          - gcc
-          - libguestfs-tools-c
-          - libvirt
-          - libvirt-devel
-          - libxml2-devel
-          - libxslt-devel
-          - make
-          - ruby-devel
       when:
         - ansible_os_family == "RedHat"
         - ansible_distribution_major_version|int == 9
@@ -626,33 +608,9 @@
         disablerepo: epel
       when: ansible_os_family == "RedHat"
    
-    # EL7/EL8 existing behavior is kept unchanged.
-    # These releases did not need the  EL9-specific CRB handling for libvirt packages.  
-    - name: Install Libvirt RPMs without EPEL
-      yum:
-        name: "{{ libvirt_rpms|default([]) }}"
-        state: present
-        disablerepo: epel
-      when:
-        - ansible_os_family == "RedHat"
-        - ansible_distribution_major_version|int <= 8
-        - libvirt|bool
-
-    # Keep common RPM installation separate from libvirt RPMs.
-    # EL9 needs CRB enabled for libvirt-devel, so libvirt packages are handled separately.    
-    - name: Install Libvirt RPMs with CRB
-      yum:
-        name: "{{ libvirt_rpms|default([]) }}"
-        state: present
-        enablerepo: crb
-      when:
-        - ansible_os_family == "RedHat"
-        - ansible_distribution_major_version|int == 9
-        - libvirt|bool  
-
     - name: Install RPMs with EPEL,CRB
       yum:
-        name: "{{ epel_rpms|default([]) }}"
+        name: "{{ epel_rpms|default([]) + libvirt_rpms|default([]) }}"
         state: latest
         enablerepo: "epel,crb"
       when: ansible_os_family == "RedHat"
@@ -932,35 +890,8 @@
           when: (ansible_os_family == "RedHat" and ansible_distribution_major_version|int <= 7) or
                 (ansible_os_family == "Debian" and ansible_distribution_major_version|int <= 18)
 
-        # Keep this EL8-only. On EL9, the old krb5/libssh source build fails
-        # with OpenSSL 3.x compiler errors.        
-        - name: Install packages needed to build krb5 from source (EL8)
-          dnf:
-            name: "{{ hackery_packages }}"
-            state: present
-          when: ansible_os_family == "RedHat" and ansible_distribution_major_version|int == 8
-
-        - name: Build krb5 library from source (EL8)
-          shell: |
-            cd $(mktemp -d)
-            wget https://vault.centos.org/8.4.2105/BaseOS/Source/SPackages/krb5-1.18.2-8.el8.src.rpm
-            rpm2cpio krb5-1.18.2-8.el8.src.rpm | cpio -imdV
-            tar xf krb5-1.18.2.tar.gz; cd krb5-1.18.2/src
-            LDFLAGS='-L/opt/vagrant/embedded/' ./configure
-            make
-            sudo cp lib/libk5crypto.* /opt/vagrant/embedded/lib/
-            wget https://vault.centos.org/8.4.2105/BaseOS/Source/SPackages/libssh-0.9.4-2.el8.src.rpm
-            rpm2cpio libssh-0.9.4-2.el8.src.rpm | cpio -imdV
-            tar xf libssh-0.9.4.tar.xz
-            mkdir build
-            cd build
-            cmake ../libssh-0.9.4 -DOPENSSL_ROOT_DIR=/opt/vagrant/embedded/
-            make
-            cp lib/libssh* /opt/vagrant/embedded/lib64
-          when: ansible_os_family == "RedHat" and ansible_distribution_major_version|int == 8
-
         # https://github.com/vagrant-libvirt/vagrant-libvirt/issues/1127#issuecomment-713651332
-        - name: Install the vagrant-libvirt plugin (EL8)
+        - name: Install the vagrant-libvirt plugin
           command: vagrant plugin install vagrant-libvirt
           become_user: "{{ jenkins_user }}"
           environment:
