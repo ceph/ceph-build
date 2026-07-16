@@ -138,14 +138,14 @@
         - ansible_distribution_major_version|int <= 8
       tags: always
 
-    - name: Update and upgrade all packages (RedHat EL9)
+    - name: Update and upgrade all packages (RedHat EL9+)
       dnf:
         name: '*'
         state: latest
         update_cache: yes
       when:
         - ansible_os_family == "RedHat"
-        - ansible_distribution_major_version|int == 9
+        - ansible_distribution_major_version|int >= 9
       tags: always
 
     - name: Update and upgrade all packages (Suse)
@@ -338,7 +338,7 @@
         - ansible_distribution_major_version|int == 8
       tags: always
 
-    # EL9 RPMs
+    # EL9+ RPMs
     - set_fact:
         epel_rpms:
           - jq
@@ -351,7 +351,7 @@
         container_certs_path: "/etc/containers/certs.d/{{ container_mirror }}"
       when:
         - ansible_os_family == "RedHat"
-        - ansible_distribution_major_version|int == 9
+        - ansible_distribution_major_version|int >= 9
       tags: always
 
     # This package removed in EL9
@@ -1025,9 +1025,18 @@
       when:
         - (ansible_os_family | lower) == 'debian'
 
-    - name: Set java version alternative for RedHat
-      shell:
-        cmd: update-alternatives --set java '{{ java_version }}-openjdk.{{ ansible_architecture }}'
+    - name: Set java alternative for redhat
+      block:
+        - name: Get java version alternative
+          shell: >-
+            alternatives --display java | awk '/^\// && /{{ java_version }}/ {print $1}'
+          register: java_alternatives_redhat
+          changed_when: false
+
+        - name: Set java version alternative
+          alternatives:
+            name: java
+            path: "{{ java_alternatives_redhat.stdout_lines | first }}"
       when:
         - (ansible_os_family | lower) == 'redhat'
 
