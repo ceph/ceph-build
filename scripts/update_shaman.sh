@@ -1,17 +1,65 @@
 #!/bin/bash
 # vim: ts=4 sw=4 expandtab
 
-submit_build_status() {
+get_pipeline_node_url() {
+    local distro="$1"
+    local arch="$2"
+    local flavor="${FLAVOR:-default}"
 
-    # A helper script to post (create) the status of a build in shaman
-    # 'state' can be either 'failed' or 'started'
-    # 'project' is used to post to the right url in shaman
+    # cut is portable; no sed regex quirks
+    local base job build_num
+    base=$(echo "$BUILD_URL"      | cut -d/ -f1-3)    # https://jenkins.ceph.com
+    job=$(echo "$BUILD_URL"       | cut -d/ -f5)      # ceph-dev-pipeline
+    build_num=$(echo "$BUILD_URL" | cut -d/ -f6)      # 5306
+
+    local nodes_json branch_id child_id
+
+    # By default, the Blue Ocean nodes API returns a limited number of nodes.  We have at around 160
+    # as of this writing so `limit=500` bypasses that limitation.
+    # Store the node IDs used for this particular job.
+    nodes_json=$(curl -sf \
+        "${base}/blue/rest/organizations/jenkins/pipelines/${job}/runs/${build_num}/nodes/?limit=500" \
+        2>/dev/null)
+
+    # This is the branch of the matrix.. not a git branch.
+    branch_id=$(echo "$nodes_json" | jq -r \
+        --arg dist "$distro" --arg arch "$arch" --arg flav "$flavor" \
+        '[.[] | select(.displayName | (contains($dist) and contains($arch) and contains($flav)))] | first | .id // empty')
+
+    # Now find the node ID (the Jenkins builder ID) used for this particular matrix branch.
+    child_id=$(echo "$nodes_json" | jq -r \
+        --arg parent "$branch_id" \
+        '[.[] | select(.firstParent == $parent)] | first | .id // empty')
+
+    # Fall back to the branch ID if we couldn't get a node ID.
+    local node_id="${child_id:-${branch_id}}"
+
+    if [ -n "$node_id" ]; then
+        echo "${BUILD_URL}pipeline-overview/?selected-node=${node_id}"
+    else
+        echo "$BUILD_URL"
+    fi
+}
+
+submit_build_status() {
     http_method=$1
     state=$2
     project=$3
     distro=$4
     distro_version=$5
     distro_arch=$6
+
+    local pipeline_url log_url
+    pipeline_url=$(get_pipeline_node_url "$distro" "$distro_arch")
+
+    # If we were able to deduce an individual matrix branch node ID,
+    # use that for log_url, else use the older consoleFull endpoint.
+    if [[ $pipeline_url =~ selected-node ]]; then
+        log_url="$pipeline_url"
+    else
+        log_url="$BUILD_URL/consoleFull"
+    fi
+
     cat > $WORKSPACE/build_status.json << EOF
 {
     "extra":{
@@ -22,7 +70,7 @@ submit_build_status() {
         "build_user":"$BUILD_USER"
     },
     "url":"$BUILD_URL",
-    "log_url":"$BUILD_URL/consoleFull",
+    "log_url":"$log_url",
     "status":"$state",
     "distro":"$distro",
     "distro_version":"$distro_version",
