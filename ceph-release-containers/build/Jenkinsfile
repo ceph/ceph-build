@@ -97,6 +97,7 @@ pipeline {
           )
           script {
             sh '''#!/bin/bash -ex
+              command -v skopeo || sudo dnf install -y skopeo
               podman login -u ${CONTAINER_REPO_CREDS_USR} -p ${CONTAINER_REPO_CREDS_PSW} ${CONTAINER_REPO_HOSTNAME}/${CONTAINER_REPO_ORGANIZATION}
               skopeo login -u ${CONTAINER_REPO_CREDS_USR} -p ${CONTAINER_REPO_CREDS_PSW} ${CONTAINER_REPO_HOSTNAME}/${CONTAINER_REPO_ORGANIZATION}
               cd container;
