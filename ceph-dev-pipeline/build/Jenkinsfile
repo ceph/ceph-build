@@ -444,6 +444,14 @@ def doBuildStage() {
       println "FLAVOR=${env.FLAVOR} is invalid"
       assert false
   }
+  // Link with mold instead of BFD ld. Needs mold in the builder image
+  // (installed by ceph.git's buildcontainer-setup.sh where the distro has
+  // a package) and a compiler that knows -fuse-ld=mold (GCC >= 12): focal
+  // has no mold package and focal/jammy default to older GCC.
+  def mold_dists = ['noble', 'bookworm', 'trixie', 'centos9', 'centos10', 'rocky9', 'rocky10']
+  if ( mold_dists.contains(env.DIST) ) {
+    ceph_extra_cmake_args += " -DWITH_MOLD=ON"
+  }
   bwc_command = "${bwc_command} ${bwc_cmd_sccache_flags}"
   if ( os.pkg_type == "deb" ) {
     def sccache_flag = "-DWITH_SCCACHE=ON"
