@@ -198,6 +198,11 @@ def doCopyArtifactsStage() {
     env.SHA1 = sha1_from_artifact
   }
   println "SHA1=${sha1_trimmed}"
+  // Report "started" to shaman as soon as SHA1 is known; a record without a
+  // sha1 is useless. CI_CONTAINER-only cells never report to shaman.
+  if ( build_matrix["${DIST}_${ARCH}_${FLAVOR}"] ) {
+    sh "./scripts/update_shaman.sh started ceph ${os.name} ${os.version_name} ${env.ARCH}"
+  }
   env.VERSION = readFile(file: "${env.WORKSPACE}/dist/version").trim()
   // In a release build, dist/other_envvars contains CEPH_REPO, and chacra_url
   // as written during ceph-source-dist but we don't to be able to define
@@ -335,6 +340,10 @@ def doArtifactsChecksStage() {
       "or FORCE=true (to re-upload artifacts)."
     )
     build_matrix[cell] = false
+    // Every enabled backend already has the packages, so this build's
+    // outcome is "completed".
+    def os = get_os_info(env.DIST)
+    sh "./scripts/update_shaman.sh completed ceph ${os.name} ${os.version_name} ${env.ARCH}"
   } else {
     def missing = []
     if (params.CHACRA_UPLOAD && !chacra_exists) missing << "Chacra"
@@ -388,7 +397,6 @@ def doBuilderContainerStage() {
 // Stage 7 (build): run the actual package build via build-with-container.py: assemble cmake/sccache/dwz flags per distro+flavor, then extract cephadm.
 def doBuildStage() {
   def os = get_os_info(env.DIST)
-  sh "./scripts/update_shaman.sh started ceph ${os.name} ${os.version_name} ${env.ARCH}"
   env.AWS_ACCESS_KEY_ID = env.SCCACHE_BUCKET_CREDS_USR
   env.AWS_SECRET_ACCESS_KEY = env.SCCACHE_BUCKET_CREDS_PSW
   def ceph_builder_tag = "${env.SHA1[0..6]}.${env.BRANCH}.${env.DIST}.${env.ARCH}.${env.FLAVOR}"
@@ -704,6 +712,10 @@ pipeline {
         agent {
           label "(installed-os-centos9||installed-os-noble)&&${ARCH}&&${base_node_label}"
         }
+        // update_shaman.sh runs from several stages and post{} handlers.
+        environment {
+          SHAMAN_API_KEY = credentials('shaman-api-key')
+        }
         when {
           beforeAgent true
           allOf {
@@ -835,10 +847,19 @@ pipeline {
             steps {
               script { doBuilderContainerStage() }
             }
+            // Builder-container failures (e.g. an uninstallable build
+            // dependency) must reach shaman too.
+            post {
+              unsuccessful {
+                script {
+                  def os = get_os_info(env.DIST)
+                  sh "./scripts/update_shaman.sh failed ceph ${os.name} ${os.version_name} ${env.ARCH}"
+                }
+              }
+            }
           }
           stage("build") {
             environment {
-              SHAMAN_API_KEY = credentials('shaman-api-key')
               SCCACHE_BUCKET_CREDS = credentials('ibm-cloud-sccache-bucket')
             }
             when {
@@ -860,12 +881,10 @@ pipeline {
             }
           }
           stage("upload packages") {
-            // Covers the steps of both upload stages and the post{} shaman
-            // status updates below; notify_shaman_pulp_repo.sh and
-            // update_shaman.sh both need SHAMAN_API_KEY.
+            // notify_shaman_pulp_repo.sh and update_shaman.sh get
+            // SHAMAN_API_KEY from the matrix-level environment{}.
             environment {
               CHACRACTL_KEY = credentials('chacractl-key')
-              SHAMAN_API_KEY = credentials('shaman-api-key')
             }
             when {
               expression {
