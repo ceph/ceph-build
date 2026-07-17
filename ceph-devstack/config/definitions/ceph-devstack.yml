@@ -6,7 +6,7 @@
     pipeline-scm:
       scm:
         - git:
-            url: https://github.com/zmc/ceph-devstack
+            url: https://github.com/ceph/ceph-devstack
             branches:
               - origin/${{CEPH_DEVSTACK_BRANCH}}
     parameters:
@@ -33,16 +33,32 @@
           default: "https://github.com/ceph/ceph.git"
 
     triggers:
-      - github-pull-request:
-          admin-list:
-            - zmc
-            - dmick
-            - kamoltat
-            - amathuria
-          org-list:
-            - ceph
-          trigger-phrase: 'jenkins test.*|jenkins retest.*'
-          only-trigger-phrase: false
-          github-hooks: true
-          permit-all: false
-          auto-close-on-fail: false
+      - generic-webhook-trigger:
+          token-credential-id: ceph-devstack-trigger-token
+          print-contrib-var: true
+          header-params:
+            - key: X-GitHub-Event
+            - key: X-GitHub-Hook-ID
+            - key: X-GitHub-Delivery
+          post-content-params:
+            - type: JSONPath
+              key: head_commit_message
+              value: $.head_commit.message
+            - type: JSONPath
+              key: head_commit_id
+              value: $.head_commit.id
+            - type: JSONPath
+              key: ref
+              value: $.ref
+            - type: JSONPath
+              key: pusher
+              value: $.pusher.name
+            # github sends push events for branch deletion, and those events
+            # are missing commit-related fields, so we must special-case
+            # them to prevent failures
+            - type: JSONPath
+              key: is_delete
+              value: $.deleted
+          regex-filter-text: $is_delete $ref
+          regex-filter-expression: "(?i)false refs/heads/.*"
+          cause: "Push to $ref by $pusher"
