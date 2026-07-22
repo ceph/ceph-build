@@ -69,16 +69,26 @@
           timeout 7200 src/script/run-make.sh \
             --cmake-args "$cmake_args" \
             vstart-base crimson-osd
+          # stop.sh must run from the build dir (sets CEPH_BIN=bin, conf=$PWD/ceph.conf).
+          # Calling it from the source tree yields: /ceph-conf: No such file or directory.
+          # pkill -x avoids matching this script (a -f 'rados bench' pattern self-kills).
+          # Double braces: JJB str.format() on macro params like {{src-dir}}.
+          cleanup_vstart() {{
+              if test -f build/ceph.conf ; then
+                  ( cd build && ../src/stop.sh --crimson ) || true
+                  ( cd build && ../src/stop.sh ) || true
+              fi
+              for p in crimson-osd ceph-osd ceph-mon ceph-mgr rados ; do
+                  sudo pkill -9 -x "$p" || true
+              done
+          }}
           # Leftover daemons from a previous hung run can wedge radosbench forever.
-          if test -x build/../src/stop.sh || test -x src/stop.sh ; then
-              src/stop.sh --crimson || true
-              src/stop.sh || true
-          fi
-          sudo pkill -9 -f '(crimson-osd|ceph-osd|ceph-mon|ceph-mgr|rados bench)' || true
+          cleanup_vstart
           sleep 2
           . ${{WORKSPACE}}/gh-venv/bin/activate
           # CBT itself has no set -e / timeout; radosbench prefill has hung for days on
           # bath01. Bound the whole run-cbt.sh (vstart + bench + stop) to 1h.
+          # SIGKILL means run-cbt.sh cannot run its own stop.sh, so we clean up after.
           set +e
           if test {osd-flavor} = "classic" ; then
               timeout --foreground --signal=KILL 3600 \
@@ -92,10 +102,7 @@
               cbt_rc=$?
           fi
           set -e
-          # Always try to tear down; ignore failures so we still report the CBT status.
-          src/stop.sh --crimson || true
-          src/stop.sh || true
-          sudo pkill -9 -f '(crimson-osd|ceph-osd|ceph-mon|ceph-mgr|rados bench)' || true
+          cleanup_vstart
           if test "$cbt_rc" -eq 124 -o "$cbt_rc" -eq 137 ; then
               echo "ERROR: run-cbt.sh timed out after 3600s (rc=$cbt_rc); likely hung radosbench/Crimson on this node" >&2
               exit 1
@@ -246,7 +253,9 @@
           esac
           # Clear leftover cluster processes from a previous hung/aborted run on
           # this performance node before we spend hours rebuilding.
-          sudo pkill -9 -f '(crimson-osd|ceph-osd|ceph-mon|ceph-mgr|rados bench)' || true
+          for p in crimson-osd ceph-osd ceph-mon ceph-mgr rados ; do
+              sudo pkill -9 -x "$p" || true
+          done
           virtualenv -q --python python3 ${{WORKSPACE}}/gh-venv
           . ${{WORKSPACE}}/gh-venv/bin/activate
           pip install setuptools
@@ -308,7 +317,10 @@
                     #!/bin/bash
                     # Kill hung CBT/Ceph first so reboot is not the only recovery path
                     # when the agent is still responsive enough to run this step.
-                    sudo pkill -9 -f '(crimson-osd|ceph-osd|ceph-mon|ceph-mgr|rados bench|cbt\.py|run-cbt\.sh)' || true
+                    # Use -x so pkill does not match this script line.
+                    for p in crimson-osd ceph-osd ceph-mon ceph-mgr rados ; do
+                        sudo pkill -9 -x "$p" || true
+                    done
                     sudo reboot
 
     wrappers:
