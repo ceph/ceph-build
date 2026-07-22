@@ -4,6 +4,12 @@
     project-type: pipeline
     quiet-period: 1
     concurrent: true
+
+    properties:
+      - build-discarder:
+          days-to-keep: 90
+          artifact-days-to-keep: 90
+
     pipeline-scm:
       scm:
         - git:
