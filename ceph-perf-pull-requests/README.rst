@@ -29,8 +29,8 @@ On a ``ceph/ceph`` pull request, comment (required; case-insensitive)::
     jenkins test classic perf
     jenkins test crimson perf
 
-Builds are comment-only (``only-trigger-phrase: true``). The ``performance``
-label is not used as an auto-trigger. See an explicit comment for each flavor.
+Builds are comment-only (``only-trigger-phrase: true``). You do **not** need the
+``performance`` label — just post the comment above (one flavor per comment).
 Each CBT run is bounded to 1 hour and the whole job to 8 hours so a hung
 ``radosbench`` cannot hold a performance node indefinitely.
 
