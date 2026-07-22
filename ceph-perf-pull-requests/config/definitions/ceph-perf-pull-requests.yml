@@ -229,19 +229,22 @@
           debian|ubuntu)
               sudo env DEBIAN_FRONTEND=noninteractive apt-get install -y python3-yaml python3-lxml python3-prettytable python3-matplotlib cython3
               ;;
-          centos|rhel)
+          centos|rhel|rocky|almalinux)
+              # llvm/gcc-toolset are EL8/9-oriented; ignore on Rocky 10+ where modules differ.
               sudo dnf copr remove tchaikov/llvm-toolset-10 || true
-              sudo dnf module enable -y llvm-toolset
-              sudo dnf install -y llvm-toolset
-              sudo yum install -y python3-pyyaml python3-lxml python3-prettytable python3-matplotlib python3-Cython
-              sudo yum update -y libarchive
+              sudo dnf module enable -y llvm-toolset || true
+              sudo dnf install -y llvm-toolset || true
+              sudo dnf install -y python3-pyyaml python3-lxml python3-prettytable python3-matplotlib python3-Cython
+              sudo dnf update -y libarchive || true
               gcc_toolset_ver=13
               # so clang is able to find gcc-toolset-${{gcc_toolset_ver}} which is listed as a
               # BuildRequires in ceph.spec.in, and it is installed by `run-make.sh`.
               # clang searches for GCC in a bunch of well known places:
               # see https://github.com/llvm-mirror/clang/blob/main/lib/Driver/ToolChains/Gnu.cpp
-              sudo ln -sf /opt/rh/gcc-toolset-${{gcc_toolset_ver}}/root/lib/gcc/x86_64-redhat-linux/${{gcc_toolset_ver}} \
-                          /usr/lib/gcc/x86_64-redhat-linux/${{gcc_toolset_ver}}
+              if test -d /opt/rh/gcc-toolset-${{gcc_toolset_ver}}/root/lib/gcc/x86_64-redhat-linux/${{gcc_toolset_ver}} ; then
+                  sudo ln -sf /opt/rh/gcc-toolset-${{gcc_toolset_ver}}/root/lib/gcc/x86_64-redhat-linux/${{gcc_toolset_ver}} \
+                              /usr/lib/gcc/x86_64-redhat-linux/${{gcc_toolset_ver}}
+              fi
               ;;
           fedora)
               sudo yum install -y python3-pyyaml python3-lxml python3-prettytable python3-matplotlib python3-Cython clang
