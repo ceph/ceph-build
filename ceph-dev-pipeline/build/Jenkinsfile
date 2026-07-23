@@ -177,7 +177,7 @@ def doSourceDistribution() {
 
 // Stage 4 (copy artifacts): copy artifacts from the setup job, verify SHA1, set VERSION/build description, and extract the source tarball.
 def doCopyArtifactsStage() {
-  def artifact_filter = "dist/sha1,dist/version,dist/other_envvars,dist/ceph-*.tar.bz2"
+  def artifact_filter = "dist/sha1,dist/version,dist/branch,dist/other_envvars,dist/ceph-*.tar.bz2"
   def os = get_os_info(env.DIST)
   if ( env.CI_COMPILE && os.pkg_type == "deb" ) {
     artifact_filter += ",dist/ceph_*.diff.gz,dist/ceph_*.dsc"
@@ -198,6 +198,10 @@ def doCopyArtifactsStage() {
     env.SHA1 = sha1_from_artifact
   }
   println "SHA1=${sha1_trimmed}"
+  // Derive canonical BRANCH from artifact.
+  // This way, if SHA1 and BRANCH were both provided as params and BRANCH didn't match, it will now.
+  def branch_props = readProperties file: "${env.WORKSPACE}/dist/branch"
+  env.BRANCH = branch_props.BRANCH.trim()
   env.VERSION = readFile(file: "${env.WORKSPACE}/dist/version").trim()
   // In a release build, dist/other_envvars contains CEPH_REPO, and chacra_url
   // as written during ceph-source-dist but we don't to be able to define
@@ -209,11 +213,11 @@ def doCopyArtifactsStage() {
   def branch_ui_value = env.BRANCH
   def sha1_ui_value = env.SHA1
   if (env.CEPH_REPO?.find(/https?:\/\/github.com\//)) {
-      // If this is a release build, link to ceph-release.git's $BRANCH-release branch
-      def suffix = (env.RELEASE_BUILD?.trim() == "true") ? "-release" : ""
-
-      def branch_url = "${env.CEPH_REPO}/tree/${env.BRANCH}${suffix}"
-      branch_ui_value = "<a href=\"${branch_url}\">${env.BRANCH}${suffix}</a>"
+      // In a release build, env.BRANCH already carries the -release suffix
+      // (derived from dist/branch above), so the link points at
+      // ceph-releases.git's $BRANCH-release branch without appending it here.
+      def branch_url = "${env.CEPH_REPO}/tree/${env.BRANCH}"
+      branch_ui_value = "<a href=\"${branch_url}\">${env.BRANCH}</a>"
       def commit_url = "${env.CEPH_REPO}/commit/${env.SHA1}"
       sha1_ui_value = "<a href=\"${commit_url}\">${env.SHA1}</a>"
   }
