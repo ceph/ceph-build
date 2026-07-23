@@ -29,6 +29,9 @@ pipeline {
               DOWNLOAD_PRERELEASE_CREDS = credentials('download.ceph.com-prerelease')
               // keep all the podman/skopeo auths in the same place
               REGISTRY_AUTH_FILE = '/home/jenkins-build/manifest.auth.json'
+              // umbrella (21) and later are based on Rocky Linux 10; earlier
+              // releases on CentOS Stream 9 (matching scripts/build_container)
+              FROM_IMAGE = "${(env.VERSION.tokenize('.')[0].toInteger() >= 21) ? 'docker.io/rockylinux/rockylinux:10' : 'quay.io/centos/centos:stream9'}"
               // the one variant value.  If I try to do this with conditional code in the steps,
               // manipulating 'env.CONTAINER_REPO', it appears as if the env instance is somehow
               // shared between the two executors, *even across different builders*.  Yes, I know
@@ -94,6 +97,7 @@ pipeline {
           )
           script {
             sh '''#!/bin/bash -ex
+              command -v skopeo || sudo dnf install -y skopeo
               podman login -u ${CONTAINER_REPO_CREDS_USR} -p ${CONTAINER_REPO_CREDS_PSW} ${CONTAINER_REPO_HOSTNAME}/${CONTAINER_REPO_ORGANIZATION}
               skopeo login -u ${CONTAINER_REPO_CREDS_USR} -p ${CONTAINER_REPO_CREDS_PSW} ${CONTAINER_REPO_HOSTNAME}/${CONTAINER_REPO_ORGANIZATION}
               cd container;
