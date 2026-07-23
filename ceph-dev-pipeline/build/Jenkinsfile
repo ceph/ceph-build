@@ -54,7 +54,7 @@ def get_os_info(dist) {
 @Field String ceph_release_spec_template = '''
 Name:           ceph-release
 Version:        1
-Release:        0%{?dist}
+Release:        ${release_number}%{?dist}
 Summary:        Ceph Development repository configuration
 Group:          System Environment/Base
 License:        GPLv2
@@ -110,40 +110,37 @@ install -pm 644 %{SOURCE0} \
 name=Ceph packages for \\$basearch
 baseurl=${repo_base_url}/\\$basearch
 enabled=1
-gpgcheck=0
+gpgcheck=${gpgcheck}
 type=rpm-md
-gpgkey=https://download.ceph.com/keys/autobuild.asc
-
+${gpgkey_line}
 [Ceph-noarch]
 name=Ceph noarch packages
 baseurl=${repo_base_url}/noarch
 enabled=1
-gpgcheck=0
+gpgcheck=${gpgcheck}
 type=rpm-md
-gpgkey=https://download.ceph.com/keys/autobuild.asc
-
+${gpgkey_line}
 [ceph-source]
 name=Ceph source packages
 baseurl=${repo_base_url}/SRPMS
 enabled=1
-gpgcheck=0
+gpgcheck=${gpgcheck}
 type=rpm-md
-gpgkey=https://download.ceph.com/keys/autobuild.asc
-'''
+${gpgkey_line}'''
 
 @NonCPS
-def get_ceph_release_spec_text(project_url) {
+def get_ceph_release_spec_text(project_url, release_number) {
   def engine = new groovy.text.SimpleTemplateEngine()
   def template = engine.createTemplate(ceph_release_spec_template)
-  def text = template.make(["project_url": project_url])
+  def text = template.make(["project_url": project_url, "release_number": release_number])
   return text.toString()
 }
 
 @NonCPS
-def get_ceph_release_repo_text(base_url) {
+def get_ceph_release_repo_text(base_url, gpgcheck, gpgkey_line) {
   def engine = new groovy.text.SimpleTemplateEngine()
   def template = engine.createTemplate(ceph_release_repo_template)
-  def text = template.make(["repo_base_url": base_url])
+  def text = template.make(["repo_base_url": base_url, "gpgcheck": gpgcheck, "gpgkey_line": gpgkey_line])
   return text.toString()
 }
 
@@ -640,7 +637,7 @@ def buildCephReleaseRpm(repo_url) {
   def ceph_repo_file = "ceph.repo"
   def ceph_release_spec = "dist/ceph/rpmbuild/SPECS/${ceph_release_spec_file}"
   def ceph_repo = "dist/ceph/rpmbuild/SOURCES/${ceph_repo_file}"
-  def ceph_release_rpm = "dist/ceph/rpmbuild/RPMS/noarch/ceph-release-1-0.el*.noarch.rpm"
+  def ceph_release_rpm = "dist/ceph/rpmbuild/RPMS/noarch/ceph-release-1-*.el*.noarch.rpm"
 
   sh """#!/bin/bash -ex
     shopt -s nullglob
@@ -660,10 +657,24 @@ def buildCephReleaseRpm(repo_url) {
     fi
   """
 
-  def spec_text = get_ceph_release_spec_text("${repo_url}")
+  // Release builds must match what ceph.git's container/Containerfile
+  // expects: it installs ceph-release-1-${IS_RELEASE} (1 for releases, 0 for
+  // CI/dev) and rewrites http://download.ceph.com/ baseurls in ceph.repo to
+  // the authenticated prerelease URL, so the RPM has to carry Release: 1 and
+  // point at download.ceph.com (signed, gpgcheck=1) rather than at the
+  // dev repo it was uploaded to.
+  def os = get_os_info(env.DIST)
+  def release_build = env.RELEASE_BUILD?.trim() == "true"
+  def release_number = release_build ? "1" : "0"
+  def spec_url = release_build ? "http://download.ceph.com/" : "${repo_url}"
+  def repo_base_url = release_build ? "http://download.ceph.com/rpm-${env.BRANCH}/el${os.version}" : "${repo_url}"
+  def gpgcheck = release_build ? "1" : "0"
+  def gpgkey_line = release_build ? "gpgkey=https://download.ceph.com/keys/release.asc\n" : ""
+
+  def spec_text = get_ceph_release_spec_text(spec_url, release_number)
   writeFile(file: ceph_release_spec, text: spec_text)
 
-  def repo_text = get_ceph_release_repo_text("${repo_url}")
+  def repo_text = get_ceph_release_repo_text(repo_base_url, gpgcheck, gpgkey_line)
   writeFile(file: ceph_repo, text: repo_text)
 
   echo "ceph_release_spec: ${ceph_release_spec}"
