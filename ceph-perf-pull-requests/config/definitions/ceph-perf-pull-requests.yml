@@ -53,7 +53,10 @@
           set -euxo pipefail
           cd {src-dir}
           git submodule update --init --recursive
-          archive_dir={archive-basedir}/$(git rev-parse --short HEAD)
+          # Per-workload archives so read/write do not clobber each other, and so
+          # a prior read-only cache is not mistaken for a completed write run.
+          # Layout: {archive-basedir}/{workload}/<short-sha>/
+          archive_dir={archive-basedir}/{workload}/$(git rev-parse --short HEAD)
           if test -d "$archive_dir" && test -n "$(find "$archive_dir" -mindepth 1 -print -quit 2>/dev/null)" ; then
               exit 0
           fi
@@ -65,10 +68,15 @@
           # Classic vs crimson perf is selected at CBT runtime via run-cbt.sh.
           # Compiler: run-make.sh installs clang-19 on Jenkins (src/script/run-make.sh
           # get_llvm) and selects it via discover_compiler — same as make-check nodes.
-          cmake_args="-DCMAKE_BUILD_TYPE=Release -DWITH_CRIMSON=ON -DWITH_TESTS=OFF -DWITH_SPDK=OFF -DWITH_DPDK=OFF -DWITH_QATLIB=OFF -DWITH_QATZIP=OFF ${{CEPH_PERF_EXTRA_CMAKE_ARGS:-}}"
-          timeout 7200 src/script/run-make.sh \
-            --cmake-args "$cmake_args" \
-            vstart-base crimson-osd
+          # Reuse build/ when running a second workload (write after read) in this job.
+          if test -x build/bin/crimson-osd ; then
+              echo "Reusing existing build at $PWD/build for workload={workload}"
+          else
+              cmake_args="-DCMAKE_BUILD_TYPE=Release -DWITH_CRIMSON=ON -DWITH_TESTS=OFF -DWITH_SPDK=OFF -DWITH_DPDK=OFF -DWITH_QATLIB=OFF -DWITH_QATZIP=OFF ${{CEPH_PERF_EXTRA_CMAKE_ARGS:-}}"
+              timeout 7200 src/script/run-make.sh \
+                --cmake-args "$cmake_args" \
+                vstart-base crimson-osd
+          fi
           # stop.sh must run from the build dir (sets CEPH_BIN=bin, conf=$PWD/ceph.conf).
           # Calling it from the source tree yields: /ceph-conf: No such file or directory.
           # pkill -x avoids matching this script (a -f 'rados bench' pattern self-kills).
@@ -121,23 +129,44 @@
           #!/bin/bash
           set -euxo pipefail
           cd ${{WORKSPACE}}/{src-dir-main}
-          archive_dir_main={archive-main}/$(git rev-parse --short HEAD)
+          sha_main=$(git rev-parse --short HEAD)
           cd ${{WORKSPACE}}/{src-dir-pr}
-          archive_dir_pr={archive-pr}/$(git rev-parse --short HEAD)
+          sha_pr=$(git rev-parse --short HEAD)
           . ${{WORKSPACE}}/gh-venv/bin/activate
           report=${{WORKSPACE}}/report.md
-          # compare.py has #!/usr/bin/python3; must invoke via venv python3
-          if python3 ${{WORKSPACE}}/cbt/compare.py -v \
-            -a $archive_dir_pr             \
-            -b $archive_dir_main         \
-            --output $report; then
-              result=success
-          else
-              result=failure
-              if test ! -f $report; then
-                  echo "cbt/compare.py failed; see Jenkins console for details." > $report
+          : > "$report"
+          result=success
+
+          # compare.py has #!/usr/bin/python3; must invoke via venv python3.
+          # Run once per workload and merge into one GitHub-check markdown report
+          # with clear section headings (read vs write).
+          compare_workload() {{
+              local label=$1
+              local workload=$2
+              local archive_main={archive-main}/$workload/$sha_main
+              local archive_pr={archive-pr}/$workload/$sha_pr
+              local partial=${{WORKSPACE}}/report-$workload.md
+              rm -f "$partial"
+              echo "## ${{label}}" >> "$report"
+              echo >> "$report"
+              if python3 ${{WORKSPACE}}/cbt/compare.py -v \
+                -a "$archive_pr" \
+                -b "$archive_main" \
+                --output "$partial"; then
+                  :
+              else
+                  result=failure
+                  if test ! -s "$partial"; then
+                      echo "cbt/compare.py failed for ${{label}}; see Jenkins console." > "$partial"
+                  fi
               fi
-          fi
+              cat "$partial" >> "$report"
+              echo >> "$report"
+          }}
+
+          compare_workload "4K random read" read
+          compare_workload "4K write" write
+
           github-check                                   \
             --owner {check-repo-owner}                   \
             --repo {check-repo-name}                     \
@@ -160,7 +189,7 @@
     concurrent: true
     node: performance
     display-name: 'ceph: {osd-flavor} perf test'
-    description: 'CBT performance regression check ({osd-flavor} flavor): builds ceph-pr and ceph-main, runs the checked-in radosbench 4K read workload, and compares results via cbt/compare.py. The GitHub check fails when compare.py reports a statistically worse result, too much noise, or errors. Trigger with comment: jenkins test {osd-flavor} perf'
+    description: 'CBT performance regression check ({osd-flavor} flavor): builds ceph-pr and ceph-main, runs the checked-in radosbench 4K read and 4K write workloads, and compares results via cbt/compare.py. The GitHub check fails when compare.py reports a statistically worse result, too much noise, or errors. Trigger with comment: jenkins test {osd-flavor} perf'
     quiet-period: 5
     block-downstream: false
     block-upstream: false
@@ -310,16 +339,30 @@
       - run-cbt:
           osd-flavor: '{osd-flavor}'
           src-dir: "ceph-main"
+          workload: "read"
           benchmark-yaml: "$WORKSPACE/ceph-main/src/test/crimson/cbt/radosbench_4K_read.yaml"
           # ideally cbt-results should be persited across jobs, so the test result can be reused
           archive-basedir: "$WORKSPACE/cbt-results"
       - run-cbt:
           osd-flavor: '{osd-flavor}'
+          src-dir: "ceph-main"
+          workload: "write"
+          benchmark-yaml: "$WORKSPACE/ceph-main/src/test/crimson/cbt/radosbench_4K_write.yaml"
+          archive-basedir: "$WORKSPACE/cbt-results"
+      - run-cbt:
+          osd-flavor: '{osd-flavor}'
           src-dir: "ceph-pr"
+          workload: "read"
           # use the same benchmark definition as ceph-main for apples-to-apples
           # comparison and to avoid PR-side benchmark drift.
           benchmark-yaml: "$WORKSPACE/ceph-main/src/test/crimson/cbt/radosbench_4K_read.yaml"
           # use the basedir of git checkout, so it can be wiped
+          archive-basedir: "$WORKSPACE/ceph-pr"
+      - run-cbt:
+          osd-flavor: '{osd-flavor}'
+          src-dir: "ceph-pr"
+          workload: "write"
+          benchmark-yaml: "$WORKSPACE/ceph-main/src/test/crimson/cbt/radosbench_4K_write.yaml"
           archive-basedir: "$WORKSPACE/ceph-pr"
       - compare-cbt-results:
           src-dir-main: "ceph-main"
@@ -352,8 +395,9 @@
 
     wrappers:
       - timeout:
-          # Two Crimson builds (≤2h each) + two CBT runs (≤1h each) + setup/compare.
-          # Absolute ceiling so a wedged radosbench cannot hold the node for days.
+          # Two Crimson builds (≤2h each) + four CBT runs (read+write × main+PR,
+          # ≤1h each) + setup/compare. Absolute ceiling so a wedged radosbench
+          # cannot hold the node for days.
           timeout: 480
           timeout-var: 'BUILD_TIMEOUT'
           fail: true
