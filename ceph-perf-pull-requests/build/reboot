@@ -1,0 +1,7 @@
+#!/bin/bash
+# Last resort when the agent is still responsive after a hard fail.
+set +e
+for p in crimson-osd ceph-osd ceph-mon ceph-mgr rados; do
+    sudo pkill -9 -x "$p" || true
+done
+sudo reboot

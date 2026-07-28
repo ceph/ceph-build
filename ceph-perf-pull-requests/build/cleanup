@@ -1,0 +1,8 @@
+#!/bin/bash
+set -euo pipefail
+: "${WORKSPACE:?}"
+set +e
+# Postbuild cleanup on SUCCESS/UNSTABLE/FAILURE/ABORTED.
+# Best-effort after the WORKSPACE guard (wipe/pkill must not fail the publisher).
+kill_cluster_procs
+wipe_seastore_devs
