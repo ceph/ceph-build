@@ -1,0 +1,90 @@
+#!/bin/bash
+set -euxo pipefail
+
+: "${WORKSPACE:?}"
+: "${OSD_FLAVOR:?}"
+: "${CHECK_APP_ID:?}"
+: "${CHECK_INSTALL_ID:?}"
+: "${CHECK_NAME:?}"
+: "${CHECK_REPO_OWNER:?}"
+: "${CHECK_REPO_NAME:?}"
+
+ARCHIVE_MAIN="${WORKSPACE}/cbt-results"
+ARCHIVE_PR="${WORKSPACE}/ceph-pr"
+
+cd "${WORKSPACE}/ceph-main"
+sha_main=$(git rev-parse --short HEAD)
+cd "${WORKSPACE}/ceph-pr"
+sha_pr=$(git rev-parse --short HEAD)
+store_tag=$(cat "${WORKSPACE}/perf-store-tag")
+
+# shellcheck disable=SC1091
+. "${WORKSPACE}/gh-venv/bin/activate"
+
+report="${WORKSPACE}/report.md"
+: > "$report"
+result=success
+
+{
+    echo "flavor: ${OSD_FLAVOR}"
+    echo "node: $(hostname -f 2>/dev/null || hostname)"
+    echo "store: $store_tag"
+    echo "baseline_sha: $sha_main"
+    echo "pr_sha: $sha_pr"
+    echo "baseline_archives: ${ARCHIVE_MAIN}/<workload>/$store_tag/$sha_main/"
+    echo "pr_archives: ${ARCHIVE_PR}/<workload>/$store_tag/$sha_pr/"
+    if test -f "${WORKSPACE}/perf-meta.txt"; then
+        cat "${WORKSPACE}/perf-meta.txt"
+    fi
+} >> "$report"
+echo >> "$report"
+
+compare_workload() {
+    local label=$1
+    local workload=$2
+    local archive_main="${ARCHIVE_MAIN}/${workload}/${store_tag}/${sha_main}"
+    local archive_pr="${ARCHIVE_PR}/${workload}/${store_tag}/${sha_pr}"
+    local partial="${WORKSPACE}/report-${workload}.md"
+    rm -f "$partial"
+    echo "## ${label}" >> "$report"
+    echo >> "$report"
+    if python3 "${WORKSPACE}/cbt/compare.py" -v \
+      -a "$archive_pr" \
+      -b "$archive_main" \
+      --output "$partial"; then
+        :
+    else
+        result=failure
+        if test ! -s "$partial"; then
+            echo "cbt/compare.py failed for ${label}; see Jenkins console." > "$partial"
+        fi
+    fi
+    cat "$partial" >> "$report"
+    echo >> "$report"
+}
+
+if test "${OSD_FLAVOR}" = "classic"; then
+    compare_workload "4K write" write
+else
+    compare_workload "4K random read" read
+    compare_workload "4K write" write
+fi
+
+github-check \
+  --owner "${CHECK_REPO_OWNER}" \
+  --repo "${CHECK_REPO_NAME}" \
+  --pkey-file "${GITHUB_CHECK_PKEY_PEM}" \
+  --app-id "${CHECK_APP_ID}" \
+  --install-id "${CHECK_INSTALL_ID}" \
+  --name "${CHECK_NAME}" \
+  --sha "${ghprbActualCommit}" \
+  --external-id "${BUILD_ID}" \
+  --details-url "${BUILD_URL}" \
+  --status completed --conclusion "${result}" \
+  --title "${CHECK_NAME}" \
+  --summary "${result}" \
+  --text "$report"
+
+if test "$result" != "success"; then
+    exit 1
+fi

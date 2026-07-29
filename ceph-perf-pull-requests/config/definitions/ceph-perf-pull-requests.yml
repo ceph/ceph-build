@@ -45,151 +45,15 @@
           clean:
             after: true
 
-- builder:
-    name: run-cbt
-    builders:
-      - shell: |
-          #!/bin/bash
-          set -euxo pipefail
-          cd {src-dir}
-          git submodule update --init --recursive
-          # Per-workload archives so read/write do not clobber each other, and so
-          # a prior read-only cache is not mistaken for a completed write run.
-          # Layout: {archive-basedir}/{workload}/<short-sha>/
-          archive_dir={archive-basedir}/{workload}/$(git rev-parse --short HEAD)
-          if test -d "$archive_dir" && test -n "$(find "$archive_dir" -mindepth 1 -print -quit 2>/dev/null)" ; then
-              exit 0
-          fi
-          mkdir -p "$archive_dir"
-          export NPROC=$(nproc)
-          export FOR_MAKE_CHECK=true
-          export WITH_CRIMSON=true
-          # Same Crimson-inclusive build as ceph-pull-requests (WITH_CRIMSON=true).
-          # Classic vs crimson perf is selected at CBT runtime via run-cbt.sh.
-          # Compiler: run-make.sh installs clang-19 on Jenkins (src/script/run-make.sh
-          # get_llvm) and selects it via discover_compiler — same as make-check nodes.
-          # Reuse build/ when running a second workload (write after read) in this job.
-          if test -x build/bin/crimson-osd ; then
-              echo "Reusing existing build at $PWD/build for workload={workload}"
-          else
-              cmake_args="-DCMAKE_BUILD_TYPE=Release -DWITH_CRIMSON=ON -DWITH_TESTS=OFF -DWITH_SPDK=OFF -DWITH_DPDK=OFF -DWITH_QATLIB=OFF -DWITH_QATZIP=OFF ${{CEPH_PERF_EXTRA_CMAKE_ARGS:-}}"
-              timeout 7200 src/script/run-make.sh \
-                --cmake-args "$cmake_args" \
-                vstart-base crimson-osd
-          fi
-          # stop.sh must run from the build dir (sets CEPH_BIN=bin, conf=$PWD/ceph.conf).
-          # Calling it from the source tree yields: /ceph-conf: No such file or directory.
-          # pkill -x avoids matching this script (a -f 'rados bench' pattern self-kills).
-          # Double braces: JJB str.format() on macro params like {{src-dir}}.
-          cleanup_vstart() {{
-              if test -f build/ceph.conf ; then
-                  ( cd build && ../src/stop.sh --crimson ) || true
-                  ( cd build && ../src/stop.sh ) || true
-              fi
-              for p in crimson-osd ceph-osd ceph-mon ceph-mgr rados ; do
-                  sudo pkill -9 -x "$p" || true
-              done
-          }}
-          # Leftover daemons from a previous hung run can wedge radosbench forever.
-          cleanup_vstart
-          sleep 2
-          . ${{WORKSPACE}}/gh-venv/bin/activate
-          # CBT itself has no set -e / timeout; radosbench prefill has hung for days on
-          # bath01. Bound the whole run-cbt.sh (vstart + bench + stop) to 1h.
-          # SIGKILL means run-cbt.sh cannot run its own stop.sh, so we clean up after.
-          set +e
-          if test {osd-flavor} = "classic" ; then
-              timeout --foreground --signal=KILL 3600 \
-                env PATH="${{WORKSPACE}}/gh-venv/bin:$PATH" \
-                src/script/run-cbt.sh --build-dir $PWD/build --source-dir $PWD --cbt $WORKSPACE/cbt -a $archive_dir {benchmark-yaml} --classical
-              cbt_rc=$?
-          else
-              timeout --foreground --signal=KILL 3600 \
-                env PATH="${{WORKSPACE}}/gh-venv/bin:$PATH" \
-                src/script/run-cbt.sh --build-dir $PWD/build --source-dir $PWD --cbt $WORKSPACE/cbt -a $archive_dir {benchmark-yaml}
-              cbt_rc=$?
-          fi
-          set -e
-          cleanup_vstart
-          if test "$cbt_rc" -eq 124 -o "$cbt_rc" -eq 137 ; then
-              echo "ERROR: run-cbt.sh timed out after 3600s (rc=$cbt_rc); likely hung radosbench/Crimson on this node" >&2
-              exit 1
-          fi
-          if test "$cbt_rc" -ne 0 ; then
-              echo "ERROR: run-cbt.sh failed with rc=$cbt_rc" >&2
-              exit "$cbt_rc"
-          fi
-          # run-cbt.sh is /bin/sh without set -e; a failed cbt.py can still exit 0.
-          test -n "$(find "$archive_dir" -mindepth 1 -print -quit 2>/dev/null)"
-
-- builder:
-    name: compare-cbt-results
-    builders:
-      - shell: |
-          #!/bin/bash
-          set -euxo pipefail
-          cd ${{WORKSPACE}}/{src-dir-main}
-          sha_main=$(git rev-parse --short HEAD)
-          cd ${{WORKSPACE}}/{src-dir-pr}
-          sha_pr=$(git rev-parse --short HEAD)
-          . ${{WORKSPACE}}/gh-venv/bin/activate
-          report=${{WORKSPACE}}/report.md
-          : > "$report"
-          result=success
-
-          # compare.py has #!/usr/bin/python3; must invoke via venv python3.
-          # Run once per workload and merge into one GitHub-check markdown report
-          # with clear section headings (read vs write).
-          compare_workload() {{
-              local label=$1
-              local workload=$2
-              local archive_main={archive-main}/$workload/$sha_main
-              local archive_pr={archive-pr}/$workload/$sha_pr
-              local partial=${{WORKSPACE}}/report-$workload.md
-              rm -f "$partial"
-              echo "## ${{label}}" >> "$report"
-              echo >> "$report"
-              if python3 ${{WORKSPACE}}/cbt/compare.py -v \
-                -a "$archive_pr" \
-                -b "$archive_main" \
-                --output "$partial"; then
-                  :
-              else
-                  result=failure
-                  if test ! -s "$partial"; then
-                      echo "cbt/compare.py failed for ${{label}}; see Jenkins console." > "$partial"
-                  fi
-              fi
-              cat "$partial" >> "$report"
-              echo >> "$report"
-          }}
-
-          compare_workload "4K random read" read
-          compare_workload "4K write" write
-
-          github-check                                   \
-            --owner {check-repo-owner}                   \
-            --repo {check-repo-name}                     \
-            --pkey-file ${{GITHUB_CHECK_PKEY_PEM}}       \
-            --app-id "{check-app-id}"                    \
-            --install-id "{check-install-id}"            \
-            --name {check-name}                          \
-            --sha ${{ghprbActualCommit}}                 \
-            --external-id ${{BUILD_ID}}                  \
-            --details-url ${{BUILD_URL}}                 \
-            --status completed --conclusion ${{result}}  \
-            --title {check-name}                         \
-            --summary ${{result}}                        \
-            --text $report
-
 - job-template:
     name: 'ceph-perf-{osd-flavor}'
     project-type: freestyle
     defaults: global
-    concurrent: true
+    # Serialize within this job; throttle category also serializes classic vs crimson.
+    concurrent: false
     node: performance
     display-name: 'ceph: {osd-flavor} perf test'
-    description: 'CBT performance regression check ({osd-flavor} flavor): builds ceph-pr and ceph-main, runs the checked-in radosbench 4K read and 4K write workloads, and compares results via cbt/compare.py. The GitHub check fails when compare.py reports a statistically worse result, too much noise, or errors. Trigger with comment: jenkins test {osd-flavor} perf'
+    description: 'CBT performance regression check ({osd-flavor} flavor): builds ceph-pr and ceph-main, runs flavor-specific radosbench workloads, and compares results via cbt/compare.py. Classic uses qa/suites/perf-basic write; crimson always uses SeaStore (spare NVMes when available, else workspace sparse images). Trigger with comment: jenkins test {osd-flavor} perf'
     quiet-period: 5
     block-downstream: false
     block-upstream: false
@@ -203,14 +67,20 @@
 
     properties:
       - build-discarder:
-          days-to-keep: 15
+          days-to-keep: 60
           num-to-keep: 300
-          artifact-days-to-keep: -1
-          artifact-num-to-keep: -1
+          artifact-days-to-keep: 60
+          artifact-num-to-keep: 300
       - github:
           url: https://github.com/ceph/ceph/
       - rebuild:
           auto-rebuild: true
+      - throttle:
+          option: category
+          max-total: 1
+          max-per-node: 1
+          categories:
+            - ceph-perf
 
     parameters:
       - string:
@@ -226,11 +96,6 @@
           allow-whitelist-orgs-as-admins: true
           org-list:
             - ceph
-          # Comment-only: reliable path. Auto-build on every push with the
-          # performance label was confusing when the sole performance node was
-          # wedged (builds queued forever and looked like "trigger never works").
-          # Use an explicit comment for each flavor.
-          # ghprb matches trigger-phrase as a Java regex (case-insensitive).
           trigger-phrase: '(?i)jenkins\s+test\s+{osd-flavor}\s+perf\b'
           skip-build-phrase: '(?i)^jenkins do not test.*'
           only-trigger-phrase: true
@@ -249,155 +114,96 @@
       - cbt
 
     builders:
-      - shell: |
-          #!/bin/bash
-          set -euxo pipefail
-          cd ${{WORKSPACE}}/cbt
-          . /etc/os-release || ID=ubuntu
-          case $ID in
-          debian|ubuntu)
-              sudo env DEBIAN_FRONTEND=noninteractive apt-get install -y python3-yaml python3-lxml python3-prettytable python3-matplotlib cython3 git
-              ;;
-          centos|rhel|rocky|almalinux)
-              # llvm/gcc-toolset are EL8/9-oriented; ignore on Rocky 10+ where modules differ.
-              sudo dnf copr remove tchaikov/llvm-toolset-10 || true
-              sudo dnf module enable -y llvm-toolset || true
-              sudo dnf install -y llvm-toolset || true
-              # Repos needed on EL for CBT Python RPMs:
-              # - CRB/PowerTools: python3-cython (EL9/10)
-              # - EPEL: python3-matplotlib (EL10 AppStream does not ship it)
-              # config-manager comes from dnf-plugins-core; without it the
-              # enable steps below would no-op and python3-cython would fail.
-              sudo dnf install -y dnf-plugins-core
-              sudo dnf config-manager --set-enabled crb 2>/dev/null || \
-                sudo dnf config-manager --set-enabled powertools 2>/dev/null || \
-                sudo dnf config-manager --set-enabled PowerTools 2>/dev/null || true
-              if ! rpm -q epel-release >/dev/null 2>&1; then
-                  major=${{VERSION_ID%%.*}}
-                  sudo dnf install -y epel-release || \
-                    sudo dnf install -y "https://dl.fedoraproject.org/pub/epel/epel-release-latest-${{major}}.noarch.rpm"
-              fi
-              # Prefer lowercase python3-cython (EL10+); capital-C still works via Provides
-              # when CRB is enabled, but keep the modern name as the primary request.
-              sudo dnf install -y python3-pyyaml python3-lxml python3-prettytable \
-                python3-matplotlib python3-cython git
-              sudo dnf update -y libarchive || true
-              gcc_toolset_ver=13
-              # so clang is able to find gcc-toolset-${{gcc_toolset_ver}} which is listed as a
-              # BuildRequires in ceph.spec.in, and it is installed by `run-make.sh`.
-              # clang searches for GCC in a bunch of well known places:
-              # see https://github.com/llvm-mirror/clang/blob/main/lib/Driver/ToolChains/Gnu.cpp
-              if test -d /opt/rh/gcc-toolset-${{gcc_toolset_ver}}/root/lib/gcc/x86_64-redhat-linux/${{gcc_toolset_ver}} ; then
-                  sudo ln -sf /opt/rh/gcc-toolset-${{gcc_toolset_ver}}/root/lib/gcc/x86_64-redhat-linux/${{gcc_toolset_ver}} \
-                              /usr/lib/gcc/x86_64-redhat-linux/${{gcc_toolset_ver}}
-              fi
-              ;;
-          fedora)
-              sudo yum install -y python3-pyyaml python3-lxml python3-prettytable \
-                python3-matplotlib python3-cython clang git
-              ;;
-          *)
-              echo "unknown distro: $ID"
-              exit 1
-              ;;
-          esac
-          # Clear leftover cluster processes from a previous hung/aborted run on
-          # this performance node before we spend hours rebuilding.
-          for p in crimson-osd ceph-osd ceph-mon ceph-mgr rados ; do
-              sudo pkill -9 -x "$p" || true
-          done
-          # Rocky/EL10 does not ship the virtualenv CLI; prefer stdlib venv and
-          # fall back if ensurepip/venv support is missing (if-test avoids set -e).
-          if python3 -m venv "${{WORKSPACE}}/gh-venv"; then
-              :
-          else
-              virtualenv -q --python python3 "${{WORKSPACE}}/gh-venv"
-          fi
-          . ${{WORKSPACE}}/gh-venv/bin/activate
-          pip install -U pip setuptools wheel
-          pip install cython
-          # cbt imports mdutils; not listed in ceph/cbt master requirements.txt
-          pip install -r ${{WORKSPACE}}/cbt/requirements.txt mdutils
-          python3 -c "import yaml, lxml, matplotlib, mdutils, cython, setuptools"
-          pip install git+https://github.com/ceph/githubcheck.git
-          # github3.py 4.0.1 passes app_id as int; PyJWT 2.11+ requires iss to be str.
-          pip install 'pyjwt<2.11'
-          echo "please hold tight..." | github-check     \
-            --owner {check-repo-owner}                   \
-            --repo {check-repo-name}                     \
-            --pkey-file ${{GITHUB_CHECK_PKEY_PEM}}       \
-            --app-id "{check-app-id}"                    \
-            --install-id "{check-install-id}"            \
-            --name {check-name}                          \
-            --sha ${{ghprbActualCommit}}                 \
-            --external-id ${{BUILD_ID}}                  \
-            --details-url ${{BUILD_URL}}                 \
-            --status in_progress                         \
-            --title {check-name}                         \
-            --summary running
+      - inject:
+          properties-content: |
+            OSD_FLAVOR={osd-flavor}
+            CHECK_APP_ID={check-app-id}
+            CHECK_INSTALL_ID={check-install-id}
+            CHECK_NAME={check-name}
+            CHECK_REPO_OWNER={check-repo-owner}
+            CHECK_REPO_NAME={check-repo-name}
+      - shell:
+          !include-raw-verbatim:
+            - ../../build/common.sh
+            - ../../build/setup-pre.sh
+            - ../../build/prepare-workloads-header.sh
+            - ../../build/prepare-workloads.py
+            - ../../build/prepare-workloads-footer.sh
+            - ../../build/setup-post.sh
 
-      - run-cbt:
-          osd-flavor: '{osd-flavor}'
-          src-dir: "ceph-main"
-          workload: "read"
-          benchmark-yaml: "$WORKSPACE/ceph-main/src/test/crimson/cbt/radosbench_4K_read.yaml"
-          # ideally cbt-results should be persited across jobs, so the test result can be reused
-          archive-basedir: "$WORKSPACE/cbt-results"
-      - run-cbt:
-          osd-flavor: '{osd-flavor}'
-          src-dir: "ceph-main"
-          workload: "write"
-          benchmark-yaml: "$WORKSPACE/ceph-main/src/test/crimson/cbt/radosbench_4K_write.yaml"
-          archive-basedir: "$WORKSPACE/cbt-results"
-      - run-cbt:
-          osd-flavor: '{osd-flavor}'
-          src-dir: "ceph-pr"
-          workload: "read"
-          # use the same benchmark definition as ceph-main for apples-to-apples
-          # comparison and to avoid PR-side benchmark drift.
-          benchmark-yaml: "$WORKSPACE/ceph-main/src/test/crimson/cbt/radosbench_4K_read.yaml"
-          # use the basedir of git checkout, so it can be wiped
-          archive-basedir: "$WORKSPACE/ceph-pr"
-      - run-cbt:
-          osd-flavor: '{osd-flavor}'
-          src-dir: "ceph-pr"
-          workload: "write"
-          benchmark-yaml: "$WORKSPACE/ceph-main/src/test/crimson/cbt/radosbench_4K_write.yaml"
-          archive-basedir: "$WORKSPACE/ceph-pr"
-      - compare-cbt-results:
-          src-dir-main: "ceph-main"
-          archive-main: "$WORKSPACE/cbt-results"
-          src-dir-pr: "ceph-pr"
-          archive-pr: "$WORKSPACE/ceph-pr"
-          check-app-id: '{check-app-id}'
-          check-install-id: '{check-install-id}'
-          check-name: '{check-name}'
-          check-repo-owner: '{check-repo-owner}'
-          check-repo-name: '{check-repo-name}'
+      # ideally cbt-results should be persisted across jobs so main baselines can be reused
+      - inject:
+          properties-content: |
+            SRC_DIR=ceph-main
+            WORKLOAD=read
+            ARCHIVE_KIND=cbt-results
+      - shell:
+          !include-raw-verbatim:
+            - ../../build/common.sh
+            - ../../build/run-cbt
+      - inject:
+          properties-content: |
+            SRC_DIR=ceph-main
+            WORKLOAD=write
+            ARCHIVE_KIND=cbt-results
+      - shell:
+          !include-raw-verbatim:
+            - ../../build/common.sh
+            - ../../build/run-cbt
+      - inject:
+          properties-content: |
+            SRC_DIR=ceph-pr
+            WORKLOAD=read
+            ARCHIVE_KIND=ceph-pr
+      - shell:
+          !include-raw-verbatim:
+            - ../../build/common.sh
+            - ../../build/run-cbt
+      - inject:
+          properties-content: |
+            SRC_DIR=ceph-pr
+            WORKLOAD=write
+            ARCHIVE_KIND=ceph-pr
+      - shell:
+          !include-raw-verbatim:
+            - ../../build/common.sh
+            - ../../build/run-cbt
+
+      - shell:
+          !include-raw-verbatim:
+            - ../../build/common.sh
+            - ../../build/compare
 
     publishers:
+      - archive:
+          artifacts: 'report.md,report-*.md,perf-meta.txt,perf-store-tag,seastore-devs.txt,perf-workloads/**,cbt-results/**/*,ceph-pr/read/**/*,ceph-pr/write/**/*'
+          allow-empty: true
+          latest-only: false
       - postbuildscript:
           builders:
+            - role: SLAVE
+              build-on:
+                  - SUCCESS
+                  - UNSTABLE
+                  - FAILURE
+                  - ABORTED
+              build-steps:
+                - shell:
+                    !include-raw-verbatim:
+                      - ../../build/common.sh
+                      - ../../build/cleanup
             - role: SLAVE
               build-on:
                   - FAILURE
                   - ABORTED
               build-steps:
-                - shell: |
-                    #!/bin/bash
-                    # Kill hung CBT/Ceph first so reboot is not the only recovery path
-                    # when the agent is still responsive enough to run this step.
-                    # Use -x so pkill does not match this script line.
-                    for p in crimson-osd ceph-osd ceph-mon ceph-mgr rados ; do
-                        sudo pkill -9 -x "$p" || true
-                    done
-                    sudo reboot
+                - shell:
+                    !include-raw-verbatim:
+                      - ../../build/reboot
 
     wrappers:
       - timeout:
-          # Two Crimson builds (≤2h each) + four CBT runs (read+write × main+PR,
-          # ≤1h each) + setup/compare. Absolute ceiling so a wedged radosbench
-          # cannot hold the node for days.
+          # Two Crimson builds (≤2h each) + CBT runs + setup/compare.
           timeout: 480
           timeout-var: 'BUILD_TIMEOUT'
           fail: true

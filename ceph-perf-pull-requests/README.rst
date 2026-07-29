@@ -4,27 +4,54 @@ ceph-perf-pull-requests
 Jenkins Job Builder definitions for CBT performance regression checks on Ceph pull
 requests.
 
+Layout
+------
+
+::
+
+    ceph-perf-pull-requests/
+      config/definitions/ceph-perf-pull-requests.yml   # JJB job wiring only
+      build/
+        common.sh                 # shared wipe / process helpers
+        setup-pre.sh              # packages, pre-wipe
+        prepare-workloads.py      # classic vs crimson YAML + SeaStore device pick
+        prepare-workloads-*.sh    # embed the .py into the agent workspace
+        setup-post.sh             # venv, github check in_progress
+        run-cbt                   # one CBT archive run (env: SRC_DIR, WORKLOAD, ...)
+        compare                   # compare.py + github check completed
+        cleanup                   # postbuild wipe
+        reboot                    # failure/abort reboot
+      README.rst
+
+Shell steps are inlined into the Jenkins job at ``jenkins-jobs update`` time via
+``!include-raw-verbatim`` (same pattern as ``ceph-volume-cephadm-prs``). Template
+parameters are passed with EnvInject (``OSD_FLAVOR``, check app ids, etc.).
+
 Jobs
 ----
 
 The ``ceph-perf`` project generates two freestyle jobs:
 
-- ``ceph-perf-classic`` — same Crimson-inclusive build as ``ceph-pull-requests``,
-  CBT run with ``run-cbt.sh --classical`` (classical ``ceph-osd``)
-- ``ceph-perf-crimson`` — same build, CBT run with default ``run-cbt.sh``
-  (``crimson-osd`` via ``vstart.sh --crimson``)
+- ``ceph-perf-classic`` — classical ``ceph-osd`` via ``run-cbt.sh --classical``,
+  workload from ``qa/suites/perf-basic/workloads/radosbench_4K_write.yaml``
+- ``ceph-perf-crimson`` — ``crimson-osd`` via ``run-cbt.sh``, workloads from
+  ``src/test/crimson/cbt/radosbench_4K_{read,write}.yaml``. **Always SeaStore**
+  (never CyanStore). Prefers the **3 largest** unmounted NVMes when present
+  (pilot node ``o02``, see https://tracker.ceph.com/issues/78071 — so three
+  7.3T drives, never OS ``sda`` / small mounted disks). If fewer than 3 spare
+  NVMes exist, creates three ~32GiB sparse images under
+  ``$WORKSPACE/seastore-imgs/`` and still runs SeaStore.
 
 Both run on ``performance`` nodes, build ``ceph-main`` and the PR merge ref
 (``WITH_CRIMSON=ON``, ``vstart-base`` + ``crimson-osd``; compiler selection via
-``run-make.sh`` / ``discover_compiler``, same idea as make-check), then execute
-**both** workloads from ``ceph-main``:
-
-- ``src/test/crimson/cbt/radosbench_4K_read.yaml`` — 4K random read
-- ``src/test/crimson/cbt/radosbench_4K_write.yaml`` — 4K write
+``run-make.sh`` / ``discover_compiler``, same idea as make-check). Only one perf
+job runs at a time (``concurrent: false`` + shared throttle category ``ceph-perf``)
+so classic and crimson cannot load the same machine together. The ``ceph-perf``
+throttle category must exist in Jenkins (Throttle Concurrent Builds plugin).
 
 Results are compared with ``cbt/compare.py``. A GitHub check
-(``perf-test-{osd-flavor}``) gets a combined markdown report with separate
-sections for read and write. The check fails if **either** workload regresses.
+(``perf-test-{osd-flavor}``) gets a markdown report that includes node name,
+store backend, and SHAs. The check fails if any compared workload regresses.
 
 Triggering
 ----------
@@ -45,41 +72,35 @@ how this job fits into CI.
 What the job does
 -----------------
 
-For each of ``ceph-main`` and the PR merge ref the job:
+1. Prepares flavor-specific workload YAML(s) under ``$WORKSPACE/perf-workloads/``
+   (adds ``acceptable:`` with ~10% near-tolerance for compare.py). It also adds a
+   short-term **warm-up** ``prefill_time`` (>= the measured window, min 30s) so
+   the measurement does not run on a cold cluster: radosbench has no dedicated
+   warm-up phase, and a cold/absent prefill adds variance (and can leave a read
+   phase with no output). This applies to the crimson **read** workload and the
+   classic **perf-basic write** workload (crimson write is left as the checked-in
+   file). The prefill pass lands in ``prefill/`` and is not compared. The durable
+   fix belongs in CBT / the checked-in Ceph CBT YAML.
+2. For each of ``ceph-main`` and the PR merge ref: build once (reuse ``build/``
+   for a second workload), run CBT, archive under
+   ``{basedir}/{workload}/{store_tag}/<short-sha>/``.
+3. Compare archives and post the GitHub check.
+4. Archive reports + CBT results as Jenkins artifacts (kept ~60 days with the
+   build console), so “View more details” keep working after the fact.
 
-1. Builds Ceph once (the second workload reuses ``build/``).
-2. Runs CBT for **read**, archiving under ``{basedir}/read/<short-sha>/``.
-3. Runs CBT for **write**, archiving under ``{basedir}/write/<short-sha>/``.
+On failure/success the job drops partial CBT archives (so they are never reused),
+stops cluster processes, and wipes the job’s SeaStore NVMes (``wipefs`` + leading
+zeros; nvme-only, never if mounted). Compare regressions fail both the GitHub
+check **and** the Jenkins build.
 
-Then ``compare.py`` runs twice (read archive pair, write archive pair) and the
-markdown outputs are merged into one GitHub check body. Example shape:
+An archive is treated as complete (reusable, and accepted after a run) only if
+the **measured** phase produced ``json_output.*`` (``write/``, ``rand/`` or
+``seq/`` — ``prefill/`` alone does not count). This prevents reusing a run that
+was SIGKILLed mid-read, which otherwise makes ``compare.py`` fail with
+``FileNotFoundError`` on a missing ``json_output``.
 
-**4K random read** — ``all 20 tests passed``
-
-============== ==================== ========== ======== ========
-run            metric               baseline   result   accepted
-============== ==================== ========== ======== ========
-prefill/host/0 bandwidth            …          …        
-prefill/host/0 iops_avg             …          …        
-…              …                    …          …        
-rand/host/1    latency_avg          …          …        
-============== ==================== ========== ======== ========
-
-**4K write** — ``all 10 tests passed``
-
-============== ==================== ========== ======== ========
-run            metric               baseline   result   accepted
-============== ==================== ========== ======== ========
-write/host/0   bandwidth            …          …        
-write/host/0   iops_avg             …          …        
-…              …                    …          …        
-write/host/1   latency_avg          …          …        
-============== ==================== ========== ======== ========
-
-Blank ``accepted`` means OK; ``:x:`` / ❌ means the metric failed the rule.
-
-Benchmark YAMLs are always taken from **ceph-main** (not the PR tree) so both
-sides use the same workload definition and acceptance rules.
+``store_tag`` is ``classic`` or ``seastore`` so backends never reuse each
+other’s baselines.
 
 Developer guide: reading the results
 ------------------------------------
@@ -89,7 +110,7 @@ This section explains the GitHub check table in plain terms.
 What question the check answers
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-**Did this PR make the fixed 4K CBT workloads worse than current ``main`` on the
+**Did this PR make the fixed CBT workload(s) worse than current ``main`` on the
 performance node, beyond the allowed tolerance?**
 
 It is a regression smoke signal, not a full performance study and not a
@@ -98,103 +119,67 @@ functional correctness test.
 Where things live
 ~~~~~~~~~~~~~~~~~
 
-================ ================================= ============================================
-Piece            Location                          Role
-================ ================================= ============================================
-Workload + rules Ceph ``src/test/crimson/cbt/``    ``radosbench_4K_{read,write}.yaml``
-Job wiring       This directory (JJB YAML)         Build, run CBT, post GitHub check
-CBT runner       ``https://github.com/ceph/cbt``   Runs ``rados bench``, collects metrics
-Compare          ``cbt/compare.py``                PR archive vs main archive → table
-GitHub check     ``perf-test-classic`` /           Report on the pull request
-                 ``perf-test-crimson``
-================ ================================= ============================================
+================== =================================== ============================================
+Piece              Location                            Role
+================== =================================== ============================================
+Classic workload   Ceph ``qa/suites/perf-basic/``       ``radosbench_4K_write.yaml``
+Crimson workload   Ceph ``src/test/crimson/cbt/``       ``radosbench_4K_read/write.yaml``
+Job wiring         This directory (JJB YAML)           Build, run CBT, post GitHub check
+CBT runner         ``https://github.com/ceph/cbt``     Runs ``rados bench``, collects metrics
+Compare            ``cbt/compare.py``                  PR archive vs main archive → table
+GitHub check       ``perf-test-classic`` / crimson     Report on the pull request
+Jenkins artifacts  Build artifacts + console           Baseline/PR archives, report, meta
+================== =================================== ============================================
 
 Useful links:
 
-- Read workload: https://github.com/ceph/ceph/blob/main/src/test/crimson/cbt/radosbench_4K_read.yaml
-- Write workload: https://github.com/ceph/ceph/blob/main/src/test/crimson/cbt/radosbench_4K_write.yaml
+- Classic write: https://github.com/ceph/ceph/blob/main/qa/suites/perf-basic/workloads/radosbench_4K_write.yaml
+- Crimson read: https://github.com/ceph/ceph/blob/main/src/test/crimson/cbt/radosbench_4K_read.yaml
+- Crimson write: https://github.com/ceph/ceph/blob/main/src/test/crimson/cbt/radosbench_4K_write.yaml
 - Metric collectors: https://github.com/ceph/cbt/blob/main/benchmark/radosbench.py
 - Acceptance evaluation: https://github.com/ceph/cbt/blob/main/benchmark/benchmark.py
 - Compare / report: https://github.com/ceph/cbt/blob/main/compare.py
+- Perf pilot node (SeaStore NVMe): https://tracker.ceph.com/issues/78071
 
 What each workload runs
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-**4K random read** (``radosbench_4K_read.yaml``):
+**Classic — 4K write** (``qa/suites/perf-basic/.../radosbench_4K_write.yaml``):
 
-- Small local cluster (3 OSDs, replicated pool).
-- Prefill write (~3s) so there is data to read.
-- Random 4K read (~30s).
-- Two concurrent client processes (``concurrent_procs: 2``).
+- Classical ``ceph-osd`` (``run-cbt.sh --classical``).
+- Write-only 4K bench (``time: 300``, ``concurrent_ops: 4``, 256 PGs).
+- ``acceptable:`` is injected by the job (perf-basic upstream has none).
 
-**4K write** (``radosbench_4K_write.yaml``):
+**Crimson — 4K random read** (``radosbench_4K_read.yaml``):
 
-- Same cluster shape.
-- Write-only 4K bench (~3s); no separate prefill/read phase.
+- Prefill write (~3s) then random 4K read (~30s), ``concurrent_ops: 16``, 128 PGs.
 - Two concurrent client processes.
 
-Why the row counts are 20 and 10
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+**Crimson — 4K write** (``radosbench_4K_write.yaml``):
 
-Each compared cell is one **(phase × client process × metric)** tuple.
+- Write-only 4K bench (~3s), same cluster shape.
 
-Five metrics:
+Pass / fail rules
+~~~~~~~~~~~~~~~~~
 
-=================== ================================================= ============
-Metric              Meaning                                           Better means
-=================== ================================================= ============
-bandwidth           Throughput                                        Higher
-iops_avg            Average IOPS                                      Higher
-iops_stddev         IOPS variance / noise                             Lower
-latency_avg         Average latency                                   Lower
-cpu_cycles_per_op   CPU cycles per op (from ``perf`` if collected)    Lower
-=================== ================================================= ============
+Jenkins workspace copies use ~**10%** near-tolerance (wider than the 5% baked into
+the crimson CBT YAML upstream) to reduce single-shot false positives::
 
-- Read: phases ``prefill`` + ``rand``, 2 clients, 5 metrics → **20 rows**
-  (names like ``prefill/toko02/0``, ``rand/toko02/1``).
-- Write: phase ``write`` only, 2 clients, 5 metrics → **10 rows**
-  (names like ``write/toko02/0``).
-
-``cpu_cycles_per_op`` may show ``0.0`` when ``perf`` data was not collected; that
-usually passes as a no-op comparison.
-
-How to read the GitHub table columns
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-======== =========================================================
-Column   Meaning
-======== =========================================================
-run      Phase / machine / client process (``rand/host/0``)
-metric   Which number
-baseline Value from **current ceph** ``main``
-result   Value from **this PR**
-accepted Blank = OK; ``:x:`` / ❌ = failed the acceptance rule
-======== =========================================================
-
-Pass / fail rules (``acceptable:`` in the YAML)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-::
-
-    bandwidth:        (or (greater) (near 0.05))   # ≥ baseline, or within ~5%
-    iops_avg:         (or (greater) (near 0.05))
-    latency_avg:      (or (less) (near 0.05))      # ≤ baseline, or within ~5%
-    iops_stddev:      (or (less) (near 2.00))      # ≤ baseline, or within ~2×
-    cpu_cycles_per_op:(or (less) (near 0.05))
-
-Small regressions up to about 5% on throughput/latency are allowed;
-noise (``iops_stddev``) may grow up to about 2× baseline.
+    bandwidth:        (or (greater) (near 0.10))
+    iops_avg:         (or (greater) (near 0.10))
+    latency_avg:      (or (less) (near 0.10))
+    iops_stddev:      (or (less) (near 2.00))
+    cpu_cycles_per_op:(or (less) (near 0.10))
 
 Jenkins console log order (easy to misread)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 CBT verbose logs look like::
 
-    rand/host/1: bandwidth: (or (greater) (near 0.05)):: 203.5/220.4  => rejected
+    rand/host/1: bandwidth: (or (greater) (near 0.10)):: 203.5/220.4  => rejected
 
 The fraction is **``result/baseline``** (PR first, main second), **not**
-baseline/result. In the example above the PR is slower than main, so rejection
-is correct. Prefer the GitHub table headers when in doubt.
+baseline/result. Prefer the GitHub table headers when in doubt.
 
 What the baseline is
 ~~~~~~~~~~~~~~~~~~~~
@@ -205,31 +190,21 @@ Each job:
 
 1. Checks out current ``origin/main`` into ``ceph-main``.
 2. Builds and runs CBT; archives under
-   ``$WORKSPACE/cbt-results/{read,write}/<main-short-sha>/``.
+   ``$WORKSPACE/cbt-results/{workload}/{store_tag}/<main-short-sha>/``.
 3. Checks out the PR merge ref into ``ceph-pr`` and does the same under
-   ``$WORKSPACE/ceph-pr/{read,write}/<pr-short-sha>/``.
+   ``$WORKSPACE/ceph-pr/{workload}/{store_tag}/<pr-short-sha>/``.
 4. Compares PR archives to main archives.
 
-If a main short-SHA archive already exists and is non-empty on that node, the
-main CBT run for that workload is **reused** (not rebuilt). When ``main`` moves,
-you get a new baseline directory — numbers can look very different from an
-earlier run on the same PR. Node noise can also move results on the same SHA.
-
-How to add or change metrics
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-1. Edit the ``acceptable:`` block in the Ceph workload YAML(s) if the metric is
-   already collected by CBT.
-2. To collect a **new** measurement, implement a getter in
-   ``cbt/benchmark/radosbench.py`` and wire evaluation in
-   ``cbt/benchmark/benchmark.py``.
-3. ``compare.py`` only reports; it does not define metrics.
+If a matching **baseline** archive already exists and is **complete** (its
+measured phase has ``json_output.*``) on that node, the main CBT run is
+**reused** (PR-side archives are rebuilt each run because the ``ceph-pr``
+checkout wipes its workspace). When ``main`` moves, or the store backend
+changes (new ``store_tag``), you get a new baseline directory.
 
 Teuthology YAML translation
 ---------------------------
 
-Benchmark definitions under ``src/test/crimson/cbt/`` use teuthology's
-``tasks`` format. ``run-cbt.sh`` calls ``t2c.py`` to extract the ``cbt`` task
-and emit a CBT configuration. That translator (including ``yaml.safe_load`` for
-input parsing) lives in the Ceph repository with unit tests in
-``test_t2c.py``; the Jenkins job does not patch it at build time.
+Benchmark definitions use teuthology's ``tasks`` format. ``run-cbt.sh`` calls
+``t2c.py`` to extract the ``cbt`` task and emit a CBT configuration. That
+translator lives in the Ceph repository with unit tests in ``test_t2c.py``; the
+Jenkins job does not patch it at build time.
