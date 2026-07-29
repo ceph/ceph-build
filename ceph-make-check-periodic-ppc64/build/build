@@ -1,14 +1,5 @@
 #!/bin/bash -ex
 
-docs_pr_only
-container_pr_only
-gha_pr_only
-qa_pr_only
-if [[ "$DOCS_ONLY" = true || "$CONTAINER_ONLY" = true || "$GHA_ONLY" == true || "$QA_ONLY" == true ]]; then
-  echo "Only the doc/, container/, qa/ or .github/ dir changed.  No need to run make check."
-  exit 0
-fi
-
 NPROC=$(nproc)
 NPMCACHE=${HOME}/npmcache
 cat >.env <<EOF
@@ -30,7 +21,7 @@ bwc() {
     -d "${DISTRO_BASE:-centos9}" \
     --env-file="${PWD}/.env" \
     --current-branch="${GIT_BRANCH:-main}" \
-    -t+ppc64 \
+    -t+ppc64le \
     "${@}"
 }
 
