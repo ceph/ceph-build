@@ -40,7 +40,8 @@ The ``ceph-perf`` project generates two freestyle jobs:
   (pilot node ``o02``, see https://tracker.ceph.com/issues/78071 — so three
   7.3T drives, never OS ``sda`` / small mounted disks). If fewer than 3 spare
   NVMes exist, creates three ~32GiB sparse images under
-  ``$WORKSPACE/seastore-imgs/`` and still runs SeaStore.
+  ``$WORKSPACE/seastore-imgs/`` and attaches them with ``losetup`` (vstart
+  requires writable **block** devices — plain ``.img`` files are rejected).
 
 Both run on ``performance`` nodes, build ``ceph-main`` and the PR merge ref
 (``WITH_CRIMSON=ON``, ``vstart-base`` + ``crimson-osd``; compiler selection via
@@ -89,8 +90,9 @@ What the job does
    build console), so “View more details” keep working after the fact.
 
 On failure/success the job drops partial CBT archives (so they are never reused),
-stops cluster processes, and wipes the job’s SeaStore NVMes (``wipefs`` + leading
-zeros; nvme-only, never if mounted). Compare regressions fail both the GitHub
+stops cluster processes, and wipes the job’s SeaStore block devices (``wipefs`` +
+leading zeros on ``/dev/nvme*`` / ``/dev/loop*``; never if mounted). Loop-backed
+images are detached only at job teardown. Compare regressions fail both the GitHub
 check **and** the Jenkins build.
 
 An archive is treated as complete (reusable, and accepted after a run) only if
@@ -169,7 +171,11 @@ the crimson CBT YAML upstream) to reduce single-shot false positives::
     iops_avg:         (or (greater) (near 0.10))
     latency_avg:      (or (less) (near 0.10))
     iops_stddev:      (or (less) (near 2.00))
-    cpu_cycles_per_op:(or (less) (near 0.10))
+
+``cpu_cycles_per_op`` is intentionally **not** injected: classic/perf-basic uses
+collectl (not perf), and on these nodes ``perf_event_paranoid>=1`` leaves that
+metric as ``None``. CBT ``compare.py`` then crashes with ``TypeError: float(None)``
+while walking ``acceptable``.
 
 Jenkins console log order (easy to misread)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

@@ -96,12 +96,15 @@ def main() -> int:
     out.mkdir(parents=True, exist_ok=True)
     main_src = ws / "ceph-main"
     # 10% near-tolerance to reduce single-shot false positives vs upstream 5%.
+    # Do NOT inject cpu_cycles_per_op: classic/perf-basic uses collectl (not perf),
+    # and on performance nodes perf_event_paranoid>=1 leaves that metric as None.
+    # CBT compare.py then crashes with TypeError: float(None) while evaluating
+    # acceptable rules (see ceph-perf-classic #8710 / ceph#68408).
     acceptable = {
         "bandwidth": "(or (greater) (near 0.10))",
         "iops_avg": "(or (greater) (near 0.10))",
         "iops_stddev": "(or (less) (near 2.00))",
         "latency_avg": "(or (less) (near 0.10))",
-        "cpu_cycles_per_op": "(or (less) (near 0.10))",
     }
     meta: list[str] = []
     devs_file = ws / "seastore-devs.txt"
@@ -131,7 +134,10 @@ def main() -> int:
             meta.append(f"{name}_source={src}")
         meta.append("workloads=read,write")
         # Crimson always uses SeaStore (never CyanStore). Prefer 3 spare NVMes;
-        # otherwise create workspace sparse images so the job still runs SeaStore.
+        # otherwise create sparse images attached via losetup (vstart requires
+        # writable *block* devices — plain .img files are rejected, see
+        # ceph-perf-crimson #41: "All --seastore-devs must refer to writable
+        # block devices").
         store_tag = "seastore"
         nvmes: list[tuple[int, str]] = []
         for line in os.popen(
@@ -168,16 +174,43 @@ def main() -> int:
             chosen = []
             for i in range(3):
                 img = img_dir / f"osd-{i}.img"
-                # Create/resize sparse image without allocating full size.
                 with open(img, "wb") as fh:
                     fh.truncate(sparse_bytes)
-                chosen.append(str(img))
-            meta.append("seastore_backend=sparse-file")
+                try:
+                    loop = subprocess.check_output(
+                        ["sudo", "losetup", "--show", "-f", str(img)],
+                        text=True,
+                    ).strip()
+                except (subprocess.CalledProcessError, FileNotFoundError) as exc:
+                    raise SystemExit(
+                        f"losetup failed for {img} (SeaStore needs block devices): {exc}"
+                    ) from exc
+                if not loop.startswith("/dev/loop"):
+                    raise SystemExit(f"unexpected losetup output for {img}: {loop!r}")
+                chosen.append(loop)
+                meta.append(f"seastore_loop={loop}:{img}")
+            meta.append("seastore_backend=loop")
             meta.append(f"seastore_sparse_bytes={sparse_bytes}")
             meta.append(
                 f"seastore_note=only {len(nvmes)} unmounted NVMe(s); "
-                "using workspace sparse images"
+                "using losetup-backed sparse images"
             )
+        # vstart checks `[ -b ] && [ -w ]` without sudo.
+        import stat as stat_mod
+
+        for path in chosen:
+            subprocess.run(["sudo", "chmod", "a+rw", path], check=False)
+            try:
+                mode = os.stat(path).st_mode
+            except OSError as exc:
+                raise SystemExit(f"SeaStore path missing after setup: {path}: {exc}") from exc
+            if not stat_mod.S_ISBLK(mode):
+                raise SystemExit(f"SeaStore path is not a block device: {path}")
+            if not os.access(path, os.W_OK):
+                raise SystemExit(
+                    f"SeaStore path is not writable by this user (vstart requires "
+                    f"-w): {path}"
+                )
         devs = ",".join(chosen)
         src_sh = (main_src / "src/script/run-cbt.sh").read_text()
         old = (

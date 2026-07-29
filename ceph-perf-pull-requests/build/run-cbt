@@ -79,6 +79,11 @@ cleanup_all() {
 trap cleanup_all EXIT
 
 cleanup_vstart_local
+# vstart requires writable block devices. Re-attach loop-backed images if needed,
+# then wipe contents (never delete/detach here — that broke crimson #41).
+if test "${OSD_FLAVOR}" != "classic"; then
+    ensure_seastore_devs || fail_and_drop_archive 1
+fi
 wipe_seastore_devs
 sleep 2
 

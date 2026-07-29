@@ -49,7 +49,8 @@ fedora)
 esac
 
 kill_cluster_procs
-# Previous build may have left SeaStore devices dirty.
+# Previous build may have left SeaStore devices dirty / loop attachments around.
+teardown_seastore_devs
 wipe_seastore_devs
 
 mkdir -p "${WORKSPACE}/perf-workloads"
