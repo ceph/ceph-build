@@ -31,8 +31,8 @@ result=success
     echo "store: $store_tag"
     echo "baseline_sha: $sha_main"
     echo "pr_sha: $sha_pr"
-    echo "baseline_archives: ${ARCHIVE_MAIN}/<workload>/$store_tag/$sha_main/"
-    echo "pr_archives: ${ARCHIVE_PR}/<workload>/$store_tag/$sha_pr/"
+    echo "baseline_archives: ${ARCHIVE_MAIN}/{workload}/$store_tag/$sha_main/"
+    echo "pr_archives: ${ARCHIVE_PR}/{workload}/$store_tag/$sha_pr/"
     if test -f "${WORKSPACE}/perf-meta.txt"; then
         cat "${WORKSPACE}/perf-meta.txt"
     fi

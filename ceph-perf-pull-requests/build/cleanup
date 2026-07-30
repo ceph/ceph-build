@@ -6,3 +6,4 @@ set +e
 # Best-effort after the WORKSPACE guard (wipe/pkill must not fail the publisher).
 kill_cluster_procs
 wipe_seastore_devs
+teardown_seastore_devs
