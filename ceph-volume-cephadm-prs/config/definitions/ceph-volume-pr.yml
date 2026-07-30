@@ -69,6 +69,35 @@
           success-status: "ceph-volume {method} {distro}-{objectstore}-{scenario} OK"
           failure-status: "ceph-volume {method} {distro}-{objectstore}-{scenario} failed"
 
+      - generic-webhook-trigger:
+          token-credential-id: ci-approved-trigger-token
+          print-contrib-var: true
+          post-content-params:
+            - type: JSONPath
+              key: action
+              value: $.action
+            - type: JSONPath
+              key: label
+              value: $.label.name
+            - type: JSONPath
+              key: ghprbPullId
+              value: $.pull_request.number
+            - type: JSONPath
+              key: ghprbTargetBranch
+              value: $.pull_request.base.ref
+            - type: JSONPath
+              key: ghprbSourceBranch
+              value: $.pull_request.head.ref
+            - type: JSONPath
+              key: ghprbActualCommit
+              value: $.pull_request.head.sha
+            - type: JSONPath
+              key: sha1
+              value: $.pull_request.head.sha
+          regex-filter-text: '$action $label $ghprbPullId'
+          regex-filter-expression: '^labeled ci-approved \d+$'
+          cause: 'PR #$ghprbPullId labeled ci-approved'
+
     scm:
       - git:
           url: https://github.com/ceph/ceph.git
