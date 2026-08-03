@@ -1,0 +1,175 @@
+pipeline {
+    agent any
+
+    options {
+        timestamps()
+        disableConcurrentBuilds(abortPrevious: true)
+    }
+
+    stages {
+
+        stage('Build Metadata') {
+            steps {
+                script {
+
+                    def buildRef = env.pr_number ?: env.issue_number ?: 'NA'
+
+                    currentBuild.displayName =
+                        "PR-${buildRef}-${env.action ?: 'NA'}-${env.BUILD_NUMBER}"
+
+                    currentBuild.description =
+                        """
+                        Author=${env.pr_author ?: env.comment_author ?: 'NA'}
+                        Branch=${env.head_branch ?: 'NA'}
+                        SHA=${env.head_sha ?: 'NA'}
+                        Event=${env.x_github_event ?: 'NA'}
+                        """.stripIndent().trim()
+                }
+            }
+        }
+
+        stage('Event Details') {
+            steps {
+                script {
+        
+                    echo ""
+                    echo "========================================"
+                    echo " GitHub Webhook Event"
+                    echo "========================================"
+        
+                    echo "Event Type : ${env.x_github_event}"
+                    echo "Action     : ${env.action}"
+                    echo "Repository : ${env.repository}"
+        
+                    if (env.x_github_event == 'pull_request') {
+        
+                        echo ""
+                        echo "Pull Request Details"
+                        echo "----------------------------------------"
+                        echo "PR Number   : ${env.pr_number}"
+                        echo "PR Author   : ${env.pr_author}"
+                        echo "Head Branch : ${env.head_branch}"
+                        echo "Base Branch : ${env.base_branch}"
+                        echo "Head SHA    : ${env.head_sha}"
+        
+                    } else if (env.x_github_event == 'issue_comment') {
+        
+                        echo ""
+                        echo "Issue Comment Details"
+                        echo "----------------------------------------"
+                        echo "Issue Number   : ${env.issue_number}"
+                        echo "Issue Author   : ${env.issue_author}"
+                        echo "Issue State    : ${env.issue_state}"
+                        echo "Issue URL      : ${env.issue_url}"
+                        echo "Comment Author : ${env.comment_author}"
+                        echo "Comment Body   : ${env.comment_body}"
+        
+                    }
+        
+                    echo ""
+                    echo "Delivery ID : ${env.x_github_delivery}"
+                    echo "========================================"
+                }
+            }
+        }
+
+        stage('Comment Commands') {
+
+            when {
+                expression {
+                    env.x_github_event == 'issue_comment'
+                }
+            }
+
+            steps {
+                script {
+
+                    def comment = (env.comment_body ?: '').trim()
+
+                    env.RUN_BUILD = "false"
+
+                    echo "=================================="
+                    echo "Comment Command Processing"
+                    echo "=================================="
+
+                    if (comment.equalsIgnoreCase('retest this please')) {
+
+                        echo 'Command detected: retest this please'
+                        env.RUN_BUILD = "true"
+
+                    } else if (comment.equalsIgnoreCase('ok to test')) {
+
+                        echo 'Command detected: ok to test'
+                        env.RUN_BUILD = "true"
+
+                    } else if (comment.equalsIgnoreCase('test this please')) {
+
+                        echo 'Command detected: test this please'
+                        env.RUN_BUILD = "true"
+
+                    } else {
+
+                        echo 'No supported command detected'
+                    }
+
+                    echo "RUN_BUILD = ${env.RUN_BUILD}"
+
+                    echo "=================================="
+                }
+            }
+        }
+
+        stage('Build Simulation') {
+
+            when {
+                expression {
+
+                    if (env.x_github_event == 'pull_request') {
+                        return true
+                    }
+
+                    if (env.x_github_event == 'issue_comment'
+                        && env.RUN_BUILD == 'true') {
+                        return true
+                    }
+
+                    return false
+                }
+            }
+
+            steps {
+
+                echo "=================================="
+                echo "Build Simulation"
+                echo "=================================="
+
+                echo "PR/Issue : ${env.pr_number ?: env.issue_number ?: 'N/A'}"
+                echo "Action   : ${env.action ?: 'N/A'}"
+                echo "SHA      : ${env.head_sha ?: 'N/A'}"
+
+                timeout(time: 6, unit: 'MINUTES') {
+                    sleep(time: 300, unit: 'SECONDS')
+                }
+            }
+        }
+    }
+
+    post {
+
+        aborted {
+            echo "Build superseded by a newer event."
+        }
+
+        success {
+            echo "Build completed successfully."
+        }
+
+        failure {
+            echo "Build failed."
+        }
+
+        always {
+            echo "Build finished."
+        }
+    }
+}

@@ -1,0 +1,129 @@
+- job:
+    name: gwt-poc-pr-events
+    project-type: pipeline
+
+    display-name: "gwt-poc-pr-events"
+
+    description: |
+      Generic Webhook Trigger POC
+
+      Objective:
+      Validate:
+        GitHub -> GWT -> Jenkins
+
+      Current Scope:
+        - Webhook connectivity
+        - PR payload extraction
+        - Comment payload extraction
+        - Event identification
+
+    properties:
+      - build-discarder:
+          days-to-keep: 14
+          num-to-keep: 50
+
+    disabled: false
+
+    triggers:
+      - generic-webhook-trigger:
+
+          token: gwt-poc
+
+          print-post-content: true
+          print-contrib-var: true
+          silent-response: false
+
+          cause: "Triggered by Generic Webhook Trigger"
+
+          regex-filter-text: "$comment_body"
+          regex-filter-expression: "^(retest this please|ok to test|test this please)$"
+
+          post-content-params:
+
+            #
+            # Common
+            #
+
+            - type: JSONPath
+              key: action
+              value: $.action
+
+            - type: JSONPath
+              key: repository
+              value: $.repository.full_name
+
+            - type: JSONPath
+              key: sender_login
+              value: $.sender.login
+
+            #
+            # Pull Request Events
+            #
+
+            - type: JSONPath
+              key: pr_number
+              value: $.pull_request.number
+
+            - type: JSONPath
+              key: pr_author
+              value: $.pull_request.user.login
+
+            - type: JSONPath
+              key: head_sha
+              value: $.pull_request.head.sha
+
+            - type: JSONPath
+              key: head_branch
+              value: $.pull_request.head.ref
+
+            - type: JSONPath
+              key: base_branch
+              value: $.pull_request.base.ref
+
+            #
+            # Issue Comment Events
+            #
+
+            - type: JSONPath
+              key: comment_body
+              value: $.comment.body
+              default-value: ""
+
+            - type: JSONPath
+              key: comment_author
+              value: $.comment.user.login
+              default-value: ""
+
+            - type: JSONPath
+              key: issue_number
+              value: $.issue.number
+
+            - type: JSONPath
+              key: issue_author
+              value: $.issue.user.login
+
+            - type: JSONPath
+              key: issue_state
+              value: $.issue.state
+
+            - type: JSONPath
+              key: issue_url
+              value: $.issue.html_url
+
+          header-params:
+
+            - key: x-github-event
+
+            - key: x-github-delivery
+
+    pipeline-scm:
+      scm:
+        - git:
+            url: https://github.com/ceph/ceph-build.git
+
+            branches:
+              - jeets-gwt-test
+
+            wipe-workspace: true
+
+      script-path: gwt-test/build/Jenkinsfile
