@@ -1,0 +1,489 @@
+// ceph-pr-pipeline: one pipeline for the ceph.git PR checks that used to be
+// five freestyle jobs (ceph-pr-commits, ceph-pr-submodules,
+// ceph-pull-requests, ceph-pr-api, ceph-windows-pull-requests).
+//
+// The ceph tree is checked out and compiled (with tests) ONCE; the make check
+// and API test legs then run on separate builders from the shared build tree,
+// which is moved between builders (and cached for re-runs) via S3.  Each leg
+// posts its own GitHub commit status, so the five status contexts (and any
+// branch protection rules naming them) are unchanged.
+//
+// Triggered by ceph-pr-pipeline-trigger (webhooks) or manually with just a
+// PR number.  make check (arm64) intentionally stays in its own job: it can
+// never share x86_64 binaries, so combining it would buy nothing.
+
+import groovy.transform.Field
+
+@Field String github_repo = "ceph/ceph"
+@Field String github_api = "https://api.github.com"
+@Field String ceph_repo = "https://github.com/ceph/ceph.git"
+@Field String ceph_build_repo = "https://github.com/ceph/ceph-build"
+@Field String cache_endpoint = "https://s3.us-south.cloud-object-storage.appdomain.cloud"
+@Field String cache_bucket = "ceph-sccache"
+
+// CHECKS tokens -> GitHub status contexts.  Keep in sync with the trigger.
+@Field Map contexts = [
+  "signed":     "Signed-off-by",
+  "submodules": "Unmodified Submodules",
+  "make-check": "make check",
+  "api":        "ceph API tests",
+  "windows":    "ceph windows tests",
+]
+
+// Target-branch restrictions, same as the old freestyle jobs' whitelists.
+@Field List windows_branches = ["main", "umbrella", "tentacle", "squid", "reef"]
+@Field List api_branches = ["main", "umbrella", "tentacle", "squid", /feature-.*/]
+
+// Set by the prepare stage.
+@Field boolean run_signed = false
+@Field boolean run_submodules = false
+@Field boolean run_make_check = false
+@Field boolean run_api = false
+@Field boolean run_windows = false
+@Field boolean build_cached = false
+
+def wantCheck(String key) {
+  return params.CHECKS.tokenize(" ").contains(key)
+}
+
+def postStatus(String key, String state, String description) {
+  writeFile(file: "status.json", text: groovy.json.JsonOutput.toJson([
+    state: state,
+    context: "${params.STATUS_PREFIX}${contexts[key]}",
+    description: description,
+    target_url: env.BUILD_URL,
+  ]))
+  sh(
+    label: "GitHub status: ${contexts[key]} -> ${state}",
+    script: "curl -sf -o /dev/null -X POST " +
+            "-u \$GITHUB_STATUS_CREDS_USR:\$GITHUB_STATUS_CREDS_PSW " +
+            "-H 'Accept: application/vnd.github+json' -d @status.json " +
+            "'${github_api}/repos/${github_repo}/statuses/${env.HEAD_SHA}'"
+  )
+}
+
+// Run a leg with pending/success/failure statuses around it.
+def withStatus(String key, String label, Closure body) {
+  postStatus(key, "pending", "running ${label}")
+  try {
+    body()
+    postStatus(key, "success", "${label} succeeded")
+  } catch (org.jenkinsci.plugins.workflow.steps.FlowInterruptedException e) {
+    postStatus(key, "error", "${label} aborted")
+    throw e
+  } catch (Exception e) {
+    postStatus(key, "failure", "${label} failed")
+    throw e
+  }
+}
+
+// Abort older still-running builds of this job for the same PR (the trigger
+// also does this, but manual/raced runs are covered here).  Needs one-time
+// in-process script approval.
+@NonCPS
+def abortOlderBuilds() {
+  def me = currentBuild.rawBuild
+  for (def b : me.getParent().getBuilds()) {
+    if (b.getNumber() >= me.getNumber() || !b.isBuilding()) {
+      continue
+    }
+    def value = b.getAction(hudson.model.ParametersAction.class)
+        ?.getParameter("ghprbPullId")?.getValue()
+    if (value?.toString() == params.ghprbPullId) {
+      println("Aborting superseded build #${b.getNumber()}")
+      b.getExecutor()?.interrupt(hudson.model.Result.ABORTED)
+    }
+  }
+}
+
+def checkoutCephBuild() {
+  checkout scmGit(
+    branches: [[name: params.CEPH_BUILD_BRANCH]],
+    userRemoteConfigs: [[url: ceph_build_repo]],
+    extensions: [[$class: 'CleanBeforeCheckout']],
+  )
+}
+
+// One shallow checkout of the PR merge ref into ./ceph.  Point
+// CEPH_REFERENCE_REPO at a local mirror to cut the 4-5 minute clone down to
+// seconds (the git plugin silently skips a reference path that doesn't exist).
+def checkoutCephPr() {
+  sh "rm -rf ceph"
+  checkout scmGit(
+    branches: [[name: "origin/pr/${params.ghprbPullId}/merge"]],
+    userRemoteConfigs: [[
+      url: ceph_repo,
+      refspec: "+refs/pull/${params.ghprbPullId}/*:refs/remotes/origin/pr/${params.ghprbPullId}/*",
+    ]],
+    extensions: [
+      [$class: 'RelativeTargetDirectory', relativeTargetDir: 'ceph'],
+      [$class: 'CloneOption', shallow: true, noTags: true, honorRefspec: true,
+       timeout: 20, reference: params.CEPH_REFERENCE_REPO ?: ''],
+    ],
+  )
+}
+
+def doPrepare() {
+  abortOlderBuilds()
+  def pr_data = readJSON(text: sh(
+    script: "curl -sf -u \$GITHUB_RO_CREDS_USR:\$GITHUB_RO_CREDS_PSW " +
+            "-H 'Accept: application/vnd.github+json' " +
+            "'${github_api}/repos/${github_repo}/pulls/${params.ghprbPullId}'",
+    returnStdout: true,
+  ))
+  if (params.HEAD_SHA && params.HEAD_SHA != pr_data.head.sha) {
+    // The PR moved between the webhook and this build starting; the trigger
+    // has (or will have) started a build for the new head.
+    error("PR head is now ${pr_data.head.sha}, this build is for ${params.HEAD_SHA}; superseded")
+  }
+  env.HEAD_SHA = pr_data.head.sha
+  env.ghprbTargetBranch = pr_data.base.ref
+  env.ghprbActualCommit = env.HEAD_SHA
+  currentBuild.description = """\
+    <a href="https://github.com/${github_repo}/pull/${params.ghprbPullId}">PR ${params.ghprbPullId}</a>
+    (${pr_data.base.ref}) @ ${env.HEAD_SHA[0..7]}<br />
+    CHECKS=${params.CHECKS}
+  """.stripIndent()
+
+  checkoutCephBuild()
+  sh """#!/bin/bash -ex
+    export GITHUB_USER=\$GITHUB_RO_CREDS_USR GITHUB_PASS=\$GITHUB_RO_CREDS_PSW
+    bash ./ceph-pr-pipeline/build/pr_checks.sh classify
+  """
+  def changes = readProperties(file: "pr_changes.properties")
+  env.DOCS_ONLY = changes.DOCS_ONLY
+  // docs/, container/ or .github/-only changes need no binaries at all;
+  // windows additionally skips qa/-only changes.  Same as the old jobs.
+  def heavy_skip = [changes.DOCS_ONLY, changes.CONTAINER_ONLY, changes.GHA_ONLY]
+      .contains("true")
+  def windows_skip = heavy_skip || changes.QA_ONLY == "true"
+
+  run_signed = wantCheck("signed")
+  run_submodules = wantCheck("submodules")
+  run_make_check = wantCheck("make-check") && !heavy_skip
+  run_api = wantCheck("api") && !heavy_skip &&
+      api_branches.any { env.ghprbTargetBranch ==~ it }
+  run_windows = wantCheck("windows") && !windows_skip &&
+      windows_branches.contains(env.ghprbTargetBranch)
+
+  // Anything skipped for a doc/container/gha/qa-only PR is reported as
+  // success (these contexts are required by branch protection).
+  if (wantCheck("make-check") && !run_make_check) {
+    postStatus("make-check", "success", "no need to run make check")
+  }
+  if (wantCheck("api") && heavy_skip) {
+    postStatus("api", "success", "no need to run API tests")
+  }
+  if (wantCheck("windows") && windows_skip &&
+      windows_branches.contains(env.ghprbTargetBranch)) {
+    postStatus("windows", "success", "no need to run windows tests")
+  }
+}
+
+def doSignedCheck() {
+  checkoutCephBuild()
+  withStatus("signed", "commit signature check") {
+    sh """#!/bin/bash -ex
+      export GITHUB_USER=\$GITHUB_RO_CREDS_USR GITHUB_PASS=\$GITHUB_RO_CREDS_PSW
+      bash ./ceph-pr-pipeline/build/pr_checks.sh signed
+    """
+  }
+}
+
+def doSubmodulesCheck() {
+  checkoutCephBuild()
+  withStatus("submodules", "submodule check") {
+    sh """#!/bin/bash -ex
+      export GITHUB_USER=\$GITHUB_RO_CREDS_USR GITHUB_PASS=\$GITHUB_RO_CREDS_PSW
+      bash ./ceph-pr-pipeline/build/pr_checks.sh submodules
+    """
+  }
+}
+
+// Shell preamble shared by the build/test legs: ceph-build helpers plus the
+// S3 cache functions, with the cache key for this PR+sha.
+def bwcPreamble() {
+  return """#!/bin/bash -ex
+    source ./scripts/build_utils.sh
+    source ./scripts/bwc.sh
+    source ./ceph-pr-pipeline/build/s3_cache.sh
+    export CACHE_ENDPOINT="${cache_endpoint}"
+    export CACHE_BUCKET="${cache_bucket}"
+    export CACHE_KEY="pr-builds/${params.ghprbPullId}/${env.HEAD_SHA}.tar.zst"
+    export AWS_ACCESS_KEY_ID="\$SCCACHE_BUCKET_CREDS_USR"
+    export AWS_SECRET_ACCESS_KEY="\$SCCACHE_BUCKET_CREDS_PSW"
+    export GIT_BRANCH="origin/pr/${params.ghprbPullId}/merge"
+    export NPMCACHE="\${HOME}/npmcache"
+  """
+}
+
+def writeBwcEnvFile() {
+  return '''
+    NPROC=$(nproc)
+    cat > .env << EOF
+NPROC=${NPROC}
+MAX_PARALLEL_JOBS=${NPROC}
+WITH_CRIMSON=true
+WITH_RBD_RWL=true
+JENKINS_HOME=${JENKINS_HOME}
+REWRITE_COVERAGE_ROOTDIR=${PWD}/src/pybind/mgr/dashboard/frontend
+EOF
+  '''
+}
+
+def doBuild() {
+  checkoutCephBuild()
+  sh "./scripts/setup_container_runtime.sh"
+  if (params.FORCE_BUILD) {
+    echo "FORCE_BUILD=true: building even if a cached build exists"
+  } else {
+    build_cached = sh(
+      script: bwcPreamble() + "s3_setup\ns3_cache_exists",
+      returnStatus: true,
+    ) == 0
+  }
+  if (build_cached) {
+    echo "Reusing the cached build for ${env.HEAD_SHA} (FORCE_BUILD=true to rebuild)"
+    return
+  }
+  checkoutCephPr()
+  sh(
+    label: "build ceph (with tests)",
+    script: bwcPreamble() + """
+      export DOCKER_HUB_USERNAME="\$DOCKER_HUB_CREDS_USR"
+      export DOCKER_HUB_PASSWORD="\$DOCKER_HUB_CREDS_PSW"
+      cd ceph
+      ${writeBwcEnvFile()}
+      bwc_login
+      bwc_populate_npm_cache
+      bwc 4 -e buildtests
+      npm_cache_info
+    """
+  )
+  sh(
+    label: "upload build tree to cache",
+    script: bwcPreamble() + """
+      s3_setup
+      s3_cache_put ceph
+    """
+  )
+}
+
+def restoreBuildTree() {
+  checkoutCephBuild()
+  sh "./scripts/setup_container_runtime.sh"
+  sh(
+    label: "download build tree from cache",
+    script: bwcPreamble() + """
+      rm -rf ceph
+      s3_setup
+      s3_cache_get ceph
+    """
+  )
+}
+
+def doMakeCheck() {
+  restoreBuildTree()
+  withStatus("make-check", "make check") {
+    sh(
+      label: "run make check",
+      script: bwcPreamble() + """
+        cd ceph
+        ${writeBwcEnvFile()}
+        bwc 4 -e tests
+        sleep 5
+        ps -ef | grep -v jnlp | grep ceph || true
+
+        # "bwc -e tests" exits 0 even when individual tests fail so the CTest
+        # results always get published; fail the leg ourselves.
+        test_xml="\$(find build/Testing -name Test.xml 2>/dev/null)"
+        if [ -n "\$test_xml" ] && grep -q 'Status="failed"' \$test_xml; then
+            echo "CTest reported one or more failed tests."
+            exit 1
+        fi
+      """
+    )
+  }
+}
+
+def doApiTests() {
+  restoreBuildTree()
+  withStatus("api", "ceph API tests") {
+    // Runs inside the same build container the tree was compiled in (the
+    // custom command runs as root in the container, hence plain apt-get).
+    sh(
+      label: "run dashboard API tests",
+      script: bwcPreamble() + """
+        cd ceph
+        bwc 3 -e custom -- "apt-get update && apt-get install -y python3-scipy python3-routes && cd src/pybind/mgr/dashboard && timeout 7200 ./run-backend-api-tests.sh"
+      """
+    )
+  }
+}
+
+def doWindowsTests() {
+  checkoutCephBuild()
+  checkoutCephPr()
+  withStatus("windows", "ceph windows tests") {
+    // Same script chain as the old ceph-windows-pull-requests job (which
+    // concatenated these into one shell); check_docs_pr_only is handled by
+    // the prepare stage instead.
+    sh """#!/bin/bash -ex
+      source ./scripts/build_utils.sh
+      source ./scripts/ceph-windows/setup_libvirt
+      source ./scripts/ceph-windows/setup_libvirt_ubuntu_vm
+      source ./scripts/ceph-windows/win32_build
+      source ./scripts/ceph-windows/cleanup_libvirt_ubuntu_vm
+      source ./scripts/ceph-windows/setup_libvirt_ubuntu_vm
+      source ./scripts/ceph-windows/setup_libvirt_windows_vm
+      source ./scripts/ceph-windows/setup_ceph_vstart
+      source ./scripts/ceph-windows/run_tests
+    """
+  }
+}
+
+pipeline {
+  agent none
+  options {
+    skipDefaultCheckout(true)
+    timeout(time: 8, unit: "HOURS")
+    timestamps()
+  }
+  environment {
+    TERM = "xterm"
+    ghprbPullId = "${params.ghprbPullId}"
+    ghprbGhRepository = "ceph/ceph"
+    DISTRO_BASE = "${params.DISTRO_BASE}"
+    GITHUB_STATUS_CREDS = credentials("github-status-check-token")
+    GITHUB_RO_CREDS = credentials("github-readonly-token")
+    // Pipeline-level so the scripted-parallel test legs (which can't use a
+    // stage environment{} block) get the S3 cache credentials too.
+    SCCACHE_BUCKET_CREDS = credentials("ibm-cloud-sccache-bucket")
+  }
+  stages {
+    stage("prepare") {
+      agent { label "small" }
+      steps {
+        script { doPrepare() }
+      }
+    }
+    stage("run checks") {
+      parallel {
+        stage("Signed-off-by") {
+          when { beforeAgent true; expression { run_signed } }
+          agent { label "small" }
+          steps {
+            script { doSignedCheck() }
+          }
+        }
+        stage("Unmodified Submodules") {
+          when { beforeAgent true; expression { run_submodules } }
+          agent { label "small" }
+          steps {
+            script { doSubmodulesCheck() }
+          }
+        }
+        stage("ceph windows tests") {
+          when { beforeAgent true; expression { run_windows } }
+          agent { label "x86_64 && (installed-os-noble || installed-os-jammy) && libvirt" }
+          environment {
+            CEPH_WIN_CI_KEY = credentials("ceph_win_ci_private_key")
+          }
+          steps {
+            script { doWindowsTests() }
+          }
+          post {
+            always {
+              archiveArtifacts(artifacts: "artifacts/**", allowEmptyArchive: true)
+              sh """#!/bin/bash
+                source ./scripts/build_utils.sh
+                source ./scripts/ceph-windows/cleanup
+              """
+            }
+          }
+        }
+        stage("build and test") {
+          when { beforeAgent true; expression { run_make_check || run_api } }
+          stages {
+            stage("build ceph") {
+              agent { label "huge && x86_64 && installed-os-noble && !smithi" }
+              environment {
+                DOCKER_HUB_CREDS = credentials("dgalloway-docker-hub")
+              }
+              steps {
+                script {
+                  try {
+                    doBuild()
+                  } catch (Exception e) {
+                    // The test legs never start, so their contexts would sit
+                    // at "queued" forever without this.
+                    if (run_make_check) {
+                      postStatus("make-check", "failure", "the ceph build failed")
+                    }
+                    if (run_api) {
+                      postStatus("api", "failure", "the ceph build failed")
+                    }
+                    throw e
+                  }
+                }
+              }
+              post {
+                always {
+                  sh 'podman unshare chown -R 0:0 "$WORKSPACE"/ceph 2>/dev/null || true'
+                }
+              }
+            }
+            stage("run tests") {
+              agent none
+              steps {
+                script {
+                  def legs = [:]
+                  if (run_make_check) {
+                    legs["make check"] = {
+                      node("x86_64 && installed-os-noble && !smithi") {
+                        try {
+                          doMakeCheck()
+                        } finally {
+                          sh """#!/bin/bash
+                            source ./scripts/build_utils.sh 2>/dev/null || true
+                            bash ./ceph-pull-requests/build/kill-tests || true
+                            podman rm -f ceph_build 2>/dev/null || true
+                            podman unshare chown -R 0:0 "\$WORKSPACE"/ceph 2>/dev/null || true
+                          """
+                          xunit(
+                            thresholds: [failed(failureThreshold: "0", unstableThreshold: "0")],
+                            tools: [CTest(pattern: "ceph/build/Testing/**/Test.xml",
+                                          skipNoTestFiles: true, failIfNotNew: false)]
+                          )
+                        }
+                      }
+                    }
+                  }
+                  if (run_api) {
+                    legs["ceph API tests"] = {
+                      node("huge && x86_64 && installed-os-noble && !smithi") {
+                        try {
+                          doApiTests()
+                        } finally {
+                          archiveArtifacts(artifacts: "ceph/build/out/*.log",
+                                           allowEmptyArchive: true)
+                          sh """#!/bin/bash
+                            podman rm -f ceph_build 2>/dev/null || true
+                            podman unshare chown -R 0:0 "\$WORKSPACE"/ceph 2>/dev/null || true
+                          """
+                        }
+                      }
+                    }
+                  }
+                  if (legs) {
+                    parallel legs
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
