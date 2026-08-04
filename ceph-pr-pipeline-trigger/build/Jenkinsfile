@@ -23,11 +23,12 @@ import groovy.transform.Field
 // CHECKS tokens -> GitHub status contexts reported by ceph-pr-pipeline.
 // Keep in sync with the "contexts" map in ceph-pr-pipeline/build/Jenkinsfile.
 @Field Map all_checks = [
-  "signed":     "Signed-off-by",
-  "submodules": "Unmodified Submodules",
-  "make-check": "make check",
-  "api":        "ceph API tests",
-  "windows":    "ceph windows tests",
+  "signed":           "Signed-off-by",
+  "submodules":       "Unmodified Submodules",
+  "make-check":       "make check",
+  "make-check-arm64": "make check (arm64)",
+  "api":              "ceph API tests",
+  "windows":          "ceph windows tests",
 ]
 
 @Field String pr = ""
@@ -39,20 +40,22 @@ import groovy.transform.Field
 @Field String skip_reason = ""
 @Field boolean authorized = false
 
-// Map "jenkins test ..." comment phrases to CHECKS tokens.  Returns null when
-// nothing (we run) matches.  "jenkins test make check arm64" is intentionally
-// ignored: arm64 does its own build and stays in ceph-pull-requests-arm64.
+// Map comment phrases to CHECKS tokens.  Returns null when nothing matches
+// (bare "jenkins test" runs nothing -- name the check you want).
+// "jenkins retest" (with or without anything after it) re-runs everything;
+// thanks to the sha-keyed S3 cache, that skips recompilation when the PR
+// head hasn't changed.
 def phraseToChecks(String body) {
-  if (body =~ /(?i)jenkins\s+test\s+make\s+check\s+arm64/) {
-    return null
-  }
-  if (body =~ /(?i)jenkins\s+(test\s+all|retest)\b/) {
+  if (body =~ /(?i)jenkins\s+retest\b/) {
     return all_checks.keySet().join(" ")
   }
   def hits = []
   if (body =~ /(?i)jenkins\s+test\s+signed/)      { hits << "signed" }
   if (body =~ /(?i)jenkins\s+test\s+submodules/)  { hits << "submodules" }
-  if (body =~ /(?i)jenkins\s+test\s+make\s+check/){ hits << "make-check" }
+  // negative lookahead so "make check arm64" doesn't also queue the
+  // x86_64 leg; both can still be named in one comment
+  if (body =~ /(?i)jenkins\s+test\s+make\s+check(?!\s+arm64)/) { hits << "make-check" }
+  if (body =~ /(?i)jenkins\s+test\s+make\s+check\s+arm64/)     { hits << "make-check-arm64" }
   if (body =~ /(?i)jenkins\s+test\s+api/)         { hits << "api" }
   if (body =~ /(?i)jenkins\s+test\s+windows/)     { hits << "windows" }
   return hits ? hits.join(" ") : null

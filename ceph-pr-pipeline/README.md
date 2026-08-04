@@ -11,10 +11,12 @@ clone and (for three of them) its own multi-hour build:
 | `make check` | [ceph-pull-requests](../ceph-pull-requests/) | shared build → ctest on its own builder |
 | `ceph API tests` | [ceph-pr-api](../ceph-pr-api/) | shared build → API tests on its own builder |
 | `ceph windows tests` | [ceph-windows-pull-requests](../ceph-windows-pull-requests/) | parallel leg (different binaries, nothing to share) |
+| `make check (arm64)` | [ceph-pull-requests-arm64](../ceph-pull-requests-arm64/) | parallel leg: own build+test on one arm64 node, own cache key |
 
-`make check (arm64)` ([ceph-pull-requests-arm64](../ceph-pull-requests-arm64/))
-deliberately stays a separate job: it can never reuse the x86_64 binaries, so
-folding it in would add matrix complexity for zero savings.
+arm64 can never reuse the x86_64 binaries, so its leg does its own build --
+but it shares the pipeline's gating, cancellation, early pending statuses,
+and the S3 cache (keyed per arch), so re-runs skip the arm64 compile too.
+It builds and tests on a single node because the arm64 pool is small.
 
 The GitHub status contexts are identical to the old jobs, so **branch
 protection rules do not change**.
@@ -36,6 +38,7 @@ webhook (pull_request / issue_comment)
             ├─ Signed-off-by         (small)  GitHub API, no clone
             ├─ Unmodified Submodules (small)  GitHub API, no clone
             ├─ ceph windows tests    (libvirt) own clone + win32 build + tests
+            ├─ build and test (arm64)(arm64)  own clone, restore-or-build + tests
             └─ build and test
                  build ceph          (huge)   ONE clone, bwc -e buildtests,
                  │                            tree → S3 (skipped if cached)
@@ -83,12 +86,11 @@ Implemented in the trigger job:
   the contexts to pending.  The label must be re-added after each push —
   including force-pushes — so approval always refers to reviewed code.
 - Comment phrases (org members always; others only while the label is
-  present):
-  `jenkins retest` (all checks), `jenkins test make check`, `jenkins test api`, `jenkins test windows`,
-  `jenkins test signed`, `jenkins test submodules`, `jenkins test all`.
-  `jenkins test make check arm64` is left to the arm64 job's own GHPRB
-  trigger.  `jenkins do not test` in the PR description still skips
-  auto-builds.
+  present): `jenkins retest ...` re-runs **everything** (the S3 cache makes
+  that cheap for an unchanged head); `jenkins test <check>` runs one leg and
+  requires naming it -- `make check`, `make check arm64`, `api`, `windows`,
+  `signed`, `submodules`.  A bare `jenkins test` runs nothing.  `jenkins do
+  not test` in the PR description still skips auto-builds.
 
 ## Force-push / cancellation
 
@@ -157,8 +159,10 @@ for the same PR (covers manual runs and webhook races).  A build whose
    `https://jenkins.ceph.com/generic-webhook-trigger/invoke?token=<pipeline-trigger-token>`
    for `pull_request` + `issue_comment` events, content type
    `application/json`.
-5. Flip: disable the GHPRB triggers on the five old jobs (keep the jobs for a
-   while for manual reruns/rollback), and remove `STATUS_PREFIX`.
+5. Flip: disable the GHPRB triggers on the six old jobs -- including
+   ceph-pull-requests-arm64, whose check now runs in the pipeline -- (keep
+   the jobs for a while for manual reruns/rollback), and remove
+   `STATUS_PREFIX`.
 6. Add an S3 lifecycle rule expiring `pr-builds/*` after ~7 days (the cache
    is per-PR-head-sha and only useful for re-runs).  Consider a dedicated
    bucket instead of `ceph-sccache` if quota is a concern.

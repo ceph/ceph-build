@@ -45,8 +45,8 @@
 
       - string:
           name: CHECKS
-          default: "signed submodules make-check api windows"
-          description: "Which checks to run (space-separated): signed, submodules, make-check, api, windows"
+          default: "signed submodules make-check make-check-arm64 api windows"
+          description: "Which checks to run (space-separated): signed, submodules, make-check, make-check-arm64, api, windows"
 
       - string:
           name: DISTRO_BASE
