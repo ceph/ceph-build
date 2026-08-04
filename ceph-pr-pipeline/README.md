@@ -115,9 +115,34 @@ for the same PR (covers manual runs and webhook races).  A build whose
    label removal, and org membership read), `github-readonly-token`,
    `dgalloway-docker-hub`, `ibm-cloud-sccache-bucket`,
    `ceph_win_ci_private_key`.
-2. Deploy the two jobs with JJB.  First runs will prompt for in-process
-   script approvals (the abort-superseded-builds helpers touch
-   `Jenkins.get()` / `rawBuild`); approve them once.
+2. Deploy the two jobs with JJB.  The abort-superseded-builds helpers touch
+   the Jenkins model (`Jenkins.get()` / `rawBuild`), which the sandbox
+   rejects until approved.  Rather than approving one signature per failed
+   run, pre-approve the lot in Manage Jenkins → Script Console:
+
+   ```groovy
+   import org.jenkinsci.plugins.scriptsecurity.scripts.ScriptApproval
+
+   [
+     'method org.jenkinsci.plugins.workflow.support.steps.build.RunWrapper getRawBuild',
+     'method hudson.model.Run getParent',
+     'method hudson.model.Job getBuilds',
+     'method hudson.model.Run getNumber',
+     'method hudson.model.Run isBuilding',
+     'method hudson.model.Actionable getAction java.lang.Class',
+     'method hudson.model.ParametersAction getParameter java.lang.String',
+     'method hudson.model.ParameterValue getValue',
+     'method hudson.model.Run getExecutor',
+     'method hudson.model.Executor interrupt hudson.model.Result',
+     'staticField hudson.model.Result ABORTED',
+     'staticMethod jenkins.model.Jenkins get',
+     'method jenkins.model.Jenkins getItemByFullName java.lang.String',
+   ].each { ScriptApproval.get().approveSignature(it) }
+   ```
+
+   If a run still hits a rejection (signature strings can vary slightly by
+   plugin version), approve the exact string it reports at Manage Jenkins →
+   In-process Script Approval and re-run.
 3. Test side by side with the old jobs: run `ceph-pr-pipeline` manually with
    a real PR number and `STATUS_PREFIX=pipeline/` — statuses appear as e.g.
    `pipeline/make check` and the required contexts are untouched.
