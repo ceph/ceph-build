@@ -129,8 +129,15 @@ for the same PR (covers manual runs and webhook races).  A build whose
      'method hudson.model.Job getBuilds',
      'method hudson.model.Run getNumber',
      'method hudson.model.Run isBuilding',
+     // On newer cores these resolve to the HistoricalBuild interface instead
+     'method jenkins.model.HistoricalBuild getNumber',
+     'method jenkins.model.HistoricalBuild isBuilding',
      'method hudson.model.Actionable getAction java.lang.Class',
      'method hudson.model.ParametersAction getParameter java.lang.String',
+     // StringParameterValue is the narrow variant; keep only whichever one
+     // the sandbox actually asks for (the broad ParameterValue one can read
+     // password parameters, the narrow one cannot)
+     'method hudson.model.StringParameterValue getValue',
      'method hudson.model.ParameterValue getValue',
      'method hudson.model.Run getExecutor',
      'method hudson.model.Executor interrupt hudson.model.Result',
