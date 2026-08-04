@@ -390,8 +390,10 @@ pipeline {
     SCCACHE_BUCKET_CREDS = credentials("ibm-cloud-sccache-bucket")
   }
   stages {
+    // agent any, not small: this stage is seconds of curl and posts the
+    // early pending statuses, so grab whatever executor frees up first.
     stage("prepare") {
-      agent { label "small" }
+      agent any
       steps {
         script { doPrepare() }
       }
