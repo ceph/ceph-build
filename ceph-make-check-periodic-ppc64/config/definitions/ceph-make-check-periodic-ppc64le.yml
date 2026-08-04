@@ -9,8 +9,8 @@
           - ../../build/build
     concurrent: true
     disabled: false
-    name: ceph-make-check-periodic-ppc64
-    node: 'ppc64 && (installed-os-noble || centos9)'
+    name: ceph-make-check-periodic-ppc64le
+    node: 'ppc64le && (installed-os-noble || centos9)'
     parameters:
     - string:
         name: PullID
