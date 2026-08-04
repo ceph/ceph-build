@@ -83,10 +83,11 @@ bwc_login() {
     if [ -z "${DOCKER_HUB_USERNAME}" ] || [ -z "${DOCKER_HUB_PASSWORD}" ]; then
         return 0
     fi
+    # Same-shell export so login and all later podman calls share one
+    # persistent authfile: https://tracker.ceph.com/issues/77920
     export REGISTRY_AUTH_FILE="${HOME}/.config/containers/auth.json"
     mkdir -p "${REGISTRY_AUTH_FILE%/*}"
-    podman login --authfile "${REGISTRY_AUTH_FILE}" \
-        -u "${DOCKER_HUB_USERNAME}" -p "${DOCKER_HUB_PASSWORD}" docker.io
+    podman login -u "${DOCKER_HUB_USERNAME}" -p "${DOCKER_HUB_PASSWORD}" docker.io
 }
 
 # bwc_arch - Print the architecture of the current host in the style

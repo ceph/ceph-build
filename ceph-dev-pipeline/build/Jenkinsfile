@@ -346,26 +346,20 @@ def doArtifactsChecksStage() {
 // Stage 6 (builder container): log into container registries and pull/build/push the ceph-build container image for this matrix cell.
 def doBuilderContainerStage() {
   env.CEPH_BUILDER_IMAGE = "${env.CONTAINER_REPO_HOSTNAME}/${env.CONTAINER_REPO_ORGANIZATION}/ceph-build"
-  // Pin podman auth to a persistent authfile. The agent runs as a systemd
-  // service with no login session and no XDG_RUNTIME_DIR, so podman derives
-  // the default auth.json location from ambient node state at each
-  // invocation, landing in runtime tmpfs the job doesn't control.
-  // Credentials written by podman login here have been observed unavailable
-  // to podman build in the same job minutes later, so the base image pull
-  // goes anonymous and hits Docker Hub's rate limit (toomanyrequests,
-  // https://tracker.ceph.com/issues/77920). Set via env so every subsequent
-  // sh step (pull/build/push here, and build-with-container.py in the build
-  // stage) resolves the same file.
-  env.REGISTRY_AUTH_FILE = "${env.HOME}/.config/containers/auth.json"
+  // Every podman-running sh block exports REGISTRY_AUTH_FILE itself so login
+  // and all later pulls (incl. podman build inside build-with-container.py)
+  // share one persistent authfile: https://tracker.ceph.com/issues/77920
   sh '''#!/bin/bash
     set -ex
+    export REGISTRY_AUTH_FILE="${HOME}/.config/containers/auth.json"
     mkdir -p "${REGISTRY_AUTH_FILE%/*}"
-    podman login --authfile ${REGISTRY_AUTH_FILE} -u ${CONTAINER_REPO_CREDS_USR} -p ${CONTAINER_REPO_CREDS_PSW} ${CONTAINER_REPO_HOSTNAME}/${CONTAINER_REPO_ORGANIZATION}
-    podman login --authfile ${REGISTRY_AUTH_FILE} -u ${DOCKER_HUB_CREDS_USR} -p ${DOCKER_HUB_CREDS_PSW} docker.io
+    podman login -u ${CONTAINER_REPO_CREDS_USR} -p ${CONTAINER_REPO_CREDS_PSW} ${CONTAINER_REPO_HOSTNAME}/${CONTAINER_REPO_ORGANIZATION}
+    podman login -u ${DOCKER_HUB_CREDS_USR} -p ${DOCKER_HUB_CREDS_PSW} docker.io
   '''
   def ceph_builder_tag_short = "${env.BRANCH}.${env.DIST}.${env.ARCH}.${env.FLAVOR}"
   def ceph_builder_tag = "${env.SHA1[0..6]}.${ceph_builder_tag_short}"
   sh """#!/bin/bash -ex
+    export REGISTRY_AUTH_FILE="\${HOME}/.config/containers/auth.json"
     podman pull ${env.CEPH_BUILDER_IMAGE}:${ceph_builder_tag} || \
     podman pull ${env.CEPH_BUILDER_IMAGE}:${ceph_builder_tag_short} || \
     true
@@ -373,6 +367,7 @@ def doBuilderContainerStage() {
   def withCrimson = !(env.BRANCH in ['tentacle', 'squid', 'reef'])
   sh """#!/bin/bash
     set -ex
+    export REGISTRY_AUTH_FILE="\${HOME}/.config/containers/auth.json"
     echo > .env
     echo "WITH_CRIMSON=${withCrimson}" >> .env
     cd dist/ceph
@@ -380,6 +375,7 @@ def doBuilderContainerStage() {
     podman tag ${env.CEPH_BUILDER_IMAGE}:${ceph_builder_tag} ${env.CEPH_BUILDER_IMAGE}:${ceph_builder_tag_short}
   """
   sh """#!/bin/bash -ex
+    export REGISTRY_AUTH_FILE="\${HOME}/.config/containers/auth.json"
     podman push ${env.CEPH_BUILDER_IMAGE}:${ceph_builder_tag_short}
     podman push ${env.CEPH_BUILDER_IMAGE}:${ceph_builder_tag}
   """
@@ -473,18 +469,21 @@ def doBuildStage() {
     echo "CEPH_EXTRA_CMAKE_ARGS=${ceph_extra_cmake_args}" >> .env
   """
   sh """#!/bin/bash -ex
+    export REGISTRY_AUTH_FILE="\${HOME}/.config/containers/auth.json"
     cd dist/ceph
     ln ../ceph-${env.VERSION}.tar.bz2 .
     ${bwc_command}
   """
   if ( os.pkg_type == "deb" ) {
     sh """#!/bin/bash -ex
+      export REGISTRY_AUTH_FILE="\${HOME}/.config/containers/auth.json"
       cd dist/ceph
       ${bwc_command_base} -e custom -- "dpkg-deb --fsys-tarfile /ceph/debs/*/pool/main/c/ceph/cephadm_${env.VERSION}*.deb | tar -x -f - --strip-components=3 ./usr/sbin/cephadm"
       ln ./cephadm ../../
     """
   } else if ( env.DIST =~ /^(centos|rhel|rocky|fedora).*/ ) {
     sh """#!/bin/bash -ex
+      export REGISTRY_AUTH_FILE="\${HOME}/.config/containers/auth.json"
       cd dist/ceph
       ${bwc_command_base} -e custom -- "rpm2cpio /ceph/rpmbuild/RPMS/noarch/cephadm-*.rpm | cpio -i --to-stdout *sbin/cephadm > cephadm"
       ln ./cephadm ../../
