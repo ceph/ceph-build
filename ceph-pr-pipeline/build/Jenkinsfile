@@ -49,6 +49,13 @@ def wantCheck(String key) {
   return params.CHECKS.tokenize(" ").contains(key)
 }
 
+// First thing on every node: say where we're running (node names look like
+// "172.21.2.22+braggi22").
+def logNode() {
+  def shortname = env.NODE_NAME.split('\\+')[-1]
+  echo "Running on ${shortname} (${env.JENKINS_URL}computer/${env.NODE_NAME}/)"
+}
+
 def postStatus(String key, String state, String description) {
   // Nothing to post against until prepare has resolved the head sha (e.g. a
   // build aborted while still in prepare).
@@ -162,6 +169,7 @@ def checkoutCephPr() {
 }
 
 def doPrepare() {
+  logNode()
   abortOlderBuilds()
   def pr_data = readJSON(text: sh(
     script: "curl -sf -u \$GITHUB_RO_CREDS_USR:\$GITHUB_RO_CREDS_PSW " +
@@ -236,6 +244,7 @@ def doPrepare() {
 }
 
 def doSignedCheck() {
+  logNode()
   checkoutCephBuild()
   withStatus("signed", "commit signature check") {
     sh """#!/bin/bash -ex
@@ -246,6 +255,7 @@ def doSignedCheck() {
 }
 
 def doSubmodulesCheck() {
+  logNode()
   checkoutCephBuild()
   withStatus("submodules", "submodule check") {
     sh """#!/bin/bash -ex
@@ -298,6 +308,7 @@ def postTestLegStatuses(String description) {
 }
 
 def doBuild() {
+  logNode()
   postTestLegStatuses("building ceph (shared build)")
   checkoutCephBuild()
   sh "./ceph-build/scripts/setup_container_runtime.sh"
@@ -337,6 +348,7 @@ def doBuild() {
 }
 
 def restoreBuildTree() {
+  logNode()
   checkoutCephBuild()
   sh "./ceph-build/scripts/setup_container_runtime.sh"
   sh(
@@ -389,6 +401,7 @@ def doApiTests() {
 }
 
 def doWindowsTests() {
+  logNode()
   checkoutCephBuild()
   checkoutCephPr()
   withStatus("windows", "ceph windows tests") {
