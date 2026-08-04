@@ -130,12 +130,15 @@ def abortOlderBuilds() {
   }
 }
 
+// Plain git, not the checkout step: the git plugin adds a "Git Build Data"
+// entry to the build page for every repo it touches, and this helper clone
+// on every node made the build look like it was about ceph-build.git.  With
+// plain git the only Git Build Data left is ceph.git's PR merge revision.
 def checkoutCephBuild() {
-  checkout scmGit(
-    branches: [[name: params.CEPH_BUILD_BRANCH]],
-    userRemoteConfigs: [[url: ceph_build_repo]],
-    extensions: [[$class: 'CleanBeforeCheckout']],
-  )
+  sh """#!/bin/bash -ex
+    rm -rf ceph-build
+    git clone --depth 1 --no-tags -b "${params.CEPH_BUILD_BRANCH}" ${ceph_build_repo} ceph-build
+  """
 }
 
 // One shallow checkout of the PR merge ref into ./ceph.  Point
@@ -145,6 +148,7 @@ def checkoutCephPr() {
   sh "rm -rf ceph"
   checkout scmGit(
     branches: [[name: "origin/pr/${params.ghprbPullId}/merge"]],
+    browser: [$class: 'GithubWeb', repoUrl: 'https://github.com/ceph/ceph'],
     userRemoteConfigs: [[
       url: ceph_repo,
       refspec: "+refs/pull/${params.ghprbPullId}/*:refs/remotes/origin/pr/${params.ghprbPullId}/*",
@@ -182,7 +186,7 @@ def doPrepare() {
   checkoutCephBuild()
   sh """#!/bin/bash -ex
     export GITHUB_USER=\$GITHUB_RO_CREDS_USR GITHUB_PASS=\$GITHUB_RO_CREDS_PSW
-    bash ./ceph-pr-pipeline/build/pr_checks.sh classify
+    bash ./ceph-build/ceph-pr-pipeline/build/pr_checks.sh classify
   """
   def changes = readProperties(file: "pr_changes.properties")
   env.DOCS_ONLY = changes.DOCS_ONLY
@@ -236,7 +240,7 @@ def doSignedCheck() {
   withStatus("signed", "commit signature check") {
     sh """#!/bin/bash -ex
       export GITHUB_USER=\$GITHUB_RO_CREDS_USR GITHUB_PASS=\$GITHUB_RO_CREDS_PSW
-      bash ./ceph-pr-pipeline/build/pr_checks.sh signed
+      bash ./ceph-build/ceph-pr-pipeline/build/pr_checks.sh signed
     """
   }
 }
@@ -246,7 +250,7 @@ def doSubmodulesCheck() {
   withStatus("submodules", "submodule check") {
     sh """#!/bin/bash -ex
       export GITHUB_USER=\$GITHUB_RO_CREDS_USR GITHUB_PASS=\$GITHUB_RO_CREDS_PSW
-      bash ./ceph-pr-pipeline/build/pr_checks.sh submodules
+      bash ./ceph-build/ceph-pr-pipeline/build/pr_checks.sh submodules
     """
   }
 }
@@ -255,9 +259,9 @@ def doSubmodulesCheck() {
 // S3 cache functions, with the cache key for this PR+sha.
 def bwcPreamble() {
   return """#!/bin/bash -ex
-    source ./scripts/build_utils.sh
-    source ./scripts/bwc.sh
-    source ./ceph-pr-pipeline/build/s3_cache.sh
+    source ./ceph-build/scripts/build_utils.sh
+    source ./ceph-build/scripts/bwc.sh
+    source ./ceph-build/ceph-pr-pipeline/build/s3_cache.sh
     export CACHE_ENDPOINT="${cache_endpoint}"
     export CACHE_BUCKET="${cache_bucket}"
     export CACHE_KEY="pr-builds/${params.ghprbPullId}/${env.HEAD_SHA}.tar.zst"
@@ -296,7 +300,7 @@ def postTestLegStatuses(String description) {
 def doBuild() {
   postTestLegStatuses("building ceph (shared build)")
   checkoutCephBuild()
-  sh "./scripts/setup_container_runtime.sh"
+  sh "./ceph-build/scripts/setup_container_runtime.sh"
   if (params.FORCE_BUILD) {
     echo "FORCE_BUILD=true: building even if a cached build exists"
   } else {
@@ -334,7 +338,7 @@ def doBuild() {
 
 def restoreBuildTree() {
   checkoutCephBuild()
-  sh "./scripts/setup_container_runtime.sh"
+  sh "./ceph-build/scripts/setup_container_runtime.sh"
   sh(
     label: "download build tree from cache",
     script: bwcPreamble() + """
@@ -392,15 +396,15 @@ def doWindowsTests() {
     // concatenated these into one shell); check_docs_pr_only is handled by
     // the prepare stage instead.
     sh """#!/bin/bash -ex
-      source ./scripts/build_utils.sh
-      source ./scripts/ceph-windows/setup_libvirt
-      source ./scripts/ceph-windows/setup_libvirt_ubuntu_vm
-      source ./scripts/ceph-windows/win32_build
-      source ./scripts/ceph-windows/cleanup_libvirt_ubuntu_vm
-      source ./scripts/ceph-windows/setup_libvirt_ubuntu_vm
-      source ./scripts/ceph-windows/setup_libvirt_windows_vm
-      source ./scripts/ceph-windows/setup_ceph_vstart
-      source ./scripts/ceph-windows/run_tests
+      source ./ceph-build/scripts/build_utils.sh
+      source ./ceph-build/scripts/ceph-windows/setup_libvirt
+      source ./ceph-build/scripts/ceph-windows/setup_libvirt_ubuntu_vm
+      source ./ceph-build/scripts/ceph-windows/win32_build
+      source ./ceph-build/scripts/ceph-windows/cleanup_libvirt_ubuntu_vm
+      source ./ceph-build/scripts/ceph-windows/setup_libvirt_ubuntu_vm
+      source ./ceph-build/scripts/ceph-windows/setup_libvirt_windows_vm
+      source ./ceph-build/scripts/ceph-windows/setup_ceph_vstart
+      source ./ceph-build/scripts/ceph-windows/run_tests
     """
   }
 }
@@ -461,8 +465,8 @@ pipeline {
             always {
               archiveArtifacts(artifacts: "artifacts/**", allowEmptyArchive: true)
               sh """#!/bin/bash
-                source ./scripts/build_utils.sh
-                source ./scripts/ceph-windows/cleanup
+                source ./ceph-build/scripts/build_utils.sh
+                source ./ceph-build/scripts/ceph-windows/cleanup
               """
             }
           }
@@ -517,8 +521,8 @@ pipeline {
                           doMakeCheck()
                         } finally {
                           sh """#!/bin/bash
-                            source ./scripts/build_utils.sh 2>/dev/null || true
-                            bash ./ceph-pull-requests/build/kill-tests || true
+                            source ./ceph-build/scripts/build_utils.sh 2>/dev/null || true
+                            bash ./ceph-build/ceph-pull-requests/build/kill-tests || true
                             podman rm -f ceph_build 2>/dev/null || true
                             podman unshare chown -R 0:0 "\$WORKSPACE"/ceph 2>/dev/null || true
                           """
