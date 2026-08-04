@@ -166,6 +166,23 @@ def doPrepare() {
   run_windows = wantCheck("windows") && !windows_skip &&
       windows_branches.contains(env.ghprbTargetBranch)
 
+  // Post pending for every leg that will run NOW, from the small node we're
+  // already holding, so the PR shows all its checks within seconds of the
+  // build starting -- even for legs that will then sit in the queue waiting
+  // for a huge/libvirt executor.  Each leg updates its own description
+  // ("building", "running") as it progresses.
+  [
+    "signed": run_signed,
+    "submodules": run_submodules,
+    "make-check": run_make_check,
+    "api": run_api,
+    "windows": run_windows,
+  ].each { key, will_run ->
+    if (will_run) {
+      postStatus(key, "pending", "queued, waiting for an available builder")
+    }
+  }
+
   // Anything skipped for a doc/container/gha/qa-only PR is reported as
   // success (these contexts are required by branch protection).
   if (wantCheck("make-check") && !run_make_check) {
@@ -231,7 +248,19 @@ EOF
   '''
 }
 
+// The test legs' contexts stay pending through the shared build; keep their
+// descriptions honest about which phase they're actually in.
+def postTestLegStatuses(String description) {
+  if (run_make_check) {
+    postStatus("make-check", "pending", description)
+  }
+  if (run_api) {
+    postStatus("api", "pending", description)
+  }
+}
+
 def doBuild() {
+  postTestLegStatuses("building ceph (shared build)")
   checkoutCephBuild()
   sh "./scripts/setup_container_runtime.sh"
   if (params.FORCE_BUILD) {
@@ -414,6 +443,9 @@ pipeline {
                 script {
                   try {
                     doBuild()
+                    // Covers the gap between the build finishing and the test
+                    // legs acquiring their own executors.
+                    postTestLegStatuses("build ready, waiting for an available test builder")
                   } catch (Exception e) {
                     // The test legs never start, so their contexts would sit
                     // at "queued" forever without this.
