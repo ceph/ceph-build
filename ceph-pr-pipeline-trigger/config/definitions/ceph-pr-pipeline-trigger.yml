@@ -79,6 +79,6 @@
           #  - pull_request opened/reopened/synchronize
           #  - pull_request labeled, but only for the ci-approved label
           #  - issue_comment created on a PR (issue_is_pr non-empty) containing
-          #    a "jenkins test ..." phrase
-          regex-filter-expression: "(?is)^(pull_request:(opened|reopened|synchronize):.*|pull_request:labeled:ci-approved:.*|issue_comment:created::https[^:]*:.*jenkins\\s+test\\s+.*)$"
+          #    a "jenkins test ..." or "jenkins retest" phrase
+          regex-filter-expression: "(?is)^(pull_request:(opened|reopened|synchronize):.*|pull_request:labeled:ci-approved:.*|issue_comment:created::https[^:]*:.*jenkins\\s+(re)?test\\b.*)$"
           cause: "GitHub $X_GitHub_Event ($action) for PR $pr_number$issue_number"

@@ -46,7 +46,7 @@ def phraseToChecks(String body) {
   if (body =~ /(?i)jenkins\s+test\s+make\s+check\s+arm64/) {
     return null
   }
-  if (body =~ /(?i)jenkins\s+test\s+all\b/) {
+  if (body =~ /(?i)jenkins\s+(test\s+all|retest)\b/) {
     return all_checks.keySet().join(" ")
   }
   def hits = []

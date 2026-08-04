@@ -84,7 +84,7 @@ Implemented in the trigger job:
   including force-pushes — so approval always refers to reviewed code.
 - Comment phrases (org members always; others only while the label is
   present):
-  `jenkins test make check`, `jenkins test api`, `jenkins test windows`,
+  `jenkins retest` (all checks), `jenkins test make check`, `jenkins test api`, `jenkins test windows`,
   `jenkins test signed`, `jenkins test submodules`, `jenkins test all`.
   `jenkins test make check arm64` is left to the arm64 job's own GHPRB
   trigger.  `jenkins do not test` in the PR description still skips
