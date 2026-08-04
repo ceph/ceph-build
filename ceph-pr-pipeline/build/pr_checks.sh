@@ -28,29 +28,26 @@ gh_api() {
 }
 
 # Paginate a list endpoint ($1, e.g. "pulls/123/files") and emit one combined
-# JSON array on stdout.  The commits endpoint caps at 250 entries and files at
-# 3000, same limits the GHPRB-era shallow-clone checks effectively had.
+# JSON array on stdout.  Pages are flattened to one-element-per-line NDJSON
+# (jq -c '.[]') and reassembled with jq -s, which is valid regardless of how
+# many elements each page has.  The commits endpoint caps at 250 entries and
+# files at 3000, same limits the GHPRB-era shallow-clone checks effectively
+# had.
 gh_api_list() {
     local endpoint=$1
     local page=1
-    local sep=""
-    echo "["
-    while true; do
-        local chunk
-        chunk=$(gh_api "${GH_API}/${endpoint}?per_page=100&page=${page}")
-        local count
-        count=$(echo "$chunk" | jq 'length')
-        if [ "$count" -gt 0 ]; then
-            echo -n "$sep"
-            echo "$chunk" | jq '.[]'
-            sep=","
-        fi
-        if [ "$count" -lt 100 ]; then
-            break
-        fi
-        page=$((page+1))
-    done
-    echo "]"
+    local chunk count
+    {
+        while true; do
+            chunk=$(gh_api "${GH_API}/${endpoint}?per_page=100&page=${page}")
+            echo "$chunk" | jq -c '.[]'
+            count=$(echo "$chunk" | jq 'length')
+            if [ "$count" -lt 100 ]; then
+                break
+            fi
+            page=$((page+1))
+        done
+    } | jq -s '.'
 }
 
 changed_files() {
