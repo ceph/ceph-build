@@ -125,7 +125,9 @@ def cancelRunningPrBuilds(String pr_number) {
 }
 
 pipeline {
-  agent { label "small" }
+  // Seconds of curl per event; any free executor will do, and the first
+  // "queued" statuses shouldn't wait for a small-labeled node.
+  agent any
   options { skipDefaultCheckout(true) }
   environment {
     GITHUB_STATUS_CREDS = credentials("github-status-check-token")
