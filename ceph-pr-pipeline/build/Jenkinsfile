@@ -41,12 +41,23 @@ import groovy.transform.Field
 @Field boolean run_api = false
 @Field boolean run_windows = false
 @Field boolean build_cached = false
+// context key -> true once a terminal (non-pending) status was posted, so the
+// abort/failure sweep in post{} only finalizes contexts still left pending.
+@Field Map leg_finalized = [:]
 
 def wantCheck(String key) {
   return params.CHECKS.tokenize(" ").contains(key)
 }
 
 def postStatus(String key, String state, String description) {
+  // Nothing to post against until prepare has resolved the head sha (e.g. a
+  // build aborted while still in prepare).
+  if (!env.HEAD_SHA) {
+    return
+  }
+  if (state != "pending") {
+    leg_finalized[key] = true
+  }
   writeFile(file: "status.json", text: groovy.json.JsonOutput.toJson([
     state: state,
     context: "${params.STATUS_PREFIX}${contexts[key]}",
@@ -74,6 +85,29 @@ def withStatus(String key, String label, Closure body) {
   } catch (Exception e) {
     postStatus(key, "failure", "${label} failed")
     throw e
+  }
+}
+
+// Post a terminal status for every selected context that never got one, so a
+// canceled/failed run doesn't leave checks pending on the PR forever.  Runs
+// from post{}, which has no agent, so it grabs one itself; best-effort by
+// nature (a hard kill skips post{} entirely).
+def finalizePendingStatuses(String state, String description) {
+  if (!env.HEAD_SHA) {
+    return
+  }
+  def pending = [
+    "signed": run_signed,
+    "submodules": run_submodules,
+    "make-check": run_make_check,
+    "api": run_api,
+    "windows": run_windows,
+  ].findAll { key, will_run -> will_run && !leg_finalized[key] }.keySet()
+  if (!pending) {
+    return
+  }
+  node {
+    pending.each { postStatus(it, state, description) }
   }
 }
 
@@ -448,6 +482,10 @@ pipeline {
                     // Covers the gap between the build finishing and the test
                     // legs acquiring their own executors.
                     postTestLegStatuses("build ready, waiting for an available test builder")
+                  } catch (org.jenkinsci.plugins.workflow.steps.FlowInterruptedException e) {
+                    // Canceled, not failed; the post{aborted} sweep posts the
+                    // right thing for the never-started test legs.
+                    throw e
                   } catch (Exception e) {
                     // The test legs never start, so their contexts would sit
                     // at "queued" forever without this.
@@ -518,6 +556,14 @@ pipeline {
           }
         }
       }
+    }
+  }
+  post {
+    aborted {
+      script { finalizePendingStatuses("error", "canceled") }
+    }
+    failure {
+      script { finalizePendingStatuses("error", "did not run: the pipeline failed earlier") }
     }
   }
 }
