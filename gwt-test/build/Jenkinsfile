@@ -6,12 +6,16 @@ pipeline {
         disableConcurrentBuilds(abortPrevious: true)
     }
 
+    environment {
+        GITHUB_ORG = 'ceph'
+        GITHUB_CREDENTIAL_ID = 'ceph-ghprb-github-token'
+    }
+
     stages {
 
         stage('Build Metadata') {
             steps {
                 script {
-
                     def buildRef = env.pr_number ?: env.issue_number ?: 'NA'
 
                     currentBuild.displayName =
@@ -31,50 +35,150 @@ pipeline {
         stage('Event Details') {
             steps {
                 script {
-        
                     echo ""
                     echo "========================================"
                     echo " GitHub Webhook Event"
                     echo "========================================"
-        
-                    echo "Event Type : ${env.x_github_event}"
-                    echo "Action     : ${env.action}"
-                    echo "Repository : ${env.repository}"
-        
+
+                    echo "Event Type : ${env.x_github_event ?: 'EMPTY'}"
+                    echo "Action     : ${env.action ?: 'EMPTY'}"
+                    echo "Repository : ${env.repository ?: 'EMPTY'}"
+                    echo "Sender     : ${env.sender_login ?: 'EMPTY'}"
+
                     if (env.x_github_event == 'pull_request') {
-        
                         echo ""
                         echo "Pull Request Details"
                         echo "----------------------------------------"
-                        echo "PR Number   : ${env.pr_number}"
-                        echo "PR Author   : ${env.pr_author}"
-                        echo "Head Branch : ${env.head_branch}"
-                        echo "Base Branch : ${env.base_branch}"
-                        echo "Head SHA    : ${env.head_sha}"
-        
-                    } else if (env.x_github_event == 'issue_comment') {
-        
+                        echo "PR Number   : ${env.pr_number ?: 'EMPTY'}"
+                        echo "PR Author   : ${env.pr_author ?: 'EMPTY'}"
+                        echo "Head Branch : ${env.head_branch ?: 'EMPTY'}"
+                        echo "Base Branch : ${env.base_branch ?: 'EMPTY'}"
+                        echo "Head SHA    : ${env.head_sha ?: 'EMPTY'}"
+                    }
+
+                    if (env.x_github_event == 'issue_comment') {
                         echo ""
                         echo "Issue Comment Details"
                         echo "----------------------------------------"
-                        echo "Issue Number   : ${env.issue_number}"
-                        echo "Issue Author   : ${env.issue_author}"
-                        echo "Issue State    : ${env.issue_state}"
-                        echo "Issue URL      : ${env.issue_url}"
-                        echo "Comment Author : ${env.comment_author}"
-                        echo "Comment Body   : ${env.comment_body}"
-        
+                        echo "Issue Number   : ${env.issue_number ?: 'EMPTY'}"
+                        echo "Issue Author   : ${env.issue_author ?: 'EMPTY'}"
+                        echo "Issue State    : ${env.issue_state ?: 'EMPTY'}"
+                        echo "Issue URL      : ${env.issue_url ?: 'EMPTY'}"
+                        echo "Comment Author : ${env.comment_author ?: 'EMPTY'}"
+                        echo "Comment Body   : ${env.comment_body ?: 'EMPTY'}"
                     }
-        
+
                     echo ""
-                    echo "Delivery ID : ${env.x_github_delivery}"
+                    echo "Delivery ID : ${env.x_github_delivery ?: 'EMPTY'}"
                     echo "========================================"
                 }
             }
         }
 
-        stage('Comment Commands') {
+        stage('Trust Validation') {
+            steps {
+                script {
+                    env.RUN_BUILD = "false"
+                    env.TRUSTED_USER = "false"
+                    env.POST_NON_MEMBER_COMMENT = "false"
 
+                    def userToCheck = ''
+
+                    if (env.x_github_event == 'pull_request') {
+                        userToCheck = env.pr_author ?: ''
+                    }
+
+                    if (env.x_github_event == 'issue_comment') {
+                        userToCheck = env.comment_author ?: env.sender_login ?: ''
+                    }
+
+                    echo ""
+                    echo "========================================"
+                    echo " Trust Validation"
+                    echo "========================================"
+                    echo "User to check : ${userToCheck}"
+                    echo "GitHub Org    : ${env.GITHUB_ORG}"
+
+                    def isMember = false
+
+                    if (!userToCheck) {
+                        echo "No user found to validate."
+                    } else {
+                        withCredentials([string(credentialsId: env.GITHUB_CREDENTIAL_ID, variable: 'GITHUB_TOKEN')]) {
+                            def statusCode = sh(
+                                script: """
+                                    curl -s -o /dev/null -w "%{http_code}" \\
+                                      -H "Accept: application/vnd.github+json" \\
+                                      -H "Authorization: Bearer ${GITHUB_TOKEN}" \\
+                                      -H "X-GitHub-Api-Version: 2022-11-28" \\
+                                      "https://api.github.com/orgs/${GITHUB_ORG}/members/${userToCheck}"
+                                """,
+                                returnStdout: true
+                            ).trim()
+
+                            echo "Membership API status : ${statusCode}"
+
+                            if (statusCode == "204") {
+                                isMember = true
+                            }
+                        }
+                    }
+
+                    if (isMember) {
+                        env.TRUSTED_USER = "true"
+                        echo "Trusted User : YES"
+                    } else {
+                        env.TRUSTED_USER = "false"
+                        echo "Trusted User : NO"
+                    }
+
+                    echo "========================================"
+                }
+            }
+        }
+
+        stage('Pull Request Decision') {
+            when {
+                expression {
+                    env.x_github_event == 'pull_request'
+                }
+            }
+
+            steps {
+                script {
+                    echo ""
+                    echo "========================================"
+                    echo " Pull Request Decision"
+                    echo "========================================"
+
+                    if (env.action == 'closed') {
+                        echo "PR is closed. CI will not run."
+                        env.RUN_BUILD = "false"
+                        echo "RUN_BUILD=${env.RUN_BUILD}"
+                        echo "========================================"
+                        return
+                    }
+
+                    if (env.TRUSTED_USER == "true") {
+                        echo "PR author is a Ceph org member. CI is allowed."
+                        env.RUN_BUILD = "true"
+                    } else {
+                        echo "PR author is not a Ceph org member. CI will not run."
+                        env.RUN_BUILD = "false"
+
+                        if (env.action == 'opened') {
+                            env.POST_NON_MEMBER_COMMENT = "true"
+                        }
+                    }
+
+                    echo "RUN_BUILD=${env.RUN_BUILD}"
+                    echo "POST_NON_MEMBER_COMMENT=${env.POST_NON_MEMBER_COMMENT}"
+                    echo "========================================"
+                }
+            }
+        }
+
+        stage('Comment Command Decision') {
             when {
                 expression {
                     env.x_github_event == 'issue_comment'
@@ -83,81 +187,137 @@ pipeline {
 
             steps {
                 script {
+                    def comment = (env.comment_body ?: '').trim().toLowerCase()
 
-                    def comment = (env.comment_body ?: '').trim()
+                    echo ""
+                    echo "========================================"
+                    echo " Comment Command Decision"
+                    echo "========================================"
 
-                    env.RUN_BUILD = "false"
+                    echo "Comment Author : ${env.comment_author ?: 'EMPTY'}"
+                    echo "Comment Body   : ${env.comment_body ?: 'EMPTY'}"
+                    echo "Trusted User   : ${env.TRUSTED_USER}"
 
-                    echo "=================================="
-                    echo "Comment Command Processing"
-                    echo "=================================="
+                    if (comment == 'ok to test') {
+                        echo "Command: OK TO TEST"
 
-                    if (comment.equalsIgnoreCase('retest this please')) {
+                        if (env.TRUSTED_USER == "true") {
+                            echo "Ceph org member approved CI."
+                            env.RUN_BUILD = "true"
+                        } else {
+                            echo "User is not a Ceph org member. CI will not run."
+                            env.RUN_BUILD = "false"
+                        }
 
-                        echo 'Command detected: retest this please'
-                        env.RUN_BUILD = "true"
+                    } else if (comment == 'retest this please') {
+                        echo "Command: RETEST"
 
-                    } else if (comment.equalsIgnoreCase('ok to test')) {
+                        if (env.TRUSTED_USER == "true") {
+                            echo "Trusted user requested retest."
+                            env.RUN_BUILD = "true"
+                        } else {
+                            echo "User is not a Ceph org member. Retest will not run."
+                            env.RUN_BUILD = "false"
+                        }
 
-                        echo 'Command detected: ok to test'
-                        env.RUN_BUILD = "true"
+                    } else if (comment == 'test this please') {
+                        echo "Command: TEST THIS PLEASE"
 
-                    } else if (comment.equalsIgnoreCase('test this please')) {
-
-                        echo 'Command detected: test this please'
-                        env.RUN_BUILD = "true"
+                        if (env.TRUSTED_USER == "true") {
+                            echo "Trusted user requested one-time test."
+                            env.RUN_BUILD = "true"
+                        } else {
+                            echo "User is not a Ceph org member. Test will not run."
+                            env.RUN_BUILD = "false"
+                        }
 
                     } else {
-
-                        echo 'No supported command detected'
+                        echo "Unsupported comment command."
+                        env.RUN_BUILD = "false"
                     }
 
-                    echo "RUN_BUILD = ${env.RUN_BUILD}"
-
-                    echo "=================================="
+                    echo "RUN_BUILD=${env.RUN_BUILD}"
+                    echo "========================================"
                 }
             }
         }
 
-        stage('Build Simulation') {
-
+        stage('Post Non-Member Guidance Comment') {
             when {
                 expression {
-
-                    if (env.x_github_event == 'pull_request') {
-                        return true
-                    }
-
-                    if (env.x_github_event == 'issue_comment'
-                        && env.RUN_BUILD == 'true') {
-                        return true
-                    }
-
-                    return false
+                    env.POST_NON_MEMBER_COMMENT == 'true'
                 }
             }
 
             steps {
+                script {
+                    def issueNumber = env.pr_number ?: env.issue_number
+                    def repoParts = (env.repository ?: '').split('/')
 
-                echo "=================================="
-                echo "Build Simulation"
-                echo "=================================="
+                    if (repoParts.size() != 2 || !issueNumber) {
+                        echo "Unable to post guidance comment. Missing repository or issue number."
+                        return
+                    }
 
-                echo "PR/Issue : ${env.pr_number ?: env.issue_number ?: 'N/A'}"
-                echo "Action   : ${env.action ?: 'N/A'}"
-                echo "SHA      : ${env.head_sha ?: 'N/A'}"
+                    def owner = repoParts[0]
+                    def repo = repoParts[1]
 
-                timeout(time: 6, unit: 'MINUTES') {
-                    sleep(time: 300, unit: 'SECONDS')
+                    def message = '''Thank you for your contribution. Since you, the author, are not a member of the Ceph GitHub Org yet, our CI will not automatically run. Any member of the Ceph Org may comment "ok - to - test" (without the dashes) to allow the Jenkins jobs to run.'''
+
+                    def payload = groovy.json.JsonOutput.toJson([body: message])
+                    writeFile file: 'github-comment-payload.json', text: payload
+
+                    echo ""
+                    echo "========================================"
+                    echo " Posting Non-Member Guidance Comment"
+                    echo "========================================"
+                    echo "Repository : ${owner}/${repo}"
+                    echo "Issue/PR   : ${issueNumber}"
+
+                    withCredentials([string(credentialsId: env.GITHUB_CREDENTIAL_ID, variable: 'GITHUB_TOKEN')]) {
+                        sh """
+                            curl -s -X POST \\
+                              -H "Accept: application/vnd.github+json" \\
+                              -H "Authorization: Bearer ${GITHUB_TOKEN}" \\
+                              -H "X-GitHub-Api-Version: 2022-11-28" \\
+                              "https://api.github.com/repos/${owner}/${repo}/issues/${issueNumber}/comments" \\
+                              -d @github-comment-payload.json
+                        """
+                    }
+
+                    echo "Guidance comment posted."
+                    echo "========================================"
+                }
+            }
+        }
+
+        stage('Build Execution') {
+            when {
+                expression {
+                    env.RUN_BUILD == 'true'
+                }
+            }
+
+            steps {
+                echo ""
+                echo "========================================"
+                echo " Build Execution"
+                echo "========================================"
+
+                echo "Reference : ${env.pr_number ?: env.issue_number ?: 'N/A'}"
+                echo "Action    : ${env.action ?: 'N/A'}"
+                echo "SHA       : ${env.head_sha ?: 'N/A'}"
+
+                timeout(time: 3, unit: 'MINUTES') {
+                    sleep(time: 120, unit: 'SECONDS')
                 }
             }
         }
     }
 
     post {
-
         aborted {
-            echo "Build superseded by a newer event."
+            echo "Build aborted."
         }
 
         success {

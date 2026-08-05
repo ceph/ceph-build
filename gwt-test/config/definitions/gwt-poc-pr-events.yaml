@@ -35,14 +35,12 @@
 
           cause: "Triggered by Generic Webhook Trigger"
 
-          regex-filter-text: "$comment_body"
-          regex-filter-expression: "^(retest this please|ok to test|test this please)$"
+          regex-filter-text: "$x_github_event:$action:$comment_body"
+          regex-filter-expression: "^(pull_request:(opened|synchronize|reopened|closed):.*|issue_comment:created:(retest this please|ok to test|test this please))$"
 
           post-content-params:
 
-            #
             # Common
-            #
 
             - type: JSONPath
               key: action
@@ -56,9 +54,7 @@
               key: sender_login
               value: $.sender.login
 
-            #
             # Pull Request Events
-            #
 
             - type: JSONPath
               key: pr_number
@@ -80,9 +76,7 @@
               key: base_branch
               value: $.pull_request.base.ref
 
-            #
             # Issue Comment Events
-            #
 
             - type: JSONPath
               key: comment_body
