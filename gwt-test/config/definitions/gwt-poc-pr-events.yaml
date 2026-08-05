@@ -2,7 +2,7 @@
     name: gwt-poc-pr-events
     project-type: pipeline
 
-    display-name: "gwt-poc-pr-events"
+    display-name: "GWT POC PR Events"
 
     description: |
       Generic Webhook Trigger POC
@@ -16,6 +16,8 @@
         - PR payload extraction
         - Comment payload extraction
         - Event identification
+        - Trusted user validation
+        - GitHub status reporting
 
     properties:
       - build-discarder:
@@ -40,7 +42,9 @@
 
           post-content-params:
 
+            #
             # Common
+            #
 
             - type: JSONPath
               key: action
@@ -54,7 +58,9 @@
               key: sender_login
               value: $.sender.login
 
+            #
             # Pull Request Events
+            #
 
             - type: JSONPath
               key: pr_number
@@ -76,7 +82,9 @@
               key: base_branch
               value: $.pull_request.base.ref
 
+            #
             # Issue Comment Events
+            #
 
             - type: JSONPath
               key: comment_body

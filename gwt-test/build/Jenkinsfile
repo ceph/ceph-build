@@ -1,3 +1,214 @@
+def checkCephOrgMember(String username) {
+    if (!username) {
+        echo "No username provided for Ceph org membership check."
+        return false
+    }
+
+    def statusCode = ""
+
+    withCredentials([string(credentialsId: env.GITHUB_CREDENTIAL_ID, variable: 'GITHUB_TOKEN')]) {
+        withEnv([
+            "GH_MEMBER_URL=https://api.github.com/orgs/${env.GITHUB_ORG}/members/${username}"
+        ]) {
+            statusCode = sh(
+                script: '''
+                    set +x
+
+                    curl -s -o /dev/null -w "%{http_code}" \
+                      -H "Accept: application/vnd.github+json" \
+                      -H "Authorization: Bearer ${GITHUB_TOKEN}" \
+                      -H "X-GitHub-Api-Version: 2022-11-28" \
+                      "${GH_MEMBER_URL}"
+                ''',
+                returnStdout: true
+            ).trim()
+        }
+    }
+
+    echo "Membership API status : ${statusCode}"
+
+    return statusCode == "204"
+}
+
+
+def setGitHubCommitStatus(String state, String description) {
+    if (!env.head_sha) {
+        echo "Skipping GitHub status update. head_sha is not available."
+        return false
+    }
+
+    def repoParts = (env.repository ?: '').split('/')
+
+    if (repoParts.size() != 2) {
+        echo "Skipping GitHub status update. Invalid repository: ${env.repository}"
+        return false
+    }
+
+    def owner = repoParts[0]
+    def repo = repoParts[1]
+
+    def payload = groovy.json.JsonOutput.toJson([
+        state      : state,
+        context    : env.STATUS_CONTEXT,
+        description: description.take(140),
+        target_url : env.BUILD_URL ?: ''
+    ])
+
+    writeFile file: 'github-status-payload.json', text: payload
+
+    def httpCode = ""
+
+    withCredentials([string(credentialsId: env.GITHUB_CREDENTIAL_ID, variable: 'GITHUB_TOKEN')]) {
+        withEnv([
+            "GH_STATUS_URL=https://api.github.com/repos/${owner}/${repo}/statuses/${env.head_sha}"
+        ]) {
+            httpCode = sh(
+                script: '''
+                    set +x
+
+                    curl -s -o github-status-response.json -w "%{http_code}" \
+                      -X POST \
+                      -H "Accept: application/vnd.github+json" \
+                      -H "Authorization: Bearer ${GITHUB_TOKEN}" \
+                      -H "X-GitHub-Api-Version: 2022-11-28" \
+                      "${GH_STATUS_URL}" \
+                      -d @github-status-payload.json
+                ''',
+                returnStdout: true
+            ).trim()
+        }
+    }
+
+    echo "GitHub status API HTTP code: ${httpCode}"
+    sh 'cat github-status-response.json || true'
+
+    if (httpCode == "201") {
+        echo "GitHub commit status updated: ${state} - ${description}"
+        return true
+    }
+
+    echo "WARNING: Failed to create GitHub commit status."
+    return false
+}
+
+
+def postNonMemberGuidanceComment() {
+    def issueNumber = env.pr_number ?: env.issue_number
+    def repoParts = (env.repository ?: '').split('/')
+
+    if (repoParts.size() != 2 || !issueNumber) {
+        echo "Unable to post guidance comment. Missing repository or issue number."
+        return
+    }
+
+    def owner = repoParts[0]
+    def repo = repoParts[1]
+
+    def message = '''Thank you for your contribution. Since you, the author, are not a member of the Ceph GitHub Org yet, our CI will not automatically run. Any member of the Ceph Org may comment "ok - to - test" (without the dashes) to allow the Jenkins jobs to run.'''
+
+    def payload = groovy.json.JsonOutput.toJson([body: message])
+    writeFile file: 'github-comment-payload.json', text: payload
+
+    echo ""
+    echo "========================================"
+    echo " Posting Non-Member Guidance Comment"
+    echo "========================================"
+    echo "Repository : ${owner}/${repo}"
+    echo "Issue/PR   : ${issueNumber}"
+
+    withCredentials([string(credentialsId: env.GITHUB_CREDENTIAL_ID, variable: 'GITHUB_TOKEN')]) {
+        withEnv([
+            "GH_COMMENT_URL=https://api.github.com/repos/${owner}/${repo}/issues/${issueNumber}/comments"
+        ]) {
+            sh '''
+                set +x
+
+                curl -s -X POST \
+                  -H "Accept: application/vnd.github+json" \
+                  -H "Authorization: Bearer ${GITHUB_TOKEN}" \
+                  -H "X-GitHub-Api-Version: 2022-11-28" \
+                  "${GH_COMMENT_URL}" \
+                  -d @github-comment-payload.json
+            '''
+        }
+    }
+
+    echo "Guidance comment posted."
+    echo "========================================"
+}
+
+
+def resolvePrContextFromComment() {
+    def issueNumber = env.issue_number
+    def repoParts = (env.repository ?: '').split('/')
+
+    if (repoParts.size() != 2 || !issueNumber) {
+        error("Cannot resolve PR context. Missing repository or issue number.")
+    }
+
+    def owner = repoParts[0]
+    def repo = repoParts[1]
+
+    echo ""
+    echo "========================================"
+    echo " Resolve PR Context"
+    echo "========================================"
+    echo "Repository : ${owner}/${repo}"
+    echo "PR Number  : ${issueNumber}"
+
+    withCredentials([string(credentialsId: env.GITHUB_CREDENTIAL_ID, variable: 'GITHUB_TOKEN')]) {
+        withEnv([
+            "GH_PULL_URL=https://api.github.com/repos/${owner}/${repo}/pulls/${issueNumber}"
+        ]) {
+            sh '''
+                set +x
+
+                curl -s \
+                  -H "Accept: application/vnd.github+json" \
+                  -H "Authorization: Bearer ${GITHUB_TOKEN}" \
+                  -H "X-GitHub-Api-Version: 2022-11-28" \
+                  "${GH_PULL_URL}" \
+                  -o github-pr.json
+
+                echo "Resolved PR API response saved to github-pr.json"
+            '''
+        }
+    }
+
+    env.pr_number = sh(
+        script: "jq -r '.number // empty' github-pr.json",
+        returnStdout: true
+    ).trim()
+
+    env.pr_author = sh(
+        script: "jq -r '.user.login // empty' github-pr.json",
+        returnStdout: true
+    ).trim()
+
+    env.head_sha = sh(
+        script: "jq -r '.head.sha // empty' github-pr.json",
+        returnStdout: true
+    ).trim()
+
+    env.head_branch = sh(
+        script: "jq -r '.head.ref // empty' github-pr.json",
+        returnStdout: true
+    ).trim()
+
+    env.base_branch = sh(
+        script: "jq -r '.base.ref // empty' github-pr.json",
+        returnStdout: true
+    ).trim()
+
+    echo "Resolved PR Number   : ${env.pr_number}"
+    echo "Resolved PR Author   : ${env.pr_author}"
+    echo "Resolved Head Branch : ${env.head_branch}"
+    echo "Resolved Base Branch : ${env.base_branch}"
+    echo "Resolved Head SHA    : ${env.head_sha}"
+    echo "========================================"
+}
+
+
 pipeline {
     agent any
 
@@ -9,6 +220,7 @@ pipeline {
     environment {
         GITHUB_ORG = 'ceph'
         GITHUB_CREDENTIAL_ID = 'ceph-ghprb-github-token'
+        STATUS_CONTEXT = 'ceph-ci/gwt-poc'
     }
 
     stages {
@@ -99,32 +311,7 @@ pipeline {
                     echo "User to check : ${userToCheck}"
                     echo "GitHub Org    : ${env.GITHUB_ORG}"
 
-                    def isMember = false
-
-                    if (!userToCheck) {
-                        echo "No user found to validate."
-                    } else {
-                        withCredentials([string(credentialsId: env.GITHUB_CREDENTIAL_ID, variable: 'GITHUB_TOKEN')]) {
-                            def statusCode = sh(
-                                script: """
-                                    curl -s -o /dev/null -w "%{http_code}" \\
-                                      -H "Accept: application/vnd.github+json" \\
-                                      -H "Authorization: Bearer ${GITHUB_TOKEN}" \\
-                                      -H "X-GitHub-Api-Version: 2022-11-28" \\
-                                      "https://api.github.com/orgs/${GITHUB_ORG}/members/${userToCheck}"
-                                """,
-                                returnStdout: true
-                            ).trim()
-
-                            echo "Membership API status : ${statusCode}"
-
-                            if (statusCode == "204") {
-                                isMember = true
-                            }
-                        }
-                    }
-
-                    if (isMember) {
+                    if (checkCephOrgMember(userToCheck)) {
                         env.TRUSTED_USER = "true"
                         echo "Trusted User : YES"
                     } else {
@@ -168,6 +355,11 @@ pipeline {
 
                         if (env.action == 'opened') {
                             env.POST_NON_MEMBER_COMMENT = "true"
+
+                            setGitHubCommitStatus(
+                                'pending',
+                                'CI not run. Waiting for Ceph org member approval.'
+                            )
                         }
                     }
 
@@ -242,6 +434,20 @@ pipeline {
             }
         }
 
+        stage('Resolve PR Context For Comment Event') {
+            when {
+                expression {
+                    env.x_github_event == 'issue_comment' && env.RUN_BUILD == 'true'
+                }
+            }
+
+            steps {
+                script {
+                    resolvePrContextFromComment()
+                }
+            }
+        }
+
         stage('Post Non-Member Guidance Comment') {
             when {
                 expression {
@@ -251,42 +457,24 @@ pipeline {
 
             steps {
                 script {
-                    def issueNumber = env.pr_number ?: env.issue_number
-                    def repoParts = (env.repository ?: '').split('/')
+                    postNonMemberGuidanceComment()
+                }
+            }
+        }
 
-                    if (repoParts.size() != 2 || !issueNumber) {
-                        echo "Unable to post guidance comment. Missing repository or issue number."
-                        return
-                    }
+        stage('Report Build Started') {
+            when {
+                expression {
+                    env.RUN_BUILD == 'true'
+                }
+            }
 
-                    def owner = repoParts[0]
-                    def repo = repoParts[1]
-
-                    def message = '''Thank you for your contribution. Since you, the author, are not a member of the Ceph GitHub Org yet, our CI will not automatically run. Any member of the Ceph Org may comment "ok - to - test" (without the dashes) to allow the Jenkins jobs to run.'''
-
-                    def payload = groovy.json.JsonOutput.toJson([body: message])
-                    writeFile file: 'github-comment-payload.json', text: payload
-
-                    echo ""
-                    echo "========================================"
-                    echo " Posting Non-Member Guidance Comment"
-                    echo "========================================"
-                    echo "Repository : ${owner}/${repo}"
-                    echo "Issue/PR   : ${issueNumber}"
-
-                    withCredentials([string(credentialsId: env.GITHUB_CREDENTIAL_ID, variable: 'GITHUB_TOKEN')]) {
-                        sh """
-                            curl -s -X POST \\
-                              -H "Accept: application/vnd.github+json" \\
-                              -H "Authorization: Bearer ${GITHUB_TOKEN}" \\
-                              -H "X-GitHub-Api-Version: 2022-11-28" \\
-                              "https://api.github.com/repos/${owner}/${repo}/issues/${issueNumber}/comments" \\
-                              -d @github-comment-payload.json
-                        """
-                    }
-
-                    echo "Guidance comment posted."
-                    echo "========================================"
+            steps {
+                script {
+                    setGitHubCommitStatus(
+                        'pending',
+                        'Jenkins build started'
+                    )
                 }
             }
         }
@@ -316,16 +504,43 @@ pipeline {
     }
 
     post {
-        aborted {
-            echo "Build aborted."
-        }
-
         success {
+            script {
+                if (env.RUN_BUILD == 'true') {
+                    setGitHubCommitStatus(
+                        'success',
+                        'Jenkins build completed successfully'
+                    )
+                }
+            }
+
             echo "Build completed successfully."
         }
 
         failure {
+            script {
+                if (env.RUN_BUILD == 'true') {
+                    setGitHubCommitStatus(
+                        'failure',
+                        'Jenkins build failed'
+                    )
+                }
+            }
+
             echo "Build failed."
+        }
+
+        aborted {
+            script {
+                if (env.RUN_BUILD == 'true') {
+                    setGitHubCommitStatus(
+                        'error',
+                        'Jenkins build aborted'
+                    )
+                }
+            }
+
+            echo "Build aborted."
         }
 
         always {
