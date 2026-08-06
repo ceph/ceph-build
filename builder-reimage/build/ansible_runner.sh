@@ -87,16 +87,51 @@ else
     echo "[ansible_runner] WARNING: venv not found at ${WORK_DIR}/${VENV_DIR}. Continuing without venv."
 fi
 
-# Determine SSH user based on OS
+# Determine preferred SSH users based on OS
+# Try the default OS user first, then fall back to 'cm' if needed.
 if [[ "$OS_VALUE" =~ (rhel|centos|rocky|almai|9-stream|rhel10|centos70|8) ]]; then
-    SSH_USER="cloud-user"
+    SSH_CANDIDATES=("cloud-user" "cm")
 else
-    SSH_USER="ubuntu"
+    SSH_CANDIDATES=("ubuntu" "cm")
 fi
 
-echo "[ansible_runner] SSH user selected = ${SSH_USER}"
+SSH_USER="${SSH_CANDIDATES[0]}"
+
+echo "[ansible_runner] Candidate SSH users: ${SSH_CANDIDATES[*]}"
 echo "[ansible_runner] Using inventory = ${INVENTORY_PATH}"
 echo "[ansible_runner] Using secrets = ${SECRETS_PATH}"
+
+## Verify SSH access using available candidate users before running playbooks.
+find_working_ssh_user() {
+    local candidate
+
+    for candidate in "${SSH_CANDIDATES[@]}"; do
+        echo "[ansible_runner] Testing SSH user '${candidate}'"
+
+        if ANSIBLE_HOST_KEY_CHECKING=False ansible all \
+            -i "${INVENTORY_PATH}" \
+            --limit "${TARGET_FQDN}" \
+            -m ping \
+            -e "ansible_ssh_user=${candidate}" \
+            > "${CONNECTIVITY_LOG}" 2>&1; then
+
+            SSH_USER="${candidate}"
+            export SSH_USER
+
+            echo "[ansible_runner] Using SSH user '${SSH_USER}'"
+
+            if [[ "${SSH_USER}" == "cm" ]]; then
+                echo "[ansible_runner][WARN] Falling back to 'cm' because the preferred SSH user was unavailable"
+            fi
+
+            return 0
+        fi
+
+        echo "[ansible_runner] User '${candidate}' failed"
+    done
+
+    return 1
+}
 
 # Wait until the reimaged node is reachable by Ansible.
 # MAAS may mark the node as deployed before SSH/cloud-init is fully ready.
@@ -111,20 +146,11 @@ wait_for_ansible_connectivity() {
     until [[ $attempts -ge $max_attempts ]]; do
         attempts=$((attempts + 1))
 
-        # Use Ansible ping to confirm SSH access and remote Python readiness.
-        ANSIBLE_HOST_KEY_CHECKING=False ansible all \
-            -i "${INVENTORY_PATH}" \
-            --limit "${TARGET_FQDN}" \
-            -m ping \
-            -e "ansible_ssh_user=${SSH_USER}" \
-            > "${CONNECTIVITY_LOG}" 2>&1
-
-        rc=$?
-
-        if [[ $rc -eq 0 ]]; then
-            echo "[ansible_runner] ${TARGET_FQDN} is reachable by Ansible"
-            return 0
-        fi
+        # Ensure the node is reachable and determine the correct SSH user.
+        if find_working_ssh_user; then
+		    echo "[ansible_runner] ${TARGET_FQDN} is reachable by Ansible using ${SSH_USER}"
+		    return 0
+		fi
 
         # Node is deployed but not ready yet, retry after a short wait.
         echo "[ansible_runner] ${TARGET_FQDN} not ready yet, attempt ${attempts}/${max_attempts}"
