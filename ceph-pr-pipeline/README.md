@@ -1,146 +1,77 @@
 # ceph-pr-pipeline
 
-One declarative Jenkins pipeline for the ceph.git PR checks that were
-previously five independent freestyle jobs, each doing its own 4-5 minute
-clone and (for three of them) its own multi-hour build:
+One pipeline for all ceph.git PR checks, replacing the GitHub Pull Request
+Builder plugin and six freestyle jobs.  ceph.git is cloned once and built once
+(x86_64, with tests); the test legs run on separate builders from the shared
+build tree.  The GitHub status contexts are unchanged, so branch protection
+rules don't change.
 
-| Status context | Old job | In the pipeline |
+| Status context | Replaces | How it runs now |
 | --- | --- | --- |
-| `Signed-off-by` | [ceph-pr-commits](../ceph-pr-commits/) | GitHub-API check, no clone, seconds |
-| `Unmodified Submodules` | [ceph-pr-submodules](../ceph-pr-submodules/) | GitHub-API check, no clone, seconds |
+| `Signed-off-by` | [ceph-pr-commits](../ceph-pr-commits/) | GitHub API only, no clone, seconds |
+| `Unmodified Submodules` | [ceph-pr-submodules](../ceph-pr-submodules/) | GitHub API only, no clone, seconds |
 | `make check` | [ceph-pull-requests](../ceph-pull-requests/) | shared build → ctest on its own builder |
 | `ceph API tests` | [ceph-pr-api](../ceph-pr-api/) | shared build → API tests on its own builder |
-| `ceph windows tests` | [ceph-windows-pull-requests](../ceph-windows-pull-requests/) | parallel leg (different binaries, nothing to share) |
-| `make check (arm64)` | [ceph-pull-requests-arm64](../ceph-pull-requests-arm64/) | parallel leg: own build+test on one arm64 node, own cache key |
-
-arm64 can never reuse the x86_64 binaries, so its leg does its own build --
-but it shares the pipeline's gating, cancellation, early pending statuses,
-and the S3 cache (keyed per arch), so re-runs skip the arm64 compile too.
-It builds and tests on a single node because the arm64 pool is small.
-
-The GitHub status contexts are identical to the old jobs, so **branch
-protection rules do not change**.
-
-- Job definitions (JJB): [ceph-pr-pipeline.yml](config/definitions/ceph-pr-pipeline.yml),
-  [ceph-pr-pipeline-trigger.yml](../ceph-pr-pipeline-trigger/config/definitions/ceph-pr-pipeline-trigger.yml)
-- Pipeline: [Jenkinsfile](build/Jenkinsfile)
-- Trigger: [ceph-pr-pipeline-trigger/build/Jenkinsfile](../ceph-pr-pipeline-trigger/build/Jenkinsfile)
-- Helper scripts: [pr_checks.sh](build/pr_checks.sh) (API-based quick checks),
-  [s3_cache.sh](build/s3_cache.sh) (build-tree handoff/cache)
+| `ceph windows tests` | [ceph-windows-pull-requests](../ceph-windows-pull-requests/) | parallel leg, own (win32) build |
+| `make check (arm64)` | [ceph-pull-requests-arm64](../ceph-pull-requests-arm64/) | parallel leg, build+test on one arm64 node |
 
 ## Flow
 
 ```
 webhook (pull_request / issue_comment)
-  └─ ceph-pr-pipeline-trigger        gating, cancellation, label handling
+  └─ ceph-pr-pipeline-trigger         gating, cancellation, label handling
        └─ ceph-pr-pipeline
-            prepare                  (small)  resolve PR, classify changed files
-            ├─ Signed-off-by         (small)  GitHub API, no clone
-            ├─ Unmodified Submodules (small)  GitHub API, no clone
-            ├─ ceph windows tests    (libvirt) own clone + win32 build + tests
-            ├─ build and test (arm64)(arm64)  own clone, restore-or-build + tests
+            prepare                   resolve PR, classify files, post pending statuses
+            ├─ Signed-off-by          GitHub API
+            ├─ Unmodified Submodules  GitHub API
+            ├─ ceph windows tests     (libvirt) own clone + build + tests
+            ├─ build and test (arm64) (arm64)  restore-or-build + tests
             └─ build and test
-                 build ceph          (huge)   ONE clone, bwc -e buildtests,
-                 │                            tree → S3 (skipped if cached)
-                 ├─ make check       (noble)  tree ← S3, bwc -e tests
-                 └─ ceph API tests   (huge)   tree ← S3, run-backend-api-tests
+                 build ceph           (huge)  ONE clone, bwc -e buildtests, tree → S3
+                 ├─ make check        tree ← S3, bwc -e tests
+                 └─ ceph API tests    tree ← S3, run-backend-api-tests (in container)
 ```
 
-- **One checkout.** Only the build node and the windows node clone ceph.git.
-  The quick checks and the test legs never clone at all.  Set
-  `CEPH_REFERENCE_REPO` to a local mirror path (maintainable via ansible/cron
-  on the builders) to cut the remaining clones from ~5 minutes to seconds; the
-  git plugin ignores the path on builders that don't have it.
-- **One build.** `build-with-container.py -e buildtests` compiles ceph *with*
-  tests (a superset of what the API tests need — the old ceph-pr-api job
-  built its own tree with `WITH_TESTS=OFF`).  The tree is compiled inside the
-  `DISTRO_BASE` container, so it runs identically on whichever builder the
-  test legs land on.
-- **Binary cache / re-runs.**  The built tree (source + `build/`) is
-  zstd-tarred and uploaded to S3 keyed by `pr-builds/<PR>/<head sha>.tar.zst`.
-  Any re-run for the same head sha — e.g. `jenkins test api` after a flaky
-  failure — skips compilation entirely and reuses the cached tree
-  (`FORCE_BUILD=true` overrides).  sccache still accelerates genuinely new
-  builds.
-- **Statuses.**  Each leg posts pending/success/failure for its own context
-  directly via the GitHub API (`github-status-check-token`); there is no
-  GHPRB plugin involvement.  A failed build posts failure to both `make
-  check` and `ceph API tests` so nothing is left hanging at "queued".
-- **Docs-only PRs** (and container-only, `.github`-only; plus qa-only for
-  windows) skip the heavy legs and report success for their contexts, same as
-  the old jobs.  Signed-off-by switches to the doc-title check for docs-only
-  PRs, mirroring ceph-pr-commits.
+- **Cache:** build trees are zstd-tarred to S3 as
+  `pr-builds/<PR>/<head sha>.<arch>.tar.zst`.  Re-runs for an unchanged head
+  sha skip compilation (`FORCE_BUILD=true` overrides).
+- **Statuses:** each leg posts its own context via the GitHub API.  Pending
+  is posted from `prepare` before legs wait for executors; canceled/failed
+  runs finalize any still-pending contexts.  Docs/container/gha-only PRs
+  (plus qa-only for windows/arm64) report success without building.
+- **Checkout time:** set `CEPH_REFERENCE_REPO` to a local ceph.git mirror on
+  the builders to cut the remaining clones to seconds.
 
-## Gating (replaces GHPRB's org whitelist)
+## Gating
 
-Implemented in the trigger job:
-
-- PR author in the **ceph GitHub org** → CI runs automatically on open,
-  reopen and every push.
-- Anyone else → all five contexts are set to pending
-  ("awaiting 'ci-approved' label…") and nothing runs until a Ceph developer
-  adds the **`ci-approved` label** (adding labels requires triage permission,
-  so the label itself is the authorization).
-- **Every push to an approved PR revokes the approval**: the trigger removes
-  `ci-approved`, cancels any running pipeline builds for that PR, and resets
-  the contexts to pending.  The label must be re-added after each push —
-  including force-pushes — so approval always refers to reviewed code.
-- Comment phrases (org members always; others only while the label is
-  present): `jenkins retest ...` re-runs **everything** (the S3 cache makes
-  that cheap for an unchanged head); `jenkins test <check>` runs one leg and
-  requires naming it -- `make check`, `make check arm64`, `api`, `windows`,
-  `signed`, `submodules`.  A bare `jenkins test` runs nothing.  `jenkins do
-  not test` in the PR description still skips auto-builds.
-
-## Force-push / cancellation
-
-A new webhook delivery for a PR (push or retest) makes the trigger abort any
-still-running `ceph-pr-pipeline` builds for that PR number before starting a
-new one, and the pipeline's prepare stage also aborts older builds of itself
-for the same PR (covers manual runs and webhook races).  A build whose
-`HEAD_SHA` no longer matches the PR head aborts itself as superseded.
-
-## Why not GitHub Actions (or a GHA/Jenkins combo)?
-
-- Every heavy check needs our own hardware (huge builders, libvirt hosts);
-  GHA could only ever be a trigger shim in front of Jenkins.
-- `.github/workflows` live in ceph.git per target branch and would need
-  backporting to every stable branch; ceph-build config applies to all
-  branches on merge.
-- Gating/cancellation policy would exist in two systems and drift.
+- PR author in the ceph org: CI runs automatically.
+- Otherwise: all contexts wait as pending until a Ceph developer adds the
+  `ci-approved` label.  **Every push removes the label**, cancels running
+  builds, and resets statuses — it must be re-added for the new code.
+- Comment phrases (org members always, others only while labeled):
+  `jenkins retest ...` re-runs everything; `jenkins test <check>` runs one of
+  `make check`, `make check arm64`, `api`, `windows`, `signed`, `submodules`.
+  Bare `jenkins test` runs nothing.
 
 ## Rollout
 
-1. Create the `pipeline-trigger-token` secret text credential (any random
-   string) if not already present, and confirm these exist:
-   `github-status-check-token` (needs `repo:status` **and** issues write for
-   label removal, and org membership read), `github-readonly-token`,
-   `dgalloway-docker-hub`, `ibm-cloud-sccache-bucket`,
-   `ceph_win_ci_private_key`.
-2. Deploy the two jobs with JJB.  The abort-superseded-builds helpers touch
-   the Jenkins model (`Jenkins.get()` / `rawBuild`), which the sandbox
-   rejects until approved.  Rather than approving one signature per failed
-   run, pre-approve the lot in Manage Jenkins → Script Console:
+1. Credentials: `pipeline-trigger-token`, `github-status-check-token`
+   (repo:status + issues write + org read), `github-readonly-token`,
+   `dgalloway-docker-hub`, `ibm-cloud-sccache-bucket`, `ceph_win_ci_private_key`.
+2. Deploy both jobs with JJB, then pre-approve the sandbox signatures in
+   Manage Jenkins → Script Console:
 
    ```groovy
    import org.jenkinsci.plugins.scriptsecurity.scripts.ScriptApproval
-
    [
      'method org.jenkinsci.plugins.workflow.support.steps.build.RunWrapper getRawBuild',
      'method hudson.model.Run getParent',
      'method hudson.model.Job getBuilds',
-     'method hudson.model.Run getNumber',
-     'method hudson.model.Run isBuilding',
-     // On newer cores these resolve to the HistoricalBuild interface instead
      'method jenkins.model.HistoricalBuild getNumber',
      'method jenkins.model.HistoricalBuild isBuilding',
      'method hudson.model.Actionable getAction java.lang.Class',
      'method hudson.model.ParametersAction getParameter java.lang.String',
-     // StringParameterValue is the narrow variant; keep only whichever one
-     // the sandbox actually asks for (the broad ParameterValue one can read
-     // password parameters, the narrow one cannot)
      'method hudson.model.StringParameterValue getValue',
-     'method hudson.model.ParameterValue getValue',
      'method hudson.model.Run getExecutor',
      'method hudson.model.Executor interrupt hudson.model.Result',
      'staticField hudson.model.Result ABORTED',
@@ -149,42 +80,22 @@ for the same PR (covers manual runs and webhook races).  A build whose
    ].each { ScriptApproval.get().approveSignature(it) }
    ```
 
-   If a run still hits a rejection (signature strings can vary slightly by
-   plugin version), approve the exact string it reports at Manage Jenkins →
-   In-process Script Approval and re-run.
-3. Test side by side with the old jobs: run `ceph-pr-pipeline` manually with
-   a real PR number and `STATUS_PREFIX=pipeline/` — statuses appear as e.g.
-   `pipeline/make check` and the required contexts are untouched.
-4. Add the repo (or org) webhook:
+   (If a run reports a differently-resolved signature, approve exactly what
+   it prints at In-process Script Approval.)
+3. Test side by side: run `ceph-pr-pipeline` manually with a PR number and
+   `STATUS_PREFIX=pipeline/` so required contexts are untouched.
+4. Add the webhook:
    `https://jenkins.ceph.com/generic-webhook-trigger/invoke?token=<pipeline-trigger-token>`
-   for `pull_request` + `issue_comment` events, content type
-   `application/json`.
-5. Flip: disable the GHPRB triggers on the six old jobs -- including
-   ceph-pull-requests-arm64, whose check now runs in the pipeline -- (keep
-   the jobs for a while for manual reruns/rollback), and remove
-   `STATUS_PREFIX`.
-6. Add an S3 lifecycle rule expiring `pr-builds/*` after ~7 days (the cache
-   is per-PR-head-sha and only useful for re-runs).  Consider a dedicated
-   bucket instead of `ceph-sccache` if quota is a concern.
-7. Optional: seed `/home/jenkins-build/ceph-mirror.git` on the builders and
-   set `CEPH_REFERENCE_REPO` accordingly.
+   for `pull_request` + `issue_comment`, content type `application/json`.
+5. Flip: disable the GHPRB triggers on the six old jobs, drop `STATUS_PREFIX`.
+6. Add an S3 lifecycle rule expiring `pr-builds/*` after ~7 days, and
+   (optional) seed reference mirrors for `CEPH_REFERENCE_REPO`.
 
-## Known gaps / TODO
+## Known gaps
 
-- The dashboard-frontend cobertura coverage publishing from
-  ceph-pull-requests is not wired up yet (needs the coverage plugin's
-  pipeline step).
-- The API tests now run **inside the build container** (jammy by default)
-  instead of directly on a noble host; `run-backend-api-tests.sh` in a
-  rootless-podman container needs validating on a real PR before the flip.
-  Daemon-heavy make check tests already run in that container, so this is
-  expected to work.
-- Squid-targeted PRs: the old `ceph-api-squid` job ran on jammy *hosts*; here
-  everything is containerized so the host OS no longer matters, but squid PRs
-  should be spot-checked.
-- The GHPRB "rebuild" button semantics are replaced by re-running the
-  pipeline build (Jenkins "Rebuild" with the same parameters works and will
-  hit the binary cache).
-- `build-with-container.py` names its container `ceph_build`, so two legs of
-  the same (or different) PRs must not share a builder concurrently; with
-  one executor per builder — the current farm setup — this cannot happen.
+- API tests now run inside the build container (was: bare noble host);
+  validate on a real PR before the flip.
+- Dashboard-frontend cobertura publishing is not wired up yet.
+- A hard kill (double abort) skips `post{}`, so statuses stay pending.
+- `build-with-container.py` names its container `ceph_build`: one leg per
+  builder at a time (true today with single-executor builders).
