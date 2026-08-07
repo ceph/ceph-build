@@ -6,12 +6,32 @@ BRANCH=`branch_slash_filter $BRANCH`
 CEPH_BRANCH=$(branch_slash_filter $CEPH_BRANCH)
 
 # Only do actual work when we are an RPM distro
-if test "$DISTRO" != "fedora" -a "$DISTRO" != "centos" -a "$DISTRO" != "rhel"; then
+if test "$DISTRO" != "fedora" -a "$DISTRO" != "centos" -a "$DISTRO" != "rhel" -a "$DISTRO" != "rocky"; then
     exit 0
 fi
 
-# This will set the RELEASE variable
-get_rpm_dist
+# Determine the target distro/release.  rocky10 has no dedicated builders, so
+# it is built inside a rockylinux:10 container running on a centos9 host (see
+# the combination-filter in config/definitions/tcmu-runner.yml).  In that case
+# derive the target from $DIST rather than the host's /etc/os-release.  The
+# container is the same architecture as the host, so an arm64 centos9 builder
+# produces aarch64 rocky10 RPMs.
+CONTAINER_IMAGE=""
+if [ "$DIST" = "rocky10" ]; then
+    DISTRO=rocky
+    RELEASE=10
+    CONTAINER_IMAGE=docker.io/rockylinux/rockylinux:10
+else
+    # This will set the RELEASE variable
+    get_rpm_dist
+    # Install the dependencies
+    sudo yum install -y mock
+fi
+
+DISTRO_ARCH=${ARCH}
+if [[ "${ARCH}" = "arm64" ]] ; then
+	DISTRO_ARCH="aarch64"
+fi
 
 ## Get the desired CEPH_BRANCH/CEPH_SHA1 ceph repo
 # Get .repo file from appropriate shaman build
@@ -37,9 +57,6 @@ if [[ "$REPO_FOUND" -eq 0 ]]; then
   exit 1
 fi
 
-# Install the dependencies
-sudo yum install -y mock
-
 ## Get some basic information about the system and the repository
 VERSION="$(git describe --abbrev=0 --tags HEAD | sed -e 's/v//1;' | cut -d - -f 1)"
 REVISION="$(git describe --tags HEAD | sed -e 's/v//1;' | cut -d - -f 2- | sed 's/-/./g' | sed 's/^rc/0./')"
@@ -60,36 +77,70 @@ sed -i 's/^[# ]*%define _RC.*$//g' tcmu-runner.spec
 # for debugging
 cat $WORKSPACE/${PROJECT}.spec
 
-## Create the source rpm
-echo "Building SRPM"
-rpmbuild \
-    --define "_sourcedir $WORKSPACE/dist" \
-    --define "_specdir $WORKSPACE/dist" \
-    --define "_builddir $WORKSPACE/dist" \
-    --define "_srcrpmdir $WORKSPACE/dist/SRPMS" \
-    --define "_rpmdir $WORKSPACE/dist/RPMS" \
-    --nodeps -bs $WORKSPACE/${PROJECT}.spec
-SRPM=$(readlink -f $WORKSPACE/dist/SRPMS/*.src.rpm)
+if [ -n "$CONTAINER_IMAGE" ]; then
+    ## Build the binaries inside a container of the target distro
+    echo "Building RPMs in $CONTAINER_IMAGE"
+    # Generate the build steps as a script so it can run inside the container
+    # with the workspace bind-mounted.  Rootless podman maps the container
+    # root to the host build user, so the resulting RPMs are owned by us.  The
+    # ceph repo from shaman is dropped into the container so librbd-devel is
+    # available, and 'glfs' is disabled because glusterfs packages aren't
+    # available on el10.
+    cat > $WORKSPACE/dist/container_build.sh <<PODMAN_EOF
+#!/bin/bash
+set -ex
+cp $WORKSPACE/shaman.repo /etc/yum.repos.d/ceph.repo
+dnf install -y epel-release dnf-plugins-core rpm-build
+dnf config-manager --set-enabled crb || true
+dnf builddep -y --define "_without_glfs 1" $WORKSPACE/${PROJECT}.spec
+rpmbuild \\
+    --define "_sourcedir $WORKSPACE/dist" \\
+    --define "_specdir $WORKSPACE/dist" \\
+    --define "_builddir $WORKSPACE/dist" \\
+    --define "_srcrpmdir $WORKSPACE/dist/SRPMS" \\
+    --define "_rpmdir $WORKSPACE/dist/RPMS" \\
+    --without glfs -bb $WORKSPACE/${PROJECT}.spec
+PODMAN_EOF
+    # el10's glibc applies RELRO via an mprotect on its (text-relocated) libc
+    # mapping; the centos9 host's SELinux policy denies the resulting 'execmod'
+    # (EACCES), which makes even /bin/bash fail to load libc in the container.
+    # label=disable runs the container unconfined by SELinux to avoid it, and
+    # seccomp=unconfined covers the matching syscall-filter denial.  With
+    # label=disable the ':Z' volume relabel is unnecessary.
+    podman run --rm \
+        --security-opt label=disable \
+        --security-opt seccomp=unconfined \
+        -v "$WORKSPACE":"$WORKSPACE" \
+        -w "$WORKSPACE" \
+        "$CONTAINER_IMAGE" \
+        /bin/bash -ex $WORKSPACE/dist/container_build.sh
+else
+    ## Create the source rpm
+    echo "Building SRPM"
+    rpmbuild \
+        --define "_sourcedir $WORKSPACE/dist" \
+        --define "_specdir $WORKSPACE/dist" \
+        --define "_builddir $WORKSPACE/dist" \
+        --define "_srcrpmdir $WORKSPACE/dist/SRPMS" \
+        --define "_rpmdir $WORKSPACE/dist/RPMS" \
+        --nodeps -bs $WORKSPACE/${PROJECT}.spec
+    SRPM=$(readlink -f $WORKSPACE/dist/SRPMS/*.src.rpm)
 
-DISTRO_ARCH=${ARCH}
-if [[ "${ARCH}" = "arm64" ]] ; then
-	DISTRO_ARCH="aarch64"
+    # add shaman repo file to mock config
+    cat /etc/mock/${MOCK_TARGET}-${RELEASE}-${DISTRO_ARCH}.cfg > tcmu-runner.cfg
+    echo "" >> tcmu-runner.cfg
+    echo "config_opts['yum.conf'] += \"\"\"" >> tcmu-runner.cfg
+    cat $WORKSPACE/shaman.repo >> tcmu-runner.cfg
+    echo "\"\"\"" >> tcmu-runner.cfg
+    # for debugging
+    cat tcmu-runner.cfg
+
+    ## Build the binaries with mock
+    # disable 'glfs' because centos9 packages aren't available
+    echo "Building RPMs"
+    sudo mock --verbose --without glfs -r tcmu-runner.cfg --scrub=all
+    sudo mock --verbose --without glfs -r tcmu-runner.cfg --resultdir=$WORKSPACE/dist/RPMS/ ${SRPM} || ( tail -n +1 $WORKSPACE/dist/RPMS/{root,build}.log && exit 1 )
 fi
-
-# add shaman repo file to mock config
-cat /etc/mock/${MOCK_TARGET}-${RELEASE}-${DISTRO_ARCH}.cfg > tcmu-runner.cfg
-echo "" >> tcmu-runner.cfg
-echo "config_opts['yum.conf'] += \"\"\"" >> tcmu-runner.cfg
-cat $WORKSPACE/shaman.repo >> tcmu-runner.cfg
-echo "\"\"\"" >> tcmu-runner.cfg
-# for debugging
-cat tcmu-runner.cfg
-
-## Build the binaries with mock
-# disable 'glfs' because centos9 packages aren't available
-echo "Building RPMs"
-sudo mock --verbose --without glfs -r tcmu-runner.cfg --scrub=all
-sudo mock --verbose --without glfs -r tcmu-runner.cfg --resultdir=$WORKSPACE/dist/RPMS/ ${SRPM} || ( tail -n +1 $WORKSPACE/dist/RPMS/{root,build}.log && exit 1 )
 
 ## Upload the created RPMs to chacra
 chacra_endpoint="tcmu-runner/${BRANCH}/${GIT_COMMIT}/${DISTRO}/${RELEASE}"
