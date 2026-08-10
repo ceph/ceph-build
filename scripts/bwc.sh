@@ -83,8 +83,14 @@ bwc_login() {
     if [ -z "${DOCKER_HUB_USERNAME}" ] || [ -z "${DOCKER_HUB_PASSWORD}" ]; then
         return 0
     fi
-    # Same-shell export so login and all later podman calls share one
-    # persistent authfile: https://tracker.ceph.com/issues/77920
+    # Pin auth to one persistent, deterministic path so login and all
+    # later podman calls in this shell read/write the same authfile.
+    # NOTE: this does NOT prevent the rate-limit failures tracked in
+    # https://tracker.ceph.com/issues/77920 -- those were Docker Hub
+    # *account* pull-quota exhaustion (the shared CI account being
+    # drained, e.g. by the daily sync-images run), not credentials
+    # failing to reach podman. The pulls were authenticated all along;
+    # Docker's 429 message just misleadingly says "unauthenticated".
     export REGISTRY_AUTH_FILE="${HOME}/.config/containers/auth.json"
     mkdir -p "${REGISTRY_AUTH_FILE%/*}"
     podman login -u "${DOCKER_HUB_USERNAME}" -p "${DOCKER_HUB_PASSWORD}" docker.io
