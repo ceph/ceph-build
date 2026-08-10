@@ -1,5 +1,5 @@
 - job:
-    name: gwt-poc-pr-events
+    name: preserve-gwt-poc-pr-events
     project-type: pipeline
 
     display-name: "GWT POC PR Events"
