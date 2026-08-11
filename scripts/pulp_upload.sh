@@ -13,7 +13,7 @@
 #   SHA1            - Git commit SHA for this build
 #   OS_NAME         - Target OS (e.g. centos, ubuntu)
 #   OS_VERSION      - Target OS version
-#   OS_VERSION_NAME - Ubuntu codename (used when OS_NAME=ubuntu)
+#   OS_VERSION_NAME - Distro codename, e.g. jammy, bookworm (used when OS_PKG_TYPE=deb)
 #   OS_PKG_TYPE     - Package format: "rpm" or "deb"
 #   FLAVOR          - Build flavor label (e.g. default, crimson)
 #   ARCH            - Target architecture (deb uploads only)
@@ -289,9 +289,16 @@ upload_deb_to_pulp() {
 #   $1 - Architecture label stored on the distribution
 #   $2 - Package manager version string for the version label
 # Prints one label element per line (key, value, key, value, ...).
+# distro_version must match what teuthology searches for: the codename for
+# deb-based distros (e.g. jammy, bookworm), the numeric version otherwise.
 get_pulp_distribution_labels() {
     local repo_arch="$1"
     local package_version="$2"
+    local distro_version="${OS_VERSION}"
+
+    if [ "$OS_PKG_TYPE" == "deb" ]; then
+        distro_version="${OS_VERSION_NAME}"
+    fi
 
     printf '%s\n' \
         project "${PULP_PROJECT}" \
@@ -301,7 +308,7 @@ get_pulp_distribution_labels() {
         arch "${repo_arch}" \
         sha1 "${SHA1}" \
         distro "${OS_NAME}" \
-        distro_version "${OS_VERSION}" \
+        distro_version "${distro_version}" \
         flavors "${FLAVOR}"
 }
 
