@@ -41,6 +41,10 @@
           name: DEFINEDHOSTS
           default: ""
           description: "Define a list of systems to use instead of using teuthology-lock to lock unused systems.  Also used to seed a brand new distro image: image a host by hand, then run this job with DEFINEDHOSTS pointing at it."
+      - string:
+          name: IMAGETYPE
+          default: ""
+          description: "Capture the images under a different machine-type name than the nodes being used.  e.g. MACHINETYPES=trial IMAGETYPE=trial-perf locks trial nodes but deploys/recaptures trial-perf_<distro> images.  Leave empty to name images after the machine type."
       - choice:
           name: FSCKMETHOD
           choices:

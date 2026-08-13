@@ -230,6 +230,14 @@ fi
 
 numdistros=$(echo $DISTROS | wc -w)
 
+# IMAGETYPE overrides the machine-type prefix of the FOG image names, e.g.
+# MACHINETYPES=trial IMAGETYPE=trial-perf locks trial nodes but deploys and
+# recaptures trial-perf_<distro> images.  Empty means images are named after
+# the machine type.
+# The queue is paused for the machine types being used AND the type whose
+# images are being rewritten.
+pausetypes="$MACHINETYPES${IMAGETYPE:+ $IMAGETYPE}"
+
 funAllHosts () {
   if [ "$use_teuthologylock" = true ]; then
     teuthology-lock --brief -a --status down | grep "$lockdesc" | cut -d '.' -f1 | tr "\n" " "
@@ -357,6 +365,7 @@ phase_deploy () {
         exit 1
       fi
       funSetProfiles ${array2[$i-1]}
+      imagename="${IMAGETYPE:-$type}_${fogprofile}"
       # Get FOG host ID
       foghostid=$(funFogApi GET /host '{"name": "'${host}'"}' | jq -r '.hosts[0].id')
       if [ -z "$foghostid" ] || [ "$foghostid" == "null" ]; then
@@ -364,21 +373,21 @@ phase_deploy () {
         exit 1
       fi
       # Get FOG image ID
-      fogimageid=$(funFogApi GET /image '{"name": "'${type}_${fogprofile}'"}' | jq -r '.images[0].id')
+      fogimageid=$(funFogApi GET /image '{"name": "'${imagename}'"}' | jq -r '.images[0].id')
       deployed=false
       if [ "$fogimageid" == "null" ] || [ -z "$fogimageid" ]; then
         if [ "$use_teuthologylock" = true ]; then
           # Nothing to deploy.  Brand new distros have to be seeded manually:
           # image a host by hand, then rerun this job with DEFINEDHOSTS
           # pointing at it.
-          echo "ERROR: No FOG image named ${type}_${fogprofile} exists so there is nothing to deploy and update."
-          echo "Seed the first ${type}_${fogprofile} image manually, then rerun this job with DEFINEDHOSTS set."
+          echo "ERROR: No FOG image named ${imagename} exists so there is nothing to deploy and update."
+          echo "Seed the first ${imagename} image manually, then rerun this job with DEFINEDHOSTS set."
           exit 1
         fi
         # DEFINEDHOSTS path: the host is assumed to already be running the
         # target OS.  Create the image template so it can be captured.
-        funFogApi POST /image/ '{ "imageTypeID": "1", "imagePartitionTypeID": "1", "name": "'${type}_${fogprofile}'", "path": "'${type}_${fogprofile}'", "osID": "50", "format": "0", "magnet": "", "protected": "0", "compress": "6", "isEnabled": "1", "toReplicate": "1", "os": {"id": "50", "name": "Linux", "description": ""}, "imagepartitiontype": {"id": "1", "name": "Everything", "type": "all"}, "imagetype": {"id": "1", "name": "Single Disk - Resizable", "type": "n"}, "imagetypename": "Single Disk - Resizable", "imageparttypename": "Everything", "osname": "Linux", "storagegroupname": "default"}' || true
-        fogimageid=$(funFogApi GET /image '{"name": "'${type}_${fogprofile}'"}' | jq -r '.images[0].id')
+        funFogApi POST /image/ '{ "imageTypeID": "1", "imagePartitionTypeID": "1", "name": "'${imagename}'", "path": "'${imagename}'", "osID": "50", "format": "0", "magnet": "", "protected": "0", "compress": "6", "isEnabled": "1", "toReplicate": "1", "os": {"id": "50", "name": "Linux", "description": ""}, "imagepartitiontype": {"id": "1", "name": "Everything", "type": "all"}, "imagetype": {"id": "1", "name": "Single Disk - Resizable", "type": "n"}, "imagetypename": "Single Disk - Resizable", "imageparttypename": "Everything", "osname": "Linux", "storagegroupname": "default"}' || true
+        fogimageid=$(funFogApi GET /image '{"name": "'${imagename}'"}' | jq -r '.images[0].id')
       else
         # Associate the image with the host and deploy it
         funFogApi PUT /host/$foghostid '{"imageID": "'${fogimageid}'"}'
@@ -492,8 +501,8 @@ phase_capture () {
   # verify phase has proven it boots.  The 2h expiry is a safety valve in
   # case this job dies without running cleanup.
   if [ "$PAUSEQUEUE" == "true" ]; then
-    for type in $MACHINETYPES; do
-      teuthology-queue --pause 7200 --machine_type $type
+    for qtype in $pausetypes; do
+      teuthology-queue --pause 7200 --machine_type $qtype
     done
 
     # Let any already-scheduled deploys drain before we start capturing
@@ -614,8 +623,8 @@ phase_verify () {
 
   # The new images are good; the queue can deploy them again
   if [ "$PAUSEQUEUE" == "true" ]; then
-    for type in $MACHINETYPES; do
-      teuthology-queue --pause 0 --machine_type $type
+    for qtype in $pausetypes; do
+      teuthology-queue --pause 0 --machine_type $qtype
     done
   fi
   rm -f $WORKSPACE/captures-started
@@ -684,14 +693,14 @@ phase_cleanup () {
   if [ "$PAUSEQUEUE" == "true" ]; then
     if [ -f $WORKSPACE/captures-started ]; then
       echo "WARNING: Captures started but the new image(s) were never verified."
-      echo "WARNING: LEAVING the teuthology queue paused for: $MACHINETYPES"
+      echo "WARNING: LEAVING the teuthology queue paused for: $pausetypes"
       echo "WARNING: Verify or restore the images, then unpause with: teuthology-queue --pause 0 --machine_type <type>"
-      for type in $MACHINETYPES; do
-        teuthology-queue --pause 7200 --machine_type $type
+      for qtype in $pausetypes; do
+        teuthology-queue --pause 7200 --machine_type $qtype
       done
     else
-      for type in $MACHINETYPES; do
-        teuthology-queue --pause 0 --machine_type $type
+      for qtype in $pausetypes; do
+        teuthology-queue --pause 0 --machine_type $qtype
       done
     fi
   fi
