@@ -9,6 +9,8 @@
 #   fog-images.sh ansible   Run cephlab.yml and prep-fog-capture.yml
 #   fog-images.sh fsck      fsck the root fs (fog-postinit or maas-rescue)
 #   fog-images.sh capture   Create FOG capture tasks, reboot, wait
+#   fog-images.sh verify    Deploy the new images on different hosts to prove
+#                           they work, then unpause the queue
 #   fog-images.sh unlock    Release the testnodes
 #   fog-images.sh cleanup   Best-effort cleanup after a failed/aborted run
 #
@@ -172,6 +174,51 @@ funActivateVenv () {
   cd $WORKSPACE
   source $WORKSPACE/teuthology/virtualenv/bin/activate 2>/dev/null || \
     source $WORKSPACE/teuthology/.venv/bin/activate
+}
+
+# Wait until a host has finished its first-boot network/hostname
+# configuration (the sentinel file).  Usage: funWaitForHost <host> [maxretries]
+funWaitForHost () {
+  local currentretries=0
+  until ssh $sshopts ubuntu@${1}.front.sepia.ceph.com "stat $sentinelfile > /dev/null 2>&1"; do
+    echo "$(date) -- ${1} has not created $sentinelfile yet.  Sleeping 30sec"
+    sleep 30
+    ((++currentretries))
+    funRetry $currentretries ${2:-60}
+  done
+}
+
+# Wait until none of the given FOG host IDs have active tasks.
+# Usage: funWaitForOurTasks '["1","2"]' [maxretries]
+funWaitForOurTasks () {
+  local currentretries=0 activetasks
+  while true; do
+    activetasks=$(funFogApi GET /task/active | jq -r --argjson ids "$1" '[(.tasks // [])[] | select((.hostID|tostring) as $h | $ids | index($h))] | length')
+    if [ "${activetasks:-1}" == "0" ]; then
+      break
+    fi
+    echo "$(date) -- $activetasks FOG tasks for our hosts still active.  Sleeping 30sec"
+    sleep 30
+    ((++currentretries))
+    funRetry $currentretries ${2:-120}
+  done
+}
+
+# Mark down one free host of the given machine type for image verification.
+# Prints the claimed short hostname.  Usage: funClaimExtraHost <type>
+funClaimExtraHost () {
+  local currentretries=0 candidate
+  while true; do
+    candidate=$(teuthology-lock --brief -a --machine-type $1 --status up --locked false | head -n 1 | awk '{ print $1 }')
+    if [ -n "$candidate" ] && teuthology-lock --update --status down --desc "$lockdesc" $candidate >&2; then
+      echo $candidate | cut -d '.' -f1
+      return 0
+    fi
+    sleep 5
+    ((++currentretries))
+    # Retry for 20min
+    funRetry $currentretries 240
+  done
 }
 
 # Should we use teuthology-lock to lock systems?
@@ -339,37 +386,19 @@ phase_deploy () {
         funReboot $host
         deployed=true
       fi
-      echo "$host ${array2[$i-1]} $foghostid $fogimageid $deployed" >> $statefile
+      echo "$host ${array2[$i-1]} $foghostid $fogimageid $deployed $type" >> $statefile
     done
   done
 
   # Wait for all of our deploy tasks to finish (single API call per poll)
   deployids=$(awk '$5 == "true" {print $3}' $statefile | jq -R . | jq -sc .)
-  currentretries=0
-  while true; do
-    activetasks=$(funFogApi GET /task/active | jq -r --argjson ids "$deployids" '[(.tasks // [])[] | select((.hostID|tostring) as $h | $ids | index($h))] | length')
-    if [ "${activetasks:-1}" == "0" ]; then
-      break
-    fi
-    echo "$(date) -- $activetasks FOG deploy tasks for our hosts still active.  Sleeping 30sec"
-    sleep 30
-    ((++currentretries))
-    # Retry for 1hr
-    funRetry $currentretries 120
-  done
+  funWaitForOurTasks "$deployids" 120
 
   # Wait for the freshly-deployed hosts to come back up and finish their
   # first-boot network/hostname configuration (the sentinel file)
-  while read -u3 -r host distro foghostid fogimageid deployed; do
+  while read -u3 -r host distro foghostid fogimageid deployed type; do
     [ "$deployed" == "true" ] || continue
-    currentretries=0
-    until ssh $sshopts ubuntu@${host}.front.sepia.ceph.com "stat $sentinelfile > /dev/null 2>&1"; do
-      echo "$(date) -- $host has not created $sentinelfile yet.  Sleeping 30sec"
-      sleep 30
-      ((++currentretries))
-      # Retry for 30min
-      funRetry $currentretries 60
-    done
+    funWaitForHost $host 60
   done 3< $statefile
 }
 
@@ -402,7 +431,7 @@ phase_fsck () {
   { set +x; } 2>/dev/null
   maas login $maasprofile $maasurl "$MAAS_API_KEY"
   set -x
-  while read -u3 -r host distro foghostid fogimageid deployed; do
+  while read -u3 -r host distro foghostid fogimageid deployed type; do
     # Point the host's PXE entry at MAAS so rescue mode can boot
     funSetPxe $host maas
     systemid=$(maas $maasprofile machines read hostname=$host | jq -r '.[0].system_id')
@@ -458,34 +487,34 @@ phase_capture () {
   fogcaptureid=$(funFogApi GET /tasktype '{"name": "Capture"}' | jq -r '.tasktypes[0].id')
   fogdeployid=$(funFogApi GET /tasktype '{"name": "Deploy"}' | jq -r '.tasktypes[0].id')
 
-  # Only pause the queue if needed
-  pausedqueue=false
+  # Pause the queue for the whole capture+verify window: captures replace the
+  # image the queue deploys from, and the new image is unusable until the
+  # verify phase has proven it boots.  The 2h expiry is a safety valve in
+  # case this job dies without running cleanup.
   if [ "$PAUSEQUEUE" == "true" ]; then
-    # Check for scheduled deploy tasks.  Capturing a new OS image can
-    # interrupt active OS deployments.
-    deploytasks=$(funFogApi GET /task/active '{"typeID": "'${fogdeployid}'"}' | jq -r '.count // 0')
+    for type in $MACHINETYPES; do
+      teuthology-queue --pause 7200 --machine_type $type
+    done
 
-    # If there are scheduled or active deploy tasks, pause the queue and let them finish.
-    if [ "${deploytasks:-0}" -gt 0 ]; then
-      for type in $MACHINETYPES; do
-        # Only pause the queue for 1hr just in case anything goes wrong with the Jenkins job.
-        teuthology-queue --pause 3600 --machine_type $type
-      done
-      pausedqueue=true
-      currentretries=0
-      while [ $deploytasks -gt 0 ]; do
-        echo "$(date) -- $deploytasks FOG deploy tasks still queued.  Sleeping 10sec"
-        sleep 10
-        deploytasks=$(funFogApi GET /task/active '{"typeID": "'${fogdeployid}'"}' | jq -r '.count')
-        ((++currentretries))
-        # Retry for 1hr
-        funRetry $currentretries 360
-      done
-    fi
+    # Let any already-scheduled deploys drain before we start capturing
+    deploytasks=$(funFogApi GET /task/active '{"typeID": "'${fogdeployid}'"}' | jq -r '.count // 0')
+    currentretries=0
+    while [ "${deploytasks:-0}" -gt 0 ]; do
+      echo "$(date) -- $deploytasks FOG deploy tasks still queued.  Sleeping 10sec"
+      sleep 10
+      deploytasks=$(funFogApi GET /task/active '{"typeID": "'${fogdeployid}'"}' | jq -r '.count // 0')
+      ((++currentretries))
+      # Retry for 1hr
+      funRetry $currentretries 360
+    done
   fi
 
+  # From this point on the images are being rewritten; the cleanup phase uses
+  # this marker to know it must NOT unpause the queue on failure.
+  touch $WORKSPACE/captures-started
+
   # Create a capture task for each host and reboot it so FOG captures its OS
-  while read -u3 -r host distro foghostid fogimageid deployed; do
+  while read -u3 -r host distro foghostid fogimageid deployed type; do
     funFogApi PUT /host/$foghostid '{"imageID": "'${fogimageid}'"}'
     funFogApi POST /host/$foghostid/task '{"taskTypeID": "'${fogcaptureid}'"}'
     if [ "$FSCKMETHOD" == "maas-rescue" ]; then
@@ -498,23 +527,98 @@ phase_capture () {
   done 3< $statefile
 
   # Wait for Capture tasks to finish
-  capturetasks=$(funFogApi GET /task/active '{"typeID": "'${fogcaptureid}'"}' | jq -r '.count')
+  capturetasks=$(funFogApi GET /task/active '{"typeID": "'${fogcaptureid}'"}' | jq -r '.count // 0')
   currentretries=0
-  while [ $capturetasks -gt 0 ]; do
+  while [ "${capturetasks:-1}" -gt 0 ]; do
     echo "$(date) -- $capturetasks FOG capture tasks still queued.  Sleeping 10sec"
     sleep 10
-    capturetasks=$(funFogApi GET /task/active '{"typeID": "'${fogcaptureid}'"}' | jq -r '.count')
+    capturetasks=$(funFogApi GET /task/active '{"typeID": "'${fogcaptureid}'"}' | jq -r '.count // 0')
     ((++currentretries))
     # Retry for 30min
     funRetry $currentretries 180
   done
+  # NOTE: the queue deliberately stays paused here; the verify phase unpauses
+  # it once the new images have been proven to boot.
+}
 
-  # Unpause the queue if we paused it earlier
-  if [ "$pausedqueue" = true ]; then
+phase_verify () {
+  # Deploy each freshly-captured image onto a *different* host than it was
+  # captured from and make sure it boots, finishes first-boot configuration,
+  # and takes on the right hostname.  Only then is it safe to unpause the
+  # queue.  With multiple distros per machine type the capture hosts verify
+  # each other's images (rotation); with a single distro we claim one extra
+  # host of that type.
+  funActivateVenv
+
+  fogdeployid=$(funFogApi GET /tasktype '{"name": "Deploy"}' | jq -r '.tasktypes[0].id')
+
+  verifyfile="$WORKSPACE/fog-verify.state"
+  rm -f $verifyfile
+  touch $verifyfile
+  extrahosts=""
+
+  for type in $MACHINETYPES; do
+    typehosts=($(awk -v t="$type" '$6 == t {print $1}' $statefile))
+    typeimages=($(awk -v t="$type" '$6 == t {print $4}' $statefile))
+    typedistros=($(awk -v t="$type" '$6 == t {print $2}' $statefile))
+    n=${#typehosts[@]}
+    [ $n -eq 0 ] && continue
+    for i in $(seq 0 $((n - 1))); do
+      if [ $n -ge 2 ]; then
+        # Rotate: host i+1 verifies the image captured on host i
+        target=${typehosts[$(( (i + 1) % n ))]}
+      elif [ "$use_teuthologylock" = true ]; then
+        target=$(funClaimExtraHost $type) || {
+          echo "ERROR: Could not claim a $type host to verify ${typedistros[$i]}.  Queue stays paused."
+          exit 1
+        }
+        extrahosts="$extrahosts $target"
+      else
+        # DEFINEDHOSTS with a single host: redeploying onto the same host is
+        # a weaker test (it can't catch host-specific leakage) but still
+        # proves the image boots.
+        echo "WARNING: Only one $type host defined; verifying ${typedistros[$i]} on the host it was captured from."
+        target=${typehosts[$i]}
+      fi
+      targetid=$(funFogApi GET /host '{"name": "'${target}'"}' | jq -r '.hosts[0].id')
+      if [ -z "$targetid" ] || [ "$targetid" == "null" ]; then
+        echo "ERROR: verify host $target is not registered in FOG.  Queue stays paused."
+        exit 1
+      fi
+      funFogApi PUT /host/$targetid '{"imageID": "'${typeimages[$i]}'"}'
+      funFogApi POST /host/$targetid/task '{"taskTypeID": "'${fogdeployid}'"}'
+      funReboot $target
+      echo "$target ${typedistros[$i]} $targetid" >> $verifyfile
+    done
+  done
+
+  # Wait for the verify deploys to finish, then for first-boot config
+  verifyids=$(awk '{print $3}' $verifyfile | jq -R . | jq -sc .)
+  funWaitForOurTasks "$verifyids" 120
+
+  while read -u3 -r target distro targetid; do
+    funWaitForHost $target 60
+    # The deployed host must come up as itself, not as the capture host
+    actualhostname=$(ssh $sshopts ubuntu@${target}.front.sepia.ceph.com "hostname -s")
+    if [ "$actualhostname" != "$target" ]; then
+      echo "ERROR: $target booted the new $distro image with hostname '$actualhostname'.  Queue stays paused."
+      exit 1
+    fi
+    echo "Verified: $distro image boots and configures correctly on $target"
+  done 3< $verifyfile
+
+  # Release any extra hosts we claimed just for verification
+  for host in $extrahosts; do
+    teuthology-lock --update --status up $host
+  done
+
+  # The new images are good; the queue can deploy them again
+  if [ "$PAUSEQUEUE" == "true" ]; then
     for type in $MACHINETYPES; do
       teuthology-queue --pause 0 --machine_type $type
     done
   fi
+  rm -f $WORKSPACE/captures-started
 }
 
 phase_unlock () {
@@ -573,12 +677,23 @@ phase_cleanup () {
     done
   done
 
-  # Unpause the queue.  (We can't tell whether the capture phase actually
-  # paused it, and unpausing unconditionally is safe.)
+  # Queue handling depends on how far we got.  If captures started but were
+  # never verified, the images may be broken and every reimage would fail:
+  # keep the queue paused (re-up the 2h pause to give an admin time to look).
+  # Before any capture started the old images are intact, so unpause.
   if [ "$PAUSEQUEUE" == "true" ]; then
-    for type in $MACHINETYPES; do
-      teuthology-queue --pause 0 --machine_type $type
-    done
+    if [ -f $WORKSPACE/captures-started ]; then
+      echo "WARNING: Captures started but the new image(s) were never verified."
+      echo "WARNING: LEAVING the teuthology queue paused for: $MACHINETYPES"
+      echo "WARNING: Verify or restore the images, then unpause with: teuthology-queue --pause 0 --machine_type <type>"
+      for type in $MACHINETYPES; do
+        teuthology-queue --pause 7200 --machine_type $type
+      done
+    else
+      for type in $MACHINETYPES; do
+        teuthology-queue --pause 0 --machine_type $type
+      done
+    fi
   fi
 
   if [ "$use_teuthologylock" = true ]; then
@@ -592,12 +707,12 @@ phase_cleanup () {
 }
 
 case "$1" in
-  prepare|lock|deploy|ansible|fsck|capture|unlock|cleanup)
+  prepare|lock|deploy|ansible|fsck|capture|verify|unlock|cleanup)
     cd $WORKSPACE
     phase_$1
     ;;
   *)
-    echo "Usage: $0 {prepare|lock|deploy|ansible|fsck|capture|unlock|cleanup}"
+    echo "Usage: $0 {prepare|lock|deploy|ansible|fsck|capture|verify|unlock|cleanup}"
     exit 1
     ;;
 esac

@@ -58,9 +58,11 @@ This job:
    - ``fog-postinit`` (default): installs an idempotent postinit hook on the FOG server (``/images/dev/postinitscripts/fsck_before_capture.sh``) that force-fscks the target disk inside the FOG (FOS) boot environment right before every capture.  No extra reboot or dnsmasq changes needed.
    - ``maas-rescue``: points the testnode's dnsmasq PXE entry on ``soko01`` at MAAS, boots the node into MAAS rescue mode, runs ``e2fsck -fy`` on the root drive over ssh, then points the dnsmasq entry back at FOG.
 
-#. Pauses the teuthology queue (if needed) so active FOG deployments aren't interrupted.
+#. Pauses the teuthology queue (unless ``PAUSEQUEUE=false``) for the whole capture+verify window and lets already-scheduled FOG deployments drain first.
 
 #. Creates a FOG capture task for each testnode and reboots it (or exits MAAS rescue mode, which reboots) so FOG captures the assigned images.
+
+#. **Verifies** each new image by deploying it onto a *different* host and checking that it boots, finishes first-boot configuration (sentinel file), and comes up with the right hostname.  With multiple distros per machine type the capture hosts verify each other's images; with a single distro one extra host is claimed.  Only after verification does the queue get unpaused — if anything fails after captures started, the cleanup leaves the queue paused (with a 2h auto-expiry safety valve) so teuthology can't deploy a broken image.
 
 #. Unlocks/releases the testnodes.
 
