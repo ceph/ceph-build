@@ -107,6 +107,21 @@ pipeline {
                 bzip2 -dc ceph-$ceph_version_tarball.$extension | gzip > ceph-$ceph_version_tarball.tar.gz
                 popd
               else
+                if [ -n "${SHA1:-}" ]; then
+                  # The checkout preferred SHA1 over BRANCH, so the BRANCH
+                  # parameter may not match the code actually built
+                  # (https://tracker.ceph.com/issues/73658).  The fetch put every
+                  # branch head in refs/remotes/origin, so list the branches whose
+                  # tip is the built commit (HEAD) and keep BRANCH only if it is
+                  # one of them.
+                  mapfile -t tip_branches < <(git for-each-ref --points-at HEAD --format='%(refname:strip=3)' refs/remotes/origin)
+                  if [ "${#tip_branches[@]}" -eq 0 ]; then
+                    echo "WARNING: $(git rev-parse HEAD) is not the tip of any branch; keeping BRANCH=${BRANCH}"
+                  elif ! printf '%s\n' "${tip_branches[@]}" | grep -qxF "${BRANCH}"; then
+                    echo "BRANCH=${BRANCH} does not point at SHA1=$(git rev-parse HEAD); using ${tip_branches[0]}"
+                    BRANCH="${tip_branches[0]}"
+                  fi
+                fi
                 echo "BRANCH=${BRANCH}" > dist/branch
               fi
 
