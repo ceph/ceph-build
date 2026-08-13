@@ -134,42 +134,6 @@ funSetPxe () {
   ssh $sshopts ubuntu@${dnsmasqserver} "sudo sed -i -E 's/^dhcp-host=set:(fog|maas),(.*[,=]${1}\.front\.sepia\.ceph\.com)\$/dhcp-host=set:${2},\2/' $dnsmasqconf && sudo systemctl restart dnsmasq"
 }
 
-# Installs a FOG postinit hook that fscks the target disk inside the FOS
-# environment before every Capture task.  Idempotent.  Best-effort: if the
-# jenkins-build user can't ssh to the FOG server, warn and keep going (the
-# hook was installed manually and this just keeps it up to date).
-funInstallFogPostinit () {
-  if ! ssh $sshopts ubuntu@${fogserver} "sudo mkdir -p /images/dev/postinitscripts && sudo tee /images/dev/postinitscripts/fsck_before_capture.sh > /dev/null" <<'POSTINIT'
-#!/bin/bash
-# Installed by the sepia-fog-images Jenkins job (ceph-build.git).
-# Sourced by fog.postinit inside the FOG (FOS) boot environment.
-# Before a Capture task, force-fsck the target disk's filesystems so
-# partclone/resize2fs start from a clean filesystem.
-if [[ "$type" == "up" ]]; then
-  for part in $(blkid -o device | grep "^${hd}"); do
-    fstype=$(blkid -o value -s TYPE "$part")
-    case "$fstype" in
-      ext2|ext3|ext4)
-        e2fsck -fp "$part" || e2fsck -fy "$part" || true
-        ;;
-      xfs)
-        xfs_repair "$part" || true
-        ;;
-    esac
-  done
-fi
-POSTINIT
-  then
-    echo "WARNING: Could not ssh to ${fogserver} to refresh the fsck postinit hook."
-    echo "WARNING: Assuming /images/dev/postinitscripts/fsck_before_capture.sh is already installed there."
-    return 0
-  fi
-  ssh $sshopts ubuntu@${fogserver} "sudo chmod 755 /images/dev/postinitscripts/fsck_before_capture.sh && \
-    sudo touch /images/dev/postinitscripts/fog.postinit && \
-    ( sudo grep -q fsck_before_capture /images/dev/postinitscripts/fog.postinit || \
-      echo '. \${postinitpath}fsck_before_capture.sh' | sudo tee -a /images/dev/postinitscripts/fog.postinit > /dev/null )"
-}
-
 funActivateVenv () {
   cd $WORKSPACE
   source $WORKSPACE/teuthology/virtualenv/bin/activate 2>/dev/null || \
@@ -443,7 +407,10 @@ phase_fsck () {
   # fsck the root filesystems so FOG's partclone/resize2fs are working with
   # clean filesystems when the capture runs
   if [ "$FSCKMETHOD" == "fog-postinit" ]; then
-    funInstallFogPostinit
+    # Nothing to do here: the fog-server role in ceph-cm-ansible installs a
+    # postinit hook on ${fogserver} that fscks the disk inside the FOS
+    # environment right before every capture
+    echo "fsck happens via the fog-server postinit hook on ${fogserver} during capture"
     return 0
   elif [ "$FSCKMETHOD" != "maas-rescue" ]; then
     echo "FSCKMETHOD=$FSCKMETHOD; skipping fsck"
