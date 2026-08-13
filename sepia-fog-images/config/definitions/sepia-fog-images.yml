@@ -45,6 +45,10 @@
           name: IMAGETYPE
           default: ""
           description: "Capture the images under a different machine-type name than the nodes being used.  e.g. MACHINETYPES=trial IMAGETYPE=trial-perf locks trial nodes but deploys/recaptures trial-perf_<distro> images.  Leave empty to name images after the machine type."
+      - bool:
+          name: SKIPDEPLOY
+          default: false
+          description: "Skip FOG-deploying the existing image first and capture the hosts' current OS (still updated by cephlab.yml/prep-fog-capture.yml).  Useful with DEFINEDHOSTS when the node is already running exactly what you want, or when the existing image is too old to boot with current ssh keys."
       - choice:
           name: FSCKMETHOD
           choices:

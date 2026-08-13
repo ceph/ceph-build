@@ -388,6 +388,8 @@ phase_deploy () {
         # target OS.  Create the image template so it can be captured.
         funFogApi POST /image/ '{ "imageTypeID": "1", "imagePartitionTypeID": "1", "name": "'${imagename}'", "path": "'${imagename}'", "osID": "50", "format": "0", "magnet": "", "protected": "0", "compress": "6", "isEnabled": "1", "toReplicate": "1", "os": {"id": "50", "name": "Linux", "description": ""}, "imagepartitiontype": {"id": "1", "name": "Everything", "type": "all"}, "imagetype": {"id": "1", "name": "Single Disk - Resizable", "type": "n"}, "imagetypename": "Single Disk - Resizable", "imageparttypename": "Everything", "osname": "Linux", "storagegroupname": "default"}' || true
         fogimageid=$(funFogApi GET /image '{"name": "'${imagename}'"}' | jq -r '.images[0].id')
+      elif [ "$SKIPDEPLOY" == "true" ]; then
+        echo "SKIPDEPLOY set; capturing ${host}'s current OS as ${imagename} without redeploying first"
       else
         # Associate the image with the host and deploy it
         funFogApi PUT /host/$foghostid '{"imageID": "'${fogimageid}'"}'
