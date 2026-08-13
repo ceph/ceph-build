@@ -253,18 +253,19 @@ phase_lock () {
   # Don't bail if we fail to lock machines
   set +e
 
-  # Keep trying to lock machines
+  # Keep trying to claim machines until we have one per distro.  We mark them
+  # down with a descriptive desc instead of locking because locking attempts
+  # to reimage using FOG.
   for type in $MACHINETYPES; do
-    numlocked=$(teuthology-lock --brief -a --machine-type $type --status down | grep "$lockdesc" | wc -l)
     currentretries=0
-    while [ $numlocked -lt $numdistros ]; do
-      # We have to mark the system down and set its desc instead of locking because locking attempts to reimage using FOG.
-      teuthology-lock --update --status down --desc "$lockdesc" $(teuthology-lock --brief -a --machine-type $type --status up --locked false | head -n 1 | awk '{ print $1 }')
-      # Sleep for a bit so we don't hammer the lock server
-      if [ $? -ne 0 ]; then
+    while true; do
+      numlocked=$(teuthology-lock --brief -a --machine-type $type --status down | grep -c "$lockdesc")
+      [ "$numlocked" -ge "$numdistros" ] && break
+      candidate=$(teuthology-lock --brief -a --machine-type $type --status up --locked false | head -n 1 | awk '{ print $1 }')
+      if [ -z "$candidate" ] || ! teuthology-lock --update --status down --desc "$lockdesc" $candidate; then
+        # Nothing free or the claim failed; don't hammer the lock server
         sleep 5
       fi
-      numlocked=$(teuthology-lock --brief -a --machine-type $type --status down | grep "$lockdesc" | wc -l)
       ((++currentretries))
       # Retry for 1hr
       funRetry $currentretries 720
@@ -297,13 +298,17 @@ phase_deploy () {
     if [ "$use_teuthologylock" = true ]; then
       lockedhosts=$(teuthology-lock --brief -a --machine-type $type --status down | grep "$lockdesc" | cut -d '.' -f1 | sort)
     else
-      lockedhosts=$(echo $DEFINEDHOSTS | grep -o "\w*${type}\w*")
+      lockedhosts=$(echo $DEFINEDHOSTS | tr ' ' '\n' | grep "^${type}" || true)
     fi
     # Create arrays using our lists so we can iterate through them
     array1=($lockedhosts)
     array2=($DISTROS)
     for i in $(seq 1 $numdistros); do
       host=${array1[$i-1]}
+      if [ -z "$host" ]; then
+        echo "ERROR: Fewer $type hosts than distros ($numdistros needed)"
+        exit 1
+      fi
       funSetProfiles ${array2[$i-1]}
       # Get FOG host ID
       foghostid=$(funFogApi GET /host '{"name": "'${host}'"}' | jq -r '.hosts[0].id')
@@ -338,22 +343,20 @@ phase_deploy () {
     done
   done
 
-  # Wait for the deploy tasks to finish
+  # Wait for all of our deploy tasks to finish (single API call per poll)
+  deployids=$(awk '$5 == "true" {print $3}' $statefile | jq -R . | jq -sc .)
   currentretries=0
-  while read -u3 -r host distro foghostid fogimageid deployed; do
-    [ "$deployed" == "true" ] || continue
-    while true; do
-      activetasks=$(funFogApi GET /task/active | jq -r --arg id "$foghostid" '[(.tasks // [])[] | select((.hostID|tostring) == $id)] | length')
-      if [ "$activetasks" == "0" ]; then
-        break
-      fi
-      echo "$(date) -- $host still has an active FOG task.  Sleeping 30sec"
-      sleep 30
-      ((++currentretries))
-      # Retry for 1hr (shared across hosts; deploys run in parallel)
-      funRetry $currentretries 120
-    done
-  done 3< $statefile
+  while true; do
+    activetasks=$(funFogApi GET /task/active | jq -r --argjson ids "$deployids" '[(.tasks // [])[] | select((.hostID|tostring) as $h | $ids | index($h))] | length')
+    if [ "${activetasks:-1}" == "0" ]; then
+      break
+    fi
+    echo "$(date) -- $activetasks FOG deploy tasks for our hosts still active.  Sleeping 30sec"
+    sleep 30
+    ((++currentretries))
+    # Retry for 1hr
+    funRetry $currentretries 120
+  done
 
   # Wait for the freshly-deployed hosts to come back up and finish their
   # first-boot network/hostname configuration (the sentinel file)
@@ -373,12 +376,12 @@ phase_deploy () {
 phase_ansible () {
   funActivateVenv
 
-  # Bring each testnode fully up to date, then prep it for capture
+  # Bring the testnodes fully up to date, then prep them for capture.  One
+  # ansible run covering every host so they're configured in parallel.
   # set ANSIBLE_CONFIG to allow teuthology to specify collections dir
-  while read -u3 -r host distro foghostid fogimageid deployed; do
-    ANSIBLE_CONFIG=$WORKSPACE/teuthology/ansible.cfg ansible-playbook $WORKSPACE/ceph-cm-ansible/cephlab.yml -e ansible_ssh_user=ubuntu --limit="${host}*"
-    ANSIBLE_CONFIG=$WORKSPACE/teuthology/ansible.cfg ansible-playbook $WORKSPACE/ceph-cm-ansible/tools/prep-fog-capture.yml -e ansible_ssh_user=ubuntu --limit="${host}*"
-  done 3< $statefile
+  limit=$(awk '{printf "%s%s*", (NR > 1 ? ":" : ""), $1}' $statefile)
+  ANSIBLE_CONFIG=$WORKSPACE/teuthology/ansible.cfg ansible-playbook $WORKSPACE/ceph-cm-ansible/cephlab.yml -e ansible_ssh_user=ubuntu --limit="$limit"
+  ANSIBLE_CONFIG=$WORKSPACE/teuthology/ansible.cfg ansible-playbook $WORKSPACE/ceph-cm-ansible/tools/prep-fog-capture.yml -e ansible_ssh_user=ubuntu --limit="$limit"
 }
 
 phase_fsck () {
@@ -460,10 +463,10 @@ phase_capture () {
   if [ "$PAUSEQUEUE" == "true" ]; then
     # Check for scheduled deploy tasks.  Capturing a new OS image can
     # interrupt active OS deployments.
-    deploytasks=$(funFogApi GET /task/active '{"typeID": "'${fogdeployid}'"}' | jq -r '.count')
+    deploytasks=$(funFogApi GET /task/active '{"typeID": "'${fogdeployid}'"}' | jq -r '.count // 0')
 
     # If there are scheduled or active deploy tasks, pause the queue and let them finish.
-    if [ $deploytasks -gt 0 ]; then
+    if [ "${deploytasks:-0}" -gt 0 ]; then
       for type in $MACHINETYPES; do
         # Only pause the queue for 1hr just in case anything goes wrong with the Jenkins job.
         teuthology-queue --pause 3600 --machine_type $type
