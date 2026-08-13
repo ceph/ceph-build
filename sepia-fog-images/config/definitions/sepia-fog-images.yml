@@ -44,7 +44,7 @@
       - string:
           name: IMAGETYPE
           default: ""
-          description: "Capture the images under a different machine-type name than the nodes being used.  e.g. MACHINETYPES=trial IMAGETYPE=trial-perf locks trial nodes but deploys/recaptures trial-perf_<distro> images.  Leave empty to name images after the machine type."
+          description: "Capture the images under a different machine-type name than the nodes being used.  e.g. MACHINETYPES=trial IMAGETYPE=trial-perf locks a trial node, provisions it with the trial_<distro> image, then captures it back as trial-perf_<distro> (creating that image in FOG if needed).  Leave empty to capture back into the same image that was deployed."
       - bool:
           name: SKIPDEPLOY
           default: false

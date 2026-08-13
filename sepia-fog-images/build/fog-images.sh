@@ -365,39 +365,54 @@ phase_deploy () {
         exit 1
       fi
       funSetProfiles ${array2[$i-1]}
-      imagename="${IMAGETYPE:-$type}_${fogprofile}"
+      # The node is provisioned with its own machine type's image and the
+      # result is captured under IMAGETYPE's name (they're the same unless
+      # IMAGETYPE is set, e.g. deploy trial_X on a trial node, capture it
+      # back as trial-perf_X)
+      deployimagename="${type}_${fogprofile}"
+      captureimagename="${IMAGETYPE:-$type}_${fogprofile}"
       # Get FOG host ID
       foghostid=$(funFogApi GET /host '{"name": "'${host}'"}' | jq -r '.hosts[0].id')
       if [ -z "$foghostid" ] || [ "$foghostid" == "null" ]; then
         echo "ERROR: $host is not registered in FOG at http://${fogserver}/fog"
         exit 1
       fi
-      # Get FOG image ID
-      fogimageid=$(funFogApi GET /image '{"name": "'${imagename}'"}' | jq -r '.images[0].id')
+      # Make sure the image we'll capture into exists, creating the template
+      # if this is its first capture
+      captureimageid=$(funFogApi GET /image '{"name": "'${captureimagename}'"}' | jq -r '.images[0].id')
+      if [ "$captureimageid" == "null" ] || [ -z "$captureimageid" ]; then
+        funFogApi POST /image/ '{ "imageTypeID": "1", "imagePartitionTypeID": "1", "name": "'${captureimagename}'", "path": "'${captureimagename}'", "osID": "50", "format": "0", "magnet": "", "protected": "0", "compress": "6", "isEnabled": "1", "toReplicate": "1", "os": {"id": "50", "name": "Linux", "description": ""}, "imagepartitiontype": {"id": "1", "name": "Everything", "type": "all"}, "imagetype": {"id": "1", "name": "Single Disk - Resizable", "type": "n"}, "imagetypename": "Single Disk - Resizable", "imageparttypename": "Everything", "osname": "Linux", "storagegroupname": "default"}' || true
+        captureimageid=$(funFogApi GET /image '{"name": "'${captureimagename}'"}' | jq -r '.images[0].id')
+        if [ "$captureimageid" == "null" ] || [ -z "$captureimageid" ]; then
+          echo "ERROR: Could not create FOG image template ${captureimagename}"
+          exit 1
+        fi
+      fi
+      # Deploy the current image for this node's machine type
+      deployimageid=$(funFogApi GET /image '{"name": "'${deployimagename}'"}' | jq -r '.images[0].id')
       deployed=false
-      if [ "$fogimageid" == "null" ] || [ -z "$fogimageid" ]; then
+      if [ "$deployimageid" == "null" ] || [ -z "$deployimageid" ]; then
         if [ "$use_teuthologylock" = true ]; then
-          # Nothing to deploy.  Brand new distros have to be seeded manually:
-          # image a host by hand, then rerun this job with DEFINEDHOSTS
-          # pointing at it.
-          echo "ERROR: No FOG image named ${imagename} exists so there is nothing to deploy and update."
-          echo "Seed the first ${imagename} image manually, then rerun this job with DEFINEDHOSTS set."
+          # Nothing to deploy.  Brand new distros for a machine type have to
+          # be seeded manually: image a host by hand, then rerun this job
+          # with DEFINEDHOSTS pointing at it.
+          echo "ERROR: No FOG image named ${deployimagename} exists so there is nothing to deploy and update."
+          echo "Seed the first ${deployimagename} image manually, then rerun this job with DEFINEDHOSTS set."
           exit 1
         fi
         # DEFINEDHOSTS path: the host is assumed to already be running the
-        # target OS.  Create the image template so it can be captured.
-        funFogApi POST /image/ '{ "imageTypeID": "1", "imagePartitionTypeID": "1", "name": "'${imagename}'", "path": "'${imagename}'", "osID": "50", "format": "0", "magnet": "", "protected": "0", "compress": "6", "isEnabled": "1", "toReplicate": "1", "os": {"id": "50", "name": "Linux", "description": ""}, "imagepartitiontype": {"id": "1", "name": "Everything", "type": "all"}, "imagetype": {"id": "1", "name": "Single Disk - Resizable", "type": "n"}, "imagetypename": "Single Disk - Resizable", "imageparttypename": "Everything", "osname": "Linux", "storagegroupname": "default"}' || true
-        fogimageid=$(funFogApi GET /image '{"name": "'${imagename}'"}' | jq -r '.images[0].id')
+        # target OS.
+        echo "No ${deployimagename} image to deploy; capturing ${host}'s current OS"
       elif [ "$SKIPDEPLOY" == "true" ]; then
-        echo "SKIPDEPLOY set; capturing ${host}'s current OS as ${imagename} without redeploying first"
+        echo "SKIPDEPLOY set; capturing ${host}'s current OS as ${captureimagename} without redeploying first"
       else
         # Associate the image with the host and deploy it
-        funFogApi PUT /host/$foghostid '{"imageID": "'${fogimageid}'"}'
+        funFogApi PUT /host/$foghostid '{"imageID": "'${deployimageid}'"}'
         funFogApi POST /host/$foghostid/task '{"taskTypeID": "'${fogdeployid}'"}'
         funReboot $host
         deployed=true
       fi
-      echo "$host ${array2[$i-1]} $foghostid $fogimageid $deployed $type" >> $statefile
+      echo "$host ${array2[$i-1]} $foghostid $captureimageid $deployed $type" >> $statefile
     done
   done
 

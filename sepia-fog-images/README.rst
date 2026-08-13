@@ -66,7 +66,7 @@ This job:
 
 #. Unlocks/releases the testnodes.
 
-The ``IMAGETYPE`` parameter decouples the image name from the machine type: ``MACHINETYPES=trial IMAGETYPE=trial-perf`` locks trial nodes but deploys and recaptures ``trial-perf_<distro>`` images (the queue is paused for both types).  Useful when a machine type's own nodes can't be spared for capturing.  Note the node is ansiblized as the host it's running on, so any group_vars specific to the image's machine type won't be applied.
+The ``IMAGETYPE`` parameter decouples the captured image's name from the machine type doing the capturing: ``MACHINETYPES=trial IMAGETYPE=trial-perf`` locks a trial node, provisions it with the ``trial_<distro>`` image, runs the usual ansible/prep, then captures the result back as ``trial-perf_<distro>`` — creating that FOG image on first use.  The queue is paused for both types.  Useful when a machine type's own nodes can't be spared for capturing.  Note the node is ansiblized as the host it's running on, so any group_vars specific to the image's machine type won't be applied.
 
 Usage
 -----
