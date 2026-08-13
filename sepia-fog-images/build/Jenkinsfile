@@ -1,0 +1,80 @@
+// sepia-fog-images: refresh FOG images by deploying the existing image for
+// each distro, updating it in place with ansible, fscking the root
+// filesystem, and recapturing it.  All the real logic lives in
+// sepia-fog-images/build/fog-images.sh; each stage runs one phase.
+
+def phase(String name) {
+    sh "bash sepia-fog-images/build/fog-images.sh ${name}"
+}
+
+pipeline {
+    agent { label 'teuthology' }
+
+    environment {
+        // SEPIA_IPMI_USR/_PSW, FOG_USR/_PSW; fog-images.sh maps these onto
+        // the variable names it uses.  The FOG tokens are only a fallback for
+        // when the agent's /etc/teuthology.yaml has no fog: block.
+        SEPIA_IPMI = credentials('sepia-ipmi')
+        FOG = credentials('fog')
+        MAAS_API_KEY = credentials('maas-api-key')
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Prepare') {
+            steps {
+                phase 'prepare'
+            }
+        }
+
+        stage('Lock') {
+            steps {
+                phase 'lock'
+            }
+        }
+
+        stage('Deploy') {
+            steps {
+                phase 'deploy'
+            }
+        }
+
+        stage('Ansible') {
+            steps {
+                phase 'ansible'
+            }
+        }
+
+        stage('Fsck') {
+            steps {
+                phase 'fsck'
+            }
+        }
+
+        stage('Capture') {
+            steps {
+                phase 'capture'
+            }
+        }
+
+        stage('Unlock') {
+            steps {
+                phase 'unlock'
+            }
+        }
+    }
+
+    post {
+        failure {
+            phase 'cleanup'
+        }
+        aborted {
+            phase 'cleanup'
+        }
+    }
+}

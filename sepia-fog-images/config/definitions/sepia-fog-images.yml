@@ -1,13 +1,10 @@
 - job:
     name: sepia-fog-images
-    project-type: freestyle
-    defaults: global
-    concurrent: false
+    project-type: pipeline
     display-name: 'Sepia FOG Image Creator'
-    node: teuthology
+    description: "Refreshes FOG testnode images: FOG-deploys the existing image for each distro, updates it in place with cephlab.yml, preps and fscks it, then recaptures it."
+    concurrent: false
     quiet-period: 0
-    block-downstream: false
-    block-upstream: false
     properties:
       - build-discarder:
           days-to-keep: 15
@@ -22,12 +19,12 @@
     parameters:
       - string:
           name: DISTROS
-          default: "ubuntu_20.04 centos_9.stream rhel_9.3"
-          description: "Distro to capture images for: (e.g., 'ubuntu_16.04', 'centos_7.5' or 'ubuntu_16.04 rhel_7.5' for multiple distros)"
+          default: "ubuntu_22.04 ubuntu_24.04 centos_9.stream rocky_10.1"
+          description: "Distro to capture images for: (e.g., 'ubuntu_22.04', 'centos_9.stream' or 'ubuntu_22.04 rocky_10.1' for multiple distros)"
       - string:
           name: MACHINETYPES
-          default: "smithi"
-          description: "Machine types to capture images for.  (e.g., 'smithi' or 'smithi mira' for multiple machine types)"
+          default: "trial"
+          description: "Machine types to capture images for.  (e.g., 'trial' or 'trial smithi' for multiple machine types)"
       - string:
           name: TEUTHOLOGYBRANCH
           default: main
@@ -43,35 +40,24 @@
       - string:
           name: DEFINEDHOSTS
           default: ""
-          description: "Define a list of systems to use instead of using teuthology-lock to lock unused systems."
+          description: "Define a list of systems to use instead of using teuthology-lock to lock unused systems.  Also used to seed a brand new distro image: image a host by hand, then run this job with DEFINEDHOSTS pointing at it."
+      - choice:
+          name: FSCKMETHOD
+          choices:
+            - fog-postinit
+            - maas-rescue
+            - none
+          description: "How to fsck the root filesystem before capture.  fog-postinit (default) installs a hook on the FOG server that fscks the disk inside the FOG capture environment (no extra reboot).  maas-rescue points the host's dnsmasq entry on soko01 at MAAS, boots into rescue mode, fscks over ssh, then points dnsmasq back at FOG.  none skips fscking."
+      - string:
+          name: CEPH_BUILD_BRANCH
+          default: main
+          description: "Use the Jenkinsfile and scripts from this ceph-build branch"
 
-    builders:
-      - shell:
-          !include-raw-verbatim:
-            - ../../build/build
-
-    publishers:
-      - postbuildscript:
-          builders:
-            - role: SLAVE
-              build-on:
-                  - FAILURE
-                  - ABORTED
-              build-steps:
-                - shell:
-                    !include-raw-verbatim:
-                      - ../../build/failure
-
-    wrappers:
-      - inject-passwords:
-          global: true
-          mask-password-params: true
-      - credentials-binding:
-          - username-password-separated:
-              credential-id: sepia-ipmi
-              username: SEPIA_IPMI_USER
-              password: SEPIA_IPMI_PASS
-          - username-password-separated:
-              credential-id: fog
-              username: FOG_USER_TOKEN
-              password: FOG_API_TOKEN
+    pipeline-scm:
+      scm:
+        - git:
+            url: https://github.com/ceph/ceph-build.git
+            branches:
+              - ${{CEPH_BUILD_BRANCH}}
+      script-path: sepia-fog-images/build/Jenkinsfile
+      lightweight-checkout: true
