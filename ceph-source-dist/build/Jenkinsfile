@@ -17,14 +17,25 @@ pipeline {
               checkout_ref = env.BRANCH
             }
 
+            def release_build = params.RELEASE_BUILD?.toBoolean() ?: false
+
+            // SECURITY releases build embargoed commits.  This Jenkinsfile is shared by
+            // ceph-source-dist (public) and cve-source-dist (readable only by ceph/security),
+            // so refuse to check out or archive anything unless we're running in the private job.
+            if (release_build && env.RELEASE_TYPE == 'SECURITY' && env.JOB_NAME != 'cve-source-dist') {
+              error "RELEASE_TYPE=SECURITY source distributions must run in cve-source-dist, not ${env.JOB_NAME}, so the source tarball and change log are not publicly visible."
+            }
+
             // Rewrite repo + ref if RELEASE_BUILD=true.
             // RELEASE_BUILD is intentionally undefinable as a ceph-source-dist parameter but instead
             // defined by ceph-release-pipeline so that only that job may clone from ceph-releases.git.
-            def repoUrl = params.RELEASE_BUILD ? 'git@github.com:ceph/ceph-releases.git' : env.CEPH_REPO
-            env.checkout_ref = params.RELEASE_BUILD ? "v${params.VERSION}" : env.BRANCH
+            def repoUrl = release_build ? 'git@github.com:ceph/ceph-releases.git' : env.CEPH_REPO
+            env.checkout_ref = release_build ? "v${params.VERSION}" : env.BRANCH
             env.CEPH_REPO = repoUrl
 
-            checkout scmGit(
+            // Release builds come from ceph-releases.git (private).  Don't record a change log
+            // for them so commit messages don't show up on the build's "Changes" page.
+            checkout changelog: !release_build, scm: scmGit(
               branches: [[name: checkout_ref]],
               userRemoteConfigs: [[
                 url: env.CEPH_REPO,
@@ -42,7 +53,7 @@ pipeline {
             )
 
             // No need to fetch tags if this is a release build
-            if (!params.RELEASE_BUILD?.toBoolean()) {
+            if (!release_build) {
               sh 'git fetch --tags https://github.com/ceph/ceph.git'
             }
           }
