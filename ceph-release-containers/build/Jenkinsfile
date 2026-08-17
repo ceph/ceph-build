@@ -1,5 +1,12 @@
 // vim: ts=2 sw=2 expandtab
-ceph_repo = "https://github.com/ceph/ceph.git"
+import groovy.transform.Field
+
+// ceph-tag pushes the release version commit and v${VERSION} tag to
+// ceph-releases.git for every RELEASE_TYPE.  For SECURITY releases that is
+// the *only* place the commit exists until the embargo lifts (the push to
+// ceph.git is skipped), so clone from ceph-releases.git rather than ceph.git.
+@Field String ceph_repo = "git@github.com:ceph/ceph-releases.git"
+@Field String ceph_repo_credentials = "jenkins-build"
 
 pipeline {
   agent any
@@ -49,7 +56,7 @@ pipeline {
               dir('ceph') {
                 checkout scmGit(
                   branches: [[ name: env.SHA1 ]],
-                  userRemoteConfigs: [[ url: ceph_repo ]],
+                  userRemoteConfigs: [[ url: ceph_repo, credentialsId: ceph_repo_credentials ]],
                   sparseCheckout: [[ path: 'container' ]],
                   extensions: [
                     [ $class: 'WipeWorkspace' ],
@@ -89,7 +96,7 @@ pipeline {
         dir('ceph') {
           checkout scmGit(
             branches: [[ name: env.SHA1 ]],
-            userRemoteConfigs: [[ url: ceph_repo ]],
+            userRemoteConfigs: [[ url: ceph_repo, credentialsId: ceph_repo_credentials ]],
             sparseCheckout: [[ path: 'container' ]],
             extensions: [
               [ $class: 'WipeWorkspace' ],

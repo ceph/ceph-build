@@ -26,7 +26,7 @@
 
       - string:
           name: SHA1
-          description: "SHA1 of the commit to build"
+          description: "SHA1 of the commit to build, as reported by ceph-release-pipeline (must exist in ceph-releases.git; works for SECURITY releases too)"
 
       - string:
           name: VERSION
