@@ -86,6 +86,11 @@ pipeline {
       }
     }
     stage('push ceph release tag') {
+      // SECURITY releases live in ceph-private.git; the tag is pushed to
+      // ceph.git manually once the embargo lifts, so there's nothing to do here.
+      when {
+        not { environment name: 'RELEASE_TYPE', value: 'SECURITY' }
+      }
       steps {
         script {
           def pushTagJob = build(

@@ -2,9 +2,8 @@
 # These tasks write the version commit's sha1 to a file for
 # ceph-source-dist and ceph-dev-pipeline to later consume.
 #
-# We write it again when running the playbook with stage=push only so
-# the Archive Artifacts plugin doesn't hang indefinitely.  We don't want
-# to configure the plugin to allow an empty or missing file.
+# We write it again when running the playbook with stage=push so the
+# Archive Artifacts step (allow-empty: false) has something to archive.
 
 - name: record commit sha1
   command: git rev-parse HEAD
