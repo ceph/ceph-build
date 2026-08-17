@@ -104,11 +104,10 @@ pipeline {
                 # ceph-dev-pipeline does not offer ceph-releases.git as an option for CEPH_REPO,
                 # and we don't want RELEASE_BUILD to be settable by the user to avoid being able
                 # clone from ceph-releases.git.
-                if [ "${RELEASE_TYPE}" = "PRIVATE" ]; then
-                  echo "CEPH_REPO=https://github.com/ceph/ceph-private" > dist/other_envvars
-                else
-                  echo "CEPH_REPO=https://github.com/ceph/ceph-releases" > dist/other_envvars
-                fi
+                # This is ceph-releases.git for every RELEASE_TYPE, including SECURITY: ceph-tag
+                # pushes the version commit and tag there (the SHA1 being built does not exist in
+                # ceph-private.git), and ceph-dev-pipeline only uses this to link to the commit.
+                echo "CEPH_REPO=https://github.com/ceph/ceph-releases" > dist/other_envvars
                 echo "RELEASE_BUILD=true" >> dist/other_envvars
                 echo "chacra_url=https://chacra.ceph.com/" >> dist/other_envvars
                 echo "BRANCH=${BRANCH}-release" > dist/branch
