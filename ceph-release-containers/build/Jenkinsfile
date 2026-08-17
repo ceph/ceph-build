@@ -84,7 +84,10 @@ pipeline {
     }
     stage("make manifest-list image") {
       agent {
-        label "centos9"
+        // exclude ppc64le: those nodes also carry the centos9 label but
+        // lack the github.com SSH host key needed to clone ceph-releases.git
+        // (and the /home/jenkins-build paths assumed below)
+        label "centos9&&!ppc64le"
       }
       environment {
         CONTAINER_REPO_HOSTNAME = 'quay.ceph.io'
