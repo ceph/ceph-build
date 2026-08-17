@@ -186,15 +186,19 @@ def doCopyArtifactsStage() {
     filter: artifact_filter,
   )
   sh 'sudo journalctl --show-cursor -n 0 --no-pager | tail -n1 | cut -d\" \" -f3 > $WORKSPACE/cursor'
-  def sha1_trimmed = env.SHA1.trim().toLowerCase()
+  // env is shared across the parallel matrix cells, and when the SHA1 parameter
+  // is empty each cell fills env.SHA1 in from the artifact below. Compare against
+  // the immutable job parameter (params.SHA1) rather than re-reading env.SHA1,
+  // otherwise a sibling cell can set env.SHA1 between our read of sha1_trimmed
+  // and the check, and we'd spuriously fail with "does not match parameter value ()".
+  def sha1_trimmed = (params.SHA1 ?: "").trim().toLowerCase()
   def sha1_props = readProperties file: "${env.WORKSPACE}/dist/sha1"
   def sha1_from_artifact = sha1_props.SHA1.trim().toLowerCase()
-  if ( env.SHA1 && sha1_from_artifact != sha1_trimmed ) {
+  if ( sha1_trimmed && sha1_from_artifact != sha1_trimmed ) {
     error message: "SHA1 from artifact (${sha1_from_artifact}) does not match parameter value (${sha1_trimmed})"
-  } else if ( ! env.SHA1 ) {
-    env.SHA1 = sha1_from_artifact
   }
-  println "SHA1=${sha1_trimmed}"
+  env.SHA1 = sha1_from_artifact
+  println "SHA1=${sha1_from_artifact}"
   env.VERSION = readFile(file: "${env.WORKSPACE}/dist/version").trim()
   // In a release build, dist/other_envvars contains CEPH_REPO, and chacra_url
   // as written during ceph-source-dist but we don't to be able to define
