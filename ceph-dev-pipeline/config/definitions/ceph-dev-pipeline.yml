@@ -125,9 +125,11 @@
 
       - choice:
           name: SETUP_JOB
+          description: "cve-source-dist is used by ceph-release-pipeline for RELEASE_TYPE=SECURITY; its artifacts are only visible to the ceph/security team"
           choices:
             - ceph-source-dist
             - ceph-dev-new-setup
+            - cve-source-dist
 
       - string:
           name: CEPH_BUILD_BRANCH

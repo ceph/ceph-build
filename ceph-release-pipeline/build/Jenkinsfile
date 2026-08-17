@@ -74,6 +74,10 @@ pipeline {
               booleanParam(name: 'CI_CONTAINER',  value: false),
               booleanParam(name: 'DWZ',           value: true),
               booleanParam(name: 'SCCACHE',       value: false),
+              // SECURITY releases build from embargoed commits.  cve-source-dist runs the same
+              // Jenkinsfile as ceph-source-dist but is only readable by the ceph/security team,
+              // so the source tarball and change log are not published on public Jenkins.
+              string(name: 'SETUP_JOB',           value: env.RELEASE_TYPE == 'SECURITY' ? 'cve-source-dist' : 'ceph-source-dist'),
               string(name: "CEPH_BUILD_BRANCH",   value: env.CEPH_BUILD_BRANCH),
               string(name: 'RELEASE_TYPE',        value: env.RELEASE_TYPE),
               booleanParam(name: 'RELEASE_BUILD', value: true),
