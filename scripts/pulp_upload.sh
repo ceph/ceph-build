@@ -25,7 +25,12 @@ source ./scripts/build_utils.sh
 
 export PATH="$HOME/.local/bin:$PATH"
 
+# Pulp project name
 PULP_PROJECT="ceph"
+
+# Set purge policy file
+PURGE_POLICY_FILE="${WORKSPACE}/scripts/purge-policy.yaml"
+
 # Must match the base URL the Pulp client is configured with in setup_pulp.sh
 PULP_SERVER_URL="https://pulp.front.sepia.ceph.com"
 SHORT_SHA1=${SHA1: -8}
@@ -45,13 +50,19 @@ resolve_os_version_for_repo() {
     printf '%s\n' "$os_label"
 }
 
-# Return the number of repository versions to retain.
+# Return the number of repository versions to retain from purge-policy.yaml.
+# Uses keep_minimum for BRANCH under ceph.ref when present; otherwise the default.
 get_repo_versions_to_retain() {
-    local versions=10
-    if [[ "$CEPH_REPO" == *-ci ]]; then
-        versions=3
-    fi
-    printf '%s\n' "$versions"
+    local keep_minimum
+
+    keep_minimum=$(
+        yq -r --arg ref "${BRANCH}" \
+            --arg project "${PULP_PROJECT}" \
+            '.[$project].ref[$ref].keep_minimum
+             // .[$project].default.keep_minimum' \
+            "${PURGE_POLICY_FILE}"
+    )
+    printf '%s\n' "$keep_minimum"
 }
 
 # Create a Pulp repository if it doesn't exist.
