@@ -47,7 +47,7 @@ This job:
 
 #. Locks a number of testnodes via ``teuthology-lock`` depending on the number of machine types and distros you specify (unless you specify your own using the ``DEFINEDHOSTS`` job parameter).
 
-#. FOG-deploys the existing image for each distro to its testnode via the FOG API, then waits for the network sentinel file (``sentinel_file`` from the ``fog:`` block of ``/etc/teuthology.yaml``) to appear, which means first-boot network/hostname configuration finished.  (If no image exists yet for a distro, the first one has to be seeded manually: image a host by hand, then run this job with ``DEFINEDHOSTS`` pointing at it.)
+#. FOG-deploys the existing image for each distro to its testnode via the FOG API, then waits for the network sentinel file (``sentinel_file`` from the ``fog:`` block of ``/etc/teuthology.yaml``) to appear, which means first-boot network/hostname configuration finished.  Only an image FOG has recorded a size for (i.e. one that has actually been captured) is deployed; for a major-only distro such as ``rocky_10`` with no captured image yet, the newest captured point-release image of that major (``trial_rocky_10.2`` over ``trial_rocky_10.1``) is deployed instead to seed it.  (If no image exists at all, the first one has to be seeded manually: image a host by hand, then run this job with ``DEFINEDHOSTS`` pointing at it.)  A deploy only counts as successful if FOG bumps the host's ``deployed`` timestamp, and once the host is back the job checks ``/etc/os-release`` against the requested distro -- a node that silently booted a leftover install is an error, not something to capture.
 
 #. Runs the ``cephlab.yml`` playbook against each testnode to bring it fully up to date.
 
@@ -62,7 +62,7 @@ This job:
 
 #. Creates a FOG capture task for each testnode and reboots it (or exits MAAS rescue mode, which reboots) so FOG captures the assigned images.
 
-#. **Verifies** each new image by deploying it onto a *different* host and checking that it boots, finishes first-boot configuration (sentinel file), and comes up with the right hostname.  With multiple distros per machine type the capture hosts verify each other's images; with a single distro one extra host is claimed.  Only after verification does the queue get unpaused — if anything fails after captures started, the cleanup leaves the queue paused (with a 2h auto-expiry safety valve) so teuthology can't deploy a broken image.
+#. **Verifies** each new image by deploying it onto a *different* host and checking that it boots, finishes first-boot configuration (sentinel file), comes up with the right hostname, and is running the distro it is named after (``/etc/os-release``).  With multiple distros per machine type the capture hosts verify each other's images; with a single distro one extra host is claimed.  Only after verification does the queue get unpaused — if anything fails after captures started, the cleanup leaves the queue paused (with a 2h auto-expiry safety valve) so teuthology can't deploy a broken image.
 
 #. Unlocks/releases the testnodes.
 
