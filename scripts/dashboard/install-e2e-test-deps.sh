@@ -7,14 +7,15 @@ if [[ ! $(arch) =~ (i386|x86_64|amd64) ]]; then
 fi
 
 if grep -q  debian /etc/*-release; then
-    sudo bash -c 'echo "deb [arch=amd64] https://dl.google.com/linux/chrome/deb/ stable main" > /etc/apt/sources.list.d/google-chrome.list'
     curl -fsSL https://dl.google.com/linux/linux_signing_key.pub | sudo apt-key add -
+    sudo add-apt-repository -y "deb [arch=amd64] https://dl.google.com/linux/chrome/deb/ stable main"
     sudo apt-get update
     sudo apt-get install -y google-chrome-stable
     sudo apt-get install -y python3-requests python3-openssl python3-jinja2 \
         python3-jwt python3-scipy python3-routes
     sudo apt-get install -y xvfb libxss1
-    sudo rm /etc/apt/sources.list.d/google-chrome.list
+    sudo add-apt-repository -y --remove "deb [arch=amd64] https://dl.google.com/linux/chrome/deb/ stable main"
+    sudo rm -f /etc/apt/sources.list.d/google-chrome.sources
 elif grep -q rhel /etc/*-release; then
     sudo dd of=/etc/yum.repos.d/google-chrome.repo status=none <<EOF
 [google-chrome]
