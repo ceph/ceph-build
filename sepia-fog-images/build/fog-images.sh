@@ -508,11 +508,20 @@ phase_ansible () {
   funActivateVenv
 
   # Bring the testnodes fully up to date, then prep them for capture.  One
-  # ansible run covering every host so they're configured in parallel.
+  # cephlab run covering every host so they're configured in parallel.
   # set ANSIBLE_CONFIG to allow teuthology to specify collections dir
   limit=$(awk '{printf "%s%s*", (NR > 1 ? ":" : ""), $1}' $statefile)
   ANSIBLE_CONFIG=$WORKSPACE/teuthology/ansible.cfg ansible-playbook $WORKSPACE/ceph-cm-ansible/cephlab.yml -e ansible_ssh_user=ubuntu --limit="$limit"
-  ANSIBLE_CONFIG=$WORKSPACE/teuthology/ansible.cfg ansible-playbook $WORKSPACE/ceph-cm-ansible/tools/prep-fog-capture.yml -e ansible_ssh_user=ubuntu --limit="$limit"
+
+  # prep-fog-capture runs per host: a minor-named capture (rocky_10.1) must
+  # stay on its minor (the testnode role pins the repos), while a
+  # major-tracking one (rocky_10) walks to the newest minor first
+  while read -u3 -r host distro foghostid fogimageid deployed type deployedat; do
+    ver=${distro##*_}
+    scope=minor
+    [ "$ver" == "${ver%%.*}" ] && scope=major
+    ANSIBLE_CONFIG=$WORKSPACE/teuthology/ansible.cfg ansible-playbook $WORKSPACE/ceph-cm-ansible/tools/prep-fog-capture.yml -e ansible_ssh_user=ubuntu -e rocky_upgrade_scope=$scope --limit="${host}*"
+  done 3< $statefile
 }
 
 phase_fsck () {
@@ -632,8 +641,50 @@ phase_capture () {
   done 3< $statefile
 
   # Wait for Capture tasks to finish
+  funWaitForCaptureTasks
+
+  # A major-tracking distro (rocky_10) is also captured under the point
+  # release the host is actually running (trial_rocky_10.2), so jobs that
+  # pin a minor can keep getting exactly that minor after the major image
+  # moves on.  Second capture task, own image record and files.
+  twincaptures=false
+  while read -u3 -r host distro foghostid fogimageid deployed type deployedat; do
+    ver=${distro##*_}
+    [ "$ver" == "${ver%%.*}" ] || continue
+    funWaitForHost $host 60
+    minor=$(ssh $sshopts ubuntu@${host}.front.sepia.ceph.com "sed -n 's/^VERSION_ID=\"\{0,1\}\([^\"]*\)\"\{0,1\}$/\1/p' /etc/os-release" | head -n 1)
+    if [ -z "$minor" ] || [ "$minor" == "${minor%%.*}" ]; then
+      echo "WARNING: no point release readable on $host; not capturing a minor-named twin of $distro"
+      continue
+    fi
+    majorname=$(funFogApi GET /image/$fogimageid | jq -r '.name')
+    minorname="${majorname%_*}_${minor}"
+    minorid=$(funFogApi GET /image '{"name": "'${minorname}'"}' | jq -r '.images[0].id // ""')
+    if [ -z "$minorid" ] || [ "$minorid" == "null" ]; then
+      funFogApi POST /image/ '{ "imageTypeID": "1", "imagePartitionTypeID": "1", "name": "'${minorname}'", "path": "'${minorname}'", "osID": "50", "format": "0", "magnet": "", "protected": "0", "compress": "6", "isEnabled": "1", "toReplicate": "1", "os": {"id": "50", "name": "Linux", "description": ""}, "imagepartitiontype": {"id": "1", "name": "Everything", "type": "all"}, "imagetype": {"id": "1", "name": "Single Disk - Resizable", "type": "n"}, "imagetypename": "Single Disk - Resizable", "imageparttypename": "Everything", "osname": "Linux", "storagegroupname": "default"}' || true
+      minorid=$(funFogApi GET /image '{"name": "'${minorname}'"}' | jq -r '.images[0].id // ""')
+    fi
+    if [ -z "$minorid" ] || [ "$minorid" == "null" ]; then
+      echo "WARNING: could not create image ${minorname}; skipping the minor-named twin"
+      continue
+    fi
+    echo "Capturing $host again as ${minorname} (image $minorid)"
+    funFogApi PUT /host/$foghostid '{"imageID": "'${minorid}'"}'
+    funFogApi POST /host/$foghostid/task '{"taskTypeID": "'${fogcaptureid}'"}'
+    funReboot $host
+    twincaptures=true
+  done 3< $statefile
+  if [ "$twincaptures" == "true" ]; then
+    funWaitForCaptureTasks
+  fi
+  # NOTE: the queue deliberately stays paused here; the verify phase unpauses
+  # it once the new images have been proven to boot.
+}
+
+# Wait until FOG reports no active Capture tasks.  Uses $fogcaptureid.
+funWaitForCaptureTasks () {
+  local capturetasks currentretries=0
   capturetasks=$(funFogApi GET /task/active '{"typeID": "'${fogcaptureid}'"}' | jq -r '.count // 0')
-  currentretries=0
   while [ "${capturetasks:-1}" -gt 0 ]; do
     echo "$(date) -- $capturetasks FOG capture tasks still queued.  Sleeping 10sec"
     sleep 10
@@ -642,8 +693,6 @@ phase_capture () {
     # Retry for 30min
     funRetry $currentretries 180
   done
-  # NOTE: the queue deliberately stays paused here; the verify phase unpauses
-  # it once the new images have been proven to boot.
 }
 
 phase_verify () {

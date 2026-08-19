@@ -68,6 +68,19 @@ This job:
 
 The ``IMAGETYPE`` parameter decouples the captured image's name from the machine type doing the capturing: ``MACHINETYPES=trial IMAGETYPE=trial-perf`` locks a trial node, provisions it with the ``trial_<distro>`` image, runs the usual ansible/prep, then captures the result back as ``trial-perf_<distro>`` — creating that FOG image on first use.  The queue is paused for both types.  Useful when a machine type's own nodes can't be spared for capturing.  Note the node is ansiblized as the host it's running on, so any group_vars specific to the image's machine type won't be applied.
 
+Rocky point releases
+--------------------
+
+Rocky images come in two flavors: minor-named (``trial_rocky_10.1``), which
+prep-fog-capture keeps on that exact point release, and the major-tracking
+``trial_rocky_10``, which follows the newest minor.  When a new Rocky minor
+is released, run this job once with ``DISTROS=rocky_10``: the capture host
+is upgraded to the new minor (``rocky_upgrade_scope=major``), captured as
+``trial_rocky_10``, and then captured a second time under the point release
+it is actually running (e.g. ``trial_rocky_10.2``) so both names stay
+available.  Teuthology deploys ``trial_rocky_10`` for jobs that ask for
+os_version "10" and the minor-named images for jobs that pin one.
+
 Usage
 -----
 
