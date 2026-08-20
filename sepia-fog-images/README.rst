@@ -47,7 +47,7 @@ This job:
 
 #. Locks a number of testnodes via ``teuthology-lock`` depending on the number of machine types and distros you specify (unless you specify your own using the ``DEFINEDHOSTS`` job parameter).
 
-#. FOG-deploys the existing image for each distro to its testnode via the FOG API, then waits for the network sentinel file (``sentinel_file`` from the ``fog:`` block of ``/etc/teuthology.yaml``) to appear, which means first-boot network/hostname configuration finished.  (If no image exists yet for a distro, the first one has to be seeded manually: image a host by hand, then run this job with ``DEFINEDHOSTS`` pointing at it.)
+#. FOG-deploys the existing image for each distro to its testnode via the FOG API, then waits for the network sentinel file (``sentinel_file`` from the ``fog:`` block of ``/etc/teuthology.yaml``) to appear, which means first-boot network/hostname configuration finished.  Only an image FOG has recorded a size for (i.e. one that has actually been captured) is deployed; for a major-only distro such as ``rocky_10`` with no captured image yet, the newest captured point-release image of that major (``trial_rocky_10.2`` over ``trial_rocky_10.1``) is deployed instead to seed it.  (If no image exists at all, the first one has to be seeded manually: image a host by hand, then run this job with ``DEFINEDHOSTS`` pointing at it.)  A deploy only counts as successful if FOG bumps the host's ``deployed`` timestamp, and once the host is back the job checks ``/etc/os-release`` against the requested distro -- a node that silently booted a leftover install is an error, not something to capture.
 
 #. Runs the ``cephlab.yml`` playbook against each testnode to bring it fully up to date.
 
@@ -62,11 +62,24 @@ This job:
 
 #. Creates a FOG capture task for each testnode and reboots it (or exits MAAS rescue mode, which reboots) so FOG captures the assigned images.
 
-#. **Verifies** each new image by deploying it onto a *different* host and checking that it boots, finishes first-boot configuration (sentinel file), and comes up with the right hostname.  With multiple distros per machine type the capture hosts verify each other's images; with a single distro one extra host is claimed.  Only after verification does the queue get unpaused — if anything fails after captures started, the cleanup leaves the queue paused (with a 2h auto-expiry safety valve) so teuthology can't deploy a broken image.
+#. **Verifies** each new image by deploying it onto a *different* host and checking that it boots, finishes first-boot configuration (sentinel file), comes up with the right hostname, and is running the distro it is named after (``/etc/os-release``).  With multiple distros per machine type the capture hosts verify each other's images; with a single distro one extra host is claimed.  Only after verification does the queue get unpaused — if anything fails after captures started, the cleanup leaves the queue paused (with a 2h auto-expiry safety valve) so teuthology can't deploy a broken image.
 
 #. Unlocks/releases the testnodes.
 
 The ``IMAGETYPE`` parameter decouples the captured image's name from the machine type doing the capturing: ``MACHINETYPES=trial IMAGETYPE=trial-perf`` locks a trial node, provisions it with the ``trial_<distro>`` image, runs the usual ansible/prep, then captures the result back as ``trial-perf_<distro>`` — creating that FOG image on first use.  The queue is paused for both types.  Useful when a machine type's own nodes can't be spared for capturing.  Note the node is ansiblized as the host it's running on, so any group_vars specific to the image's machine type won't be applied.
+
+Rocky point releases
+--------------------
+
+Rocky images come in two flavors: minor-named (``trial_rocky_10.1``), which
+prep-fog-capture keeps on that exact point release, and the major-tracking
+``trial_rocky_10``, which follows the newest minor.  When a new Rocky minor
+is released, run this job once with ``DISTROS=rocky_10``: the capture host
+is upgraded to the new minor (``rocky_upgrade_scope=major``), captured as
+``trial_rocky_10``, and then captured a second time under the point release
+it is actually running (e.g. ``trial_rocky_10.2``) so both names stay
+available.  Teuthology deploys ``trial_rocky_10`` for jobs that ask for
+os_version "10" and the minor-named images for jobs that pin one.
 
 Usage
 -----

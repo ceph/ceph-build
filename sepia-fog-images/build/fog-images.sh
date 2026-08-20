@@ -168,6 +168,87 @@ funWaitForOurTasks () {
   done
 }
 
+# Does a FOG image have captured content?  FOG only fills in an image's
+# "size" when a capture has completed, so a record without one is just a
+# template (or a capture that never happened) and must not be deployed.
+# Usage: funImageHasContent <imageid>
+funImageHasContent () {
+  local size
+  size=$(funFogApi GET /image/$1 | jq -r '.size // ""')
+  [ -n "$size" ] && [ "$size" != "null" ]
+}
+
+# Print the ID of a usable (captured) FOG image by name, or nothing.
+# Usage: funUsableImageId <imagename>
+funUsableImageId () {
+  local id
+  id=$(funFogApi GET /image '{"name": "'${1}'"}' | jq -r '.images[0].id // ""')
+  if [ -n "$id" ] && [ "$id" != "null" ] && funImageHasContent $id; then
+    echo $id
+  fi
+}
+
+# For a major-only distro (rocky_10) with no usable ${type}_rocky_10 image
+# yet, find the newest captured point-release image of that major
+# (${type}_rocky_10.2 over ${type}_rocky_10.1) to seed it from.  Prints
+# "<id> <name>" or nothing.  Usage: funNewestMinorImage <type> <distro> <major>
+funNewestMinorImage () {
+  local name id
+  name=$(funFogApi GET /image/search/"${1}_${2}_${3}." \
+    | jq -r --arg p "${1}_${2}_${3}." '[(.images // [])[] | select(.name | startswith($p)) | select((.size // "") != "") | .name] | .[]' \
+    | sort -V | tail -n 1)
+  [ -n "$name" ] || return 0
+  id=$(funFogApi GET /image '{"name": "'${name}'"}' | jq -r '.images[0].id // ""')
+  if [ -n "$id" ] && [ "$id" != "null" ]; then
+    echo "$id $name"
+  fi
+  return 0
+}
+
+# FOG's per-host "deployed" timestamp is only bumped when a deploy task
+# completes successfully, so it tells a real deploy apart from a task that
+# was cancelled or died in FOS (after which the node just boots whatever
+# was on its disk).  Usage: funHostDeployedAt <foghostid>
+funHostDeployedAt () {
+  funFogApi GET /host/$1 | jq -r '.deployed // ""'
+}
+
+# Check that a host is actually running the distro we think it is, by
+# /etc/os-release.  A major-only version (rocky_10) accepts any point
+# release of that major; a full version must match exactly; centos stream
+# reports only the major.  Usage: funCheckHostOs <host> <distro>
+funCheckHostOs () {
+  local host=$1 want=$2 wantid wantver osrel gotid gotver gotmajor wantmajor
+  wantid=$(echo $want | cut -d '_' -f1)
+  wantver=$(echo $want | cut -d '_' -f2)
+  osrel=$(ssh $sshopts ubuntu@${host}.front.sepia.ceph.com "cat /etc/os-release") || {
+    echo "ERROR: could not read /etc/os-release on $host"
+    return 1
+  }
+  gotid=$(echo "$osrel" | sed -n 's/^ID="\{0,1\}\([^"]*\)"\{0,1\}$/\1/p' | head -n 1)
+  gotver=$(echo "$osrel" | sed -n 's/^VERSION_ID="\{0,1\}\([^"]*\)"\{0,1\}$/\1/p' | head -n 1)
+  case "$gotid" in
+    almalinux) gotid=alma ;;
+    opensuse-leap|opensuse-tumbleweed|sles) gotid=opensuse ;;
+  esac
+  gotmajor=${gotver%%.*}
+  wantmajor=${wantver%%.*}
+  case "$wantver" in
+    *stream) wantver=$wantmajor ;;
+  esac
+  if [ "$gotid" != "$wantid" ]; then
+    echo "ERROR: $host is running $gotid $gotver, not $want"
+    return 1
+  fi
+  if [ "$wantver" == "$wantmajor" ]; then
+    # major-only request: any point release of that major will do
+    [ "$gotmajor" == "$wantmajor" ] || { echo "ERROR: $host is running $gotid $gotver, not $want"; return 1; }
+  else
+    [ "$gotver" == "$wantver" ] || { echo "ERROR: $host is running $gotid $gotver, not $want"; return 1; }
+  fi
+  echo "$host is running $gotid $gotver as expected for $want"
+}
+
 # Mark down one free host of the given machine type for image verification.
 # Prints the claimed short hostname.  Usage: funClaimExtraHost <type>
 funClaimExtraHost () {
@@ -341,6 +422,23 @@ phase_deploy () {
         echo "ERROR: $host is not registered in FOG at http://${fogserver}/fog"
         exit 1
       fi
+      # Work out what to deploy BEFORE touching the capture image.  On a
+      # first capture the deploy and capture names are the same, and build
+      # #4 (2026-08-19) created the empty capture template first, then
+      # "found" it as the deploy image and deployed it: FOS had nothing to
+      # restore, the node booted whatever was on its disk (an Ubuntu
+      # install), and the job captured that as trial_rocky_10.  Only an
+      # image FOG has a size for counts as deployable.
+      deployimageid=$(funUsableImageId $deployimagename)
+      if [ -z "$deployimageid" ] && [ "$distroversion" == "${distroversion%%.*}" ]; then
+        # Major-only distro (rocky_10) with no captured image yet: seed it
+        # from the newest captured point-release image of that major
+        seed=$(funNewestMinorImage $type $splitdistro $distroversion)
+        if [ -n "$seed" ]; then
+          deployimageid=${seed%% *}
+          echo "No captured ${deployimagename} image; seeding it from ${seed#* } (image ${deployimageid})"
+        fi
+      fi
       # Make sure the image we'll capture into exists, creating the template
       # if this is its first capture
       captureimageid=$(funFogApi GET /image '{"name": "'${captureimagename}'"}' | jq -r '.images[0].id')
@@ -352,31 +450,33 @@ phase_deploy () {
           exit 1
         fi
       fi
-      # Deploy the current image for this node's machine type
-      deployimageid=$(funFogApi GET /image '{"name": "'${deployimagename}'"}' | jq -r '.images[0].id')
       deployed=false
-      if [ "$deployimageid" == "null" ] || [ -z "$deployimageid" ]; then
+      deployedat=""
+      if [ -z "$deployimageid" ]; then
         if [ "$use_teuthologylock" = true ]; then
           # Nothing to deploy.  Brand new distros for a machine type have to
           # be seeded manually: image a host by hand, then rerun this job
           # with DEFINEDHOSTS pointing at it.
-          echo "ERROR: No FOG image named ${deployimagename} exists so there is nothing to deploy and update."
+          echo "ERROR: No captured FOG image named ${deployimagename} exists so there is nothing to deploy and update."
           echo "Seed the first ${deployimagename} image manually, then rerun this job with DEFINEDHOSTS set."
           exit 1
         fi
-        # DEFINEDHOSTS path: the host is assumed to already be running the
-        # target OS.
-        echo "No ${deployimagename} image to deploy; capturing ${host}'s current OS"
+        # DEFINEDHOSTS path: the host must already be running the target
+        # OS -- check, don't assume
+        echo "No captured ${deployimagename} image to deploy; capturing ${host}'s current OS"
+        funCheckHostOs $host ${array2[$i-1]} || exit 1
       elif [ "$SKIPDEPLOY" == "true" ]; then
         echo "SKIPDEPLOY set; capturing ${host}'s current OS as ${captureimagename} without redeploying first"
+        funCheckHostOs $host ${array2[$i-1]} || exit 1
       else
         # Associate the image with the host and deploy it
+        deployedat=$(funHostDeployedAt $foghostid)
         funFogApi PUT /host/$foghostid '{"imageID": "'${deployimageid}'"}'
         funFogApi POST /host/$foghostid/task '{"taskTypeID": "'${fogdeployid}'"}'
         funReboot $host
         deployed=true
       fi
-      echo "$host ${array2[$i-1]} $foghostid $captureimageid $deployed $type" >> $statefile
+      echo "$host ${array2[$i-1]} $foghostid $captureimageid $deployed $type ${deployedat:-none}" >> $statefile
     done
   done
 
@@ -384,11 +484,23 @@ phase_deploy () {
   deployids=$(awk '$5 == "true" {print $3}' $statefile | jq -R . | jq -sc .)
   funWaitForOurTasks "$deployids" 120
 
+  # A task leaving the active list only means it is gone, not that it
+  # worked: FOG bumps the host's "deployed" timestamp only on success.
+  while read -u3 -r host distro foghostid fogimageid deployed type deployedat; do
+    [ "$deployed" == "true" ] || continue
+    if [ "$(funHostDeployedAt $foghostid)" == "$deployedat" ]; then
+      echo "ERROR: FOG never recorded a successful deploy for $host (deployed timestamp still '${deployedat}'); the deploy task failed or was cancelled.  Not continuing with whatever is on its disk."
+      exit 1
+    fi
+  done 3< $statefile
+
   # Wait for the freshly-deployed hosts to come back up and finish their
-  # first-boot network/hostname configuration (the sentinel file)
-  while read -u3 -r host distro foghostid fogimageid deployed type; do
+  # first-boot network/hostname configuration (the sentinel file), then
+  # make sure they booted the OS we deployed and not a leftover install
+  while read -u3 -r host distro foghostid fogimageid deployed type deployedat; do
     [ "$deployed" == "true" ] || continue
     funWaitForHost $host 60
+    funCheckHostOs $host $distro || exit 1
   done 3< $statefile
 }
 
@@ -396,11 +508,20 @@ phase_ansible () {
   funActivateVenv
 
   # Bring the testnodes fully up to date, then prep them for capture.  One
-  # ansible run covering every host so they're configured in parallel.
+  # cephlab run covering every host so they're configured in parallel.
   # set ANSIBLE_CONFIG to allow teuthology to specify collections dir
   limit=$(awk '{printf "%s%s*", (NR > 1 ? ":" : ""), $1}' $statefile)
   ANSIBLE_CONFIG=$WORKSPACE/teuthology/ansible.cfg ansible-playbook $WORKSPACE/ceph-cm-ansible/cephlab.yml -e ansible_ssh_user=ubuntu --limit="$limit"
-  ANSIBLE_CONFIG=$WORKSPACE/teuthology/ansible.cfg ansible-playbook $WORKSPACE/ceph-cm-ansible/tools/prep-fog-capture.yml -e ansible_ssh_user=ubuntu --limit="$limit"
+
+  # prep-fog-capture runs per host: a minor-named capture (rocky_10.1) must
+  # stay on its minor (the testnode role pins the repos), while a
+  # major-tracking one (rocky_10) walks to the newest minor first
+  while read -u3 -r host distro foghostid fogimageid deployed type deployedat; do
+    ver=${distro##*_}
+    scope=minor
+    [ "$ver" == "${ver%%.*}" ] && scope=major
+    ANSIBLE_CONFIG=$WORKSPACE/teuthology/ansible.cfg ansible-playbook $WORKSPACE/ceph-cm-ansible/tools/prep-fog-capture.yml -e ansible_ssh_user=ubuntu -e rocky_upgrade_scope=$scope --limit="${host}*"
+  done 3< $statefile
 }
 
 phase_fsck () {
@@ -424,7 +545,7 @@ phase_fsck () {
   { set +x; } 2>/dev/null
   maas login $maasprofile $maasurl "$MAAS_API_KEY"
   set -x
-  while read -u3 -r host distro foghostid fogimageid deployed type; do
+  while read -u3 -r host distro foghostid fogimageid deployed type deployedat; do
     # Point the host's PXE entry at MAAS so rescue mode can boot
     funSetPxe $host maas
     systemid=$(maas $maasprofile machines read hostname=$host | jq -r '.[0].system_id')
@@ -507,7 +628,7 @@ phase_capture () {
   touch $WORKSPACE/captures-started
 
   # Create a capture task for each host and reboot it so FOG captures its OS
-  while read -u3 -r host distro foghostid fogimageid deployed type; do
+  while read -u3 -r host distro foghostid fogimageid deployed type deployedat; do
     funFogApi PUT /host/$foghostid '{"imageID": "'${fogimageid}'"}'
     funFogApi POST /host/$foghostid/task '{"taskTypeID": "'${fogcaptureid}'"}'
     if [ "$FSCKMETHOD" == "maas-rescue" ]; then
@@ -520,8 +641,50 @@ phase_capture () {
   done 3< $statefile
 
   # Wait for Capture tasks to finish
+  funWaitForCaptureTasks
+
+  # A major-tracking distro (rocky_10) is also captured under the point
+  # release the host is actually running (trial_rocky_10.2), so jobs that
+  # pin a minor can keep getting exactly that minor after the major image
+  # moves on.  Second capture task, own image record and files.
+  twincaptures=false
+  while read -u3 -r host distro foghostid fogimageid deployed type deployedat; do
+    ver=${distro##*_}
+    [ "$ver" == "${ver%%.*}" ] || continue
+    funWaitForHost $host 60
+    minor=$(ssh $sshopts ubuntu@${host}.front.sepia.ceph.com "sed -n 's/^VERSION_ID=\"\{0,1\}\([^\"]*\)\"\{0,1\}$/\1/p' /etc/os-release" | head -n 1)
+    if [ -z "$minor" ] || [ "$minor" == "${minor%%.*}" ]; then
+      echo "WARNING: no point release readable on $host; not capturing a minor-named twin of $distro"
+      continue
+    fi
+    majorname=$(funFogApi GET /image/$fogimageid | jq -r '.name')
+    minorname="${majorname%_*}_${minor}"
+    minorid=$(funFogApi GET /image '{"name": "'${minorname}'"}' | jq -r '.images[0].id // ""')
+    if [ -z "$minorid" ] || [ "$minorid" == "null" ]; then
+      funFogApi POST /image/ '{ "imageTypeID": "1", "imagePartitionTypeID": "1", "name": "'${minorname}'", "path": "'${minorname}'", "osID": "50", "format": "0", "magnet": "", "protected": "0", "compress": "6", "isEnabled": "1", "toReplicate": "1", "os": {"id": "50", "name": "Linux", "description": ""}, "imagepartitiontype": {"id": "1", "name": "Everything", "type": "all"}, "imagetype": {"id": "1", "name": "Single Disk - Resizable", "type": "n"}, "imagetypename": "Single Disk - Resizable", "imageparttypename": "Everything", "osname": "Linux", "storagegroupname": "default"}' || true
+      minorid=$(funFogApi GET /image '{"name": "'${minorname}'"}' | jq -r '.images[0].id // ""')
+    fi
+    if [ -z "$minorid" ] || [ "$minorid" == "null" ]; then
+      echo "WARNING: could not create image ${minorname}; skipping the minor-named twin"
+      continue
+    fi
+    echo "Capturing $host again as ${minorname} (image $minorid)"
+    funFogApi PUT /host/$foghostid '{"imageID": "'${minorid}'"}'
+    funFogApi POST /host/$foghostid/task '{"taskTypeID": "'${fogcaptureid}'"}'
+    funReboot $host
+    twincaptures=true
+  done 3< $statefile
+  if [ "$twincaptures" == "true" ]; then
+    funWaitForCaptureTasks
+  fi
+  # NOTE: the queue deliberately stays paused here; the verify phase unpauses
+  # it once the new images have been proven to boot.
+}
+
+# Wait until FOG reports no active Capture tasks.  Uses $fogcaptureid.
+funWaitForCaptureTasks () {
+  local capturetasks currentretries=0
   capturetasks=$(funFogApi GET /task/active '{"typeID": "'${fogcaptureid}'"}' | jq -r '.count // 0')
-  currentretries=0
   while [ "${capturetasks:-1}" -gt 0 ]; do
     echo "$(date) -- $capturetasks FOG capture tasks still queued.  Sleeping 10sec"
     sleep 10
@@ -530,8 +693,6 @@ phase_capture () {
     # Retry for 30min
     funRetry $currentretries 180
   done
-  # NOTE: the queue deliberately stays paused here; the verify phase unpauses
-  # it once the new images have been proven to boot.
 }
 
 phase_verify () {
@@ -578,10 +739,11 @@ phase_verify () {
         echo "ERROR: verify host $target is not registered in FOG.  Queue stays paused."
         exit 1
       fi
+      deployedat=$(funHostDeployedAt $targetid)
       funFogApi PUT /host/$targetid '{"imageID": "'${typeimages[$i]}'"}'
       funFogApi POST /host/$targetid/task '{"taskTypeID": "'${fogdeployid}'"}'
       funReboot $target
-      echo "$target ${typedistros[$i]} $targetid" >> $verifyfile
+      echo "$target ${typedistros[$i]} $targetid ${deployedat:-none}" >> $verifyfile
     done
   done
 
@@ -589,7 +751,12 @@ phase_verify () {
   verifyids=$(awk '{print $3}' $verifyfile | jq -R . | jq -sc .)
   funWaitForOurTasks "$verifyids" 120
 
-  while read -u3 -r target distro targetid; do
+  while read -u3 -r target distro targetid deployedat; do
+    # The task is gone; make sure it actually deployed (see phase_deploy)
+    if [ "$(funHostDeployedAt $targetid)" == "$deployedat" ]; then
+      echo "ERROR: FOG never recorded a successful deploy of the new $distro image on $target.  Queue stays paused."
+      exit 1
+    fi
     funWaitForHost $target 60
     # The deployed host must come up as itself, not as the capture host
     actualhostname=$(ssh $sshopts ubuntu@${target}.front.sepia.ceph.com "hostname -s")
@@ -597,6 +764,10 @@ phase_verify () {
       echo "ERROR: $target booted the new $distro image with hostname '$actualhostname'.  Queue stays paused."
       exit 1
     fi
+    # ... and running the distro the image is named after.  Build #4
+    # (2026-08-19) captured and "verified" an Ubuntu install as rocky_10
+    # because this only checked the hostname.
+    funCheckHostOs $target $distro || { echo "ERROR: the new $distro image is not $distro.  Queue stays paused."; exit 1; }
     echo "Verified: $distro image boots and configures correctly on $target"
   done 3< $verifyfile
 
