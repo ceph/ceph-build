@@ -85,14 +85,6 @@
           description: "Whether to upload dev container images to the Pulp container registry"
           default: false
 
-      - choice:
-          name: FLAVOR
-          choices:
-            - default
-            - debug
-          default: "default"
-          description: "Type of Ceph build, choices are: default, debug. Defaults to: 'default'"
-
       - bool:
           name: CI_CONTAINER
           description: "Whether to build and push container images"
