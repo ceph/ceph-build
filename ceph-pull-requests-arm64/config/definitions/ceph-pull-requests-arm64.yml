@@ -55,24 +55,6 @@
         honor-refspec: true
         timeout: 20
         wipe-workspace: true
-    triggers:
-    - github-pull-request:
-        cancel-builds-on-update: true
-        allow-whitelist-orgs-as-admins: true
-        org-list:
-        - ceph
-        trigger-phrase: 'jenkins test make check arm64'
-        skip-build-phrase: '^jenkins do not test.*'
-        only-trigger-phrase: false
-        github-hooks: true
-        permit-all: false
-        auto-close-on-fail: false
-        status-context: "make check (arm64)"
-        started-status: "running make check"
-        success-status: "make check succeeded"
-        failure-status: "make check failed"
-        white-list-target-branches:
-        - main
     publishers:
       - cobertura:
           report-file: "src/pybind/mgr/dashboard/frontend/coverage/cobertura-coverage.xml"

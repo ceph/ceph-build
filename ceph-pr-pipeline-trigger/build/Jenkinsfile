@@ -1,0 +1,244 @@
+// Trigger job for ceph-pr-pipeline.  Replaces the GitHub Pull Request Builder
+// plugin: receives pull_request/issue_comment webhooks (via the generic
+// webhook trigger, see the JJB definition) and decides whether/what to run.
+//
+// Policy implemented here:
+//   - PR authors who are members of the "ceph" GitHub org get CI automatically.
+//   - Anyone else needs the "ci-approved" label on the PR.  Pushing new
+//     commits (including force-pushes) removes the label, cancels any running
+//     builds for the PR, and resets the status checks to pending until a Ceph
+//     developer re-adds the label.
+//   - "jenkins test <check>" comments re-run individual checks (org members
+//     always; others only while the PR carries the ci-approved label).
+//   - Any newly triggered run aborts still-running runs for the same PR.
+
+import groovy.transform.Field
+
+@Field String pipeline_job = "ceph-pr-pipeline"
+@Field String github_repo = "ceph/ceph"
+@Field String github_org = "ceph"
+@Field String approval_label = "ci-approved"
+@Field String github_api = "https://api.github.com"
+
+// CHECKS tokens -> GitHub status contexts reported by ceph-pr-pipeline.
+// Keep in sync with the "contexts" map in ceph-pr-pipeline/build/Jenkinsfile.
+@Field Map all_checks = [
+  "signed":           "Signed-off-by",
+  "submodules":       "Unmodified Submodules",
+  "make-check":       "make check",
+  "make-check-arm64": "make check (arm64)",
+  "api":              "ceph API tests",
+  "windows":          "ceph windows tests",
+]
+
+@Field String pr = ""
+@Field String head_sha = ""
+@Field String target_branch = ""
+@Field String author = ""
+@Field List pr_labels = []
+@Field String checks = ""
+@Field String skip_reason = ""
+@Field boolean authorized = false
+
+// Map comment phrases to CHECKS tokens.  Returns null when nothing matches
+// (bare "jenkins test" runs nothing -- name the check you want).
+// "jenkins retest" (with or without anything after it) re-runs everything;
+// thanks to the sha-keyed S3 cache, that skips recompilation when the PR
+// head hasn't changed.
+def phraseToChecks(String body) {
+  if (body =~ /(?i)jenkins\s+retest\b/) {
+    return all_checks.keySet().join(" ")
+  }
+  def hits = []
+  if (body =~ /(?i)jenkins\s+test\s+signed/)      { hits << "signed" }
+  if (body =~ /(?i)jenkins\s+test\s+submodules/)  { hits << "submodules" }
+  // negative lookahead so "make check arm64" doesn't also queue the
+  // x86_64 leg; both can still be named in one comment
+  if (body =~ /(?i)jenkins\s+test\s+make\s+check(?!\s+arm64)/) { hits << "make-check" }
+  if (body =~ /(?i)jenkins\s+test\s+make\s+check\s+arm64/)     { hits << "make-check-arm64" }
+  if (body =~ /(?i)jenkins\s+test\s+api/)         { hits << "api" }
+  if (body =~ /(?i)jenkins\s+test\s+windows/)     { hits << "windows" }
+  return hits ? hits.join(" ") : null
+}
+
+def ghApi(String path) {
+  def text = sh(
+    script: "curl -sf -u \$GITHUB_STATUS_CREDS_USR:\$GITHUB_STATUS_CREDS_PSW " +
+            "-H 'Accept: application/vnd.github+json' '${github_api}${path}'",
+    returnStdout: true,
+  )
+  return readJSON(text: text)
+}
+
+def isOrgMember(String user) {
+  // 204 = member.  The token's user must itself be an org member for
+  // non-public memberships to be visible.
+  def code = sh(
+    script: "curl -s -o /dev/null -w '%{http_code}' " +
+            "-u \$GITHUB_STATUS_CREDS_USR:\$GITHUB_STATUS_CREDS_PSW " +
+            "'${github_api}/orgs/${github_org}/members/${user}'",
+    returnStdout: true,
+  ).trim()
+  return code == "204"
+}
+
+def removeApprovalLabel() {
+  sh(
+    script: "curl -s -o /dev/null -X DELETE " +
+            "-u \$GITHUB_STATUS_CREDS_USR:\$GITHUB_STATUS_CREDS_PSW " +
+            "'${github_api}/repos/${github_repo}/issues/${pr}/labels/${approval_label}'"
+  )
+}
+
+def postStatus(String context, String state, String description, String url) {
+  writeFile(
+    file: "status.json",
+    text: groovy.json.JsonOutput.toJson([
+      state: state, context: context, description: description, target_url: url,
+    ])
+  )
+  sh(
+    script: "curl -sf -o /dev/null -X POST " +
+            "-u \$GITHUB_STATUS_CREDS_USR:\$GITHUB_STATUS_CREDS_PSW " +
+            "-H 'Accept: application/vnd.github+json' " +
+            "-d @status.json " +
+            "'${github_api}/repos/${github_repo}/statuses/${head_sha}'"
+  )
+}
+
+// Abort running ceph-pr-pipeline builds for this PR.  Needs one-time
+// in-process script approval (Jenkins model access from a sandboxed pipeline).
+@NonCPS
+def cancelRunningPrBuilds(String pr_number) {
+  def job = jenkins.model.Jenkins.get().getItemByFullName(pipeline_job)
+  if (job == null) {
+    return
+  }
+  for (def b : job.getBuilds()) {
+    if (!b.isBuilding()) {
+      continue
+    }
+    def value = b.getAction(hudson.model.ParametersAction.class)
+        ?.getParameter("ghprbPullId")?.getValue()
+    if (value?.toString() == pr_number) {
+      println("Aborting superseded ${pipeline_job} build #${b.getNumber()}")
+      b.getExecutor()?.interrupt(hudson.model.Result.ABORTED)
+    }
+  }
+}
+
+pipeline {
+  // Seconds of curl per event; any free executor will do, and the first
+  // "queued" statuses shouldn't wait for a small-labeled node.
+  agent any
+  options { skipDefaultCheckout(true) }
+  environment {
+    GITHUB_STATUS_CREDS = credentials("github-status-check-token")
+  }
+  stages {
+    stage("evaluate event") {
+      steps {
+        script {
+          def event = env.X_GitHub_Event
+          if (event == "issue_comment") {
+            pr = env.issue_number
+            checks = phraseToChecks(env.comment_body ?: "")
+            if (!checks) {
+              skip_reason = "comment did not match any test phrase"
+            }
+          } else {  // pull_request
+            pr = env.pr_number
+            checks = all_checks.keySet().join(" ")
+            if (env.action == "labeled" && env.label_name != approval_label) {
+              skip_reason = "label '${env.label_name}' is not ${approval_label}"
+            }
+            // GHPRB's skip-build-phrase, kept for compatibility
+            if (!skip_reason && (env.pr_body ?: "") =~ /(?im)^jenkins do not test/) {
+              skip_reason = "PR description contains the skip-build phrase"
+            }
+          }
+          if (skip_reason) {
+            currentBuild.description = "PR ${pr}: skipped (${skip_reason})"
+            return
+          }
+
+          def pr_data = ghApi("/repos/${github_repo}/pulls/${pr}")
+          head_sha = pr_data.head.sha
+          target_branch = pr_data.base.ref
+          author = pr_data.user.login
+          pr_labels = pr_data.labels.collect { it.name }
+          if (pr_data.state != "open") {
+            skip_reason = "PR is not open"
+            currentBuild.description = "PR ${pr}: skipped (${skip_reason})"
+            return
+          }
+
+          def approved = pr_labels.contains(approval_label)
+          def author_is_member = isOrgMember(author)
+          if (event == "issue_comment") {
+            authorized = approved || isOrgMember(env.comment_author)
+          } else if (env.action == "labeled") {
+            // Adding a label requires triage permission on ceph/ceph, so the
+            // label itself is the approval.
+            authorized = true
+          } else if (env.action == "synchronize") {
+            authorized = author_is_member
+            if (!authorized && approved) {
+              // New commits revoke a previous approval; a Ceph developer must
+              // re-add the label after reviewing the new code.
+              echo "Removing ${approval_label}: PR was updated after approval"
+              removeApprovalLabel()
+            }
+          } else {  // opened, reopened
+            authorized = author_is_member || approved
+          }
+          currentBuild.description =
+            "PR ${pr} ${env.action ?: 'comment'} by ${author}: " +
+            (authorized ? "triggering [${checks}]" : "not authorized")
+        }
+      }
+    }
+    stage("cancel superseded builds") {
+      when { expression { !skip_reason } }
+      steps {
+        script { cancelRunningPrBuilds(pr) }
+      }
+    }
+    stage("await approval") {
+      when { expression { !skip_reason && !authorized } }
+      steps {
+        script {
+          // Leave every check pending so required contexts show what's
+          // blocking, and nothing runs until the label is (re-)added.
+          all_checks.each { key, context ->
+            postStatus(context, "pending",
+              "awaiting '${approval_label}' label from a Ceph developer",
+              "${env.JOB_URL}")
+          }
+        }
+      }
+    }
+    stage("trigger pipeline") {
+      when { expression { !skip_reason && authorized } }
+      steps {
+        script {
+          all_checks.each { key, context ->
+            if (checks.tokenize(" ").contains(key)) {
+              postStatus(context, "pending", "queued", "${env.JOB_URL}")
+            }
+          }
+          build(
+            job: pipeline_job,
+            wait: false,
+            parameters: [
+              string(name: "ghprbPullId", value: pr),
+              string(name: "HEAD_SHA", value: head_sha),
+              string(name: "TARGET_BRANCH", value: target_branch),
+              string(name: "CHECKS", value: checks),
+            ]
+          )
+        }
+      }
+    }
+  }
+}

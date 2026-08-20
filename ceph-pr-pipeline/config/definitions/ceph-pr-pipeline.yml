@@ -1,0 +1,79 @@
+- job:
+    name: ceph-pr-pipeline
+    description: |
+      Combined PR checks for ceph.git: Signed-off-by, Unmodified Submodules,
+      make check, ceph API tests and ceph windows tests in one pipeline with a
+      single ceph checkout and a single (shared) x86_64 build.
+      Normally triggered by ceph-pr-pipeline-trigger; to run manually, just
+      set ghprbPullId.
+    project-type: pipeline
+    quiet-period: 1
+    concurrent: true
+
+    properties:
+      - build-discarder:
+          days-to-keep: 15
+          num-to-keep: 300
+
+    pipeline-scm:
+      scm:
+        - git:
+            url: https://github.com/ceph/ceph-build
+            branches:
+              - ${{CEPH_BUILD_BRANCH}}
+            shallow-clone: true
+            submodule:
+              disable: true
+            wipe-workspace: true
+      script-path: ceph-pr-pipeline/build/Jenkinsfile
+      lightweight-checkout: true
+      do-not-fetch-tags: true
+
+    parameters:
+      - string:
+          name: ghprbPullId
+          description: "the GitHub pull id, like '72' in 'ceph/pull/72'"
+
+      - string:
+          name: HEAD_SHA
+          description: "Expected PR head sha (set by the trigger).  Leave empty to use the current head; if set and the PR has moved on, the build aborts as superseded."
+
+      - string:
+          name: TARGET_BRANCH
+          default: main
+          description: "PR target branch (informational; the pipeline re-resolves it from the GitHub API)"
+
+      - string:
+          name: CHECKS
+          default: "signed submodules make-check make-check-arm64 api windows"
+          description: "Which checks to run (space-separated): signed, submodules, make-check, make-check-arm64, api, windows"
+
+      - string:
+          name: DISTRO_BASE
+          default: jammy
+          description: "the distribution used to create the container that builds and hosts the tests (see build-with-container.py for supported values)"
+
+      - bool:
+          name: FORCE_BUILD
+          default: false
+          description: "Compile even if a cached build tree already exists for this PR head sha"
+
+      - string:
+          name: STATUS_PREFIX
+          default: ""
+          description: "Prefix for the GitHub status contexts (e.g. 'pipeline/' while testing side by side with the old GHPRB jobs, so required contexts aren't touched)"
+
+      - string:
+          name: CEPH_REFERENCE_REPO
+          default: ""
+          description: "Path to a local ceph.git reference/mirror repo on the builders to speed up cloning (ignored where it doesn't exist)"
+
+      - string:
+          name: CEPH_BUILD_BRANCH
+          default: main
+          description: "Use the Jenkinsfile from this ceph-build branch"
+
+    wrappers:
+      - inject-passwords:
+          global: true
+          mask-password-params: true
