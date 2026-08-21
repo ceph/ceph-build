@@ -520,13 +520,21 @@ phase_deploy () {
       # install), and the job captured that as trial_rocky_10.  Only an
       # image FOG has a size for counts as deployable.
       deployimageid=$(funUsableImageId $deployimagename)
+      seedsearched=false
       if [ -z "$deployimageid" ] && [ "$distroversion" == "${distroversion%%.*}" ]; then
         # Major-only distro (rocky_10) with no captured image yet: seed it
-        # from the newest captured point-release image of that major
+        # from the newest captured point-release image of that major.  The
+        # ansible phase passes rocky_upgrade_scope=major for this distro, so
+        # prep-fog-capture walks the seed to the newest minor against the
+        # major tree before we capture it as ${deployimagename}.
+        seedsearched=true
         seed=$(funNewestMinorImage $type $splitdistro $distroversion)
         if [ -n "$seed" ]; then
           deployimageid=${seed%% *}
           echo "No captured ${deployimagename} image; seeding it from ${seed#* } (image ${deployimageid})"
+          echo "prep-fog-capture will upgrade it to the newest ${splitdistro} ${distroversion} minor before capture"
+        else
+          echo "No captured ${deployimagename} image and no ${type}_${splitdistro}_${distroversion}.* point release to seed it from"
         fi
       fi
       # Make sure the image we'll capture into exists, creating the template
@@ -547,7 +555,11 @@ phase_deploy () {
           # Nothing to deploy.  Brand new distros for a machine type have to
           # be seeded manually: image a host by hand, then rerun this job
           # with DEFINEDHOSTS pointing at it.
-          echo "ERROR: No captured FOG image named ${deployimagename} exists so there is nothing to deploy and update."
+          if [ "$seedsearched" == true ]; then
+            echo "ERROR: No captured FOG image named ${deployimagename} exists, and FOG has no captured ${type}_${splitdistro}_${distroversion}.* point-release image to seed it from."
+          else
+            echo "ERROR: No captured FOG image named ${deployimagename} exists so there is nothing to deploy and update."
+          fi
           echo "Seed the first ${deployimagename} image manually, then rerun this job with DEFINEDHOSTS set."
           exit 1
         fi
