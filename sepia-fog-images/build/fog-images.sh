@@ -169,6 +169,25 @@ funWaitForOurTasks () {
   done
 }
 
+# FOG host IDs for the given machine types, as a JSON array of strings.
+# Testnodes are named <type><NNN> (trial059, smithi042), so anchor the match:
+# a bare "trial" prefix would also swallow trial-perf hosts.
+# Usage: funTypeHostIds <type>...
+funTypeHostIds () {
+  funFogApi GET /host | jq -c --arg types "$*" '
+    ($types | split(" ") | map(select(length > 0))) as $t
+    | [ (.hosts // [])[]
+        | select(.name as $n | $t | any(. as $p | $n | test("^\($p)[0-9]+$")))
+        | .id | tostring ]'
+}
+
+# Count active tasks of one type whose host is in the given JSON ID array.
+# Usage: funCountTasksFor <tasktypeid> '["1","2"]'
+funCountTasksFor () {
+  funFogApi GET /task/active '{"typeID": "'${1}'"}' \
+    | jq -r --argjson ids "$2" '[(.tasks // [])[] | select((.hostID|tostring) as $h | $ids | index($h))] | length'
+}
+
 # Does a FOG image have captured content?  FOG only fills in an image's
 # "size" when a capture has completed, so a record without one is just a
 # template (or a capture that never happened) and must not be deployed.
@@ -710,13 +729,23 @@ phase_capture () {
   funPauseQueue 7200
 
   if [ "$PAUSEQUEUE" == "true" ]; then
-    # Let any already-scheduled deploys drain before we start capturing
-    deploytasks=$(funFogApi GET /task/active '{"typeID": "'${fogdeployid}'"}' | jq -r '.count // 0')
+    # Let any already-scheduled deploys drain before we start capturing, but
+    # only the ones that could be deploying an image we are about to
+    # overwrite.  A busy trial queue is no reason to hold up a smithi
+    # capture, and the whole-server count used to block on exactly that.
+    drainhostids=$(funTypeHostIds $pausetypes)
+    if [ -z "$drainhostids" ] || [ "$drainhostids" == "[]" ]; then
+      # phase_deploy resolved a FOG host for every one of these types, so an
+      # empty list here means the host query failed, not that the lab is idle
+      echo "ERROR: Could not list FOG hosts for: $pausetypes"
+      exit 1
+    fi
+    deploytasks=$(funCountTasksFor $fogdeployid "$drainhostids")
     currentretries=0
     while [ "${deploytasks:-0}" -gt 0 ]; do
-      echo "$(date) -- $deploytasks FOG deploy tasks still queued.  Sleeping 10sec"
+      echo "$(date) -- $deploytasks FOG deploy tasks still queued for $pausetypes.  Sleeping 10sec"
       sleep 10
-      deploytasks=$(funFogApi GET /task/active '{"typeID": "'${fogdeployid}'"}' | jq -r '.count // 0')
+      deploytasks=$(funCountTasksFor $fogdeployid "$drainhostids")
       ((++currentretries))
       # Retry for 1hr
       funRetry $currentretries 360
