@@ -24,7 +24,7 @@
       - string:
           name: MACHINETYPES
           default: "trial"
-          description: "Machine types to capture images for.  (e.g., 'trial' or 'trial smithi' for multiple machine types)"
+          description: "The machine type(s) whose images this run creates or refreshes.  The job locks nodes OF this type, updates them, and captures <MACHINETYPES>_<distro> images FROM them -- the capture always lands under this type's name, on this type's hardware.  e.g. MACHINETYPES=trial-perf produces trial-perf_<distro> images from trial-perf nodes.  Space-separated for multiple types ('trial smithi')."
       - string:
           name: TEUTHOLOGYBRANCH
           default: main
@@ -44,7 +44,7 @@
       - string:
           name: IMAGETYPE
           default: ""
-          description: "Capture the images under a different machine-type name than the nodes being used.  e.g. MACHINETYPES=trial IMAGETYPE=trial-perf locks a trial node, provisions it with the trial_<distro> image, then captures it back as trial-perf_<distro> (creating that image in FOG if needed).  Leave empty to capture back into the same image that was deployed."
+          description: "OPTIONAL: the machine type whose EXISTING image is deployed as the starting point.  This does NOT change what gets captured -- the capture is always <MACHINETYPES>_<distro>.  Leave empty for a normal refresh: deploy <MACHINETYPES>_<distro>, update it, capture it back.  Set it when <MACHINETYPES> has no image yet (or should be rebuilt from another type's): e.g. MACHINETYPES=trial-perf IMAGETYPE=trial locks a trial-perf node, deploys the existing trial_<distro> image onto it, runs the ansible/prep-fog-capture phases, and captures the result as trial-perf_<distro> (created in FOG on first capture).  The <IMAGETYPE>_<distro> source image is only ever read -- it is never modified or recaptured by this run."
       - bool:
           name: SKIPDEPLOY
           default: false

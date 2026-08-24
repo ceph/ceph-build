@@ -363,13 +363,15 @@ fi
 
 numdistros=$(echo $DISTROS | wc -w)
 
-# IMAGETYPE overrides the machine-type prefix of the FOG image names, e.g.
-# MACHINETYPES=trial IMAGETYPE=trial-perf locks trial nodes but deploys and
-# recaptures trial-perf_<distro> images.  Empty means images are named after
-# the machine type.
-# The queue is paused for the machine types being used AND the type whose
-# images are being rewritten.
-pausetypes="$MACHINETYPES${IMAGETYPE:+ $IMAGETYPE}"
+# The job always captures ${machine type}_<distro> images, from nodes of
+# that machine type, so images match the hardware they deploy to.  IMAGETYPE
+# names a different machine type's image to deploy as the starting point:
+# MACHINETYPES=trial-perf IMAGETYPE=trial deploys trial_<distro> on a
+# trial-perf node and captures the result as trial-perf_<distro> (created in
+# FOG on first capture).  The source image is only read, never recaptured.
+# Only the machine types being used have their images rewritten, so those
+# are the only queues that pause.
+pausetypes="$MACHINETYPES"
 
 funAllHosts () {
   if [ "$use_teuthologylock" = true ]; then
@@ -511,12 +513,12 @@ phase_deploy () {
         exit 1
       fi
       funSetProfiles ${array2[$i-1]}
-      # The node is provisioned with its own machine type's image and the
-      # result is captured under IMAGETYPE's name (they're the same unless
-      # IMAGETYPE is set, e.g. deploy trial_X on a trial node, capture it
-      # back as trial-perf_X)
-      deployimagename="${type}_${fogprofile}"
-      captureimagename="${IMAGETYPE:-$type}_${fogprofile}"
+      # The node is provisioned from IMAGETYPE's image when set (e.g.
+      # deploy trial_X on a trial-perf node) and the result is always
+      # captured back as the node's own machine type's image
+      sourcetype="${IMAGETYPE:-$type}"
+      deployimagename="${sourcetype}_${fogprofile}"
+      captureimagename="${type}_${fogprofile}"
       # Get FOG host ID
       foghostid=$(funFogApi GET /host '{"name": "'${host}'"}' | jq -r '.hosts[0].id')
       if [ -z "$foghostid" ] || [ "$foghostid" == "null" ]; then
@@ -539,13 +541,13 @@ phase_deploy () {
         # prep-fog-capture walks the seed to the newest minor against the
         # major tree before we capture it as ${deployimagename}.
         seedsearched=true
-        seed=$(funNewestMinorImage $type $splitdistro $distroversion)
+        seed=$(funNewestMinorImage $sourcetype $splitdistro $distroversion)
         if [ -n "$seed" ]; then
           deployimageid=${seed%% *}
           echo "No captured ${deployimagename} image; seeding it from ${seed#* } (image ${deployimageid})"
           echo "prep-fog-capture will upgrade it to the newest ${splitdistro} ${distroversion} minor before capture"
         else
-          echo "No captured ${deployimagename} image and no ${type}_${splitdistro}_${distroversion}.* point release to seed it from"
+          echo "No captured ${deployimagename} image and no ${sourcetype}_${splitdistro}_${distroversion}.* point release to seed it from"
         fi
       fi
       # Make sure the image we'll capture into exists, creating the template
@@ -567,7 +569,7 @@ phase_deploy () {
           # be seeded manually: image a host by hand, then rerun this job
           # with DEFINEDHOSTS pointing at it.
           if [ "$seedsearched" == true ]; then
-            echo "ERROR: No captured FOG image named ${deployimagename} exists, and FOG has no captured ${type}_${splitdistro}_${distroversion}.* point-release image to seed it from."
+            echo "ERROR: No captured FOG image named ${deployimagename} exists, and FOG has no captured ${sourcetype}_${splitdistro}_${distroversion}.* point-release image to seed it from."
           else
             echo "ERROR: No captured FOG image named ${deployimagename} exists so there is nothing to deploy and update."
           fi
