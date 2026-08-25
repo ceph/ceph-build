@@ -3,7 +3,8 @@
 # this script once per stage with a phase argument:
 #
 #   fog-images.sh prepare   Clone/bootstrap teuthology and ceph-cm-ansible
-#   fog-images.sh lock      Lock testnodes (skipped when DEFINEDHOSTS is set)
+#   fog-images.sh lock      Pause the teuthology queue and lock testnodes
+#                           (locking skipped when DEFINEDHOSTS is set)
 #   fog-images.sh deploy    FOG-deploy the existing image for each distro and
 #                           wait for the network sentinel file
 #   fog-images.sh ansible   Run cephlab.yml and prep-fog-capture.yml
@@ -168,6 +169,25 @@ funWaitForOurTasks () {
   done
 }
 
+# FOG host IDs for the given machine types, as a JSON array of strings.
+# Testnodes are named <type><NNN> (trial059, smithi042), so anchor the match:
+# a bare "trial" prefix would also swallow trial-perf hosts.
+# Usage: funTypeHostIds <type>...
+funTypeHostIds () {
+  funFogApi GET /host | jq -c --arg types "$*" '
+    ($types | split(" ") | map(select(length > 0))) as $t
+    | [ (.hosts // [])[]
+        | select(.name as $n | $t | any(. as $p | $n | test("^\($p)[0-9]+$")))
+        | .id | tostring ]'
+}
+
+# Count active tasks of one type whose host is in the given JSON ID array.
+# Usage: funCountTasksFor <tasktypeid> '["1","2"]'
+funCountTasksFor () {
+  funFogApi GET /task/active '{"typeID": "'${1}'"}' \
+    | jq -r --argjson ids "$2" '[(.tasks // [])[] | select((.hostID|tostring) as $h | $ids | index($h))] | length'
+}
+
 # Does a FOG image have captured content?  FOG only fills in an image's
 # "size" when a capture has completed, so a record without one is just a
 # template (or a capture that never happened) and must not be deployed.
@@ -249,16 +269,84 @@ funCheckHostOs () {
   echo "$host is running $gotid $gotver as expected for $want"
 }
 
-# Mark down one free host of the given machine type for image verification.
+# Claiming testnodes.
+#
+# Marking a node down is not a claim: it is not atomic against lock_many, and
+# build #6 (2026-08-20) picked trial059 out of "--status up --locked false" in
+# the 20s gap between one scheduled job releasing it and the next one locking
+# it, so the pipeline and a teuthology job FOG-deployed the same host and the
+# ansible phase died with UNREACHABLE.  Take a real paddles lock instead --
+# atomic, owned by the Jenkins user, so lock_many cannot hand the node out
+# from under us -- and mark it down as well.
+#
+# --no-reimage (ceph/teuthology#2250) is what makes --lock usable here: by
+# default it reimages bare-metal nodes whose machine_type is a reimage type,
+# which is the opposite of what phase_deploy wants.
+
+# Usage: funClaim <fqdn>.  Nonzero if somebody else locked it first.
+funClaim () {
+  teuthology-lock --lock --no-reimage --desc "$lockdesc" "$1" || return 1
+  teuthology-lock --update --status down --desc "$lockdesc" "$1"
+}
+
+# Usage: funRelease <host>...  Put nodes back in the pool: status up, then
+# drop the lock.  --unlock powers a FOG-type node off on its way out; that's
+# fine, the queue's next reimage power-cycles it anyway.  -f releases the
+# rest even if one host fails (still exits nonzero).
+funRelease () {
+  if [ $# -eq 0 ]; then
+    return 0
+  fi
+  local host
+  for host in "$@"; do
+    teuthology-lock --update --status up $host
+  done
+  teuthology-lock --unlock -f "$@"
+}
+
+# The hosts this build has claimed, one short hostname per line.
+# Usage: funClaimedHosts [machine-type]
+#
+# Keyed off the lock owner and description, not "--status down": another job's
+# reimage flips a node back up behind our back, and in build #6 that is how
+# the cleanup phase lost track of trial059 and left it claimed.  --brief with
+# neither -a nor --owner already filters to the invoking user's locks.
+funClaimedHosts () {
+  # --brief rows are "<fqdn> up|down locked|unlocked <owner> "<desc>"".  Match
+  # on the status column so a stray line can never be read back as a hostname.
+  teuthology-lock --brief --desc-pattern "$lockdesc" ${1:+--machine-type $1} |
+    awk '$2 == "up" || $2 == "down" { print $1 }' | cut -d '.' -f1
+}
+
+# Free hosts of the given machine type, one FQDN per line, sorted by name.
+# Usage: funFreeHosts <machine-type>
+funFreeHosts () {
+  teuthology-lock --brief -a --machine-type $1 --status up --locked false |
+    awk '$2 == "up" { print $1 }'
+}
+
+# Usage: funPauseQueue <seconds>.  0 unpauses.  No-op unless PAUSEQUEUE.
+funPauseQueue () {
+  if [ "$PAUSEQUEUE" == "true" ]; then
+    for qtype in $pausetypes; do
+      teuthology-queue --pause $1 --machine_type $qtype
+    done
+  fi
+}
+
+# Claim one free host of the given machine type for image verification.
 # Prints the claimed short hostname.  Usage: funClaimExtraHost <type>
 funClaimExtraHost () {
   local currentretries=0 candidate
   while true; do
-    candidate=$(teuthology-lock --brief -a --machine-type $1 --status up --locked false | head -n 1 | awk '{ print $1 }')
-    if [ -n "$candidate" ] && teuthology-lock --update --status down --desc "$lockdesc" $candidate >&2; then
-      echo $candidate | cut -d '.' -f1
-      return 0
-    fi
+    # Walk the whole free list: a claim can lose the race to the queue, and
+    # retrying the same head-of-list host forever would just burn the timeout
+    for candidate in $(funFreeHosts $1); do
+      if funClaim $candidate >&2; then
+        echo $candidate | cut -d '.' -f1
+        return 0
+      fi
+    done
     sleep 5
     ((++currentretries))
     # Retry for 20min
@@ -275,17 +363,19 @@ fi
 
 numdistros=$(echo $DISTROS | wc -w)
 
-# IMAGETYPE overrides the machine-type prefix of the FOG image names, e.g.
-# MACHINETYPES=trial IMAGETYPE=trial-perf locks trial nodes but deploys and
-# recaptures trial-perf_<distro> images.  Empty means images are named after
-# the machine type.
-# The queue is paused for the machine types being used AND the type whose
-# images are being rewritten.
-pausetypes="$MACHINETYPES${IMAGETYPE:+ $IMAGETYPE}"
+# The job always captures ${machine type}_<distro> images, from nodes of
+# that machine type, so images match the hardware they deploy to.  IMAGETYPE
+# names a different machine type's image to deploy as the starting point:
+# MACHINETYPES=trial-perf IMAGETYPE=trial deploys trial_<distro> on a
+# trial-perf node and captures the result as trial-perf_<distro> (created in
+# FOG on first capture).  The source image is only read, never recaptured.
+# Only the machine types being used have their images rewritten, so those
+# are the only queues that pause.
+pausetypes="$MACHINETYPES"
 
 funAllHosts () {
   if [ "$use_teuthologylock" = true ]; then
-    teuthology-lock --brief -a --status down | grep "$lockdesc" | cut -d '.' -f1 | tr "\n" " "
+    funClaimedHosts | tr "\n" " "
   else
     echo "$DEFINEDHOSTS"
   fi
@@ -343,27 +433,40 @@ EOF
 }
 
 phase_lock () {
+  funActivateVenv
+
+  # Pause the queue before claiming anything, not at capture time.  funClaim
+  # is atomic, but a live dispatcher still races us for every node the queue
+  # frees, and the job that wins that race reimages a host this build is in
+  # the middle of using (build #6, 2026-08-20).  Paused, nodes only ever come
+  # free towards us.  The 2h expiry is a safety valve in case this job dies
+  # without running cleanup.
+  funPauseQueue 7200
+
   if [ "$use_teuthologylock" != true ]; then
     echo "DEFINEDHOSTS set; skipping locking"
     return 0
   fi
 
-  funActivateVenv
-
   # Don't bail if we fail to lock machines
   set +e
 
-  # Keep trying to claim machines until we have one per distro.  We mark them
-  # down with a descriptive desc instead of locking because locking attempts
-  # to reimage using FOG.
+  # Keep trying to claim machines until we have one per distro
   for type in $MACHINETYPES; do
     currentretries=0
     while true; do
-      numlocked=$(teuthology-lock --brief -a --machine-type $type --status down | grep -c "$lockdesc")
+      numlocked=$(funClaimedHosts $type | wc -l | tr -d '[:space:]')
       [ "$numlocked" -ge "$numdistros" ] && break
-      candidate=$(teuthology-lock --brief -a --machine-type $type --status up --locked false | head -n 1 | awk '{ print $1 }')
-      if [ -z "$candidate" ] || ! teuthology-lock --update --status down --desc "$lockdesc" $candidate; then
-        # Nothing free or the claim failed; don't hammer the lock server
+      claimed=false
+      for candidate in $(funFreeHosts $type); do
+        if funClaim $candidate; then
+          claimed=true
+          break
+        fi
+      done
+      if [ "$claimed" != true ]; then
+        # Nothing free, or the queue beat us to every free node; don't
+        # hammer paddles
         sleep 5
       fi
       ((++currentretries))
@@ -396,7 +499,7 @@ phase_deploy () {
   # that distro so we have something to update and recapture
   for type in $MACHINETYPES; do
     if [ "$use_teuthologylock" = true ]; then
-      lockedhosts=$(teuthology-lock --brief -a --machine-type $type --status down | grep "$lockdesc" | cut -d '.' -f1 | sort)
+      lockedhosts=$(funClaimedHosts $type | sort)
     else
       lockedhosts=$(echo $DEFINEDHOSTS | tr ' ' '\n' | grep "^${type}" || true)
     fi
@@ -410,12 +513,12 @@ phase_deploy () {
         exit 1
       fi
       funSetProfiles ${array2[$i-1]}
-      # The node is provisioned with its own machine type's image and the
-      # result is captured under IMAGETYPE's name (they're the same unless
-      # IMAGETYPE is set, e.g. deploy trial_X on a trial node, capture it
-      # back as trial-perf_X)
-      deployimagename="${type}_${fogprofile}"
-      captureimagename="${IMAGETYPE:-$type}_${fogprofile}"
+      # The node is provisioned from IMAGETYPE's image when set (e.g.
+      # deploy trial_X on a trial-perf node) and the result is always
+      # captured back as the node's own machine type's image
+      sourcetype="${IMAGETYPE:-$type}"
+      deployimagename="${sourcetype}_${fogprofile}"
+      captureimagename="${type}_${fogprofile}"
       # Get FOG host ID
       foghostid=$(funFogApi GET /host '{"name": "'${host}'"}' | jq -r '.hosts[0].id')
       if [ -z "$foghostid" ] || [ "$foghostid" == "null" ]; then
@@ -430,13 +533,21 @@ phase_deploy () {
       # install), and the job captured that as trial_rocky_10.  Only an
       # image FOG has a size for counts as deployable.
       deployimageid=$(funUsableImageId $deployimagename)
+      seedsearched=false
       if [ -z "$deployimageid" ] && [ "$distroversion" == "${distroversion%%.*}" ]; then
         # Major-only distro (rocky_10) with no captured image yet: seed it
-        # from the newest captured point-release image of that major
-        seed=$(funNewestMinorImage $type $splitdistro $distroversion)
+        # from the newest captured point-release image of that major.  The
+        # ansible phase passes rocky_upgrade_scope=major for this distro, so
+        # prep-fog-capture walks the seed to the newest minor against the
+        # major tree before we capture it as ${deployimagename}.
+        seedsearched=true
+        seed=$(funNewestMinorImage $sourcetype $splitdistro $distroversion)
         if [ -n "$seed" ]; then
           deployimageid=${seed%% *}
           echo "No captured ${deployimagename} image; seeding it from ${seed#* } (image ${deployimageid})"
+          echo "prep-fog-capture will upgrade it to the newest ${splitdistro} ${distroversion} minor before capture"
+        else
+          echo "No captured ${deployimagename} image and no ${sourcetype}_${splitdistro}_${distroversion}.* point release to seed it from"
         fi
       fi
       # Make sure the image we'll capture into exists, creating the template
@@ -457,7 +568,11 @@ phase_deploy () {
           # Nothing to deploy.  Brand new distros for a machine type have to
           # be seeded manually: image a host by hand, then rerun this job
           # with DEFINEDHOSTS pointing at it.
-          echo "ERROR: No captured FOG image named ${deployimagename} exists so there is nothing to deploy and update."
+          if [ "$seedsearched" == true ]; then
+            echo "ERROR: No captured FOG image named ${deployimagename} exists, and FOG has no captured ${sourcetype}_${splitdistro}_${distroversion}.* point-release image to seed it from."
+          else
+            echo "ERROR: No captured FOG image named ${deployimagename} exists so there is nothing to deploy and update."
+          fi
           echo "Seed the first ${deployimagename} image manually, then rerun this job with DEFINEDHOSTS set."
           exit 1
         fi
@@ -601,22 +716,30 @@ phase_capture () {
   fogcaptureid=$(funFogApi GET /tasktype '{"name": "Capture"}' | jq -r '.tasktypes[0].id')
   fogdeployid=$(funFogApi GET /tasktype '{"name": "Deploy"}' | jq -r '.tasktypes[0].id')
 
-  # Pause the queue for the whole capture+verify window: captures replace the
-  # image the queue deploys from, and the new image is unusable until the
-  # verify phase has proven it boots.  The 2h expiry is a safety valve in
-  # case this job dies without running cleanup.
-  if [ "$PAUSEQUEUE" == "true" ]; then
-    for qtype in $pausetypes; do
-      teuthology-queue --pause 7200 --machine_type $qtype
-    done
+  # phase_lock already paused the queue; re-arm the 2h expiry so it covers
+  # the capture+verify window too.  Captures replace the image the queue
+  # deploys from, and the new image is unusable until the verify phase has
+  # proven it boots.
+  funPauseQueue 7200
 
-    # Let any already-scheduled deploys drain before we start capturing
-    deploytasks=$(funFogApi GET /task/active '{"typeID": "'${fogdeployid}'"}' | jq -r '.count // 0')
+  if [ "$PAUSEQUEUE" == "true" ]; then
+    # Let any already-scheduled deploys drain before we start capturing, but
+    # only the ones that could be deploying an image we are about to
+    # overwrite.  A busy trial queue is no reason to hold up a smithi
+    # capture, and the whole-server count used to block on exactly that.
+    drainhostids=$(funTypeHostIds $pausetypes)
+    if [ -z "$drainhostids" ] || [ "$drainhostids" == "[]" ]; then
+      # phase_deploy resolved a FOG host for every one of these types, so an
+      # empty list here means the host query failed, not that the lab is idle
+      echo "ERROR: Could not list FOG hosts for: $pausetypes"
+      exit 1
+    fi
+    deploytasks=$(funCountTasksFor $fogdeployid "$drainhostids")
     currentretries=0
     while [ "${deploytasks:-0}" -gt 0 ]; do
-      echo "$(date) -- $deploytasks FOG deploy tasks still queued.  Sleeping 10sec"
+      echo "$(date) -- $deploytasks FOG deploy tasks still queued for $pausetypes.  Sleeping 10sec"
       sleep 10
-      deploytasks=$(funFogApi GET /task/active '{"typeID": "'${fogdeployid}'"}' | jq -r '.count // 0')
+      deploytasks=$(funCountTasksFor $fogdeployid "$drainhostids")
       ((++currentretries))
       # Retry for 1hr
       funRetry $currentretries 360
@@ -772,16 +895,10 @@ phase_verify () {
   done 3< $verifyfile
 
   # Release any extra hosts we claimed just for verification
-  for host in $extrahosts; do
-    teuthology-lock --update --status up $host
-  done
+  funRelease $extrahosts
 
   # The new images are good; the queue can deploy them again
-  if [ "$PAUSEQUEUE" == "true" ]; then
-    for qtype in $pausetypes; do
-      teuthology-queue --pause 0 --machine_type $qtype
-    done
-  fi
+  funPauseQueue 0
   rm -f $WORKSPACE/captures-started
 }
 
@@ -790,9 +907,7 @@ phase_unlock () {
 
   if [ "$use_teuthologylock" = true ]; then
     # Unlock all machines after all capture images are finished
-    for host in $(funAllHosts); do
-      teuthology-lock --update --status up $host
-    done
+    funRelease $(funAllHosts)
   fi
 }
 
@@ -850,21 +965,15 @@ phase_cleanup () {
       echo "WARNING: Captures started but the new image(s) were never verified."
       echo "WARNING: LEAVING the teuthology queue paused for: $pausetypes"
       echo "WARNING: Verify or restore the images, then unpause with: teuthology-queue --pause 0 --machine_type <type>"
-      for qtype in $pausetypes; do
-        teuthology-queue --pause 7200 --machine_type $qtype
-      done
+      funPauseQueue 7200
     else
-      for qtype in $pausetypes; do
-        teuthology-queue --pause 0 --machine_type $qtype
-      done
+      funPauseQueue 0
     fi
   fi
 
   if [ "$use_teuthologylock" = true ]; then
     # Unlock all machines
-    for host in $allhosts; do
-      teuthology-lock --update --status up $host
-    done
+    funRelease $allhosts
   fi
 
   return 0
