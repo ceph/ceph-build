@@ -127,22 +127,35 @@ def finalizePendingStatuses(String state, String description) {
   }
 }
 
-// Abort older still-running builds of this job for the same PR (the trigger
-// also does this, but manual/raced runs are covered here).  Needs one-time
-// in-process script approval.
+// Abort older still-running builds this one supersedes: same PR on an
+// older head, or overlapping CHECKS on the same head (the trigger also
+// does this, but manual/raced runs are covered here).  Same-head builds
+// of disjoint checks survive -- separate "jenkins test" comments must not
+// kill each other.  Needs one-time in-process script approval.
 @NonCPS
 def abortOlderBuilds() {
   def me = currentBuild.rawBuild
+  def my_sha = params.HEAD_SHA ?: ""
+  def my_checks = (params.CHECKS ?: "").tokenize(" ")
   for (def b : me.getParent().getBuilds()) {
     if (b.getNumber() >= me.getNumber() || !b.isBuilding()) {
       continue
     }
-    def value = b.getAction(hudson.model.ParametersAction.class)
-        ?.getParameter("ghprbPullId")?.getValue()
-    if (value?.toString() == params.ghprbPullId) {
-      println("Aborting superseded build #${b.getNumber()}")
-      b.getExecutor()?.interrupt(hudson.model.Result.ABORTED)
+    def b_params = b.getAction(hudson.model.ParametersAction.class)
+    def value = b_params?.getParameter("ghprbPullId")?.getValue()
+    if (value?.toString() != params.ghprbPullId) {
+      continue
     }
+    def b_sha = b_params.getParameter("HEAD_SHA")?.getValue()?.toString() ?: ""
+    def b_checks = (b_params.getParameter("CHECKS")?.getValue()?.toString() ?: "")
+        .tokenize(" ")
+    if (my_sha && b_sha == my_sha && !b_checks.any { my_checks.contains(it) }) {
+      println("Keeping build #${b.getNumber()}: " +
+              "same head, disjoint checks [${b_checks.join(' ')}]")
+      continue
+    }
+    println("Aborting superseded build #${b.getNumber()}")
+    b.getExecutor()?.interrupt(hudson.model.Result.ABORTED)
   }
 }
 

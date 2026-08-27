@@ -10,7 +10,9 @@
 //     developer re-adds the label.
 //   - "jenkins test <check>" comments re-run individual checks (org members
 //     always; others only while the PR carries the ci-approved label).
-//   - Any newly triggered run aborts still-running runs for the same PR.
+//   - A newly triggered run aborts still-running runs it supersedes: same
+//     PR on an older head, or overlapping checks on the same head.  Runs
+//     of disjoint checks on the same head are left alone.
 
 import groovy.transform.Field
 
@@ -48,6 +50,7 @@ import groovy.transform.Field
 @Field String checks = ""
 @Field String skip_reason = ""
 @Field boolean authorized = false
+@Field String event_desc = ""
 
 // Map comment phrases to CHECKS tokens.  Returns null when nothing matches
 // (bare "jenkins test" runs nothing -- name the check you want).
@@ -81,6 +84,34 @@ def branchAllows(String key, String branch) {
     return arm64_branches.contains(branch)
   }
   return true
+}
+
+// Build descriptions are rendered with the safe-HTML markup formatter,
+// so the PR reference can be a real link (ceph-pr-pipeline does the same).
+def prLink() {
+  return "<a href=\"https://github.com/${github_repo}/pull/${pr}\">PR ${pr}</a>"
+}
+
+// synchronize payloads carry the pushed-over sha (before) and the new head
+// (after).  After a force-push the old head is no longer an ancestor of the
+// new one, which the compare API reports as "diverged" ("behind" when the
+// branch was reset to an earlier commit).  On any API hiccup just call it a
+// plain push; this only feeds the build description.
+def isForcePush(String before, String after) {
+  if (!before || !after) {
+    return false
+  }
+  def out = sh(
+    script: "curl -s -u \$GITHUB_STATUS_CREDS_USR:\$GITHUB_STATUS_CREDS_PSW " +
+            "-H 'Accept: application/vnd.github+json' " +
+            "'${github_api}/repos/${github_repo}/compare/${before}...${after}'",
+    returnStdout: true,
+  )
+  try {
+    return readJSON(text: out).status in ["diverged", "behind"]
+  } catch (Exception e) {
+    return false
+  }
 }
 
 def ghApi(String path) {
@@ -156,10 +187,15 @@ def postStatus(String context, String state, String description, String url) {
   )
 }
 
-// Abort running ceph-pr-pipeline builds for this PR.  Needs one-time
-// in-process script approval (Jenkins model access from a sandboxed pipeline).
+// Abort the running ceph-pr-pipeline builds this run supersedes: any build
+// of the same PR on an older head, or one running a check we are about to
+// run again on the same head.  Same-head builds of disjoint checks survive:
+// "one command per comment" means asking for two checks takes two comments,
+// and the second must not kill the first.  Needs one-time in-process script
+// approval (Jenkins model access from a sandboxed pipeline).
 @NonCPS
-def cancelRunningPrBuilds(String pr_number) {
+def cancelRunningPrBuilds(String pr_number, String new_sha, String new_checks) {
+  def wanted = new_checks.tokenize(" ")
   def job = jenkins.model.Jenkins.get().getItemByFullName(pipeline_job)
   if (job == null) {
     return
@@ -168,12 +204,20 @@ def cancelRunningPrBuilds(String pr_number) {
     if (!b.isBuilding()) {
       continue
     }
-    def value = b.getAction(hudson.model.ParametersAction.class)
-        ?.getParameter("ghprbPullId")?.getValue()
-    if (value?.toString() == pr_number) {
-      println("Aborting superseded ${pipeline_job} build #${b.getNumber()}")
-      b.getExecutor()?.interrupt(hudson.model.Result.ABORTED)
+    def params = b.getAction(hudson.model.ParametersAction.class)
+    if (params?.getParameter("ghprbPullId")?.getValue()?.toString() != pr_number) {
+      continue
     }
+    def b_sha = params.getParameter("HEAD_SHA")?.getValue()?.toString() ?: ""
+    def b_checks = (params.getParameter("CHECKS")?.getValue()?.toString() ?: "")
+        .tokenize(" ")
+    if (b_sha == new_sha && !b_checks.any { wanted.contains(it) }) {
+      println("Keeping ${pipeline_job} build #${b.getNumber()}: " +
+              "same head, disjoint checks [${b_checks.join(' ')}]")
+      continue
+    }
+    println("Aborting superseded ${pipeline_job} build #${b.getNumber()}")
+    b.getExecutor()?.interrupt(hudson.model.Result.ABORTED)
   }
 }
 
@@ -194,12 +238,22 @@ pipeline {
           def is_comment = (env.issue_is_pr ?: "").startsWith("http")
           if (is_comment) {
             pr = env.issue_number
+            event_desc = "comment by ${env.comment_author}"
             checks = phraseToChecks(env.comment_body ?: "")
             if (!checks) {
               skip_reason = "comment did not match any test phrase"
             }
           } else {  // pull_request
             pr = env.pr_number
+            if (env.action == "synchronize") {
+              def kind = isForcePush(env.push_before, env.push_after) ?
+                  "force push" : "push"
+              event_desc = "${kind} by ${env.sender}"
+            } else if (env.action == "labeled") {
+              event_desc = "'${env.label_name}' label added by ${env.sender}"
+            } else {  // opened, reopened
+              event_desc = "${env.action} by ${env.sender}"
+            }
             checks = all_checks.keySet().join(" ")
             if (env.action == "labeled" && env.label_name != approval_label) {
               skip_reason = "label '${env.label_name}' is not ${approval_label}"
@@ -210,7 +264,8 @@ pipeline {
             }
           }
           if (skip_reason) {
-            currentBuild.description = "PR ${pr}: skipped (${skip_reason})"
+            currentBuild.description =
+              "${prLink()} ${event_desc}: skipped (${skip_reason})"
             return
           }
 
@@ -221,7 +276,8 @@ pipeline {
           pr_labels = pr_data.labels.collect { it.name }
           if (pr_data.state != "open") {
             skip_reason = "PR is not open"
-            currentBuild.description = "PR ${pr}: skipped (${skip_reason})"
+            currentBuild.description =
+              "${prLink()} ${event_desc}: skipped (${skip_reason})"
             return
           }
 
@@ -232,7 +288,8 @@ pipeline {
           }.join(" ")
           if (!checks) {
             skip_reason = "no requested checks apply to PRs targeting ${target_branch}"
-            currentBuild.description = "PR ${pr}: skipped (${skip_reason})"
+            currentBuild.description =
+              "${prLink()} ${event_desc}: skipped (${skip_reason})"
             return
           }
 
@@ -260,7 +317,7 @@ pipeline {
             authorized = author_trusted || approved
           }
           currentBuild.description =
-            "PR ${pr} ${env.action ?: 'comment'} by ${author}: " +
+            "${prLink()} ${event_desc}: " +
             (authorized ? "triggering [${checks}]" : "not authorized")
         }
       }
@@ -268,7 +325,7 @@ pipeline {
     stage("cancel superseded builds") {
       when { expression { !skip_reason } }
       steps {
-        script { cancelRunningPrBuilds(pr) }
+        script { cancelRunningPrBuilds(pr, head_sha, checks) }
       }
     }
     stage("await approval") {
@@ -296,9 +353,12 @@ pipeline {
               postStatus(context, "pending", "queued", "${env.JOB_URL}")
             }
           }
-          build(
+          // waitForStart returns as soon as the run exists (it does not
+          // wait for completion), which is what lets us link to it.
+          def downstream = build(
             job: pipeline_job,
             wait: false,
+            waitForStart: true,
             parameters: [
               string(name: "ghprbPullId", value: pr),
               string(name: "HEAD_SHA", value: head_sha),
@@ -306,6 +366,9 @@ pipeline {
               string(name: "CHECKS", value: checks),
             ]
           )
+          currentBuild.description += " -> " +
+            "<a href=\"${downstream.absoluteUrl}\">" +
+            "${pipeline_job} #${downstream.number}</a>"
         }
       }
     }
