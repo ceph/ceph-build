@@ -31,6 +31,15 @@ import groovy.transform.Field
   "windows":          "ceph windows tests",
 ]
 
+// Target-branch whitelists, same as the old freestyle jobs'.  Keep in sync
+// with ceph-pr-pipeline/build/Jenkinsfile: the pipeline filters its legs
+// with these too (needed for manual runs), but the trigger must also know
+// them so it never posts a pending status for a context no leg will ever
+// resolve (the GHPRB jobs simply never created those contexts).
+@Field List windows_branches = ["main", "umbrella", "tentacle", "squid", "reef"]
+@Field List api_branches = ["main", "umbrella", "tentacle", "squid", /feature-.*/]
+@Field List arm64_branches = ["main"]
+
 @Field String pr = ""
 @Field String head_sha = ""
 @Field String target_branch = ""
@@ -59,6 +68,19 @@ def phraseToChecks(String body) {
   if (body =~ /(?i)jenkins\s+test\s+api/)         { hits << "api" }
   if (body =~ /(?i)jenkins\s+test\s+windows/)     { hits << "windows" }
   return hits ? hits.join(" ") : null
+}
+
+def branchAllows(String key, String branch) {
+  if (key == "api") {
+    return api_branches.any { branch ==~ it }
+  }
+  if (key == "windows") {
+    return windows_branches.contains(branch)
+  }
+  if (key == "make-check-arm64") {
+    return arm64_branches.contains(branch)
+  }
+  return true
 }
 
 def ghApi(String path) {
@@ -173,6 +195,17 @@ pipeline {
             return
           }
 
+          // Drop checks the target branch doesn't get (e.g. no API tests
+          // for reef, no arm64 off main).
+          checks = checks.tokenize(" ").findAll {
+            branchAllows(it, target_branch)
+          }.join(" ")
+          if (!checks) {
+            skip_reason = "no requested checks apply to PRs targeting ${target_branch}"
+            currentBuild.description = "PR ${pr}: skipped (${skip_reason})"
+            return
+          }
+
           def approved = pr_labels.contains(approval_label)
           def author_is_member = isOrgMember(author)
           if (event == "issue_comment") {
@@ -208,12 +241,14 @@ pipeline {
       when { expression { !skip_reason && !authorized } }
       steps {
         script {
-          // Leave every check pending so required contexts show what's
-          // blocking, and nothing runs until the label is (re-)added.
+          // Leave every applicable check pending so required contexts show
+          // what's blocking, and nothing runs until the label is (re-)added.
           all_checks.each { key, context ->
-            postStatus(context, "pending",
-              "awaiting '${approval_label}' label from a Ceph developer",
-              "${env.JOB_URL}")
+            if (branchAllows(key, target_branch)) {
+              postStatus(context, "pending",
+                "awaiting '${approval_label}' label from a Ceph developer",
+                "${env.JOB_URL}")
+            }
           }
         }
       }
