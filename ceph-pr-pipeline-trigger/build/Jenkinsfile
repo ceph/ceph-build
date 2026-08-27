@@ -104,11 +104,39 @@ def isOrgMember(String user) {
   return code == "204"
 }
 
-def removeApprovalLabel() {
+// Same criterion as ceph.git's .github/workflows/author-ci-perms.yml:
+// write or admin permission on ceph/ceph.  Org membership alone is NOT
+// enough there (read-only members get the needs-ci-approval label and the
+// "CI will not run" comment), so it can't be enough here either or the two
+// systems would disagree about whose CI runs.
+def hasCiPermission(String user) {
+  def out = sh(
+    script: "curl -s -u \$GITHUB_STATUS_CREDS_USR:\$GITHUB_STATUS_CREDS_PSW " +
+            "-H 'Accept: application/vnd.github+json' " +
+            "'${github_api}/repos/${github_repo}/collaborators/${user}/permission'",
+    returnStdout: true,
+  )
+  def permission = ""
+  try {
+    permission = readJSON(text: out).permission ?: ""
+  } catch (Exception e) {
+    echo "Could not parse permission response for ${user}"
+  }
+  if (permission) {
+    return permission in ["admin", "write"]
+  }
+  // The permission endpoint needs push access for the token; fall back to
+  // org membership rather than locking everyone out, but log it loudly
+  // because the fallback can disagree with author-ci-perms.yml.
+  echo "WARNING: permission lookup failed for ${user}; falling back to org membership"
+  return isOrgMember(user)
+}
+
+def removeLabel(String name) {
   sh(
     script: "curl -s -o /dev/null -X DELETE " +
             "-u \$GITHUB_STATUS_CREDS_USR:\$GITHUB_STATUS_CREDS_PSW " +
-            "'${github_api}/repos/${github_repo}/issues/${pr}/labels/${approval_label}'"
+            "'${github_api}/repos/${github_repo}/issues/${pr}/labels/${name}'"
   )
 }
 
@@ -207,23 +235,27 @@ pipeline {
           }
 
           def approved = pr_labels.contains(approval_label)
-          def author_is_member = isOrgMember(author)
+          def author_trusted = hasCiPermission(author)
           if (event == "issue_comment") {
-            authorized = approved || isOrgMember(env.comment_author)
+            authorized = approved || hasCiPermission(env.comment_author)
           } else if (env.action == "labeled") {
             // Adding a label requires triage permission on ceph/ceph, so the
-            // label itself is the approval.
+            // label itself is the approval.  Clear author-ci-perms.yml's
+            // marker so the PR no longer looks blocked.
             authorized = true
+            removeLabel("needs-ci-approval")
           } else if (env.action == "synchronize") {
-            authorized = author_is_member
+            authorized = author_trusted
             if (!authorized && approved) {
               // New commits revoke a previous approval; a Ceph developer must
-              // re-add the label after reviewing the new code.
+              // re-add the label after reviewing the new code.  ceph.git's
+              // author-ci-perms.yml workflow removes it too; whichever side
+              // wins the race, the other's removal 404s harmlessly.
               echo "Removing ${approval_label}: PR was updated after approval"
-              removeApprovalLabel()
+              removeLabel(approval_label)
             }
           } else {  // opened, reopened
-            authorized = author_is_member || approved
+            authorized = author_trusted || approved
           }
           currentBuild.description =
             "PR ${pr} ${env.action ?: 'comment'} by ${author}: " +

@@ -44,9 +44,11 @@ webhook (pull_request / issue_comment)
 
 ## Gating
 
-- PR author in the ceph org: CI runs automatically.
-- Otherwise: all contexts wait as pending until a Ceph developer adds the
-  `ci-approved` label.  **Every push removes the label**, cancels running
+- PR author with write/admin on ceph/ceph (the same check as ceph.git's
+  `author-ci-perms.yml` workflow, which labels/comments on such PRs): CI
+  runs automatically.
+- Otherwise: all applicable contexts wait as pending until a Ceph developer
+  adds the `ci-approved` label (which also clears `needs-ci-approval`).  **Every push removes the label**, cancels running
   builds, and resets statuses — it must be re-added for the new code.
 - Comment phrases (org members always, others only while labeled):
   `jenkins retest ...` re-runs everything; `jenkins test <check>` runs one of
