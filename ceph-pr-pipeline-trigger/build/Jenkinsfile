@@ -10,7 +10,9 @@
 //     developer re-adds the label.
 //   - "jenkins test <check>" comments re-run individual checks (org members
 //     always; others only while the PR carries the ci-approved label).
-//   - Any newly triggered run aborts still-running runs for the same PR.
+//   - A newly triggered run aborts still-running runs it supersedes: same
+//     PR on an older head, or overlapping checks on the same head.  Runs
+//     of disjoint checks on the same head are left alone.
 
 import groovy.transform.Field
 
@@ -185,10 +187,15 @@ def postStatus(String context, String state, String description, String url) {
   )
 }
 
-// Abort running ceph-pr-pipeline builds for this PR.  Needs one-time
-// in-process script approval (Jenkins model access from a sandboxed pipeline).
+// Abort the running ceph-pr-pipeline builds this run supersedes: any build
+// of the same PR on an older head, or one running a check we are about to
+// run again on the same head.  Same-head builds of disjoint checks survive:
+// "one command per comment" means asking for two checks takes two comments,
+// and the second must not kill the first.  Needs one-time in-process script
+// approval (Jenkins model access from a sandboxed pipeline).
 @NonCPS
-def cancelRunningPrBuilds(String pr_number) {
+def cancelRunningPrBuilds(String pr_number, String new_sha, String new_checks) {
+  def wanted = new_checks.tokenize(" ")
   def job = jenkins.model.Jenkins.get().getItemByFullName(pipeline_job)
   if (job == null) {
     return
@@ -197,12 +204,20 @@ def cancelRunningPrBuilds(String pr_number) {
     if (!b.isBuilding()) {
       continue
     }
-    def value = b.getAction(hudson.model.ParametersAction.class)
-        ?.getParameter("ghprbPullId")?.getValue()
-    if (value?.toString() == pr_number) {
-      println("Aborting superseded ${pipeline_job} build #${b.getNumber()}")
-      b.getExecutor()?.interrupt(hudson.model.Result.ABORTED)
+    def params = b.getAction(hudson.model.ParametersAction.class)
+    if (params?.getParameter("ghprbPullId")?.getValue()?.toString() != pr_number) {
+      continue
     }
+    def b_sha = params.getParameter("HEAD_SHA")?.getValue()?.toString() ?: ""
+    def b_checks = (params.getParameter("CHECKS")?.getValue()?.toString() ?: "")
+        .tokenize(" ")
+    if (b_sha == new_sha && !b_checks.any { wanted.contains(it) }) {
+      println("Keeping ${pipeline_job} build #${b.getNumber()}: " +
+              "same head, disjoint checks [${b_checks.join(' ')}]")
+      continue
+    }
+    println("Aborting superseded ${pipeline_job} build #${b.getNumber()}")
+    b.getExecutor()?.interrupt(hudson.model.Result.ABORTED)
   }
 }
 
@@ -310,7 +325,7 @@ pipeline {
     stage("cancel superseded builds") {
       when { expression { !skip_reason } }
       steps {
-        script { cancelRunningPrBuilds(pr) }
+        script { cancelRunningPrBuilds(pr, head_sha, checks) }
       }
     }
     stage("await approval") {
