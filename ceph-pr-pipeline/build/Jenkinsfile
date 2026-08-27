@@ -19,11 +19,19 @@ import groovy.transform.Field
 @Field String github_api = "https://api.github.com"
 @Field String ceph_repo = "https://github.com/ceph/ceph.git"
 @Field String ceph_build_repo = "https://github.com/ceph/ceph-build"
-@Field String cache_endpoint = "https://s3.us-south.cloud-object-storage.appdomain.cloud"
-// Dedicated bucket (same COS instance as ceph-sccache, so the existing
-// ibm-cloud-sccache-bucket credential works): keeps the pipeline's few huge
-// short-lived objects out of sccache's object store, gives it its own
-// bucket-wide 21-day expiry, and makes bucket usage == pipeline usage.
+// The cache lives in the Sepia LRC's RGW (the doli cluster).  All six hosts
+// serve the same zone; s3_setup picks the first endpoint that answers, so a
+// single doli host being down doesn't take the pipeline with it.
+@Field String cache_endpoints =
+    "http://doli01.front.sepia.ceph.com:8080 " +
+    "http://doli02.front.sepia.ceph.com:8080 " +
+    "http://doli03.front.sepia.ceph.com:8080 " +
+    "http://doli04.front.sepia.ceph.com:8080 " +
+    "http://doli05.front.sepia.ceph.com:8080 " +
+    "http://doli06.front.sepia.ceph.com:8080"
+// Dedicated bucket owned by the ceph-pr-builds RGW user (doli-lrc-pr-builds
+// credential): bucket-wide 21-day expiry lifecycle rule and a 20T user quota
+// live server-side, and bucket usage == pipeline usage.
 @Field String cache_bucket = "ceph-pr-builds"
 
 // CHECKS tokens -> GitHub status contexts.  Keep in sync with the trigger.
@@ -305,11 +313,11 @@ def bwcPreamble(String arch) {
     source ./ceph-build/scripts/build_utils.sh
     source ./ceph-build/scripts/bwc.sh
     source ./ceph-build/ceph-pr-pipeline/build/s3_cache.sh
-    export CACHE_ENDPOINT="${cache_endpoint}"
+    export CACHE_ENDPOINTS="${cache_endpoints}"
     export CACHE_BUCKET="${cache_bucket}"
     export CACHE_KEY="pr-builds/${params.ghprbPullId}/${env.HEAD_SHA}.${arch}.tar.zst"
-    export AWS_ACCESS_KEY_ID="\$SCCACHE_BUCKET_CREDS_USR"
-    export AWS_SECRET_ACCESS_KEY="\$SCCACHE_BUCKET_CREDS_PSW"
+    export AWS_ACCESS_KEY_ID="\$CACHE_BUCKET_CREDS_USR"
+    export AWS_SECRET_ACCESS_KEY="\$CACHE_BUCKET_CREDS_PSW"
     export DOCKER_HUB_USERNAME="\$DOCKER_HUB_CREDS_USR"
     export DOCKER_HUB_PASSWORD="\$DOCKER_HUB_CREDS_PSW"
     export GIT_BRANCH="origin/pr/${params.ghprbPullId}/merge"
@@ -534,7 +542,7 @@ pipeline {
     // stage environment{} block) get these too: any leg may need the S3
     // cache, and any leg may have to (re)build the bwc container image,
     // which pulls the base image from Docker Hub.
-    SCCACHE_BUCKET_CREDS = credentials("ibm-cloud-sccache-bucket")
+    CACHE_BUCKET_CREDS = credentials("doli-lrc-pr-builds")
     DOCKER_HUB_CREDS = credentials("dgalloway-docker-hub")
   }
   stages {

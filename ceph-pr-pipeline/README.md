@@ -32,9 +32,9 @@ webhook (pull_request / issue_comment)
                  └─ ceph API tests    tree ← S3, run-backend-api-tests (in container)
 ```
 
-- **Cache:** build trees are zstd-tarred to S3 as
-  `pr-builds/<PR>/<head sha>.<arch>.tar.zst`.  Re-runs for an unchanged head
-  sha skip compilation (`FORCE_BUILD=true` overrides).
+- **Cache:** build trees are zstd-tarred to the Sepia LRC's RGW (the doli
+  cluster) as `pr-builds/<PR>/<head sha>.<arch>.tar.zst`.  Re-runs for an
+  unchanged head sha skip compilation (`FORCE_BUILD=true` overrides).
 - **Statuses:** each leg posts its own context via the GitHub API.  Pending
   is posted from `prepare` before legs wait for executors; canceled/failed
   runs finalize any still-pending contexts.  Docs/container/gha-only PRs
@@ -59,7 +59,8 @@ webhook (pull_request / issue_comment)
 
 1. Credentials: `pr-check-trigger-token`, `github-status-check-token`
    (repo:status + issues write + org read), `github-readonly-token`,
-   `dgalloway-docker-hub`, `ibm-cloud-sccache-bucket`, `ceph_win_ci_private_key`.
+   `dgalloway-docker-hub`, `doli-lrc-pr-builds` (RGW keys for the
+   `ceph-pr-builds` user on the doli LRC), `ceph_win_ci_private_key`.
 2. Deploy both jobs with JJB, then pre-approve the sandbox signatures in
    Manage Jenkins → Script Console:
 
@@ -90,10 +91,12 @@ webhook (pull_request / issue_comment)
    `https://jenkins.ceph.com/generic-webhook-trigger/invoke?token=<pr-check-trigger-token value>`
    for `pull_request` + `issue_comment`, content type `application/json`.
 5. Flip: disable the GHPRB triggers on the six old jobs, drop `STATUS_PREFIX`.
-6. The cache lives in the dedicated `ceph-pr-builds` bucket (same COS
-   instance as ceph-sccache, so the same credential works) with a
-   bucket-wide 21-day expiry lifecycle rule.  Optionally seed reference
-   mirrors for `CEPH_REFERENCE_REPO`.
+6. The cache lives in the dedicated `ceph-pr-builds` bucket on the doli
+   LRC's RGW (any `doli0N.front.sepia.ceph.com:8080` endpoint; the legs
+   pick the first one that answers).  The bucket-wide 21-day expiry
+   lifecycle rule and a 20T quota on the `ceph-pr-builds` RGW user live
+   server-side.  Optionally seed reference mirrors for
+   `CEPH_REFERENCE_REPO`.
 
 ## Known gaps
 
