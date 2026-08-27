@@ -338,9 +338,12 @@ pipeline {
               postStatus(context, "pending", "queued", "${env.JOB_URL}")
             }
           }
-          build(
+          // waitForStart returns as soon as the run exists (it does not
+          // wait for completion), which is what lets us link to it.
+          def downstream = build(
             job: pipeline_job,
             wait: false,
+            waitForStart: true,
             parameters: [
               string(name: "ghprbPullId", value: pr),
               string(name: "HEAD_SHA", value: head_sha),
@@ -348,6 +351,9 @@ pipeline {
               string(name: "CHECKS", value: checks),
             ]
           )
+          currentBuild.description += " -> " +
+            "<a href=\"${downstream.absoluteUrl}\">" +
+            "${pipeline_job} #${downstream.number}</a>"
         }
       }
     }
