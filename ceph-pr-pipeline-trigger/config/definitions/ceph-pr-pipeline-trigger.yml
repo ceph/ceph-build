@@ -34,13 +34,12 @@
     triggers:
       - generic-webhook-trigger:
           token: ceph-pr-pipeline-trigger
-          token-credential-id: pipeline-trigger-token
+          token-credential-id: pr-check-trigger-token
           print-contrib-var: true
-          silent-response: true
-          header-params:
-            - key: X_GitHub_Event
-              value: ""
           post-content-params:
+            - type: JSONPath
+              key: pr_url
+              value: $.pull_request.html_url
             - type: JSONPath
               key: action
               value: $.action
@@ -74,11 +73,16 @@
             - type: JSONPath
               key: comment_author
               value: $.comment.user.login
-          regex-filter-text: $X_GitHub_Event:$action:$label_name:$issue_is_pr:$comment_body
+          # The event type is derived from payload shape rather than the
+          # X-GitHub-Event header (GWT's header-variable naming is easy to
+          # get wrong silently): pull_request events have $.pull_request
+          # (pr_url), issue_comment events have $.issue.pull_request
+          # (issue_is_pr).
+          regex-filter-text: $action:$label_name:$pr_url:$issue_is_pr:$comment_body
           # Accept:
-          #  - pull_request opened/reopened/synchronize
+          #  - pull_request opened/reopened/synchronize (pr_url non-empty)
           #  - pull_request labeled, but only for the ci-approved label
-          #  - issue_comment created on a PR (issue_is_pr non-empty) containing
-          #    a "jenkins test ..." or "jenkins retest" phrase
-          regex-filter-expression: "(?is)^(pull_request:(opened|reopened|synchronize):.*|pull_request:labeled:ci-approved:.*|issue_comment:created::https[^:]*:.*jenkins\\s+(re)?test\\b.*)$"
-          cause: "GitHub $X_GitHub_Event ($action) for PR $pr_number$issue_number"
+          #  - issue_comment created on a PR (issue_is_pr non-empty)
+          #    containing a "jenkins test ..." or "jenkins retest" phrase
+          regex-filter-expression: "(?is)^((opened|reopened|synchronize):[^:]*:https.*|labeled:ci-approved:https.*|created:::https[^:]*:.*jenkins\\s+(re)?test\\b.*)$"
+          cause: "GitHub $action for PR $pr_number$issue_number"

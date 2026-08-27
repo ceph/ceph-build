@@ -189,8 +189,10 @@ pipeline {
     stage("evaluate event") {
       steps {
         script {
-          def event = env.X_GitHub_Event
-          if (event == "issue_comment") {
+          // Payload shape, not the X-GitHub-Event header (see the JJB
+          // trigger definition): comment events carry issue.pull_request.
+          def is_comment = (env.issue_is_pr ?: "").startsWith("http")
+          if (is_comment) {
             pr = env.issue_number
             checks = phraseToChecks(env.comment_body ?: "")
             if (!checks) {
@@ -236,7 +238,7 @@ pipeline {
 
           def approved = pr_labels.contains(approval_label)
           def author_trusted = hasCiPermission(author)
-          if (event == "issue_comment") {
+          if (is_comment) {
             authorized = approved || hasCiPermission(env.comment_author)
           } else if (env.action == "labeled") {
             // Adding a label requires triage permission on ceph/ceph, so the
