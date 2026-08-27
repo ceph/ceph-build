@@ -61,6 +61,18 @@
             - type: JSONPath
               key: label_name
               value: $.label.name
+            # Who performed the action: the pusher for synchronize, the
+            # labeler for labeled.  before/after only appear in synchronize
+            # payloads; the Jenkinsfile compares them to spot force-pushes.
+            - type: JSONPath
+              key: sender
+              value: $.sender.login
+            - type: JSONPath
+              key: push_before
+              value: $.before
+            - type: JSONPath
+              key: push_after
+              value: $.after
             - type: JSONPath
               key: issue_number
               value: $.issue.number
@@ -85,4 +97,4 @@
           #  - issue_comment created on a PR (issue_is_pr non-empty)
           #    containing a "jenkins test ..." or "jenkins retest" phrase
           regex-filter-expression: "(?is)^((opened|reopened|synchronize):[^:]*:https.*|labeled:ci-approved:https.*|created:::https[^:]*:.*jenkins\\s+(re)?test\\b.*)$"
-          cause: "GitHub $action for PR $pr_number$issue_number"
+          cause: "GitHub $action by $sender for PR $pr_number$issue_number"
