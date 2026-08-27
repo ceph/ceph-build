@@ -90,8 +90,10 @@ webhook (pull_request / issue_comment)
    `https://jenkins.ceph.com/generic-webhook-trigger/invoke?token=<pipeline-trigger-token>`
    for `pull_request` + `issue_comment`, content type `application/json`.
 5. Flip: disable the GHPRB triggers on the six old jobs, drop `STATUS_PREFIX`.
-6. Add an S3 lifecycle rule expiring `pr-builds/*` after ~7 days, and
-   (optional) seed reference mirrors for `CEPH_REFERENCE_REPO`.
+6. The cache lives in the dedicated `ceph-pr-builds` bucket (same COS
+   instance as ceph-sccache, so the same credential works) with a
+   bucket-wide 21-day expiry lifecycle rule.  Optionally seed reference
+   mirrors for `CEPH_REFERENCE_REPO`.
 
 ## Known gaps
 

@@ -20,7 +20,11 @@ import groovy.transform.Field
 @Field String ceph_repo = "https://github.com/ceph/ceph.git"
 @Field String ceph_build_repo = "https://github.com/ceph/ceph-build"
 @Field String cache_endpoint = "https://s3.us-south.cloud-object-storage.appdomain.cloud"
-@Field String cache_bucket = "ceph-sccache"
+// Dedicated bucket (same COS instance as ceph-sccache, so the existing
+// ibm-cloud-sccache-bucket credential works): keeps the pipeline's few huge
+// short-lived objects out of sccache's object store, gives it its own
+// bucket-wide 21-day expiry, and makes bucket usage == pipeline usage.
+@Field String cache_bucket = "ceph-pr-builds"
 
 // CHECKS tokens -> GitHub status contexts.  Keep in sync with the trigger.
 @Field Map contexts = [
