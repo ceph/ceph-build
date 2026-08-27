@@ -73,11 +73,14 @@ if [[ ! -f $deps_cache_dir/deps/mingw/completed ]]; then
     flock --timeout 7200 9
 fi
 
+# MINGW_LLVM_DIR must be set explicitly: mingw_conf.sh defaults it relative
+# to the ceph tree ($CEPH_DIR/build.deps), not to DEPS_DIR.
 podman run --rm --name "$CONTAINER_NAME" \
     -v "$WORKSPACE:/workspace" \
     -v "$deps_cache_dir:/depscache" \
     -v "$ccache_dir:/ccache" \
     -e DEPS_DIR=/depscache/deps \
+    -e MINGW_LLVM_DIR=/depscache/deps/mingw-llvm \
     -e ZIP_DEST=/workspace/ceph.zip \
     -e CCACHE_DIR=/ccache \
     -e CCACHE_MAXSIZE="$CCACHE_MAXSIZE" \
