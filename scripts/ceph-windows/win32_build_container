@@ -1,0 +1,92 @@
+#!/usr/bin/env bash
+#
+# Cross-compile Ceph for Windows in a podman container on the builder host,
+# replacing the setup_libvirt_ubuntu_vm + win32_build (VM) flow.  Produces the
+# same $WORKSPACE/ceph.zip that setup_libvirt_windows_vm/run_tests consume.
+#
+# Expects:
+#   $WORKSPACE/ceph        - the ceph tree to build
+#   $WORKSPACE/ceph-build  - this repo (for the containerfile)
+#
+# Two host-side caches survive between builds:
+#   deps    - the compiled mingw dependencies (mingw-llvm, boost, openssl,
+#             ...), keyed by the sha of the branch's win32_deps_build.sh +
+#             mingw_conf.sh + the containerfile, so a deps change in any
+#             branch simply builds a new cache entry.  win32_build.sh skips
+#             the whole deps build when it finds the cache's completed marker.
+#   ccache  - compiler cache for the ceph tree itself.  Mount paths are fixed
+#             (/workspace, /depscache) so object paths are stable across
+#             builds and nodes.
+set -o errexit
+set -o pipefail
+
+: "${WORKSPACE:?WORKSPACE is not set}"
+CEPH_SRC="${CEPH_SRC:-$WORKSPACE/ceph}"
+CONTAINERFILE="${CONTAINERFILE:-$WORKSPACE/ceph-build/scripts/ceph-windows/win32-build.containerfile}"
+CACHE_ROOT="${CEPH_WIN32_CACHE_ROOT:-$HOME/.cache/ceph-win32-build}"
+CCACHE_MAXSIZE="${CCACHE_MAXSIZE:-30G}"
+WIN32_BUILD_TIMEOUT="${WIN32_BUILD_TIMEOUT:-3h}"
+CONTAINER_NAME="ceph-win32-build-${BUILD_ID:-$$}"
+
+if [[ ! -f $CEPH_SRC/win32_build.sh ]]; then
+    echo "ERROR: no win32_build.sh in $CEPH_SRC; is the ceph tree checked out?"
+    exit 1
+fi
+
+nproc=$(nproc)
+NUM_WORKERS="${NUM_WORKERS:-$(( nproc > 32 ? 32 : nproc ))}"
+
+git -C "$CEPH_SRC" submodule update --init --recursive
+
+#
+# Build the toolchain image (podman's layer cache makes this a no-op unless
+# the containerfile changed).  The base image pull must not go anonymous, or
+# we hit Docker Hub rate limits.
+#
+if [[ -n $DOCKER_HUB_USERNAME && -n $DOCKER_HUB_PASSWORD ]]; then
+    # Same persistent authfile as bwc_login (https://tracker.ceph.com/issues/77920)
+    export REGISTRY_AUTH_FILE="${HOME}/.config/containers/auth.json"
+    mkdir -p "${REGISTRY_AUTH_FILE%/*}"
+    podman login -u "$DOCKER_HUB_USERNAME" -p "$DOCKER_HUB_PASSWORD" docker.io
+fi
+cf_hash=$(sha256sum "$CONTAINERFILE" | cut -c1-12)
+IMAGE="localhost/ceph-win32-build:${cf_hash}"
+if ! podman image exists "$IMAGE"; then
+    podman build -t "$IMAGE" -f "$CONTAINERFILE" "$(dirname "$CONTAINERFILE")"
+fi
+
+deps_hash=$(cat "$CEPH_SRC/win32_deps_build.sh" "$CEPH_SRC/mingw_conf.sh" "$CONTAINERFILE" \
+            | sha256sum | cut -c1-12)
+deps_cache_dir="$CACHE_ROOT/deps/$deps_hash"
+ccache_dir="$CACHE_ROOT/ccache"
+mkdir -p "$deps_cache_dir" "$ccache_dir"
+
+#
+# The first build for this deps key populates the cache; hold an exclusive
+# lock so concurrent builds on the same node don't build it twice (once the
+# completed marker exists the cache is only ever read, so no lock is needed).
+# win32_build.sh re-checks the marker after the lock is acquired.
+#
+if [[ ! -f $deps_cache_dir/deps/mingw/completed ]]; then
+    echo "No cached mingw deps for $deps_hash; the deps build will run (with the lock held)"
+    exec 9> "$deps_cache_dir.lock"
+    flock --timeout 7200 9
+fi
+
+podman run --rm --name "$CONTAINER_NAME" \
+    -v "$WORKSPACE:/workspace" \
+    -v "$deps_cache_dir:/depscache" \
+    -v "$ccache_dir:/ccache" \
+    -e DEPS_DIR=/depscache/deps \
+    -e ZIP_DEST=/workspace/ceph.zip \
+    -e CCACHE_DIR=/ccache \
+    -e CCACHE_MAXSIZE="$CCACHE_MAXSIZE" \
+    -e CMAKE_C_COMPILER_LAUNCHER=ccache \
+    -e CMAKE_CXX_COMPILER_LAUNCHER=ccache \
+    -e NUM_WORKERS="$NUM_WORKERS" \
+    -e OS=ubuntu \
+    -w /workspace/ceph \
+    "$IMAGE" \
+    bash -c "ccache -s; timeout $WIN32_BUILD_TIMEOUT ./win32_build.sh; ccache -s"
+
+ls -lh "$WORKSPACE/ceph.zip"
