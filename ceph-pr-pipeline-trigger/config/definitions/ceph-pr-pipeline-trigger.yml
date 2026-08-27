@@ -34,7 +34,7 @@
     triggers:
       - generic-webhook-trigger:
           token: ceph-pr-pipeline-trigger
-          token-credential-id: pipeline-trigger-token
+          token-credential-id: pr-check-trigger-token
           print-contrib-var: true
           silent-response: true
           header-params:

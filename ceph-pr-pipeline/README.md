@@ -57,7 +57,7 @@ webhook (pull_request / issue_comment)
 
 ## Rollout
 
-1. Credentials: `pipeline-trigger-token`, `github-status-check-token`
+1. Credentials: `pr-check-trigger-token`, `github-status-check-token`
    (repo:status + issues write + org read), `github-readonly-token`,
    `dgalloway-docker-hub`, `ibm-cloud-sccache-bucket`, `ceph_win_ci_private_key`.
 2. Deploy both jobs with JJB, then pre-approve the sandbox signatures in
@@ -87,7 +87,7 @@ webhook (pull_request / issue_comment)
 3. Test side by side: run `ceph-pr-pipeline` manually with a PR number and
    `STATUS_PREFIX=pipeline/` so required contexts are untouched.
 4. Add the webhook:
-   `https://jenkins.ceph.com/generic-webhook-trigger/invoke?token=<pipeline-trigger-token>`
+   `https://jenkins.ceph.com/generic-webhook-trigger/invoke?token=<pr-check-trigger-token value>`
    for `pull_request` + `issue_comment`, content type `application/json`.
 5. Flip: disable the GHPRB triggers on the six old jobs, drop `STATUS_PREFIX`.
 6. The cache lives in the dedicated `ceph-pr-builds` bucket (same COS
