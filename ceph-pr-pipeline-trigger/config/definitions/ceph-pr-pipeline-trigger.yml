@@ -1,0 +1,84 @@
+- job:
+    name: ceph-pr-pipeline-trigger
+    project-type: pipeline
+    quiet-period: 1
+    concurrent: true
+    properties:
+      - build-discarder:
+          days-to-keep: 15
+          num-to-keep: 1000
+    pipeline-scm:
+      scm:
+        - git:
+            url: https://github.com/ceph/ceph-build
+            branches:
+              - main
+            shallow-clone: true
+            submodule:
+              disable: true
+            wipe-workspace: true
+      script-path: ceph-pr-pipeline-trigger/build/Jenkinsfile
+      lightweight-checkout: true
+      do-not-fetch-tags: true
+
+    # Replaces the GitHub Pull Request Builder plugin's webhook handling.
+    # Point a repo (or org) webhook at:
+    #   https://jenkins.ceph.com/generic-webhook-trigger/invoke?token=<pipeline-trigger-token>
+    # with the "pull_request" and "issue_comment" events enabled and
+    # content-type application/json.
+    #
+    # All policy (org membership, the ci-approved label, comment phrases,
+    # cancellation of superseded builds) lives in the trigger Jenkinsfile; the
+    # webhook filter below only does coarse event selection so we don't spawn
+    # a build for every comment on every issue.
+    triggers:
+      - generic-webhook-trigger:
+          token: ceph-pr-pipeline-trigger
+          token-credential-id: pipeline-trigger-token
+          print-contrib-var: true
+          silent-response: true
+          header-params:
+            - key: X_GitHub_Event
+              value: ""
+          post-content-params:
+            - type: JSONPath
+              key: action
+              value: $.action
+            - type: JSONPath
+              key: pr_number
+              value: $.pull_request.number
+            - type: JSONPath
+              key: pr_head_sha
+              value: $.pull_request.head.sha
+            - type: JSONPath
+              key: pr_target_branch
+              value: $.pull_request.base.ref
+            - type: JSONPath
+              key: pr_author
+              value: $.pull_request.user.login
+            - type: JSONPath
+              key: pr_body
+              value: $.pull_request.body
+            - type: JSONPath
+              key: label_name
+              value: $.label.name
+            - type: JSONPath
+              key: issue_number
+              value: $.issue.number
+            - type: JSONPath
+              key: issue_is_pr
+              value: $.issue.pull_request.url
+            - type: JSONPath
+              key: comment_body
+              value: $.comment.body
+            - type: JSONPath
+              key: comment_author
+              value: $.comment.user.login
+          regex-filter-text: $X_GitHub_Event:$action:$label_name:$issue_is_pr:$comment_body
+          # Accept:
+          #  - pull_request opened/reopened/synchronize
+          #  - pull_request labeled, but only for the ci-approved label
+          #  - issue_comment created on a PR (issue_is_pr non-empty) containing
+          #    a "jenkins test ..." or "jenkins retest" phrase
+          regex-filter-expression: "(?is)^(pull_request:(opened|reopened|synchronize):.*|pull_request:labeled:ci-approved:.*|issue_comment:created::https[^:]*:.*jenkins\\s+(re)?test\\b.*)$"
+          cause: "GitHub $X_GitHub_Event ($action) for PR $pr_number$issue_number"

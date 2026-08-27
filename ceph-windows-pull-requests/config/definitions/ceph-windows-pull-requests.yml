@@ -28,29 +28,6 @@
           name: ghprbPullId
           description: "The GitHub pull request id, like '72' in 'ceph/pull/72'"
 
-    triggers:
-      - github-pull-request:
-          cancel-builds-on-update: true
-          allow-whitelist-orgs-as-admins: true
-          org-list:
-            - ceph
-          white-list-target-branches:
-            - main
-            - umbrella
-            - tentacle
-            - squid
-            - reef
-          trigger-phrase: 'jenkins test windows'
-          skip-build-phrase: '^jenkins do not test.*'
-          only-trigger-phrase: false
-          github-hooks: true
-          permit-all: false
-          auto-close-on-fail: false
-          status-context: "ceph windows tests"
-          started-status: "running ceph windows tests"
-          success-status: "ceph windows tests succeeded"
-          failure-status: "ceph windows tests failed"
-
     scm:
       - git:
           url: https://github.com/ceph/ceph.git
