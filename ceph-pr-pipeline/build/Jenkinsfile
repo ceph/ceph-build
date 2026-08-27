@@ -193,12 +193,22 @@ def checkoutCephPr() {
 def doPrepare() {
   logNode()
   abortOlderBuilds()
-  def pr_data = readJSON(text: sh(
-    script: "curl -sf -u \$GITHUB_RO_CREDS_USR:\$GITHUB_RO_CREDS_PSW " +
-            "-H 'Accept: application/vnd.github+json' " +
-            "'${github_api}/repos/${github_repo}/pulls/${params.ghprbPullId}'",
-    returnStdout: true,
-  ))
+  // GitHub computes mergeability lazily; fetching the PR triggers the
+  // computation, and .mergeable stays null until it finishes.  Retry a
+  // couple of times so the conflict check below sees a real answer.
+  def pr_data = null
+  for (int attempt = 0; attempt < 3; attempt++) {
+    pr_data = readJSON(text: sh(
+      script: "curl -sf -u \$GITHUB_RO_CREDS_USR:\$GITHUB_RO_CREDS_PSW " +
+              "-H 'Accept: application/vnd.github+json' " +
+              "'${github_api}/repos/${github_repo}/pulls/${params.ghprbPullId}'",
+      returnStdout: true,
+    ))
+    if (pr_data.mergeable != null) {
+      break
+    }
+    sleep 10
+  }
   if (params.HEAD_SHA && params.HEAD_SHA != pr_data.head.sha) {
     // The PR moved between the webhook and this build starting; the trigger
     // has (or will have) started a build for the new head.
@@ -207,6 +217,33 @@ def doPrepare() {
   env.HEAD_SHA = pr_data.head.sha
   env.ghprbTargetBranch = pr_data.base.ref
   env.ghprbActualCommit = env.HEAD_SHA
+
+  // A conflicted PR has no refs/pull/N/merge on GitHub, so every leg's
+  // checkout would die with "Couldn't find any revision to build" and five
+  // cryptic red statuses.  Say it plainly on the applicable contexts and
+  // stop here instead.
+  if (pr_data.mergeable == false) {
+    params.CHECKS.tokenize(" ").each { key ->
+      def branch_ok = true
+      if (key == "api") {
+        branch_ok = api_branches.any { env.ghprbTargetBranch ==~ it }
+      } else if (key == "windows") {
+        branch_ok = windows_branches.contains(env.ghprbTargetBranch)
+      } else if (key == "make-check-arm64") {
+        branch_ok = arm64_branches.contains(env.ghprbTargetBranch)
+      }
+      if (contexts[key] && branch_ok) {
+        postStatus(key, "error", "PR has merge conflicts; resolve and push to run CI")
+      }
+    }
+    currentBuild.description = """\
+      <a href="https://github.com/${github_repo}/pull/${params.ghprbPullId}">PR ${params.ghprbPullId}</a>
+      (${pr_data.base.ref}) @ ${env.HEAD_SHA[0..7]}<br />
+      not built: merge conflicts
+    """.stripIndent()
+    error("PR ${params.ghprbPullId} has merge conflicts (mergeable=false); refs/pull/N/merge does not exist")
+  }
+
   currentBuild.description = """\
     <a href="https://github.com/${github_repo}/pull/${params.ghprbPullId}">PR ${params.ghprbPullId}</a>
     (${pr_data.base.ref}) @ ${env.HEAD_SHA[0..7]}<br />
