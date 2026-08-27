@@ -473,14 +473,19 @@ def doMakeCheckArm64() {
         """
       )
       // Upload before running the tests so a failed run still leaves a
-      // cached build for "jenkins test make check arm64" to reuse.
-      sh(
-        label: "upload build tree to cache",
+      // cached build for "jenkins test make check arm64" to reuse.  Best
+      // effort: unlike the x86_64 leg, the tests run on this same node,
+      // so a cache outage shouldn't throw away the build we just did.
+      if (sh(
+        label: "upload build tree to cache (best effort)",
         script: bwcPreamble("arm64") + """
           s3_setup
           s3_cache_put ceph
-        """
-      )
+        """,
+        returnStatus: true,
+      ) != 0) {
+        echo "Cache upload failed; continuing (a re-run will rebuild)"
+      }
     }
     postStatus("make-check-arm64", "pending", "running make check (arm64)")
     sh(label: "run make check (arm64)", script: makeCheckTestsShell("arm64"))
