@@ -91,8 +91,11 @@ set -o errexit
 set -o pipefail
 
 useradd --uid 1000 --user-group --no-create-home cephtest 2> /dev/null || true
-mkdir -p build/vstart
-chown -R 1000:1000 build/vstart
+# vstart writes throughout the build dir (vstart data, logrotate.conf, ...)
+# and drops an environment helper next to vstart.sh in the source tree.
+chown -R 1000:1000 build
+touch src/vstart_environment.sh
+chown 1000:1000 src/vstart_environment.sh
 exec runuser -u cephtest -- env HOME=/tmp bash ./vstart-run-inner.sh
 EOF
 chmod +x vstart-run.sh
@@ -138,6 +141,13 @@ rm -f build/vstart/READY
 TIMEOUT=900
 SECONDS=0
 until [[ -f build/vstart/READY ]]; do
+    # bwc prints this when the container command fails; don't sit out the
+    # full timeout on a cluster that already died.
+    if grep -q "returned non-zero exit status" "$WORKSPACE/vstart-container.log" 2> /dev/null; then
+        echo "ERROR: the vstart container exited"
+        tail -100 "$WORKSPACE/vstart-container.log"
+        exit 1
+    fi
     if (( SECONDS > TIMEOUT )); then
         echo "TIMEOUT: vstart cluster not ready after ${TIMEOUT}s"
         tail -100 "$WORKSPACE/vstart-container.log"
