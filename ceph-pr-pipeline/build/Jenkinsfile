@@ -314,6 +314,11 @@ def bwcPreamble(String arch) {
     export DOCKER_HUB_PASSWORD="\$DOCKER_HUB_CREDS_PSW"
     export GIT_BRANCH="origin/pr/${params.ghprbPullId}/merge"
     export NPMCACHE="\${HOME}/npmcache"
+    # bwc passes --npm-cache-path whenever NPMCACHE is set, and podman
+    # refuses to start if the mount source doesn't exist.  The build
+    # executors create it; -e custom (the API tests) does not, so a test
+    # leg landing on a fresh node dies with exit 125 (statfs ENOENT).
+    mkdir -p "\${HOME}/npmcache"
   """
 }
 
@@ -484,11 +489,15 @@ def doApiTests() {
   withStatus("api", "ceph API tests") {
     // Runs inside the same build container the tree was compiled in (the
     // custom command runs as root in the container, hence plain apt-get).
+    // sudo must be installed even though we are root: vstart_runner shells
+    // out through `sudo kill` etc. and dies with exit 127 without it.
+    // locales provides the en_US.UTF-8 the test script sets via LC_ALL,
+    // and psmisc provides the killall its cleanup calls at the end.
     sh(
       label: "run dashboard API tests",
       script: bwcPreamble("x86_64") + """
         cd ceph
-        bwc 3 -e custom -- "apt-get update && apt-get install -y python3-scipy python3-routes && cd src/pybind/mgr/dashboard && timeout 7200 ./run-backend-api-tests.sh"
+        bwc 3 -e custom -- "apt-get update && apt-get install -y python3-scipy python3-routes sudo locales psmisc && locale-gen en_US.UTF-8 && cd src/pybind/mgr/dashboard && timeout 7200 ./run-backend-api-tests.sh"
       """
     )
   }
