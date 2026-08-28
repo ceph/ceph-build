@@ -17,6 +17,10 @@ Two host-side caches make repeat builds fast:
   ceph tree itself.  Container mount paths are fixed so object paths are
   stable across builds.
 
-This job is the testbed for moving ceph-pr-pipeline's windows leg off VMs;
-it is also usable for one-off manual windows builds of a branch or PR
-(set `CEPH_BRANCH` or `ghprbPullId`).
+This job runs the cross-compile step of ceph-pr-pipeline's windows leg
+standalone — for validating changes to the container build without a full
+pipeline run, and for one-off manual windows builds of a branch or PR (set
+`CEPH_BRANCH` or `ghprbPullId`).  How the full leg fits together
+(cross-compile container, vstart cluster container, Windows VM, and the
+network between them) is documented in
+[ceph-pr-pipeline's README](../ceph-pr-pipeline/README.md#the-windows-leg).
