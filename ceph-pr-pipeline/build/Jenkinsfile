@@ -621,7 +621,7 @@ pipeline {
           when { beforeAgent true; expression { run_make_check || run_api } }
           stages {
             stage("build ceph") {
-              agent { label "huge && x86_64 && installed-os-noble && !smithi && sepia" }
+              agent { label "huge && x86_64 && installed-os-noble && sepia" }
               steps {
                 script {
                   try {
@@ -659,7 +659,7 @@ pipeline {
                   def legs = [:]
                   if (run_make_check) {
                     legs["make check"] = {
-                      node("x86_64 && installed-os-noble && !smithi && sepia") {
+                      node("x86_64 && installed-os-noble && sepia") {
                         try {
                           doMakeCheck()
                         } finally {
@@ -680,7 +680,7 @@ pipeline {
                   }
                   if (run_api) {
                     legs["ceph API tests"] = {
-                      node("huge && x86_64 && installed-os-noble && !smithi && sepia") {
+                      node("huge && x86_64 && installed-os-noble && sepia") {
                         try {
                           doApiTests()
                         } finally {
