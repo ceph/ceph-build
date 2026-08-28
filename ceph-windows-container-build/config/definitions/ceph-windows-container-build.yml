@@ -43,8 +43,8 @@
 
       - string:
           name: NODE_LABEL
-          default: "x86_64 && (installed-os-noble || installed-os-jammy) && libvirt"
-          description: "builder label expression (default: the same pool the windows test jobs use)"
+          default: "x86_64 && installed-os-noble && libvirt"
+          description: "builder label expression (noble only: the container build needs a modern podman, which setup_container_runtime.sh can't provide on jammy)"
 
       - string:
           name: NUM_WORKERS

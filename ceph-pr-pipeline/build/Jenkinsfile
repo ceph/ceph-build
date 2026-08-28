@@ -599,7 +599,10 @@ pipeline {
         }
         stage("ceph windows tests") {
           when { beforeAgent true; expression { run_windows } }
-          agent { label "x86_64 && (installed-os-noble || installed-os-jammy) && libvirt" }
+          // noble only: the containerized cross-build needs a modern podman,
+          // which setup_container_runtime.sh can't provide on jammy (it falls
+          // back to docker there).
+          agent { label "x86_64 && installed-os-noble && libvirt" }
           environment {
             CEPH_WIN_CI_KEY = credentials("ceph_win_ci_private_key")
           }
