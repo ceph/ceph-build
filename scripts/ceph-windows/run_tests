@@ -74,7 +74,10 @@ function collect_artifacts() {
 
         sudo journalctl -b > $WORKSPACE/artifacts/cluster/journal || true
 
-        cp $WORKSPACE/ceph/build/vstart/out/*.log $WORKSPACE/artifacts/cluster/ceph_logs/
+        # tar via podman exec, not cp: the cluster runs as uid 1000 in the
+        # container, so on the host its files are owned by a subuid.
+        podman exec $VSTART_CONTAINER bash -c "cd /ceph/build/vstart/out && tar cf - *.log" \
+            | tar xf - -C $WORKSPACE/artifacts/cluster/ceph_logs/
         cp $WORKSPACE/vstart-container.log $WORKSPACE/artifacts/cluster/ 2>/dev/null || true
     else
         SSH_USER=$UBUNTU_SSH_USER SSH_ADDRESS=$UBUNTU_VM_IP ssh_exec free -h

@@ -81,7 +81,23 @@ time bwc 2 \
 #
 # Run the cluster; the container stays up (sleep) until cleanup removes it.
 #
+# vstart sets "mds root ino uid/gid" to the invoking user, and the windows
+# client mounts with client_mount_uid/gid = 1000 and client_permissions
+# enforced -- so the cluster must be started by uid 1000, exactly like the
+# ubuntu user in the VM flow, or every write from the client gets EACCES.
 cat > vstart-run.sh << 'EOF'
+#!/usr/bin/env bash
+set -o errexit
+set -o pipefail
+
+useradd --uid 1000 --user-group --no-create-home cephtest 2> /dev/null || true
+mkdir -p build/vstart
+chown -R 1000:1000 build/vstart
+exec runuser -u cephtest -- env HOME=/tmp bash ./vstart-run-inner.sh
+EOF
+chmod +x vstart-run.sh
+
+cat > vstart-run-inner.sh << 'EOF'
 #!/usr/bin/env bash
 set -o errexit
 set -o pipefail
@@ -108,7 +124,7 @@ export CEPH_KEYRING=$PWD/vstart/keyring
 touch vstart/READY
 sleep infinity
 EOF
-chmod +x vstart-run.sh
+chmod +x vstart-run-inner.sh
 rm -f build/vstart/READY
 # Backgrounded with all fds detached so the Jenkins sh step doesn't wait on
 # it; the double fork orphans it from this shell.
@@ -133,10 +149,12 @@ done
 echo "vstart cluster is up on $VSTART_IP"
 
 #
-# Host-side conf/keyring for the windows client (same as the VM flow)
+# Host-side conf/keyring for the windows client (same as the VM flow).
+# podman cp, not cp: the cluster runs as uid 1000 in the container, so on
+# the host these are owned by a subuid and the keyring is mode 0600.
 #
-cp build/vstart/ceph.conf "$VSTART_DIR/ceph.conf"
-cp build/vstart/keyring "$VSTART_DIR/keyring"
+podman cp "$VSTART_CONTAINER:/ceph/build/vstart/ceph.conf" "$VSTART_DIR/ceph.conf"
+podman cp "$VSTART_CONTAINER:/ceph/build/vstart/keyring" "$VSTART_DIR/keyring"
 cd "$WORKSPACE"
 
 export CEPH_CONF="$VSTART_DIR/ceph.conf"
