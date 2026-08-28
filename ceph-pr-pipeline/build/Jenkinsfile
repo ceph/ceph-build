@@ -21,7 +21,9 @@ import groovy.transform.Field
 @Field String ceph_build_repo = "https://github.com/ceph/ceph-build"
 // The cache lives in the Sepia LRC's RGW (the doli cluster).  All six hosts
 // serve the same zone; s3_setup picks the first endpoint that answers, so a
-// single doli host being down doesn't take the pipeline with it.
+// single doli host being down doesn't take the pipeline with it.  It is only
+// reachable from inside the lab, so the legs that move the build tree
+// through it require the sepia label.
 @Field String cache_endpoints =
     "http://doli01.front.sepia.ceph.com:8080 " +
     "http://doli02.front.sepia.ceph.com:8080 " +
@@ -577,7 +579,7 @@ pipeline {
         }
         stage("build and test (arm64)") {
           when { beforeAgent true; expression { run_make_check_arm64 } }
-          agent { label "arm64 && (installed-os-noble || centos9)" }
+          agent { label "arm64 && (installed-os-noble || centos9) && sepia" }
           steps {
             script { doMakeCheckArm64() }
           }
@@ -619,7 +621,7 @@ pipeline {
           when { beforeAgent true; expression { run_make_check || run_api } }
           stages {
             stage("build ceph") {
-              agent { label "huge && x86_64 && installed-os-noble && !smithi" }
+              agent { label "huge && x86_64 && installed-os-noble && !smithi && sepia" }
               steps {
                 script {
                   try {
@@ -657,7 +659,7 @@ pipeline {
                   def legs = [:]
                   if (run_make_check) {
                     legs["make check"] = {
-                      node("x86_64 && installed-os-noble && !smithi") {
+                      node("x86_64 && installed-os-noble && !smithi && sepia") {
                         try {
                           doMakeCheck()
                         } finally {
@@ -678,7 +680,7 @@ pipeline {
                   }
                   if (run_api) {
                     legs["ceph API tests"] = {
-                      node("huge && x86_64 && installed-os-noble && !smithi") {
+                      node("huge && x86_64 && installed-os-noble && !smithi && sepia") {
                         try {
                           doApiTests()
                         } finally {
