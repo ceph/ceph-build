@@ -58,9 +58,9 @@
     builders:
       - shell: |
           echo "Cleaning up top-level workarea (shared among workspaces)"
-          rm -rf dist
+          sudo rm -rf dist
           rm -rf venv
-          rm -rf release
+          sudo rm -rf release
       - copyartifact:
           project: ceph-dev-setup
           filter: 'dist/**'

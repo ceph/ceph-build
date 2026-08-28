@@ -14,6 +14,11 @@ cd /mnt/ceph
 CMAKE_BUILD_TYPE=Release BUILD_ZIP=1 CLEAN_BUILD=1 timeout 3h ./win32_build.sh
 EOF
 chmod a+x $tmp_pbuild_script
+
+# pbuilder runs as root in the bind-mounted workspace; reclaim ownership even
+# if the build fails, or the next build on this node can't clean up the workarea
+trap 'sudo chown -R jenkins-build ${WORKSPACE}/dist || true' EXIT
+
 sudo pbuilder execute \
     --bindmounts "$(pwd):/mnt/ceph" \
     --distribution "jammy" \
@@ -52,6 +57,3 @@ EOF
 
     echo Check the status of the repo at: https://shaman.ceph.com/api/repos/${chacra_repo_endpoint}/
 fi
-
-# pbuilder will leave root-owned files in shared workspaces
-sudo chown -R jenkins-build ${WORKSPACE}/dist
