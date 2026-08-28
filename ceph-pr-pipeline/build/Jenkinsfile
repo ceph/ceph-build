@@ -19,11 +19,21 @@ import groovy.transform.Field
 @Field String github_api = "https://api.github.com"
 @Field String ceph_repo = "https://github.com/ceph/ceph.git"
 @Field String ceph_build_repo = "https://github.com/ceph/ceph-build"
-@Field String cache_endpoint = "https://s3.us-south.cloud-object-storage.appdomain.cloud"
-// Dedicated bucket (same COS instance as ceph-sccache, so the existing
-// ibm-cloud-sccache-bucket credential works): keeps the pipeline's few huge
-// short-lived objects out of sccache's object store, gives it its own
-// bucket-wide 21-day expiry, and makes bucket usage == pipeline usage.
+// The cache lives in the Sepia LRC's RGW (the doli cluster).  All six hosts
+// serve the same zone; s3_setup picks the first endpoint that answers, so a
+// single doli host being down doesn't take the pipeline with it.  It is only
+// reachable from inside the lab, so the legs that move the build tree
+// through it require the sepia label.
+@Field String cache_endpoints =
+    "http://doli01.front.sepia.ceph.com:8080 " +
+    "http://doli02.front.sepia.ceph.com:8080 " +
+    "http://doli03.front.sepia.ceph.com:8080 " +
+    "http://doli04.front.sepia.ceph.com:8080 " +
+    "http://doli05.front.sepia.ceph.com:8080 " +
+    "http://doli06.front.sepia.ceph.com:8080"
+// Dedicated bucket owned by the ceph-pr-builds RGW user (doli-lrc-pr-builds
+// credential): bucket-wide 21-day expiry lifecycle rule and a 20T user quota
+// live server-side, and bucket usage == pipeline usage.
 @Field String cache_bucket = "ceph-pr-builds"
 
 // CHECKS tokens -> GitHub status contexts.  Keep in sync with the trigger.
@@ -305,11 +315,11 @@ def bwcPreamble(String arch) {
     source ./ceph-build/scripts/build_utils.sh
     source ./ceph-build/scripts/bwc.sh
     source ./ceph-build/ceph-pr-pipeline/build/s3_cache.sh
-    export CACHE_ENDPOINT="${cache_endpoint}"
+    export CACHE_ENDPOINTS="${cache_endpoints}"
     export CACHE_BUCKET="${cache_bucket}"
     export CACHE_KEY="pr-builds/${params.ghprbPullId}/${env.HEAD_SHA}.${arch}.tar.zst"
-    export AWS_ACCESS_KEY_ID="\$SCCACHE_BUCKET_CREDS_USR"
-    export AWS_SECRET_ACCESS_KEY="\$SCCACHE_BUCKET_CREDS_PSW"
+    export AWS_ACCESS_KEY_ID="\$CACHE_BUCKET_CREDS_USR"
+    export AWS_SECRET_ACCESS_KEY="\$CACHE_BUCKET_CREDS_PSW"
     export DOCKER_HUB_USERNAME="\$DOCKER_HUB_CREDS_USR"
     export DOCKER_HUB_PASSWORD="\$DOCKER_HUB_CREDS_PSW"
     export GIT_BRANCH="origin/pr/${params.ghprbPullId}/merge"
@@ -470,14 +480,19 @@ def doMakeCheckArm64() {
         """
       )
       // Upload before running the tests so a failed run still leaves a
-      // cached build for "jenkins test make check arm64" to reuse.
-      sh(
-        label: "upload build tree to cache",
+      // cached build for "jenkins test make check arm64" to reuse.  Best
+      // effort: unlike the x86_64 leg, the tests run on this same node,
+      // so a cache outage shouldn't throw away the build we just did.
+      if (sh(
+        label: "upload build tree to cache (best effort)",
         script: bwcPreamble("arm64") + """
           s3_setup
           s3_cache_put ceph
-        """
-      )
+        """,
+        returnStatus: true,
+      ) != 0) {
+        echo "Cache upload failed; continuing (a re-run will rebuild)"
+      }
     }
     postStatus("make-check-arm64", "pending", "running make check (arm64)")
     sh(label: "run make check (arm64)", script: makeCheckTestsShell("arm64"))
@@ -543,7 +558,7 @@ pipeline {
     // stage environment{} block) get these too: any leg may need the S3
     // cache, and any leg may have to (re)build the bwc container image,
     // which pulls the base image from Docker Hub.
-    SCCACHE_BUCKET_CREDS = credentials("ibm-cloud-sccache-bucket")
+    CACHE_BUCKET_CREDS = credentials("doli-lrc-pr-builds")
     DOCKER_HUB_CREDS = credentials("dgalloway-docker-hub")
   }
   stages {
@@ -573,7 +588,7 @@ pipeline {
         }
         stage("build and test (arm64)") {
           when { beforeAgent true; expression { run_make_check_arm64 } }
-          agent { label "arm64 && (installed-os-noble || centos9)" }
+          agent { label "arm64 && (installed-os-noble || centos9) && sepia" }
           steps {
             script { doMakeCheckArm64() }
           }
@@ -615,7 +630,7 @@ pipeline {
           when { beforeAgent true; expression { run_make_check || run_api } }
           stages {
             stage("build ceph") {
-              agent { label "huge && x86_64 && installed-os-noble && !smithi" }
+              agent { label "huge && x86_64 && installed-os-noble && sepia" }
               steps {
                 script {
                   try {
@@ -653,7 +668,7 @@ pipeline {
                   def legs = [:]
                   if (run_make_check) {
                     legs["make check"] = {
-                      node("x86_64 && installed-os-noble && !smithi") {
+                      node("x86_64 && installed-os-noble && sepia") {
                         try {
                           doMakeCheck()
                         } finally {
@@ -674,7 +689,7 @@ pipeline {
                   }
                   if (run_api) {
                     legs["ceph API tests"] = {
-                      node("huge && x86_64 && installed-os-noble && !smithi") {
+                      node("huge && x86_64 && installed-os-noble && sepia") {
                         try {
                           doApiTests()
                         } finally {

@@ -10,7 +10,9 @@
 # install_python_packages).
 #
 # Environment:
-#   CACHE_ENDPOINT - S3 endpoint URL
+#   CACHE_ENDPOINTS - space-separated S3 endpoint URLs (all serving the same
+#                     zone, e.g. the RGWs on the doli LRC hosts); s3_setup
+#                     sets CACHE_ENDPOINT to the first one that answers
 #   CACHE_BUCKET   - bucket name
 #   CACHE_KEY      - object key, e.g. pr-builds/12345/<head sha>.tar.zst
 #   AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY - bucket credentials
@@ -26,6 +28,18 @@ s3_setup() {
         install_python_packages "$venv" "pkgs[@]"
         AWSCLI=${venv}/bin/aws
     fi
+    # Every endpoint serves the same RGW zone; take the first live one so a
+    # single host being down doesn't fail the leg.
+    local ep
+    for ep in $CACHE_ENDPOINTS; do
+        if curl -s -m 10 -o /dev/null "$ep"; then
+            CACHE_ENDPOINT=$ep
+            return 0
+        fi
+        echo "s3_setup: $ep not answering, trying next" >&2
+    done
+    echo "s3_setup: no cache endpoint reachable: $CACHE_ENDPOINTS" >&2
+    return 1
 }
 
 s3_cache_exists() {
