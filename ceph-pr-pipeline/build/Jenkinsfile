@@ -518,13 +518,19 @@ def doWindowsTests() {
         rm -rf ceph/build
       """
     )
+    // The vstart cluster builds and runs in a bwc container too (Release,
+    // same configuration the VM used), so the only VM left is the Windows
+    // client itself.
     postStatus("windows", "pending", "running windows tests")
     sh """#!/bin/bash -ex
+      export DOCKER_HUB_USERNAME="\$DOCKER_HUB_CREDS_USR"
+      export DOCKER_HUB_PASSWORD="\$DOCKER_HUB_CREDS_PSW"
+      export GIT_BRANCH="origin/pr/${params.ghprbPullId}/merge"
       source ./ceph-build/scripts/build_utils.sh
+      source ./ceph-build/scripts/bwc.sh
       source ./ceph-build/scripts/ceph-windows/setup_libvirt
-      source ./ceph-build/scripts/ceph-windows/setup_libvirt_ubuntu_vm
       source ./ceph-build/scripts/ceph-windows/setup_libvirt_windows_vm
-      source ./ceph-build/scripts/ceph-windows/setup_ceph_vstart
+      source ./ceph-build/scripts/ceph-windows/setup_ceph_vstart_container
       source ./ceph-build/scripts/ceph-windows/run_tests
     """
   }
@@ -612,9 +618,9 @@ pipeline {
           post {
             always {
               sh """#!/bin/bash
-                podman rm -f "ceph-win32-build-\$BUILD_ID" 2>/dev/null || true
+                podman rm -f "ceph-win32-build-\$BUILD_ID" ceph_build 2>/dev/null || true
                 mkdir -p artifacts
-                cp ceph/build/*.log artifacts/ 2>/dev/null || true
+                cp ceph/build/*.log vstart-container.log artifacts/ 2>/dev/null || true
               """
               archiveArtifacts(artifacts: "artifacts/**", allowEmptyArchive: true)
               sh """#!/bin/bash
