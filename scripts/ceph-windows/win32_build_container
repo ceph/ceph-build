@@ -36,6 +36,8 @@ fi
 nproc=$(nproc)
 NUM_WORKERS="${NUM_WORKERS:-$(( nproc > 32 ? 32 : nproc ))}"
 
+rm -f "$WORKSPACE/ceph.zip"
+
 git -C "$CEPH_SRC" submodule update --init --recursive
 
 #
