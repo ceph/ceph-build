@@ -1,0 +1,145 @@
+---
+# This playbook should only be run against a teuthology host or a machine inside the Sepia test lab that can lock testnodes.
+# See ceph-cm-ansible/README.rst
+
+- hosts: all
+  become: true
+  user: cm
+  vars:
+   - jenkins_user: 'jenkins-build'
+   # jenkins API credentials:
+   - api_user: 'ceph-jenkins'
+   - token: '{{ token }}'
+   - api_uri: 'https://jenkins.ceph.com'
+   - jenkins_credentials_uuid: '39fa150b-b2a1-416e-b334-29a9a2c0b32d'
+   - nodename: 'teuthology'
+   - labels: 'teuthology'
+
+  tasks:
+    - name: "create a {{ jenkins_user }} user"
+      user:
+        name: "{{ jenkins_user }}"
+        append: yes
+        comment: "Jenkins Build Slave User"
+
+    - name: "create a {{ jenkins_user }} home directory"
+      file:
+        path: "/home/{{ jenkins_user }}/"
+        state: directory
+        owner: "{{ jenkins_user }}"
+
+    - name: Create .ssh directory
+      file:
+        path: "/home/{{ jenkins_user }}/.ssh"
+        state: directory
+        owner: "{{ jenkins_user }}"
+
+    - name: set the authorized keys
+      authorized_key:
+        user: "{{ jenkins_user }}"
+        key: "{{ lookup('file', 'files/ssh/keys/jenkins_build.pub') }}"
+
+    - name: Write ~/.ssh/config
+      blockinfile:
+        path: "/home/{{ jenkins_user }}/.ssh/config"
+        create: yes
+        block: |
+          Host *
+            StrictHostKeyChecking no
+            UserKnownHostsFile=/dev/null
+
+    - name: set utf-8 for LC_ALL
+      lineinfile:
+        dest: "/home/{{ jenkins_user }}/.bashrc"
+        regexp: '^export LC_ALL='
+        line: "export LC_ALL=en_US.UTF-8"
+        create: true
+        state: present
+
+    - name: set utf-8 for LANG
+      lineinfile:
+        dest: "/home/{{ jenkins_user }}/.bashrc"
+        regexp: '^export LANG='
+        line: "export LANG=en_US.UTF-8"
+
+    - name: set utf-8 for LANGUAGE
+      lineinfile:
+        dest: "/home/{{ jenkins_user }}/.bashrc"
+        regexp: '^export LANGUAGE='
+        line: "export LANGUAGE=en_US.UTF-8"
+
+    - name: ensure the build dir exists
+      file:
+        path: "/home/{{ jenkins_user }}/build"
+        state: directory
+        owner: "{{ jenkins_user }}"
+
+    - name: ensure the home dir has the right owner permissions
+      file:
+        path: "/home/{{ jenkins_user }}"
+        state: directory
+        owner: "{{ jenkins_user }}"
+        group: "{{ jenkins_user }}"
+        recurse: yes
+
+    - name: ensure the gitconfig file exists
+      shell: printf "[user]\name=Ceph CI\nemail=ceph-release-team@redhat.com\n" > /home/{{ jenkins_user }}/.gitconfig
+
+    - name: ensure the gitconfig file has right permissions
+      file:
+        path: "/home/{{ jenkins_user }}/.gitconfig"
+        owner: "{{ jenkins_user }}"
+
+    - name: install six, latest one
+      pip:
+        name: six
+        state: latest
+
+    - name: install python-jenkins
+      # https://review.openstack.org/460363
+      pip:
+        name: python-jenkins
+        version: 0.4.15
+
+    - name: add github.com host key
+      known_hosts:
+        path: '/etc/ssh/ssh_known_hosts'
+        # we need to use 'host' here because prado currently uses ansible-playbook==1.9.1
+        host: 'github.com'
+        # github.com.pub is the output of `ssh-keyscan github.com`
+        key: "{{ lookup('file', 'files/ssh/hostkeys/github.com.pub') }}"
+
+    - name: register the new slave to jenkins master with jnlp
+      jenkins_node:
+        username: "{{ api_user }}"
+        uri: "{{ api_uri }}"
+        password: "{{ token }}"
+        # relies on a convention to set a unique name that allows a reverse
+        # mapping from Jenkins back to whatever service created the current
+        # node
+        name: "{{ ansible_default_ipv4.address }}+{{ nodename }}"
+        labels: "{{ labels }}"
+        host: "{{ ansible_default_ipv4.address }}"
+        credentialsId: "{{ jenkins_credentials_uuid }}"
+        launcher: 'hudson.slaves.JNLPLauncher'
+        remoteFS: '/home/{{ jenkins_user }}/build'
+        # XXX this should be configurable, not all nodes should have one executor
+        executors: '{{ executors|default(1) }}'
+        exclusive: true
+
+    - name: Download slave.jar
+      get_url:
+        url: "{{ api_uri }}/jnlpJars/slave.jar"
+        dest: "/home/{{ jenkins_user }}/slave.jar"
+        force: yes
+
+    - name: install the systemd unit file for jenkins
+      template:
+        src: "templates/systemd/jenkins.service.j2"
+        dest: "/etc/systemd/system/jenkins.service"
+
+    - name: start jenkins service
+      service:
+        name: jenkins
+        state: started
+        enabled: yes
