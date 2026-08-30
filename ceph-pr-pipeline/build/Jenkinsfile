@@ -49,7 +49,7 @@ import groovy.transform.Field
 // Target-branch restrictions, same as the old freestyle jobs' whitelists.
 @Field List windows_branches = ["main", "umbrella", "tentacle", "squid", "reef"]
 @Field List api_branches = ["main", "umbrella", "tentacle", "squid", /feature-.*/]
-@Field List arm64_branches = ["main"]
+@Field List arm64_branches = ["main", "umbrella", "tentacle", "squid"]
 
 // Set by the prepare stage.
 @Field boolean run_signed = false
