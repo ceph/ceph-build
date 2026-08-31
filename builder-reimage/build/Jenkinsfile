@@ -87,6 +87,42 @@ pipeline {
                                         }
                                     }
                                     
+                                    // Take the node offline BEFORE syncing labels: a newly synced
+                                    // label can instantly attract queued builds onto a node that is
+                                    // about to be wiped (and still has its pre-reimage disk state).
+                                    stage("Prepare Jenkins Node-${machine}") {
+                                        if (!params.SKIP_REIMAGE) {
+                                            withCredentials([
+                                                usernamePassword(
+                                                    credentialsId: 'jenkins-api-token',
+                                                    usernameVariable: 'JOB_BUILDER_USER',
+                                                    passwordVariable: 'JOB_BUILDER_PASS'
+                                                )
+                                            ]) {
+                                                withEnv([
+                                                    "SYNC_MACHINE=${machine}",
+                                                    "SYNC_TARGET_FQDN=${TARGET_FQDN}",
+                                                    "SYNC_STATE_FILE=${JENKINS_NODE_STATE_FILE}"
+                                                ]) {
+                                                    sh '''#!/bin/bash
+                                                        set -euo pipefail
+
+                                                        echo "[INFO] Preparing Jenkins node state for $SYNC_MACHINE"
+
+                                                        python3 builder-reimage/build/jenkins_node_control.py \
+                                                          --action prepare_for_reimage \
+                                                          --jenkins_url "$JENKINS_URL" \
+                                                          --user "$JOB_BUILDER_USER" \
+                                                          --token "$JOB_BUILDER_PASS" \
+                                                          --node "$SYNC_TARGET_FQDN" \
+                                                          --state-file "$SYNC_STATE_FILE" \
+                                                          --message "Marked temporary offline for builder reimage activity"
+                                                    '''
+                                                }
+                                            }
+                                        }
+                                    }
+
                                     stage("Sync Labels-${machine}") {
                                         withCredentials([
                                             usernamePassword(
@@ -141,39 +177,6 @@ pipeline {
                                         echo "Detected OS: ${env.DETECTED_OS}"
                                         echo "Libvirt enabled: ${env.LIBVIRT_ENABLED}"
 
-                                    }
-
-                                    stage("Prepare Jenkins Node-${machine}") {
-                                        if (!params.SKIP_REIMAGE) {
-                                            withCredentials([
-                                                usernamePassword(
-                                                    credentialsId: 'jenkins-api-token',
-                                                    usernameVariable: 'JOB_BUILDER_USER',
-                                                    passwordVariable: 'JOB_BUILDER_PASS'
-                                                )
-                                            ]) {
-                                                withEnv([
-                                                    "SYNC_MACHINE=${machine}",
-                                                    "SYNC_TARGET_FQDN=${TARGET_FQDN}",
-                                                    "SYNC_STATE_FILE=${JENKINS_NODE_STATE_FILE}"
-                                                ]) {
-                                                    sh '''#!/bin/bash
-                                                        set -euo pipefail
-
-                                                        echo "[INFO] Preparing Jenkins node state for $SYNC_MACHINE"
-
-                                                        python3 builder-reimage/build/jenkins_node_control.py \
-                                                          --action prepare_for_reimage \
-                                                          --jenkins_url "$JENKINS_URL" \
-                                                          --user "$JOB_BUILDER_USER" \
-                                                          --token "$JOB_BUILDER_PASS" \
-                                                          --node "$SYNC_TARGET_FQDN" \
-                                                          --state-file "$SYNC_STATE_FILE" \
-                                                          --message "Marked temporary offline for builder reimage activity"
-                                                    '''
-                                                }
-                                            }
-                                        }
                                     }
 
                                     stage("Reimage-${machine}") {
