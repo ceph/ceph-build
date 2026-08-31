@@ -1781,6 +1781,7 @@ qa_pr_only () {
   QA_ONLY=false
   local patterns=(
     'qa/*'
+    'src/script/*'
   )
   if pr_only_for patterns; then QA_ONLY=true; fi
 }

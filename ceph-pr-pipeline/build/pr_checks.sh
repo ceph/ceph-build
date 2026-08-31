@@ -97,7 +97,7 @@ do_classify() {
         'src/script/buildcontainer-setup.sh' 'src/script/build-with-container.py'
     )
     local gha_patterns=( '.github/*' )
-    local qa_patterns=( 'qa/*' )
+    local qa_patterns=( 'qa/*' 'src/script/*' )
 
     local docs_only=false container_only=false gha_only=false qa_only=false
     if [ -n "$files" ]; then
