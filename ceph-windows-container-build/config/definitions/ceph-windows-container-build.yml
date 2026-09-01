@@ -1,0 +1,62 @@
+- job:
+    name: ceph-windows-container-build
+    description: |
+      Validation job for the containerized Ceph Windows cross-build: runs
+      ceph.git's win32_build.sh inside a podman container on the builder host
+      (instead of the libvirt Ubuntu VM the windows CI used historically) and
+      produces the ceph.zip consumed by the windows tests.  Compiled mingw
+      dependencies and ccache persist on the builder between runs.
+      Testbed for ceph-pr-pipeline's windows leg; also usable for one-off
+      manual windows builds of a branch or PR.
+    project-type: pipeline
+    quiet-period: 1
+    concurrent: true
+
+    properties:
+      - build-discarder:
+          days-to-keep: 15
+          num-to-keep: 50
+
+    pipeline-scm:
+      scm:
+        - git:
+            url: https://github.com/ceph/ceph-build
+            branches:
+              - ${{CEPH_BUILD_BRANCH}}
+            shallow-clone: true
+            submodule:
+              disable: true
+            wipe-workspace: true
+      script-path: ceph-windows-container-build/build/Jenkinsfile
+      lightweight-checkout: true
+      do-not-fetch-tags: true
+
+    parameters:
+      - string:
+          name: CEPH_BRANCH
+          default: main
+          description: "ceph.git branch to build (ignored if ghprbPullId is set)"
+
+      - string:
+          name: ghprbPullId
+          description: "optional: build this ceph PR's merge ref instead of CEPH_BRANCH"
+
+      - string:
+          name: NODE_LABEL
+          default: "x86_64 && installed-os-noble && libvirt"
+          description: "builder label expression (noble only: the container build needs a modern podman, which setup_container_runtime.sh can't provide on jammy)"
+
+      - string:
+          name: NUM_WORKERS
+          default: ""
+          description: "parallel build jobs (default: nproc, capped at 32)"
+
+      - string:
+          name: CEPH_BUILD_BRANCH
+          default: main
+          description: "Use the Jenkinsfile and scripts from this ceph-build branch"
+
+    wrappers:
+      - inject-passwords:
+          global: true
+          mask-password-params: true

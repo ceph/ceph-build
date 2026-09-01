@@ -1,0 +1,189 @@
+#!/usr/bin/env bash
+#
+# Build and run the Ceph vstart cluster for the windows tests in a bwc
+# container on the builder host, replacing the libvirt Ubuntu VM that
+# setup_libvirt_ubuntu_vm + setup_ceph_vstart provisioned (and fully rebuilt
+# ceph in) on every run.  Same Release build and vstart configuration as the
+# VM flow, but the image has the build deps baked in and a persistent ccache
+# makes repeat builds fast.
+#
+# The cluster container runs with --net=host and vstart binds the libvirt
+# bridge address, which guests on the default NAT network reach directly --
+# that's how the Windows client VM gets to the cluster.
+#
+# Expects build_utils.sh, bwc.sh and setup_libvirt to be sourced already
+# (bwc + podman helpers, and the libvirt default network for VSTART_IP).
+# Exports for run_tests: VSTART_CONTAINER, CEPH_CONF, CEPH_KEYRING,
+# CEPH_WINDOWS_CONF.
+
+if [[ -z $WORKSPACE ]]; then echo "ERROR: The WORKSPACE env variable is not set"; exit 1; fi
+
+export VSTART_DIR="$WORKSPACE/ceph_vstart"
+export VSTART_CONTAINER="ceph_build"
+VSTART_CCACHE_DIR="${VSTART_CCACHE_DIR:-$HOME/.cache/ceph-win32-build/vstart-ccache}"
+
+USE_MEMSTORE="${USE_MEMSTORE:-no}"
+VSTART_MEMSTORE_BYTES="5368709120"  # 5GB
+VSTART_BLUESTORE_BYTES="5368709120"  # 5GB
+
+VSTART_IP=$(ip -4 -o addr show virbr0 | awk '{print $4}' | cut -d/ -f1)
+if [[ -z $VSTART_IP ]]; then
+    echo "ERROR: no address on virbr0; is the libvirt default network up?"
+    exit 1
+fi
+
+if [[ "$USE_MEMSTORE" == "yes" ]]; then
+    OBJECTSTORE_ARGS="--memstore -o memstore_device_bytes=$VSTART_MEMSTORE_BYTES"
+else
+    OBJECTSTORE_ARGS="--bluestore -o bluestore_block_size=$VSTART_BLUESTORE_BYTES"
+fi
+
+mkdir -p "$VSTART_DIR" "$VSTART_CCACHE_DIR"
+cd "$WORKSPACE/ceph"
+cat > .env << EOF
+NPROC=$(nproc)
+MAX_PARALLEL_JOBS=$(nproc)
+EOF
+
+bwc_login
+# A stale cluster container from an aborted run would collide on the name.
+podman rm -f "$VSTART_CONTAINER" 2>/dev/null || true
+
+#
+# Build Ceph vstart (Release, same effective configuration as the VM flow)
+#
+cat > vstart-build.sh << 'EOF'
+#!/usr/bin/env bash
+set -o errexit
+set -o pipefail
+
+cmake_flags=(
+    -DCMAKE_BUILD_TYPE=Release
+    -DWITH_RADOSGW=OFF
+    -DWITH_MGR_DASHBOARD_FRONTEND=OFF
+    -DWITH_TESTS=OFF
+)
+if command -v ccache > /dev/null; then
+    cmake_flags+=(-DWITH_CCACHE=ON)
+    ccache -s
+fi
+./do_cmake.sh "${cmake_flags[@]}"
+cd ./build
+ninja vstart
+command -v ccache > /dev/null && ccache -s || true
+EOF
+chmod +x vstart-build.sh
+time bwc 2 \
+    "--extra=--volume=$VSTART_CCACHE_DIR:/vstartccache:z" \
+    "--extra=-eCCACHE_DIR=/vstartccache" \
+    -e custom -- ./vstart-build.sh
+
+#
+# Run the cluster; the container stays up (sleep) until cleanup removes it.
+#
+# vstart sets "mds root ino uid/gid" to the invoking user, and the windows
+# client mounts with client_mount_uid/gid = 1000 and client_permissions
+# enforced -- so the cluster must be started by uid 1000, exactly like the
+# ubuntu user in the VM flow, or every write from the client gets EACCES.
+cat > vstart-run.sh << 'EOF'
+#!/usr/bin/env bash
+set -o errexit
+set -o pipefail
+
+useradd --uid 1000 --user-group --no-create-home cephtest 2> /dev/null || true
+# vstart writes throughout the build dir (vstart data, logrotate.conf, ...)
+# and drops an environment helper next to vstart.sh in the source tree.
+chown -R 1000:1000 build
+touch src/vstart_environment.sh
+chown 1000:1000 src/vstart_environment.sh
+exec runuser -u cephtest -- env HOME=/tmp bash ./vstart-run-inner.sh
+EOF
+chmod +x vstart-run.sh
+
+cat > vstart-run-inner.sh << 'EOF'
+#!/usr/bin/env bash
+set -o errexit
+set -o pipefail
+
+cd ./build
+mkdir -p vstart/out
+VSTART_DEST=$PWD/vstart ../src/vstart.sh \
+    -n $OBJECTSTORE_ARGS \
+    --without-dashboard -i "$VSTART_IP" \
+    2>&1 | tee vstart/vstart.log
+
+export CEPH_CONF=$PWD/vstart/ceph.conf
+export CEPH_KEYRING=$PWD/vstart/keyring
+
+./bin/ceph osd pool create rbd
+
+./bin/ceph osd pool set cephfs.a.data size 1 --yes-i-really-mean-it
+./bin/ceph osd pool set cephfs.a.meta size 1 --yes-i-really-mean-it
+./bin/ceph osd pool set rbd size 1 --yes-i-really-mean-it
+
+./bin/ceph tell mon.* config set debug_mon 0
+./bin/ceph tell mon.* config set debug_ms 0
+
+touch vstart/READY
+sleep infinity
+EOF
+chmod +x vstart-run-inner.sh
+rm -f build/vstart/READY
+# Backgrounded with all fds detached so the Jenkins sh step doesn't wait on
+# it; the double fork orphans it from this shell.
+( bwc 8 \
+    "--extra=--net=host" \
+    "--extra=-eVSTART_IP=$VSTART_IP" \
+    "--extra=-eOBJECTSTORE_ARGS=$OBJECTSTORE_ARGS" \
+    -e custom -- ./vstart-run.sh \
+    < /dev/null > "$WORKSPACE/vstart-container.log" 2>&1 & )
+
+TIMEOUT=900
+SECONDS=0
+until [[ -f build/vstart/READY ]]; do
+    # bwc prints this when the container command fails; don't sit out the
+    # full timeout on a cluster that already died.
+    if grep -q "returned non-zero exit status" "$WORKSPACE/vstart-container.log" 2> /dev/null; then
+        echo "ERROR: the vstart container exited"
+        tail -100 "$WORKSPACE/vstart-container.log"
+        exit 1
+    fi
+    if (( SECONDS > TIMEOUT )); then
+        echo "TIMEOUT: vstart cluster not ready after ${TIMEOUT}s"
+        tail -100 "$WORKSPACE/vstart-container.log"
+        exit 1
+    fi
+    echo "Waiting for the vstart cluster (${SECONDS}s)"
+    sleep 10
+done
+echo "vstart cluster is up on $VSTART_IP"
+
+#
+# Host-side conf/keyring for the windows client (same as the VM flow).
+# podman cp, not cp: the cluster runs as uid 1000 in the container, so on
+# the host these are owned by a subuid and the keyring is mode 0600.
+#
+podman cp "$VSTART_CONTAINER:/ceph/build/vstart/ceph.conf" "$VSTART_DIR/ceph.conf"
+podman cp "$VSTART_CONTAINER:/ceph/build/vstart/keyring" "$VSTART_DIR/keyring"
+cd "$WORKSPACE"
+
+export CEPH_CONF="$VSTART_DIR/ceph.conf"
+export CEPH_KEYRING="$VSTART_DIR/keyring"
+export CEPH_WINDOWS_CONF="$VSTART_DIR/ceph-windows.conf"
+
+MON_HOST=$(cat $CEPH_CONF | grep -o "mon host \=.*")
+
+cat > $CEPH_WINDOWS_CONF << EOF
+[client]
+    keyring = C:/ProgramData/ceph/keyring
+    log file = C:/ProgramData/ceph/logs/\$name.\$pid.log
+    admin socket = C:/ProgramData/ceph/out/\$name.\$pid.asok
+    client_mount_uid = 1000
+    client_mount_gid = 1000
+    client_permissions = true
+[global]
+    log to stderr = true
+    run dir = C:/ProgramData/ceph/out
+    crash dir = C:/ProgramData/ceph/out
+    $MON_HOST
+EOF

@@ -560,18 +560,38 @@ def doWindowsTests() {
   checkoutCephBuild()
   checkoutCephPr()
   withStatus("windows", "ceph windows tests") {
-    // Same script chain as the old ceph-windows-pull-requests job (which
-    // concatenated these into one shell); check_docs_pr_only is handled by
-    // the prepare stage instead.
+    // The cross-compile runs in a podman container on this host (with the
+    // mingw deps and ccache persisted between builds), replacing the
+    // throwaway build VM the old ceph-windows-pull-requests job provisioned
+    // on every run.  Only the vstart cluster host and the Windows client
+    // remain libvirt VMs.
+    postStatus("windows", "pending", "cross-compiling ceph for windows")
+    sh "./ceph-build/scripts/setup_container_runtime.sh"
+    sh(
+      label: "cross-compile ceph for windows (container)",
+      script: """#!/bin/bash -ex
+        export DOCKER_HUB_USERNAME="\$DOCKER_HUB_CREDS_USR"
+        export DOCKER_HUB_PASSWORD="\$DOCKER_HUB_CREDS_PSW"
+        bash ./ceph-build/scripts/ceph-windows/win32_build_container
+        # The cross-build outputs are all in ceph.zip; drop the build tree
+        # so setup_ceph_vstart's rsync doesn't ship it to the cluster VM
+        # (do_cmake.sh refuses to run in a tree with a build dir).
+        rm -rf ceph/build
+      """
+    )
+    // The vstart cluster builds and runs in a bwc container too (Release,
+    // same configuration the VM used), so the only VM left is the Windows
+    // client itself.
+    postStatus("windows", "pending", "running windows tests")
     sh """#!/bin/bash -ex
+      export DOCKER_HUB_USERNAME="\$DOCKER_HUB_CREDS_USR"
+      export DOCKER_HUB_PASSWORD="\$DOCKER_HUB_CREDS_PSW"
+      export GIT_BRANCH="origin/pr/${params.ghprbPullId}/merge"
       source ./ceph-build/scripts/build_utils.sh
+      source ./ceph-build/scripts/bwc.sh
       source ./ceph-build/scripts/ceph-windows/setup_libvirt
-      source ./ceph-build/scripts/ceph-windows/setup_libvirt_ubuntu_vm
-      source ./ceph-build/scripts/ceph-windows/win32_build
-      source ./ceph-build/scripts/ceph-windows/cleanup_libvirt_ubuntu_vm
-      source ./ceph-build/scripts/ceph-windows/setup_libvirt_ubuntu_vm
       source ./ceph-build/scripts/ceph-windows/setup_libvirt_windows_vm
-      source ./ceph-build/scripts/ceph-windows/setup_ceph_vstart
+      source ./ceph-build/scripts/ceph-windows/setup_ceph_vstart_container
       source ./ceph-build/scripts/ceph-windows/run_tests
     """
   }
@@ -646,7 +666,10 @@ pipeline {
         }
         stage("ceph windows tests") {
           when { beforeAgent true; expression { run_windows } }
-          agent { label "x86_64 && (installed-os-noble || installed-os-jammy) && libvirt" }
+          // noble only: the containerized cross-build needs a modern podman,
+          // which setup_container_runtime.sh can't provide on jammy (it falls
+          // back to docker there).
+          agent { label "x86_64 && installed-os-noble && libvirt" }
           environment {
             CEPH_WIN_CI_KEY = credentials("ceph_win_ci_private_key")
           }
@@ -655,6 +678,11 @@ pipeline {
           }
           post {
             always {
+              sh """#!/bin/bash
+                podman rm -f "ceph-win32-build-\$BUILD_ID" ceph_build 2>/dev/null || true
+                mkdir -p artifacts
+                cp ceph/build/*.log vstart-container.log artifacts/ 2>/dev/null || true
+              """
               archiveArtifacts(artifacts: "artifacts/**", allowEmptyArchive: true)
               sh """#!/bin/bash
                 source ./ceph-build/scripts/build_utils.sh
