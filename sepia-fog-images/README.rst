@@ -39,7 +39,7 @@ These steps should only have to be performed when a new teuthology host is being
 - ceph-sepia-secrets_ -- If the job is being run on a teuthology host, ``/etc/ansible`` should already be symlinked to a ceph-sepia-secrets checkout.
 - ceph-cm-ansible/tools_ -- ``prep-fog-capture.yml`` preps a host for capturing.
 - The fsck postinit hook on the FOG server (``/images/dev/postinitscripts/fsck_before_capture.sh``, sourced by ``fog.postinit``).  The job refreshes it over ssh when it can, but installing it once by hand is enough for ``FSCKMETHOD=fog-postinit``.
-- ssh access as ``ubuntu`` to the dnsmasq server (``soko01``) -- the job edits the host's ``dhcp-host=set:fog,...`` tag in ``/etc/dnsmasq.d/pok/front.conf`` and restarts dnsmasq.  Needed for ``FSCKMETHOD=maas-rescue`` and ``STARTWITHMAAS``.
+- ssh access as ``cm`` to the dnsmasq server (``soko01`` -- it has no ``ubuntu`` user) -- the job edits the host's ``dhcp-host=set:fog,...`` tag in ``/etc/dnsmasq.d/pok/front.conf`` and restarts dnsmasq.  Needed for ``FSCKMETHOD=maas-rescue`` and ``STARTWITHMAAS``.
 - ``maas-cli`` on the teuthology host -- needed for ``FSCKMETHOD=maas-rescue`` and ``STARTWITHMAAS``.
 
 How it works

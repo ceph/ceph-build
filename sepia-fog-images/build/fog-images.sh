@@ -30,6 +30,7 @@ set -ex
 # Lab topology.  Adjust here if services move.
 fogserver="soko03.front.sepia.ceph.com"
 dnsmasqserver="soko01.front.sepia.ceph.com"
+dnsmasquser="cm"  # soko01 has no ubuntu user
 dnsmasqconf="/etc/dnsmasq.d/pok/front.conf"
 maasurl="http://soko02.front.sepia.ceph.com:5240/MAAS/"
 maasprofile="jenkins"
@@ -141,7 +142,7 @@ funRetry () {
 # Fails loudly if the host has no dhcp-host entry at all (a silent sed no-op
 # here would leave the node PXE-booting from the wrong server).
 funSetPxe () {
-  if ! ssh $sshopts ubuntu@${dnsmasqserver} "sudo sed -i -E 's/^dhcp-host=set:(fog|maas),(.*[,=]${1}\.front\.sepia\.ceph\.com)\$/dhcp-host=set:${2},\2/' $dnsmasqconf && grep -Eq '^dhcp-host=set:${2},.*[,=]${1}\.front\.sepia\.ceph\.com\$' $dnsmasqconf && sudo systemctl restart dnsmasq"; then
+  if ! ssh $sshopts ${dnsmasquser}@${dnsmasqserver} "sudo sed -i -E 's/^dhcp-host=set:(fog|maas),(.*[,=]${1}\.front\.sepia\.ceph\.com)\$/dhcp-host=set:${2},\2/' $dnsmasqconf && grep -Eq '^dhcp-host=set:${2},.*[,=]${1}\.front\.sepia\.ceph\.com\$' $dnsmasqconf && sudo systemctl restart dnsmasq"; then
     echo "ERROR: could not point ${1}'s PXE entry at ${2} -- does $1 have a dhcp-host line in $dnsmasqconf on ${dnsmasqserver}?"
     return 1
   fi
