@@ -293,6 +293,43 @@ funMaasEnsureReady () {
   done
 }
 
+# The OS belongs on the spinning disk: testnode NVMe drives are test
+# payload, and BIOS-era boxes cannot boot from NVMe at all -- MAAS
+# defaulting the install onto the NVMe left gibba014 unbootable (build
+# #12).  Point MAAS's boot disk at the smallest rotary disk and rebuild
+# the flat storage layout on it (same flow as dgalloway@soko02's
+# set-disk.sh, which handles bulk/one-off fixes); machines with no rotary
+# disk keep MAAS's default.  Commissioning re-detects storage and resets
+# the boot disk, so this must run after commissioning, while Ready.
+# Usage: funMaasEnsureBootDisk <systemid> <host>
+funMaasEnsureBootDisk () {
+  local systemid=$1 host=$2 bds want wantname current out
+  bds=$(maas $maasprofile block-devices read $systemid)
+  want=$(echo "$bds" | jq -r '[.[] | select(.type == "physical") | select((.tags // []) | index("rotary"))] | sort_by(.size, .name) | .[0].id // ""')
+  wantname=$(echo "$bds" | jq -r '[.[] | select(.type == "physical") | select((.tags // []) | index("rotary"))] | sort_by(.size, .name) | .[0].name // ""')
+  if [ -z "$want" ]; then
+    echo "$host has no rotary disk; leaving MAAS's default boot disk"
+    return 0
+  fi
+  current=$(maas $maasprofile machine read $systemid | jq -r '.boot_disk.name // ""')
+  if [ "$current" == "$wantname" ]; then
+    return 0
+  fi
+  echo "Setting ${host}'s boot disk to ${wantname} so the OS lands on the HDD, not the NVMe"
+  out=$(maas $maasprofile block-device set-boot-disk $systemid $want 2>&1) || {
+    echo "$out"
+    echo "ERROR: could not set ${host}'s boot disk to ${wantname}"
+    exit 1
+  }
+  # Blank first so the flat layout is rebuilt from scratch on the new disk
+  maas $maasprofile machine set-storage-layout $systemid storage_layout=blank >/dev/null
+  out=$(maas $maasprofile machine set-storage-layout $systemid storage_layout=flat 2>&1) || {
+    echo "$out"
+    echo "ERROR: could not rebuild ${host}'s storage layout on ${wantname}"
+    exit 1
+  }
+}
+
 # MAAS refuses to deploy a machine whose boot interface has no address
 # configuration -- a fresh commission comes up with a bare link_up link and
 # deploy fails with "Node must be configured to use a network" (build #11).
@@ -349,6 +386,7 @@ funMaasSeedStart () {
   fi
   echo "Seeding ${distro} on ${host} from MAAS (${maasimage% *}/${maasimage#* })"
   funMaasEnsureReady $systemid $host
+  funMaasEnsureBootDisk $systemid $host
   funMaasEnsureNetwork $systemid $host
   # The maas CLI reports API errors on stdout; keep them visible (build #11
   # failed here with the error swallowed by >/dev/null)
