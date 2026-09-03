@@ -6,7 +6,14 @@
 #   fog-images.sh lock      Pause the teuthology queue and lock testnodes
 #                           (locking skipped when DEFINEDHOSTS is set)
 #   fog-images.sh deploy    FOG-deploy the existing image for each distro and
-#                           wait for the network sentinel file
+#                           wait for the network sentinel file.  If no captured
+#                           image exists yet (a brand-new distro or machine
+#                           type) and MAASFALLBACK is true, the OS is deployed
+#                           from MAAS instead to seed the first image: the
+#                           host's PXE entry on the dnsmasq server is pointed
+#                           at maas, MAAS installs the distro, the host is
+#                           registered in FOG if needed, and PXE goes back to
+#                           fog for the capture
 #   fog-images.sh ansible   Run cephlab.yml and prep-fog-capture.yml
 #   fog-images.sh fsck      fsck the root fs (fog-postinit or maas-rescue)
 #   fog-images.sh capture   Create FOG capture tasks, reboot, wait
@@ -131,8 +138,13 @@ funRetry () {
 
 # Repoint a testnode's PXE boot in dnsmasq.  Usage: funSetPxe <host> <maas|fog>
 # The first tag on the host's dhcp-host line selects the PXE boot target.
+# Fails loudly if the host has no dhcp-host entry at all (a silent sed no-op
+# here would leave the node PXE-booting from the wrong server).
 funSetPxe () {
-  ssh $sshopts ubuntu@${dnsmasqserver} "sudo sed -i -E 's/^dhcp-host=set:(fog|maas),(.*[,=]${1}\.front\.sepia\.ceph\.com)\$/dhcp-host=set:${2},\2/' $dnsmasqconf && sudo systemctl restart dnsmasq"
+  if ! ssh $sshopts ubuntu@${dnsmasqserver} "sudo sed -i -E 's/^dhcp-host=set:(fog|maas),(.*[,=]${1}\.front\.sepia\.ceph\.com)\$/dhcp-host=set:${2},\2/' $dnsmasqconf && grep -Eq '^dhcp-host=set:${2},.*[,=]${1}\.front\.sepia\.ceph\.com\$' $dnsmasqconf && sudo systemctl restart dnsmasq"; then
+    echo "ERROR: could not point ${1}'s PXE entry at ${2} -- does $1 have a dhcp-host line in $dnsmasqconf on ${dnsmasqserver}?"
+    return 1
+  fi
 }
 
 funActivateVenv () {
@@ -167,6 +179,208 @@ funWaitForOurTasks () {
     ((++currentretries))
     funRetry $currentretries ${2:-120}
   done
+}
+
+# MAAS seeding.  When a distro has no captured FOG image at all, MAAS
+# (soko02) installs the OS from scratch so there is something to update and
+# capture.  These helpers drive that: log in to MAAS, map a distro name onto
+# a MAAS boot resource, get a machine into a deployable state, start the
+# deploy, and wait for it.
+
+# Log in to the MAAS CLI once per script invocation.  set +x keeps the API
+# key out of the console log.
+maasloggedin=false
+funMaasLogin () {
+  [ "$maasloggedin" == "true" ] && return 0
+  if ! command -v maas >/dev/null 2>&1; then
+    echo "ERROR: the maas CLI is required on this node (apt install maas-cli)"
+    exit 1
+  fi
+  { set +x; } 2>/dev/null
+  maas login $maasprofile $maasurl "$MAAS_API_KEY"
+  set -x
+  maasloggedin=true
+}
+
+# Usage: funMaasSystemId <host>.  Prints the MAAS system_id or nothing.
+funMaasSystemId () {
+  maas $maasprofile machines read hostname=$1 | jq -r '.[0].system_id // ""'
+}
+
+# Map a distro (ubuntu_22.04, rocky_10.1, centos_9.stream) onto a MAAS boot
+# resource, printed as "<osystem> <distro_series>".  Ubuntu maps straight to
+# its series codename; everything else is looked up in the boot resources
+# MAAS actually has (custom images land there under whatever name they were
+# uploaded with, so try the obvious spellings).  Prints nothing if MAAS has
+# no matching image.  Usage: funMaasImage <distro>
+funMaasImage () {
+  local os=${1%%_*} ver=${1#*_} names match cand major
+  major=${ver%.stream}
+  major=${major%%.*}
+  case "${os}_${ver}" in
+    ubuntu_18.04) echo "ubuntu bionic"; return 0 ;;
+    ubuntu_20.04) echo "ubuntu focal";  return 0 ;;
+    ubuntu_22.04) echo "ubuntu jammy";  return 0 ;;
+    ubuntu_24.04) echo "ubuntu noble";  return 0 ;;
+  esac
+  names=$(maas $maasprofile boot-resources read | jq -r '.[].name' | sort -u)
+  # Exact-version spellings first
+  for cand in "${os}/${ver}" "custom/${os}_${ver}" "custom/${os}-${ver}" "custom/${os}${ver}"; do
+    match=$(echo "$names" | grep -iFx "$cand" | head -n 1)
+    [ -n "$match" ] && break
+  done
+  # Only a major-tracking distro (rocky_10, centos_9.stream) may fall back
+  # to a major-level resource: seeding a pinned minor (rocky_10.1) from a
+  # different point release would capture the wrong OS under that name
+  # (funCheckHostOs would catch it, but only after a full install).
+  if [ -z "$match" ] && { [ "$ver" == "$major" ] || [ "$ver" != "${ver%.stream}" ]; }; then
+    for cand in "${os}/${major}" "${os}/${os}${major}" "custom/${os}_${major}" "custom/${os}-${major}" "custom/${os}${major}"; do
+      match=$(echo "$names" | grep -iFx "$cand" | head -n 1)
+      [ -n "$match" ] && break
+    done
+    if [ -z "$match" ]; then
+      # Last resort: any resource mentioning the distro and major version
+      match=$(echo "$names" | grep -iE "(^|/)${os}[-_/]?${major}([^0-9]|\$)" | sort -V | tail -n 1)
+    fi
+  fi
+  [ -n "$match" ] || return 0
+  echo "${match%%/*} ${match#*/}"
+}
+
+# Get a MAAS machine to the Ready state so it can be deployed: exit rescue
+# mode, release a stale Deployed/Allocated record, mark a Broken one fixed.
+# Usage: funMaasEnsureReady <systemid> <host>
+funMaasEnsureReady () {
+  local systemid=$1 host=$2 status currentretries=0
+  while true; do
+    status=$(maas $maasprofile machine read $systemid | jq -r '.status_name')
+    case "$status" in
+      Ready)
+        return 0 ;;
+      "Rescue mode"|"Entering rescue mode")
+        maas $maasprofile machine exit-rescue-mode $systemid >/dev/null || true ;;
+      Deployed|Deploying|Allocated|"Failed deployment")
+        maas $maasprofile machine release $systemid >/dev/null || true ;;
+      Broken)
+        maas $maasprofile machine mark-fixed $systemid >/dev/null || true ;;
+      New|Commissioning|"Failed commissioning"|"Failed testing")
+        echo "ERROR: $host is in MAAS state '$status'; commission it in MAAS first"
+        exit 1 ;;
+      *)
+        # Transient (Releasing, Exiting rescue mode, ...): just wait
+        : ;;
+    esac
+    echo "$(date) -- $host is in MAAS state '$status', waiting for Ready.  Sleeping 20sec"
+    sleep 20
+    ((++currentretries))
+    # Retry for 15min
+    funRetry $currentretries 45
+  done
+}
+
+# Start a MAAS deploy of <distro> on <host> (allocate + deploy; MAAS drives
+# the power cycle itself).  Returns once the deploy is underway; wait for it
+# with funMaasWaitDeployed.  Usage: funMaasSeedStart <host> <distro>
+funMaasSeedStart () {
+  local host=$1 distro=$2 systemid maasimage
+  funMaasLogin
+  systemid=$(funMaasSystemId $host)
+  if [ -z "$systemid" ]; then
+    echo "ERROR: $host is not enrolled in MAAS at ${maasurl}; cannot seed ${distro} from MAAS"
+    exit 1
+  fi
+  maasimage=$(funMaasImage $distro)
+  if [ -z "$maasimage" ]; then
+    echo "ERROR: MAAS has no boot resource matching ${distro}.  Available:"
+    maas $maasprofile boot-resources read | jq -r '.[].name' | sort -u
+    echo "Upload one (custom images: maas \$profile boot-resources create ...) or seed the image manually."
+    exit 1
+  fi
+  echo "Seeding ${distro} on ${host} from MAAS (${maasimage% *}/${maasimage#* })"
+  funMaasEnsureReady $systemid $host
+  maas $maasprofile machines allocate system_id=$systemid >/dev/null
+  maas $maasprofile machine deploy $systemid osystem=${maasimage% *} distro_series=${maasimage#* } >/dev/null
+}
+
+# Wait until MAAS reports <host> Deployed.  Usage: funMaasWaitDeployed <host>
+funMaasWaitDeployed () {
+  local host=$1 systemid status currentretries=0
+  funMaasLogin
+  systemid=$(funMaasSystemId $host)
+  while true; do
+    status=$(maas $maasprofile machine read $systemid | jq -r '.status_name')
+    if [ "$status" == "Deployed" ]; then
+      return 0
+    fi
+    if [ "$status" == "Failed deployment" ]; then
+      echo "ERROR: MAAS deploy of $host failed; see its installation log in MAAS"
+      exit 1
+    fi
+    echo "$(date) -- $host MAAS status: '$status' (waiting for Deployed).  Sleeping 30sec"
+    sleep 30
+    ((++currentretries))
+    # Retry for 45min (a from-scratch install is much slower than a FOG deploy)
+    funRetry $currentretries 90
+  done
+}
+
+# The rest of the job (and cephlab.yml) reaches testnodes as the ubuntu user,
+# but a MAAS-deployed non-Ubuntu image only has its own default cloud user
+# (rocky, cloud-user, ...) with the MAAS user's ssh keys.  Find a user that
+# works and, if it isn't ubuntu, create the ubuntu user from it.
+# Usage: funEnsureUbuntuUser <host>
+funEnsureUbuntuUser () {
+  local host=$1 u workuser="" currentretries=0
+  while [ -z "$workuser" ]; do
+    for u in ubuntu rocky centos cloud-user almalinux opensuse; do
+      if ssh $sshopts -o BatchMode=yes ${u}@${host}.front.sepia.ceph.com true 2>/dev/null; then
+        workuser=$u
+        break
+      fi
+    done
+    [ -n "$workuser" ] && break
+    echo "$(date) -- cannot ssh to ${host} as any known user yet.  Sleeping 30sec"
+    sleep 30
+    ((++currentretries))
+    funRetry $currentretries 40
+  done
+  if [ "$workuser" != "ubuntu" ]; then
+    echo "Creating the ubuntu user on $host (deployed image only has '$workuser')"
+    ssh $sshopts ${workuser}@${host}.front.sepia.ceph.com "sudo useradd -m -s /bin/bash ubuntu 2>/dev/null; sudo mkdir -p ~ubuntu/.ssh && sudo cp ~/.ssh/authorized_keys ~ubuntu/.ssh/authorized_keys && sudo chown -R ubuntu:ubuntu ~ubuntu/.ssh && sudo chmod 700 ~ubuntu/.ssh && echo 'ubuntu ALL=(ALL) NOPASSWD:ALL' | sudo tee /etc/sudoers.d/ubuntu >/dev/null"
+  fi
+}
+
+# Print the FOG host ID for <host>, registering the host in FOG first if it
+# isn't there yet (MAC address comes from MAAS, which is where a host being
+# seeded lives anyway).  Diagnostics go to stderr; stdout is only the ID.
+# Usage: funEnsureFogHost <host>
+funEnsureFogHost () {
+  local host=$1 id mac systemid
+  id=$(funFogApi GET /host '{"name": "'${host}'"}' | jq -r '.hosts[0].id // ""')
+  if [ -n "$id" ] && [ "$id" != "null" ]; then
+    echo $id
+    return 0
+  fi
+  echo "Registering $host in FOG at http://${fogserver}/fog" >&2
+  funMaasLogin >&2
+  systemid=$(funMaasSystemId $host)
+  if [ -z "$systemid" ]; then
+    echo "ERROR: $host is in neither FOG nor MAAS; register it in one of them first" >&2
+    return 1
+  fi
+  mac=$(maas $maasprofile machine read $systemid | jq -r '.boot_interface.mac_address // ""')
+  if [ -z "$mac" ]; then
+    echo "ERROR: could not read ${host}'s boot MAC from MAAS" >&2
+    return 1
+  fi
+  funFogApi POST /host/ "$(jq -nc --arg n "$host" --arg m "$mac" '{name: $n, macs: [$m]}')" >&2 || true
+  id=$(funFogApi GET /host '{"name": "'${host}'"}' | jq -r '.hosts[0].id // ""')
+  if [ -z "$id" ] || [ "$id" == "null" ]; then
+    echo "ERROR: could not register $host (MAC $mac) in FOG" >&2
+    return 1
+  fi
+  echo "Registered $host in FOG as host ID $id (MAC $mac)" >&2
+  echo $id
 }
 
 # FOG host IDs for the given machine types, as a JSON array of strings.
@@ -354,6 +568,10 @@ funClaimExtraHost () {
   done
 }
 
+# Default on so a plain run of the job can bootstrap a brand-new distro or
+# machine type; := also covers builds triggered before JJB adds the parameter.
+MAASFALLBACK=${MAASFALLBACK:-true}
+
 # Should we use teuthology-lock to lock systems?
 if [ "$DEFINEDHOSTS" == "" ]; then
   use_teuthologylock=true
@@ -519,11 +737,17 @@ phase_deploy () {
       sourcetype="${IMAGETYPE:-$type}"
       deployimagename="${sourcetype}_${fogprofile}"
       captureimagename="${type}_${fogprofile}"
-      # Get FOG host ID
+      # Get FOG host ID; with MAASFALLBACK a host that only exists in MAAS
+      # (a brand-new machine type being seeded) is registered in FOG here so
+      # the capture task later has something to attach to
       foghostid=$(funFogApi GET /host '{"name": "'${host}'"}' | jq -r '.hosts[0].id')
       if [ -z "$foghostid" ] || [ "$foghostid" == "null" ]; then
-        echo "ERROR: $host is not registered in FOG at http://${fogserver}/fog"
-        exit 1
+        if [ "$MAASFALLBACK" == "true" ]; then
+          foghostid=$(funEnsureFogHost $host) || exit 1
+        else
+          echo "ERROR: $host is not registered in FOG at http://${fogserver}/fog"
+          exit 1
+        fi
       fi
       # Work out what to deploy BEFORE touching the capture image.  On a
       # first capture the deploy and capture names are the same, and build
@@ -564,22 +788,41 @@ phase_deploy () {
       deployed=false
       deployedat=""
       if [ -z "$deployimageid" ]; then
+        # No captured image at all: nothing to FOG-deploy.  With MAASFALLBACK
+        # the OS is installed from MAAS to seed the first image; the manual
+        # alternatives are seeding a host by hand (DEFINEDHOSTS already
+        # running the target OS is captured as-is) or giving up.
+        seedfrommaas=false
         if [ "$use_teuthologylock" = true ]; then
-          # Nothing to deploy.  Brand new distros for a machine type have to
-          # be seeded manually: image a host by hand, then rerun this job
-          # with DEFINEDHOSTS pointing at it.
-          if [ "$seedsearched" == true ]; then
-            echo "ERROR: No captured FOG image named ${deployimagename} exists, and FOG has no captured ${sourcetype}_${splitdistro}_${distroversion}.* point-release image to seed it from."
+          if [ "$MAASFALLBACK" == "true" ]; then
+            seedfrommaas=true
           else
-            echo "ERROR: No captured FOG image named ${deployimagename} exists so there is nothing to deploy and update."
+            if [ "$seedsearched" == true ]; then
+              echo "ERROR: No captured FOG image named ${deployimagename} exists, and FOG has no captured ${sourcetype}_${splitdistro}_${distroversion}.* point-release image to seed it from."
+            else
+              echo "ERROR: No captured FOG image named ${deployimagename} exists so there is nothing to deploy and update."
+            fi
+            echo "Rerun with MAASFALLBACK=true to seed ${deployimagename} from MAAS, or seed it manually and rerun with DEFINEDHOSTS set."
+            exit 1
           fi
-          echo "Seed the first ${deployimagename} image manually, then rerun this job with DEFINEDHOSTS set."
+        elif funCheckHostOs $host ${array2[$i-1]}; then
+          # DEFINEDHOSTS with the host already running the target OS: the
+          # manual-seeding workflow -- capture what's there
+          echo "No captured ${deployimagename} image to deploy; capturing ${host}'s current OS"
+        elif [ "$MAASFALLBACK" == "true" ]; then
+          seedfrommaas=true
+        else
+          echo "ERROR: No captured ${deployimagename} image and $host is not running ${array2[$i-1]}; nothing to capture."
           exit 1
         fi
-        # DEFINEDHOSTS path: the host must already be running the target
-        # OS -- check, don't assume
-        echo "No captured ${deployimagename} image to deploy; capturing ${host}'s current OS"
-        funCheckHostOs $host ${array2[$i-1]} || exit 1
+        if [ "$seedfrommaas" == "true" ]; then
+          # Point PXE at MAAS and kick off the install; MAAS power-cycles the
+          # node itself.  The deploys for all hosts run in parallel -- the
+          # waiting happens after this loop.
+          funSetPxe $host maas
+          funMaasSeedStart $host ${array2[$i-1]}
+          deployed=maas
+        fi
       elif [ "$SKIPDEPLOY" == "true" ]; then
         echo "SKIPDEPLOY set; capturing ${host}'s current OS as ${captureimagename} without redeploying first"
         funCheckHostOs $host ${array2[$i-1]} || exit 1
@@ -607,6 +850,19 @@ phase_deploy () {
       echo "ERROR: FOG never recorded a successful deploy for $host (deployed timestamp still '${deployedat}'); the deploy task failed or was cancelled.  Not continuing with whatever is on its disk."
       exit 1
     fi
+  done 3< $statefile
+
+  # MAAS-seeded hosts: wait for the install to finish, point PXE back at FOG
+  # (so the capture reboot lands in FOG's boot menu), make sure the ubuntu
+  # user exists and works, and confirm MAAS installed the right OS.  These
+  # hosts have no sentinel file -- cephlab_rc_local only gets baked in by the
+  # ansible phase -- so plain ssh reachability is the readiness signal.
+  while read -u3 -r host distro foghostid fogimageid deployed type deployedat; do
+    [ "$deployed" == "maas" ] || continue
+    funMaasWaitDeployed $host
+    funSetPxe $host fog
+    funEnsureUbuntuUser $host
+    funCheckHostOs $host $distro || exit 1
   done 3< $statefile
 
   # Wait for the freshly-deployed hosts to come back up and finish their
@@ -653,13 +909,7 @@ phase_fsck () {
     return 0
   fi
 
-  if ! command -v maas >/dev/null 2>&1; then
-    echo "ERROR: FSCKMETHOD=maas-rescue requires the maas CLI on this node (apt install maas-cli)"
-    exit 1
-  fi
-  { set +x; } 2>/dev/null
-  maas login $maasprofile $maasurl "$MAAS_API_KEY"
-  set -x
+  funMaasLogin
   while read -u3 -r host distro foghostid fogimageid deployed type deployedat; do
     # Point the host's PXE entry at MAAS so rescue mode can boot
     funSetPxe $host maas
@@ -859,8 +1109,18 @@ phase_verify () {
       fi
       targetid=$(funFogApi GET /host '{"name": "'${target}'"}' | jq -r '.hosts[0].id')
       if [ -z "$targetid" ] || [ "$targetid" == "null" ]; then
-        echo "ERROR: verify host $target is not registered in FOG.  Queue stays paused."
-        exit 1
+        if [ "$MAASFALLBACK" == "true" ]; then
+          # A brand-new machine type's other nodes aren't in FOG yet either
+          targetid=$(funEnsureFogHost $target) || {
+            echo "ERROR: verify host $target is not registered in FOG.  Queue stays paused."
+            exit 1
+          }
+          # ... and their PXE tag may never have pointed at fog
+          funSetPxe $target fog
+        else
+          echo "ERROR: verify host $target is not registered in FOG.  Queue stays paused."
+          exit 1
+        fi
       fi
       deployedat=$(funHostDeployedAt $targetid)
       funFogApi PUT /host/$targetid '{"imageID": "'${typeimages[$i]}'"}'
@@ -943,6 +1203,31 @@ phase_cleanup () {
           if [ "$status" == "Rescue mode" ] || [ "$status" == "Entering rescue mode" ]; then
             maas $maasprofile machine exit-rescue-mode $systemid
           fi
+        fi
+      done
+    fi
+  fi
+
+  # MAAS-seeded hosts: point their PXE entries back at FOG and abort any
+  # in-flight MAAS deploy (release also clears a stale Deployed record; the
+  # node ends up powered off, and the queue's next reimage power-cycles it).
+  maashosts=$(awk '$5 == "maas" {print $1}' $statefile 2>/dev/null)
+  if [ -n "$maashosts" ]; then
+    for machine in $maashosts; do
+      funSetPxe $machine fog
+    done
+    if command -v maas >/dev/null 2>&1 && [ -n "$MAAS_API_KEY" ]; then
+      { set +x; } 2>/dev/null
+      maas login $maasprofile $maasurl "$MAAS_API_KEY"
+      set -x
+      for machine in $maashosts; do
+        systemid=$(maas $maasprofile machines read hostname=$machine | jq -r '.[0].system_id')
+        if [ "$systemid" != "null" ] && [ -n "$systemid" ]; then
+          status=$(maas $maasprofile machine read $systemid | jq -r '.status_name')
+          case "$status" in
+            Deploying|Deployed|Allocated|"Failed deployment")
+              maas $maasprofile machine release $systemid >/dev/null ;;
+          esac
         fi
       done
     fi
