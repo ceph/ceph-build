@@ -6,14 +6,14 @@
 #   fog-images.sh lock      Pause the teuthology queue and lock testnodes
 #                           (locking skipped when DEFINEDHOSTS is set)
 #   fog-images.sh deploy    FOG-deploy the existing image for each distro and
-#                           wait for the network sentinel file.  If no captured
-#                           image exists yet (a brand-new distro or machine
-#                           type) and MAASFALLBACK is true, the OS is deployed
-#                           from MAAS instead to seed the first image: the
-#                           host's PXE entry on the dnsmasq server is pointed
-#                           at maas, MAAS installs the distro, the host is
-#                           registered in FOG if needed, and PXE goes back to
-#                           fog for the capture
+#                           wait for the network sentinel file.  With
+#                           STARTWITHMAAS the OS is installed from MAAS
+#                           instead (for a brand-new distro or machine type
+#                           with no captured image yet): the host's PXE entry
+#                           on the dnsmasq server is pointed at maas, MAAS
+#                           installs the distro, the host is registered in
+#                           FOG if needed, and PXE goes back to fog for the
+#                           capture
 #   fog-images.sh ansible   Run cephlab.yml and prep-fog-capture.yml
 #   fog-images.sh fsck      fsck the root fs (fog-postinit or maas-rescue)
 #   fog-images.sh capture   Create FOG capture tasks, reboot, wait
@@ -181,11 +181,11 @@ funWaitForOurTasks () {
   done
 }
 
-# MAAS seeding.  When a distro has no captured FOG image at all, MAAS
-# (soko02) installs the OS from scratch so there is something to update and
-# capture.  These helpers drive that: log in to MAAS, map a distro name onto
-# a MAAS boot resource, get a machine into a deployable state, start the
-# deploy, and wait for it.
+# MAAS seeding (STARTWITHMAAS).  When a distro has no captured FOG image
+# yet, MAAS (soko02) installs the OS from scratch so there is something to
+# update and capture.  These helpers drive that: log in to MAAS, map a
+# distro name onto a MAAS boot resource, get a machine into a deployable
+# state, start the deploy, and wait for it.
 
 # Log in to the MAAS CLI once per script invocation.  set +x keeps the API
 # key out of the console log.
@@ -568,9 +568,9 @@ funClaimExtraHost () {
   done
 }
 
-# Default on so a plain run of the job can bootstrap a brand-new distro or
-# machine type; := also covers builds triggered before JJB adds the parameter.
-MAASFALLBACK=${MAASFALLBACK:-true}
+# Off unless the checkbox is ticked; := also covers builds triggered before
+# JJB adds the parameter.
+STARTWITHMAAS=${STARTWITHMAAS:-false}
 
 # Should we use teuthology-lock to lock systems?
 if [ "$DEFINEDHOSTS" == "" ]; then
@@ -737,12 +737,12 @@ phase_deploy () {
       sourcetype="${IMAGETYPE:-$type}"
       deployimagename="${sourcetype}_${fogprofile}"
       captureimagename="${type}_${fogprofile}"
-      # Get FOG host ID; with MAASFALLBACK a host that only exists in MAAS
+      # Get FOG host ID; with STARTWITHMAAS a host that only exists in MAAS
       # (a brand-new machine type being seeded) is registered in FOG here so
       # the capture task later has something to attach to
       foghostid=$(funFogApi GET /host '{"name": "'${host}'"}' | jq -r '.hosts[0].id')
       if [ -z "$foghostid" ] || [ "$foghostid" == "null" ]; then
-        if [ "$MAASFALLBACK" == "true" ]; then
+        if [ "$STARTWITHMAAS" == "true" ]; then
           foghostid=$(funEnsureFogHost $host) || exit 1
         else
           echo "ERROR: $host is not registered in FOG at http://${fogserver}/fog"
@@ -756,9 +756,12 @@ phase_deploy () {
       # restore, the node booted whatever was on its disk (an Ubuntu
       # install), and the job captured that as trial_rocky_10.  Only an
       # image FOG has a size for counts as deployable.
-      deployimageid=$(funUsableImageId $deployimagename)
+      deployimageid=""
       seedsearched=false
-      if [ -z "$deployimageid" ] && [ "$distroversion" == "${distroversion%%.*}" ]; then
+      if [ "$STARTWITHMAAS" != "true" ]; then
+        deployimageid=$(funUsableImageId $deployimagename)
+      fi
+      if [ "$STARTWITHMAAS" != "true" ] && [ -z "$deployimageid" ] && [ "$distroversion" == "${distroversion%%.*}" ]; then
         # Major-only distro (rocky_10) with no captured image yet: seed it
         # from the newest captured point-release image of that major.  The
         # ansible phase passes rocky_upgrade_scope=major for this distro, so
@@ -787,42 +790,29 @@ phase_deploy () {
       fi
       deployed=false
       deployedat=""
-      if [ -z "$deployimageid" ]; then
-        # No captured image at all: nothing to FOG-deploy.  With MAASFALLBACK
-        # the OS is installed from MAAS to seed the first image; the manual
-        # alternatives are seeding a host by hand (DEFINEDHOSTS already
-        # running the target OS is captured as-is) or giving up.
-        seedfrommaas=false
+      if [ "$STARTWITHMAAS" == "true" ]; then
+        # Start from a fresh MAAS install instead of an existing FOG image.
+        # Point PXE at MAAS and kick off the install; MAAS power-cycles the
+        # node itself.  The installs for all hosts run in parallel -- the
+        # waiting happens after this loop.
+        funSetPxe $host maas
+        funMaasSeedStart $host ${array2[$i-1]}
+        deployed=maas
+      elif [ -z "$deployimageid" ]; then
         if [ "$use_teuthologylock" = true ]; then
-          if [ "$MAASFALLBACK" == "true" ]; then
-            seedfrommaas=true
+          # Nothing to deploy and STARTWITHMAAS wasn't requested.
+          if [ "$seedsearched" == true ]; then
+            echo "ERROR: No captured FOG image named ${deployimagename} exists, and FOG has no captured ${sourcetype}_${splitdistro}_${distroversion}.* point-release image to seed it from."
           else
-            if [ "$seedsearched" == true ]; then
-              echo "ERROR: No captured FOG image named ${deployimagename} exists, and FOG has no captured ${sourcetype}_${splitdistro}_${distroversion}.* point-release image to seed it from."
-            else
-              echo "ERROR: No captured FOG image named ${deployimagename} exists so there is nothing to deploy and update."
-            fi
-            echo "Rerun with MAASFALLBACK=true to seed ${deployimagename} from MAAS, or seed it manually and rerun with DEFINEDHOSTS set."
-            exit 1
+            echo "ERROR: No captured FOG image named ${deployimagename} exists so there is nothing to deploy and update."
           fi
-        elif funCheckHostOs $host ${array2[$i-1]}; then
-          # DEFINEDHOSTS with the host already running the target OS: the
-          # manual-seeding workflow -- capture what's there
-          echo "No captured ${deployimagename} image to deploy; capturing ${host}'s current OS"
-        elif [ "$MAASFALLBACK" == "true" ]; then
-          seedfrommaas=true
-        else
-          echo "ERROR: No captured ${deployimagename} image and $host is not running ${array2[$i-1]}; nothing to capture."
+          echo "Rerun with STARTWITHMAAS to install ${array2[$i-1]} from MAAS and capture that, or seed the image manually and rerun with DEFINEDHOSTS set."
           exit 1
         fi
-        if [ "$seedfrommaas" == "true" ]; then
-          # Point PXE at MAAS and kick off the install; MAAS power-cycles the
-          # node itself.  The deploys for all hosts run in parallel -- the
-          # waiting happens after this loop.
-          funSetPxe $host maas
-          funMaasSeedStart $host ${array2[$i-1]}
-          deployed=maas
-        fi
+        # DEFINEDHOSTS path: the host must already be running the target
+        # OS -- check, don't assume
+        echo "No captured ${deployimagename} image to deploy; capturing ${host}'s current OS"
+        funCheckHostOs $host ${array2[$i-1]} || exit 1
       elif [ "$SKIPDEPLOY" == "true" ]; then
         echo "SKIPDEPLOY set; capturing ${host}'s current OS as ${captureimagename} without redeploying first"
         funCheckHostOs $host ${array2[$i-1]} || exit 1
@@ -1109,7 +1099,7 @@ phase_verify () {
       fi
       targetid=$(funFogApi GET /host '{"name": "'${target}'"}' | jq -r '.hosts[0].id')
       if [ -z "$targetid" ] || [ "$targetid" == "null" ]; then
-        if [ "$MAASFALLBACK" == "true" ]; then
+        if [ "$STARTWITHMAAS" == "true" ]; then
           # A brand-new machine type's other nodes aren't in FOG yet either
           targetid=$(funEnsureFogHost $target) || {
             echo "ERROR: verify host $target is not registered in FOG.  Queue stays paused."

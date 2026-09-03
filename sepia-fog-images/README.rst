@@ -30,17 +30,17 @@ These steps should only have to be performed when a new teuthology host is being
 
 #. Define ``FOG_API_TOKEN`` and ``FOG_USER_TOKEN`` as **Global name/password pairs** in Jenkins.  These are only a fallback: when the agent's ``/etc/teuthology.yaml`` has a ``fog:`` block, the job reads the FOG endpoint and tokens from there (currently ``http://soko03.front.sepia.ceph.com/fog``).
 
-#. The ``maas-api-key`` **Secret text** credential must exist in Jenkins (shared with the builder-reimage job).  Needed for ``FSCKMETHOD=maas-rescue`` and for ``MAASFALLBACK``.
+#. The ``maas-api-key`` **Secret text** credential must exist in Jenkins (shared with the builder-reimage job).  Needed for ``FSCKMETHOD=maas-rescue`` and for ``STARTWITHMAAS``.
 
-#. For ``MAASFALLBACK``, the ``jenkins-build`` user's public SSH key must be added to the MAAS user the API key belongs to (MAAS injects that user's keys into the deployed OS's default account, which is how the job gets onto a freshly-seeded host).
+#. For ``STARTWITHMAAS``, the ``jenkins-build`` user's public SSH key must be added to the MAAS user the API key belongs to (MAAS injects that user's keys into the deployed OS's default account, which is how the job gets onto a freshly-seeded host).
 
 **NOTE:** This job also relies on:
 
 - ceph-sepia-secrets_ -- If the job is being run on a teuthology host, ``/etc/ansible`` should already be symlinked to a ceph-sepia-secrets checkout.
 - ceph-cm-ansible/tools_ -- ``prep-fog-capture.yml`` preps a host for capturing.
 - The fsck postinit hook on the FOG server (``/images/dev/postinitscripts/fsck_before_capture.sh``, sourced by ``fog.postinit``).  The job refreshes it over ssh when it can, but installing it once by hand is enough for ``FSCKMETHOD=fog-postinit``.
-- ssh access as ``ubuntu`` to the dnsmasq server (``soko01``) -- the job edits the host's ``dhcp-host=set:fog,...`` tag in ``/etc/dnsmasq.d/pok/front.conf`` and restarts dnsmasq.  Needed for ``FSCKMETHOD=maas-rescue`` and ``MAASFALLBACK``.
-- ``maas-cli`` on the teuthology host -- needed for ``FSCKMETHOD=maas-rescue`` and ``MAASFALLBACK``.
+- ssh access as ``ubuntu`` to the dnsmasq server (``soko01``) -- the job edits the host's ``dhcp-host=set:fog,...`` tag in ``/etc/dnsmasq.d/pok/front.conf`` and restarts dnsmasq.  Needed for ``FSCKMETHOD=maas-rescue`` and ``STARTWITHMAAS``.
+- ``maas-cli`` on the teuthology host -- needed for ``FSCKMETHOD=maas-rescue`` and ``STARTWITHMAAS``.
 
 How it works
 ------------
@@ -49,7 +49,7 @@ This job:
 
 #. Locks a number of testnodes via ``teuthology-lock`` depending on the number of machine types and distros you specify (unless you specify your own using the ``DEFINEDHOSTS`` job parameter).
 
-#. FOG-deploys the existing image for each distro to its testnode via the FOG API, then waits for the network sentinel file (``sentinel_file`` from the ``fog:`` block of ``/etc/teuthology.yaml``) to appear, which means first-boot network/hostname configuration finished.  Only an image FOG has recorded a size for (i.e. one that has actually been captured) is deployed; for a major-only distro such as ``rocky_10`` with no captured image yet, the newest captured point-release image of that major (``trial_rocky_10.2`` over ``trial_rocky_10.1``) is deployed instead to seed it.  (If no image exists at all and ``MAASFALLBACK`` is true -- the default -- the OS is installed from MAAS instead; see below.  With ``MAASFALLBACK=false`` the first image has to be seeded manually: image a host by hand, then run this job with ``DEFINEDHOSTS`` pointing at it.)  A deploy only counts as successful if FOG bumps the host's ``deployed`` timestamp, and once the host is back the job checks ``/etc/os-release`` against the requested distro -- a node that silently booted a leftover install is an error, not something to capture.
+#. FOG-deploys the existing image for each distro to its testnode via the FOG API, then waits for the network sentinel file (``sentinel_file`` from the ``fog:`` block of ``/etc/teuthology.yaml``) to appear, which means first-boot network/hostname configuration finished.  Only an image FOG has recorded a size for (i.e. one that has actually been captured) is deployed; for a major-only distro such as ``rocky_10`` with no captured image yet, the newest captured point-release image of that major (``trial_rocky_10.2`` over ``trial_rocky_10.1``) is deployed instead to seed it.  (If no image exists at all this is a fatal error; rerun with ``STARTWITHMAAS`` checked to install the OS from MAAS as the starting point instead -- see below -- or seed the first image manually: image a host by hand, then run this job with ``DEFINEDHOSTS`` pointing at it.)  A deploy only counts as successful if FOG bumps the host's ``deployed`` timestamp, and once the host is back the job checks ``/etc/os-release`` against the requested distro -- a node that silently booted a leftover install is an error, not something to capture.
 
 #. Runs the ``cephlab.yml`` playbook against each testnode to bring it fully up to date.
 
@@ -71,9 +71,10 @@ This job:
 Seeding new images from MAAS
 ----------------------------
 
-With ``MAASFALLBACK=true`` (the default), a distro that has no captured FOG
-image at all -- a brand-new distro, or a brand-new machine type such as the
-first ``gibba_*`` image -- is seeded automatically instead of erroring out:
+With ``STARTWITHMAAS`` checked, the starting point is a fresh MAAS install
+instead of an existing FOG image.  Use it to seed a distro that has no
+captured FOG image at all -- a brand-new distro, or a brand-new machine type
+such as the first ``gibba_*`` image:
 
 #. The host's PXE entry on the dnsmasq server (``soko01``) is pointed at
    ``maas``.
