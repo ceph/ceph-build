@@ -224,8 +224,10 @@ funMaasImage () {
     ubuntu_24.04) echo "ubuntu noble";  return 0 ;;
   esac
   names=$(maas $maasprofile boot-resources read | jq -r '.[].name' | sort -u)
-  # Exact-version spellings first
-  for cand in "${os}/${ver}" "custom/${os}_${ver}" "custom/${os}-${ver}" "custom/${os}${ver}"; do
+  # Exact-version spellings first.  Custom uploads carry whatever bare name
+  # they were uploaded with (e.g. just "rocky10"), so try those too.
+  for cand in "${os}/${ver}" "${os}${ver}" "${os}-${ver}" "${os}_${ver}" \
+              "custom/${os}${ver}" "custom/${os}-${ver}" "custom/${os}_${ver}"; do
     match=$(echo "$names" | grep -iFx "$cand" | head -n 1)
     [ -n "$match" ] && break
   done
@@ -234,7 +236,8 @@ funMaasImage () {
   # different point release would capture the wrong OS under that name
   # (funCheckHostOs would catch it, but only after a full install).
   if [ -z "$match" ] && { [ "$ver" == "$major" ] || [ "$ver" != "${ver%.stream}" ]; }; then
-    for cand in "${os}/${major}" "${os}/${os}${major}" "custom/${os}_${major}" "custom/${os}-${major}" "custom/${os}${major}"; do
+    for cand in "${os}/${major}" "${os}/${os}${major}" "${os}${major}" "${os}-${major}" "${os}_${major}" \
+                "custom/${os}${major}" "custom/${os}-${major}" "custom/${os}_${major}"; do
       match=$(echo "$names" | grep -iFx "$cand" | head -n 1)
       [ -n "$match" ] && break
     done
@@ -244,11 +247,18 @@ funMaasImage () {
     fi
   fi
   [ -n "$match" ] || return 0
-  echo "${match%%/*} ${match#*/}"
+  # A bare resource name (no osystem/ prefix) is an uploaded custom image;
+  # those deploy as osystem=custom
+  case "$match" in
+    */*) echo "${match%%/*} ${match#*/}" ;;
+    *)   echo "custom $match" ;;
+  esac
 }
 
-# Get a MAAS machine to the Ready state so it can be deployed: exit rescue
-# mode, release a stale Deployed/Allocated record, mark a Broken one fixed.
+# Get a MAAS machine to the Ready state so it can be deployed: commission a
+# never-used (New) machine -- PXE already points at maas by the time this
+# runs, so the ephemeral commissioning boot works -- exit rescue mode,
+# release a stale Deployed/Allocated record, mark a Broken one fixed.
 # Usage: funMaasEnsureReady <systemid> <host>
 funMaasEnsureReady () {
   local systemid=$1 host=$2 status currentretries=0
@@ -257,24 +267,28 @@ funMaasEnsureReady () {
     case "$status" in
       Ready)
         return 0 ;;
+      New)
+        echo "$host has never been commissioned in MAAS; commissioning it now"
+        maas $maasprofile machine commission $systemid >/dev/null || true ;;
       "Rescue mode"|"Entering rescue mode")
         maas $maasprofile machine exit-rescue-mode $systemid >/dev/null || true ;;
       Deployed|Deploying|Allocated|"Failed deployment")
         maas $maasprofile machine release $systemid >/dev/null || true ;;
       Broken)
         maas $maasprofile machine mark-fixed $systemid >/dev/null || true ;;
-      New|Commissioning|"Failed commissioning"|"Failed testing")
-        echo "ERROR: $host is in MAAS state '$status'; commission it in MAAS first"
+      "Failed commissioning"|"Failed testing")
+        echo "ERROR: $host is in MAAS state '$status'; fix it in MAAS first"
         exit 1 ;;
       *)
-        # Transient (Releasing, Exiting rescue mode, ...): just wait
+        # Transient (Commissioning, Releasing, Exiting rescue mode, ...):
+        # just wait
         : ;;
     esac
     echo "$(date) -- $host is in MAAS state '$status', waiting for Ready.  Sleeping 20sec"
     sleep 20
     ((++currentretries))
-    # Retry for 15min
-    funRetry $currentretries 45
+    # Retry for 30min (commissioning a New machine takes a full PXE boot)
+    funRetry $currentretries 90
   done
 }
 

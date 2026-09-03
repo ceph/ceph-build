@@ -96,9 +96,11 @@ such as the first ``gibba_*`` image:
 #. The normal flow continues from the ansible phase: update, prep, fsck,
    capture, verify.
 
-The host must be enrolled (commissioned) in MAAS and have a ``dhcp-host``
-entry in soko01's dnsmasq config; the job fails with a pointed error if
-either is missing.  After a successful run MAAS still considers the machine
+The host must be enrolled in MAAS and have a ``dhcp-host`` entry in soko01's
+dnsmasq config; the job fails with a pointed error if either is missing.  A
+machine MAAS has never used (state ``New``) is commissioned automatically
+first -- PXE already points at maas by then, so the ephemeral commissioning
+boot just works.  After a successful run MAAS still considers the machine
 Deployed -- that stale record is released automatically the next time a seed
 is needed.
 
