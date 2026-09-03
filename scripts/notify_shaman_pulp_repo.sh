@@ -8,10 +8,12 @@ submit_repo_status() {
     # 'project' is used to post to the right url in shaman.
     # shaman keys repos by 'chacra_url' and builds Arch rows from the 'archs'
     # list, so the arch must be sent as a JSON array (not 'distro_arch').
-    # Mirroring chacra's repo records: 'url' is the browsable location of the
-    # actual package repo (here, the Pulp content distribution) and
-    # 'chacra_url' is the repo's API endpoint (chacra: /repos/..., pulp:
-    # /pulp/api/v3/repositories/...).
+    # shaman dedups on 'chacra_url' and never updates sha1/ref on a repost,
+    # so 'chacra_url' must embed the sha1 (as chacra's /repos/... URLs did).
+    # The Pulp repository API href is branch-scoped (reused across sha1s):
+    # sending it here kept records pinned to the branch's first sha1, and
+    # build_container's search by the new sha1 then timed out. Send the
+    # per-sha1 content URL instead and keep the repository href in 'extra'.
     http_method=$1
     state=$2
     project=$3
@@ -41,7 +43,7 @@ submit_repo_status() {
     cat > $WORKSPACE/repo_status.json << EOF
 {
     "url":"$url",
-    "chacra_url":"${PULP_REPO_API_URL:-$url}",
+    "chacra_url":"$url",
     "status":"$state",
     "distro":"$distro",
     "distro_version":"$distro_version",
@@ -52,6 +54,7 @@ submit_repo_status() {
     "extra":{
         "version":"$CEPH_VERSION",
         "package_manager_version":"$PACKAGE_MANAGER_VERSION",
+        "repository_api_url":"$PULP_REPO_API_URL",
         "build_url":"$BUILD_URL",
         "root_build_cause":"$ROOT_BUILD_CAUSE",
         "node_name":"$NODE_NAME",
