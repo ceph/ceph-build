@@ -293,11 +293,47 @@ funMaasEnsureReady () {
   done
 }
 
+# MAAS refuses to deploy a machine whose boot interface has no address
+# configuration -- a fresh commission comes up with a bare link_up link and
+# deploy fails with "Node must be configured to use a network" (build #11).
+# Configure the boot interface for DHCP: dnsmasq owns DHCP here with
+# MAC-reserved IPs, so the deployed OS keeps the same identity a FOG image
+# would have.  Usage: funMaasEnsureNetwork <systemid> <host>
+funMaasEnsureNetwork () {
+  local systemid=$1 host=$2 bootif ifjson subnetid vlanid out
+  bootif=$(maas $maasprofile machine read $systemid | jq -r '.boot_interface.id // ""')
+  if [ -z "$bootif" ]; then
+    echo "ERROR: $host has no boot interface in MAAS"
+    exit 1
+  fi
+  ifjson=$(maas $maasprofile interface read $systemid $bootif)
+  if echo "$ifjson" | jq -e '[(.links // [])[] | select(.mode != "link_up")] | length > 0' >/dev/null; then
+    # Already has a real address configuration
+    return 0
+  fi
+  subnetid=$(echo "$ifjson" | jq -r '(.links // [])[0].subnet.id // ""')
+  if [ -z "$subnetid" ]; then
+    # No subnet on the link_up link either; find one on the interface's VLAN
+    vlanid=$(echo "$ifjson" | jq -r '.vlan.id // ""')
+    subnetid=$(maas $maasprofile subnets read | jq -r --arg v "$vlanid" '[.[] | select((.vlan.id|tostring) == $v)][0].id // ""')
+  fi
+  if [ -z "$subnetid" ]; then
+    echo "ERROR: cannot find a MAAS subnet for ${host}'s boot interface"
+    exit 1
+  fi
+  echo "Configuring ${host}'s boot interface for DHCP (subnet $subnetid)"
+  out=$(maas $maasprofile interface link-subnet $systemid $bootif mode=DHCP subnet=$subnetid 2>&1) || {
+    echo "$out"
+    echo "ERROR: could not configure ${host}'s boot interface for DHCP"
+    exit 1
+  }
+}
+
 # Start a MAAS deploy of <distro> on <host> (allocate + deploy; MAAS drives
 # the power cycle itself).  Returns once the deploy is underway; wait for it
 # with funMaasWaitDeployed.  Usage: funMaasSeedStart <host> <distro>
 funMaasSeedStart () {
-  local host=$1 distro=$2 systemid maasimage
+  local host=$1 distro=$2 systemid maasimage out
   funMaasLogin
   systemid=$(funMaasSystemId $host)
   if [ -z "$systemid" ]; then
@@ -313,8 +349,19 @@ funMaasSeedStart () {
   fi
   echo "Seeding ${distro} on ${host} from MAAS (${maasimage% *}/${maasimage#* })"
   funMaasEnsureReady $systemid $host
-  maas $maasprofile machines allocate system_id=$systemid >/dev/null
-  maas $maasprofile machine deploy $systemid osystem=${maasimage% *} distro_series=${maasimage#* } >/dev/null
+  funMaasEnsureNetwork $systemid $host
+  # The maas CLI reports API errors on stdout; keep them visible (build #11
+  # failed here with the error swallowed by >/dev/null)
+  out=$(maas $maasprofile machines allocate system_id=$systemid 2>&1) || {
+    echo "$out"
+    echo "ERROR: could not allocate $host in MAAS"
+    exit 1
+  }
+  out=$(maas $maasprofile machine deploy $systemid osystem=${maasimage% *} distro_series=${maasimage#* } 2>&1) || {
+    echo "$out"
+    echo "ERROR: could not start the MAAS deploy of $distro on $host"
+    exit 1
+  }
 }
 
 # Wait until MAAS reports <host> Deployed.  Usage: funMaasWaitDeployed <host>
@@ -1216,11 +1263,18 @@ phase_cleanup () {
   # MAAS-seeded hosts: point their PXE entries back at FOG and abort any
   # in-flight MAAS deploy (release also clears a stale Deployed record; the
   # node ends up powered off, and the queue's next reimage power-cycles it).
+  # PXE is restored for every claimed host, not just statefile rows: a seed
+  # that dies between funSetPxe and the statefile write (build #11) would
+  # otherwise leave its node PXE-booting from MAAS.
   maashosts=$(awk '$5 == "maas" {print $1}' $statefile 2>/dev/null)
+  pxehosts=$maashosts
+  if [ "$STARTWITHMAAS" == "true" ]; then
+    pxehosts=$(printf '%s\n' $maashosts $allhosts | sort -u)
+  fi
+  for machine in $pxehosts; do
+    funSetPxe $machine fog
+  done
   if [ -n "$maashosts" ]; then
-    for machine in $maashosts; do
-      funSetPxe $machine fog
-    done
     if command -v maas >/dev/null 2>&1 && [ -n "$MAAS_API_KEY" ]; then
       { set +x; } 2>/dev/null
       maas login $maasprofile $maasurl "$MAAS_API_KEY"
