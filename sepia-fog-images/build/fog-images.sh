@@ -636,12 +636,22 @@ funClaim () {
 # drop the lock.  --unlock powers a FOG-type node off on its way out; that's
 # fine, the queue's next reimage power-cycles it anyway.  -f releases the
 # rest even if one host fails (still exits nonzero).
+#
+# Reimaged nodes regenerate their ssh host keys (prep-fog-capture's
+# regen-ssh-hostkeys.service), but teuthology's paramiko auto-adds keys to
+# the agent's ~/.ssh/known_hosts at lock time, so the unlock's stop_node
+# reconnect then spends ~10 minutes failing on BadHostKeyException before
+# giving up (build #15).  Forget any recorded keys first so the unlock can
+# actually reach the node and power it down.
 funRelease () {
   if [ $# -eq 0 ]; then
     return 0
   fi
-  local host
+  local host short
   for host in "$@"; do
+    short=${host%%.*}
+    ssh-keygen -R ${short}.front.sepia.ceph.com >/dev/null 2>&1 || true
+    ssh-keygen -R ${short} >/dev/null 2>&1 || true
     teuthology-lock --update --status up $host
   done
   teuthology-lock --unlock -f "$@"
