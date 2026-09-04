@@ -277,7 +277,14 @@ funMaasEnsureReady () {
         maas $maasprofile machine release $systemid >/dev/null || true ;;
       Broken)
         maas $maasprofile machine mark-fixed $systemid >/dev/null || true ;;
-      "Failed commissioning"|"Failed testing")
+      "Failed testing")
+        # Old testnode drives routinely trip smartctl-validate on SMART
+        # attribute warnings (gibba015, build #16) while still working fine
+        # as testnodes -- and a genuinely dead disk still fails the deploy,
+        # fsck, or capture.  Override and continue, loudly.
+        echo "WARNING: $host failed MAAS hardware testing; overriding and continuing (a truly bad disk will still fail the deploy)"
+        maas $maasprofile machine override-failed-testing $systemid >/dev/null || true ;;
+      "Failed commissioning")
         echo "ERROR: $host is in MAAS state '$status'; fix it in MAAS first"
         exit 1 ;;
       *)
