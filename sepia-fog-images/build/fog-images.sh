@@ -450,6 +450,35 @@ funEnsureUbuntuUser () {
   fi
 }
 
+# Wipe stale bootloaders/partition tables off every disk that is NOT the one
+# holding the root filesystem.  A MAAS install lands the OS (and a bootable
+# GRUB) on the rotary disk, but any OTHER disk that still carries a bootable
+# signature -- e.g. an earlier install on the NVMe -- gives the BIOS a second
+# boot candidate.  On these older sleds the firmware then boots (or hangs on)
+# the wrong disk after a reboot, even though the FOG/iPXE handoff and the
+# root disk itself are fine.  Clearing the other disks leaves exactly one
+# bootable device, so sanboot/exit/local-boot all land on the OS we imaged.
+# Usage: funWipeNonRootDisks <host>
+funWipeNonRootDisks () {
+  local host=$1
+  ssh $sshopts ubuntu@${host}.front.sepia.ceph.com "sudo bash -s" <<'REMOTE'
+set -e
+# Whole disk backing the current root mount (e.g. sda from sda2, nvme0n1 from nvme0n1p2)
+rootsrc=$(findmnt -no SOURCE / | sed 's:/dev/::')
+rootdisk=$(lsblk -pnro PKNAME "/dev/$rootsrc" 2>/dev/null | head -1)
+[ -n "$rootdisk" ] || rootdisk="/dev/$(lsblk -no PKNAME "/dev/$rootsrc" 2>/dev/null | head -1)"
+echo "root is on $rootsrc (disk $rootdisk); wiping boot signatures off other disks"
+for d in $(lsblk -dpnro NAME,TYPE | awk '$2=="disk"{print $1}'); do
+  [ "$d" == "$rootdisk" ] && continue
+  echo "wiping $d"
+  sudo wipefs -a "$d" 2>/dev/null || true
+  # Zap GPT (primary + backup) and the MBR/boot code so the BIOS won't try it
+  sudo sgdisk --zap-all "$d" 2>/dev/null || true
+  sudo dd if=/dev/zero of="$d" bs=1M count=10 conv=fsync 2>/dev/null || true
+done
+REMOTE
+}
+
 # Print the FOG host ID for <host>, registering the host in FOG first if it
 # isn't there yet (MAC address comes from MAAS, which is where a host being
 # seeded lives anyway).  Diagnostics go to stderr; stdout is only the ID.
@@ -953,6 +982,11 @@ phase_deploy () {
     funSetPxe $host fog
     funEnsureUbuntuUser $host
     funCheckHostOs $host $distro || exit 1
+    # Remove any bootable signature from the non-root disks so the BIOS has
+    # exactly one boot candidate (the disk MAAS just imaged).  Without this a
+    # leftover install on another disk -- e.g. the NVMe -- makes the node
+    # boot the wrong disk (or hang) after the first reboot.
+    funWipeNonRootDisks $host
   done 3< $statefile
 
   # Wait for the freshly-deployed hosts to come back up and finish their
