@@ -263,14 +263,23 @@ funMaasImage () {
 # release a stale Deployed/Allocated record, mark a Broken one fixed.
 # Usage: funMaasEnsureReady <systemid> <host>
 funMaasEnsureReady () {
-  local systemid=$1 host=$2 status currentretries=0
+  local systemid=$1 host=$2 status currentretries=0 commissionattempts=0
   while true; do
     status=$(maas $maasprofile machine read $systemid | jq -r '.status_name')
     case "$status" in
       Ready)
         return 0 ;;
-      New)
-        echo "$host has never been commissioned in MAAS; commissioning it now"
+      New|"Failed commissioning")
+        # "Failed commissioning" is usually a stale record or a flubbed PXE
+        # boot from an earlier attempt, not a verdict on the hardware --
+        # re-commission a bounded number of times before declaring the
+        # machine actually sick.
+        if [ $commissionattempts -ge 2 ]; then
+          echo "ERROR: $host is still in MAAS state '$status' after $commissionattempts commissioning attempts; fix it in MAAS first"
+          exit 1
+        fi
+        ((++commissionattempts))
+        echo "$host is in MAAS state '$status'; commissioning it now (attempt $commissionattempts of 2)"
         maas $maasprofile machine commission $systemid >/dev/null || true ;;
       "Rescue mode"|"Entering rescue mode")
         maas $maasprofile machine exit-rescue-mode $systemid >/dev/null || true ;;
@@ -285,9 +294,6 @@ funMaasEnsureReady () {
         # fsck, or capture.  Override and continue, loudly.
         echo "WARNING: $host failed MAAS hardware testing; overriding and continuing (a truly bad disk will still fail the deploy)"
         maas $maasprofile machine override-failed-testing $systemid >/dev/null || true ;;
-      "Failed commissioning")
-        echo "ERROR: $host is in MAAS state '$status'; fix it in MAAS first"
-        exit 1 ;;
       *)
         # Transient (Commissioning, Releasing, Exiting rescue mode, ...):
         # just wait
@@ -296,8 +302,9 @@ funMaasEnsureReady () {
     echo "$(date) -- $host is in MAAS state '$status', waiting for Ready.  Sleeping 20sec"
     sleep 20
     ((++currentretries))
-    # Retry for 30min (commissioning a New machine takes a full PXE boot)
-    funRetry $currentretries 90
+    # Retry for 50min (each commissioning attempt takes a full PXE boot,
+    # and we allow a re-commission after "Failed commissioning")
+    funRetry $currentretries 150
   done
 }
 
