@@ -223,6 +223,7 @@ funMaasImage () {
     ubuntu_20.04) echo "ubuntu focal";  return 0 ;;
     ubuntu_22.04) echo "ubuntu jammy";  return 0 ;;
     ubuntu_24.04) echo "ubuntu noble";  return 0 ;;
+    ubuntu_26.04) echo "ubuntu resolute"; return 0 ;;
   esac
   names=$(maas $maasprofile boot-resources read | jq -r '.[].name' | sort -u)
   # Exact-version spellings first.  Custom uploads carry whatever bare name
