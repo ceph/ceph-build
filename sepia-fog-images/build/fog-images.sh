@@ -783,6 +783,20 @@ Host *.front.sepia.ceph.com
 EOF
     chmod 600 ~/.ssh/config
   fi
+  # Never record testnode host keys.  Testnodes are reimaged constantly and
+  # each image boot generates new keys; paramiko honours ~/.ssh/known_hosts
+  # even with StrictHostKeyChecking=no, so a stale entry (left behind by an
+  # earlier ansible/ssh session) makes teuthology's post-reimage ssh wait loop
+  # until it times out.  Match the other lab accounts: no known_hosts at all.
+  if ! grep -qsi 'UserKnownHostsFile' ~/.ssh/config ; then
+    echo "Adding 'UserKnownHostsFile /dev/null' for sepia hosts to ~/.ssh/config"
+    cat >> ~/.ssh/config <<EOF
+Host *.front.sepia.ceph.com
+    StrictHostKeyChecking no
+    UserKnownHostsFile /dev/null
+EOF
+    chmod 600 ~/.ssh/config
+  fi
 
   # Clone or update teuthology
   # (reset --hard because bootstrap dirties uv.lock in the persistent workspace)
