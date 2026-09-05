@@ -28,7 +28,7 @@ node('built-in') {
           ]
       ],
       main: [
-          distros: 'noble jammy rocky10 centos9 windows',
+          distros: 'resolute noble jammy rocky10 centos9 windows',
           extras : [
               [distros:'centos9 rocky10 noble', flavors:'debug', archs:'x86_64'],
               [distros:'centos9 rocky10', flavors:'default', archs:'arm64'],
