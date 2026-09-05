@@ -352,18 +352,27 @@ funMaasEnsureBootDisk () {
 # MAC-reserved IPs, so the deployed OS keeps the same identity a FOG image
 # would have.  Usage: funMaasEnsureNetwork <systemid> <host>
 funMaasEnsureNetwork () {
-  local systemid=$1 host=$2 bootif ifjson subnetid vlanid out
+  local systemid=$1 host=$2 bootif ifjson subnetid vlanid linkid out
   bootif=$(maas $maasprofile machine read $systemid | jq -r '.boot_interface.id // ""')
   if [ -z "$bootif" ]; then
     echo "ERROR: $host has no boot interface in MAAS"
     exit 1
   fi
   ifjson=$(maas $maasprofile interface read $systemid $bootif)
-  if echo "$ifjson" | jq -e '[(.links // [])[] | select(.mode != "link_up")] | length > 0' >/dev/null; then
-    # Already has a real address configuration
+  if echo "$ifjson" | jq -e '[(.links // [])[] | select(.mode == "dhcp")] | length > 0' >/dev/null; then
+    # Already DHCP
     return 0
   fi
   subnetid=$(echo "$ifjson" | jq -r '(.links // [])[0].subnet.id // ""')
+  # Drop any auto/static links first: MAAS would otherwise deploy the OS
+  # with a static address of its own choosing, while DNS and this job
+  # address the host by its dnsmasq MAC-reservation (build #24: trial001
+  # deployed at a MAAS-picked .192.89 while DNS said .193.1).  A fresh
+  # commission leaves an "auto" link, so this is the common case.
+  for linkid in $(echo "$ifjson" | jq -r '(.links // [])[] | select(.mode != "link_up") | .id'); do
+    echo "Removing ${host}'s non-DHCP boot interface link $linkid"
+    maas $maasprofile interface unlink-subnet $systemid $bootif id=$linkid >/dev/null
+  done
   if [ -z "$subnetid" ]; then
     # No subnet on the link_up link either; find one on the interface's VLAN
     vlanid=$(echo "$ifjson" | jq -r '.vlan.id // ""')
