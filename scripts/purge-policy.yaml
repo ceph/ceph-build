@@ -1,0 +1,58 @@
+ceph:
+  default:
+    days: 14
+    keep_minimum: 3
+  ref:
+    reef-nvmeof:
+      keep_minimum: 2
+    squid-nvmeof:
+      keep_minimum: 2
+    squid-nvmeof-8.0:
+      keep_minimum: 2
+    wip-rbd-cgsm-base:
+      keep_minimum: 2
+    hammer:
+      days: 30
+      keep_minimum: 5
+    infernalis:
+      days: 30
+      keep_minimum: 5
+    jewel:
+      days: 14
+      keep_minimum: 10
+    kraken:
+      days: 14
+      keep_minimum: 10
+    luminous:
+      days: 14
+      keep_minimum: 10
+    mimic:
+      days: 14
+      keep_minimum: 10
+    nautilus:
+      days: 14
+      keep_minimum: 10
+    octopus:
+      days: 14
+      keep_minimum: 10
+    pacific:
+      days: 14
+      keep_minimum: 10
+    quincy:
+      days: 14
+      keep_minimum: 10
+    reef:
+      days: 14
+      keep_minimum: 10
+    squid:
+      days: 14
+      keep_minimum: 10
+    tentacle:
+      days: 14
+      keep_minimum: 10
+    umbrella:
+      days: 14
+      keep_minimum: 10
+    vampire:
+      days: 14
+      keep_minimum: 10

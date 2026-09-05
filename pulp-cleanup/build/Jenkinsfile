@@ -1,0 +1,68 @@
+import groovy.transform.Field
+
+@Field String pulpServerUrl = "https://pulp.front.sepia.ceph.com"
+
+
+pipeline {
+    agent {
+        label 'small'
+    }
+    
+    options {
+        timeout(time: 1, unit: 'HOURS')
+        timestamps()
+    }
+    
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Setup Pulp Client') {
+            steps {
+                script {
+                    withCredentials([
+                        usernamePassword(
+                            credentialsId: 'pulp-admin-auth',
+                            usernameVariable: 'PULP_USERNAME',
+                            passwordVariable: 'PULP_PASSWORD'
+                        )
+                    ]) {
+                        echo "Setting up Pulp Client..."
+                        sh """#!/bin/bash -ex
+                            export PULP_SERVER_URL="${pulpServerUrl}" && ./scripts/setup_pulp.sh
+                        """
+                    }
+                }
+            }
+        }
+
+        stage('Setup yq') {
+            steps {
+                script {
+                    echo "Setting up yq..."
+                    sh """#!/bin/bash -ex
+                        source ./scripts/setup_yq.sh
+                    """
+                }
+            }
+        }
+
+        stage('Execute Pulp Cleanup for Ceph') {
+            when {
+                expression {
+                    params.CEPH
+                }
+            }
+            steps {
+                script {
+                    def project = "ceph"
+                    echo "Starting Pulp Cleanup for project: ${project}"
+                    sh "./pulp-cleanup/build/cleanup.sh ${project}"
+                }
+            }
+        }
+    }
+}
