@@ -20,7 +20,7 @@ export UBUNTU_SSH_USER="ubuntu"
 #
 mkdir -p $LIBVIRT_DIR
 echo "Downloading VM image from $UBUNTU_VM_IMAGE_URL"
-curl -s -L $UBUNTU_VM_IMAGE_URL -o ${LIBVIRT_DIR}/ceph-ubuntu-vstart.qcow2
+curl -fsSL --retry 5 --retry-delay 10 --retry-all-errors $UBUNTU_VM_IMAGE_URL -o ${LIBVIRT_DIR}/ceph-ubuntu-vstart.qcow2
 qemu-img resize ${LIBVIRT_DIR}/ceph-ubuntu-vstart.qcow2 128G
 
 cat > ${LIBVIRT_DIR}/metadata.yaml << EOF

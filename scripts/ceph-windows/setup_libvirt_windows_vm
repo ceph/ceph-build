@@ -15,7 +15,7 @@ export WINDOWS_SSH_USER="administrator"
 #
 mkdir -p $LIBVIRT_DIR
 echo "Downloading VM image from $WINDOWS_VM_IMAGE_URL"
-curl -s -L $WINDOWS_VM_IMAGE_URL -o ${LIBVIRT_DIR}/ceph-windows-client.qcow2
+curl -fsSL --retry 5 --retry-delay 10 --retry-all-errors $WINDOWS_VM_IMAGE_URL -o ${LIBVIRT_DIR}/ceph-windows-client.qcow2
 
 sudo virt-install \
     --name $WINDOWS_VM_NAME \
