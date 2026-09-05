@@ -323,8 +323,17 @@ funMaasEnsureBootDisk () {
   want=$(echo "$bds" | jq -r '[.[] | select(.type == "physical") | select((.tags // []) | index("rotary"))] | sort_by(.size, .name) | .[0].id // ""')
   wantname=$(echo "$bds" | jq -r '[.[] | select(.type == "physical") | select((.tags // []) | index("rotary"))] | sort_by(.size, .name) | .[0].name // ""')
   if [ -z "$want" ]; then
-    echo "$host has no rotary disk; leaving MAAS's default boot disk"
-    return 0
+    # No rotary disk (e.g. trial: two big payload NVMes + one small boot
+    # NVMe): use the smallest physical disk so the test payload stays
+    # clean.  MAAS's default put the OS on a 1920GB payload NVMe and the
+    # disk-matching ansible then found only one free ~1700GB disk (#29).
+    want=$(echo "$bds" | jq -r '[.[] | select(.type == "physical")] | sort_by(.size, .name) | .[0].id // ""')
+    wantname=$(echo "$bds" | jq -r '[.[] | select(.type == "physical")] | sort_by(.size, .name) | .[0].name // ""')
+    echo "$host has no rotary disk; using its smallest disk (${wantname}) for the OS"
+  fi
+  if [ -z "$want" ]; then
+    echo "ERROR: $host has no physical disks in MAAS"
+    exit 1
   fi
   current=$(maas $maasprofile machine read $systemid | jq -r '.boot_disk.name // ""')
   if [ "$current" == "$wantname" ]; then
