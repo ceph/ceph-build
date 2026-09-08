@@ -32,6 +32,33 @@ install_python_packages $TEMPVENV "pkgs[@]" latest
 JENKINS_FQDN=$(echo $JENKINS_URL | awk -F/ '{print $3}')
 JJB_CONFIG="$HOME/.jenkins_jobs.$JENKINS_FQDN.ini"
 
+# JJB only reconfigures jobs whose generated XML md5 differs from its local
+# cache.  Builders are ephemeral (reimaged regularly), so that cache is almost
+# always cold and every run reconfigured every job on the controller at once.
+# That config storm (ghprb webhook re-registration, job reloads) has driven
+# the controller into GC death spirals, making Jenkins unresponsive whenever
+# this job runs.  Persist the cache as a build artifact so each run only
+# touches jobs whose definitions actually changed.
+CACHE_DIR="$HOME/.cache/jenkins_jobs"
+CACHE_TAR="jenkins_jobs_cache.tar.gz"
+mkdir -p "$CACHE_DIR"
+if [ "$FORCE" != true ]; then
+    # lastCompletedBuild first: a failed run may still have updated (and
+    # cached) some jobs before dying, and its snapshot is newer.
+    for build in lastCompletedBuild lastSuccessfulBuild; do
+        if curl -fsS -u "$JOB_BUILDER_USER:$JOB_BUILDER_PASS" \
+                -o "$WORKSPACE/$CACHE_TAR" \
+                "${JENKINS_URL%/}/job/$JOB_NAME/$build/artifact/$CACHE_TAR" &&
+           tar -xzf "$WORKSPACE/$CACHE_TAR" -C "$CACHE_DIR"; then
+            echo "restored JJB cache from $build"
+            break
+        fi
+    done
+fi
+# Snapshot the cache even if a later step fails so the next run can pick up
+# from whatever this one managed to update.
+trap 'tar -czf "$WORKSPACE/$CACHE_TAR" -C "$CACHE_DIR" .' EXIT
+
 # slap the programatically computed JJB config using env vars from Jenkins
 cat > $JJB_CONFIG << EOF
 [jenkins]

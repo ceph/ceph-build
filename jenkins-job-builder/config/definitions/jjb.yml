@@ -4,7 +4,9 @@
     project-type: freestyle
     defaults: global
     display-name: 'Jenkins Job Builder'
-    concurrent: true
+    # Two overlapping runs would double the config-update load on the
+    # controller and race on the persisted JJB cache artifact; queue instead.
+    concurrent: false
     quiet-period: 5
     block-downstream: false
     block-upstream: false
@@ -50,6 +52,12 @@ If this is checked, JJB will wipe out its cache and force each job to align with
             - ../../build/build
 
     publishers:
+      # Persist JJB's md5 cache between runs; builders are ephemeral, and
+      # without this every run starts cold and reconfigures every job on the
+      # controller at once (which has made Jenkins unresponsive).
+      - archive:
+          artifacts: 'jenkins_jobs_cache.tar.gz'
+          allow-empty: true
       - postbuildscript:
           builders:
             - role: SLAVE
