@@ -554,9 +554,10 @@ else
 fi
 
 # Hand off repo metadata to the shaman notify step, which runs as a
-# separate process. PACKAGE_MANAGER_VERSION is included in the repo
-# record's extra metadata; the repository's API URL becomes the record's
-# chacra_url. See notify_shaman_pulp_repo.sh.
+# separate process. Both values end up in the repo record's extra
+# metadata; the repository's API href must NOT become the record's
+# chacra_url (shaman's dedup key) because it is branch-scoped and reused
+# across sha1s. See notify_shaman_pulp_repo.sh.
 # rpm repositories are named after the rpm arch (aarch64), not the Jenkins
 # matrix arch (arm64); see the SRPMS/noarch/aarch64/x86_64 loop above.
 _repo_arch="${ARCH}"
