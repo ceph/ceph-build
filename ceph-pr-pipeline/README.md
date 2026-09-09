@@ -53,7 +53,9 @@ webhook (pull_request / issue_comment)
 - Comment phrases (org members always, others only while labeled):
   `jenkins retest ...` re-runs everything; `jenkins test <check>` runs one of
   `make check`, `make check arm64`, `api`, `windows`, `signed`, `submodules`.
-  Bare `jenkins test` runs nothing.
+  Bare `jenkins test` runs nothing.  `jenkins test make check ppc64le` is
+  handled by the standalone `ceph-pull-requests-ppc64le` freestyle job (fed
+  by the same webhook), not by this pipeline.
 
 ## Rollout
 

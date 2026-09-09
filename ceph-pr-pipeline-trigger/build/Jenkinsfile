@@ -64,9 +64,10 @@ def phraseToChecks(String body) {
   def hits = []
   if (body =~ /(?i)jenkins\s+test\s+signed/)      { hits << "signed" }
   if (body =~ /(?i)jenkins\s+test\s+submodules/)  { hits << "submodules" }
-  // negative lookahead so "make check arm64" doesn't also queue the
-  // x86_64 leg; both can still be named in one comment
-  if (body =~ /(?i)jenkins\s+test\s+make\s+check(?!\s+arm64)/) { hits << "make-check" }
+  // negative lookahead so "make check arm64" (and "make check ppc64le",
+  // which triggers the standalone ceph-pull-requests-ppc64le job) doesn't
+  // also queue the x86_64 leg; arm64 can still be named in the same comment
+  if (body =~ /(?i)jenkins\s+test\s+make\s+check(?!\s+(arm64|ppc64le))/) { hits << "make-check" }
   if (body =~ /(?i)jenkins\s+test\s+make\s+check\s+arm64/)     { hits << "make-check-arm64" }
   if (body =~ /(?i)jenkins\s+test\s+api/)         { hits << "api" }
   if (body =~ /(?i)jenkins\s+test\s+windows/)     { hits << "windows" }

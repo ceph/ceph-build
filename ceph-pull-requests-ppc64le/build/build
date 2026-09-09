@@ -1,0 +1,75 @@
+#!/bin/bash -ex
+
+# Webhook (issue_comment) triggers arrive straight from the generic webhook
+# trigger with no authorization layer in front of this job, so gate here the
+# same way ceph-pr-pipeline-trigger does: the commenter needs write/admin on
+# ceph/ceph, or the PR must carry the ci-approved label.  comment_author is
+# only set for webhook triggers; manual builds skip the check.
+if [ -n "${comment_author}" ]; then
+    # The permission endpoint needs a token with push access (the status
+    # token), unlike the read-only token used for the label lookup.
+    permission=$(curl -s -u ${GITHUB_STATUS_USER}:${GITHUB_STATUS_TOKEN} \
+        -H "Accept: application/vnd.github+json" \
+        "https://api.github.com/repos/ceph/ceph/collaborators/${comment_author}/permission" | jq -r '.permission')
+    if [ "$permission" != "admin" ] && [ "$permission" != "write" ]; then
+        labels=$(curl -s -u ${GITHUB_USER}:${GITHUB_PASS} \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/ceph/ceph/issues/${ghprbPullId}/labels" | jq -r '.[].name')
+        if ! grep -qxF "ci-approved" <<< "$labels"; then
+            echo "${comment_author} lacks write access and PR ${ghprbPullId} has no ci-approved label; not building"
+            exit 0
+        fi
+    fi
+fi
+
+# Report the result back to GitHub as a commit status.  Unlike the GHPRB-era
+# jobs there is no plugin posting statuses for webhook triggers, so post them
+# ourselves whatever the build cause.  Installed as an EXIT trap so it fires
+# no matter where the job exits, including the docs-only early exit below
+# (which reports success).
+export FORCE_GITHUB_PR_STATUS=true
+trap 'report_github_pr_status $? "make check (ppc64le)" "make check"' EXIT
+
+update_github_pr_status "pending" "running make check" "make check (ppc64le)"
+
+docs_pr_only
+container_pr_only
+gha_pr_only
+qa_pr_only
+if [[ "$DOCS_ONLY" = true || "$CONTAINER_ONLY" = true || "$GHA_ONLY" == true || "$QA_ONLY" == true ]]; then
+    echo "Only the doc/, container/, qa/ or .github/ dir changed.  No need to run make check."
+    exit 0
+fi
+
+# Same build configuration as the weekly ceph-make-check-periodic-ppc64le
+# job: no dashboard (so no npm cache to populate), and a few things that
+# don't build on ppc64le disabled.
+NPROC=$(nproc)
+cat >.env <<EOF
+NPROC=${NPROC}
+MAX_PARALLEL_JOBS=${NPROC}
+WITH_RBD_RWL=true
+WITHOUT_DASHBOARD=true
+WITHOUT_BREAKPAD=true
+WITHOUT_WERROR=true
+DISABLE_FIO=true
+JENKINS_HOME=${JENKINS_HOME}
+REWRITE_COVERAGE_ROOTDIR=${PWD}/src/pybind/mgr/dashboard/frontend
+EOF
+
+bwc_login
+bwc 1 -e configure
+bwc 4 -e tests
+sleep 5
+ps -ef | grep -v jnlp | grep ceph || true
+
+# `bwc -e tests` exits 0 even when individual tests fail so that the CTest
+# results are always published; the xUnit publisher is what fails the build (its
+# threshold fails on any failed test).  A non-test failure (e.g. compile) would
+# have aborted above under `set -e`.  Mirror xUnit here so the EXIT trap reports
+# the matching GitHub status.
+test_xml="$(find build/Testing -name Test.xml 2>/dev/null)"
+if [ -n "$test_xml" ] && grep -q 'Status="failed"' $test_xml; then
+    echo "CTest reported one or more failed tests; marking the build as failed."
+    exit 1
+fi

@@ -1,0 +1,120 @@
+- job:
+    name: ceph-pull-requests-ppc64le
+    description: |
+      make check for a ceph.git PR on ppc64le (https://tracker.ceph.com/issues/80185).
+      Triggered by commenting "jenkins test make check ppc64le" on the PR
+      (via the generic webhook trigger; the ceph/ceph webhook that feeds
+      ceph-pr-pipeline-trigger feeds this job too), or manually by setting
+      ghprbPullId.  Same build configuration as the weekly
+      ceph-make-check-periodic-ppc64le job.
+    block-downstream: false
+    block-upstream: false
+    builders:
+    - shell:
+        !include-raw-verbatim:
+          - ../../../scripts/build_utils.sh
+          - ../../../scripts/bwc.sh
+          - ../../../scripts/setup_container_runtime.sh
+          - ../../build/build
+    concurrent: true
+    disabled: false
+    node: 'ppc64le && (installed-os-noble || centos9)'
+    parameters:
+    - string:
+        name: ghprbPullId
+        description: "the GitHub pull id, like '72' in 'ceph/pull/72'"
+    - string:
+        name: DISTRO_BASE
+        default: centos9
+        description: "the distribution used to create the container that builds and hosts the tests (see build-with-container.py for supported values)"
+    project-type: freestyle
+    properties:
+    - build-discarder:
+        artifact-days-to-keep: -1
+        artifact-num-to-keep: -1
+        days-to-keep: 15
+        num-to-keep: 300
+    - github:
+        url: https://github.com/ceph/ceph/
+    quiet-period: '5'
+    retry-count: '3'
+    scm:
+    - git:
+        url: https://github.com/ceph/ceph.git
+        name: origin
+        branches:
+          - origin/pr/${{ghprbPullId}}/merge
+        refspec: +refs/pull/${{ghprbPullId}}/*:refs/remotes/origin/pr/${{ghprbPullId}}/*
+        skip-tag: true
+        shallow-clone: true
+        honor-refspec: true
+        timeout: 20
+        wipe-workspace: true
+    # The same ceph/ceph webhook that feeds ceph-pr-pipeline-trigger (matched
+    # by the shared pr-check-trigger-token credential) triggers this job; the
+    # filter only fires it for new PR comments containing the ppc64le phrase.
+    # Authorization (commenter permission / ci-approved label) is checked in
+    # the build script.  ghprbPullId is populated from the payload's issue
+    # number, which the SCM branch spec above then picks up.
+    triggers:
+      - generic-webhook-trigger:
+          token: ceph-pull-requests-ppc64le
+          token-credential-id: pr-check-trigger-token
+          print-contrib-var: true
+          post-content-params:
+            - type: JSONPath
+              key: action
+              value: $.action
+            - type: JSONPath
+              key: ghprbPullId
+              value: $.issue.number
+            - type: JSONPath
+              key: issue_is_pr
+              value: $.issue.pull_request.url
+            - type: JSONPath
+              key: comment_body
+              value: $.comment.body
+            - type: JSONPath
+              key: comment_author
+              value: $.comment.user.login
+          regex-filter-text: $action:$issue_is_pr:$comment_body
+          # A created issue_comment on a PR (issue_is_pr non-empty) containing
+          # the trigger phrase.
+          regex-filter-expression: "(?is)^created:https[^:]*:.*jenkins\\s+test\\s+make\\s+check\\s+ppc64le\\b.*$"
+          cause: "GitHub comment by $comment_author on PR $ghprbPullId"
+    publishers:
+      - postbuildscript:
+          builders:
+            - role: SLAVE
+              build-on:
+                - ABORTED
+              build-steps:
+                - shell:
+                    !include-raw-verbatim:
+                      - ../../build/kill-tests
+      - xunit:
+          thresholds:
+            - failed:
+                unstable: 0
+                unstablenew: 0
+                failure: 0
+                failurenew: 0
+          types:
+            - ctest:
+                pattern: "build/Testing/**/Test.xml"
+                skip-if-no-test-files: true
+    wrappers:
+      - ansicolor
+      - credentials-binding:
+          - username-password-separated:
+              credential-id: github-readonly-token
+              username: GITHUB_USER
+              password: GITHUB_PASS
+          - username-password-separated:
+              credential-id: github-status-check-token
+              username: GITHUB_STATUS_USER
+              password: GITHUB_STATUS_TOKEN
+          - username-password-separated:
+              credential-id: dgalloway-docker-hub
+              username: DOCKER_HUB_USERNAME
+              password: DOCKER_HUB_PASSWORD

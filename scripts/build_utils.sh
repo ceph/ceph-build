@@ -1275,7 +1275,10 @@ update_github_pr_status() {
   # already have their status managed by the GitHub Pull Request Builder plugin,
   # so posting here would just be a duplicate.  Check ROOT_BUILD_CAUSE too so a
   # job kicked off down an upstream chain from a manual trigger is still covered.
-  if [ "$BUILD_CAUSE" != "MANUALTRIGGER" ] && [ "$ROOT_BUILD_CAUSE" != "MANUALTRIGGER" ]; then
+  # Jobs with no status-posting plugin at all (e.g. generic-webhook-trigger
+  # jobs like ceph-pull-requests-ppc64le) set FORCE_GITHUB_PR_STATUS=true to
+  # post for every build cause.
+  if [ "$FORCE_GITHUB_PR_STATUS" != true ] && [ "$BUILD_CAUSE" != "MANUALTRIGGER" ] && [ "$ROOT_BUILD_CAUSE" != "MANUALTRIGGER" ]; then
     return 0
   fi
 
