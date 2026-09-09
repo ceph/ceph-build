@@ -1706,10 +1706,13 @@ pr_only_for() {
   # receive by creating another local array ("$@")
   local -n local_patterns=$1
   local files
-  # Manually-triggered jobs don't get the ghprb* variables set by the GitHub
-  # Pull Request Builder plugin.  Assume ceph/ceph and look up the PR's target
-  # branch from the GitHub API.
-  if [ "$BUILD_CAUSE" = "MANUALTRIGGER" ]; then
+  # Manually-triggered and generic-webhook-triggered jobs don't get the
+  # ghprb* variables set by the GitHub Pull Request Builder plugin.  Assume
+  # ceph/ceph and look up the PR's target branch from the GitHub API.  Key on
+  # the variable being unset rather than the build cause: with an empty
+  # ghprbGhRepository the files lookup below hits repos//pulls/... (404), the
+  # file list comes back empty, and every *_pr_only check is vacuously true.
+  if [ -z "$ghprbGhRepository" ]; then
     ghprbGhRepository="ceph/ceph"
     ghprbTargetBranch="$(curl -s -u ${GITHUB_USER}:${GITHUB_PASS} https://api.github.com/repos/${ghprbGhRepository}/pulls/${ghprbPullId} | jq -r '.base.ref')"
   fi
