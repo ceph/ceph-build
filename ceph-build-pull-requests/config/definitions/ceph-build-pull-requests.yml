@@ -47,5 +47,5 @@
     builders:
       - shell:
           !include-raw-verbatim:
-            - ../../../scripts/build_utils.sh
+            - ../../../scripts/setup_python_deps.sh
             - ../../build/build
