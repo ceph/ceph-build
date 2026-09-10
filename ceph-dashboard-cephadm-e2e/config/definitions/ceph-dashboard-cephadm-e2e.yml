@@ -63,9 +63,13 @@
           branches:
             - origin/pr/${{ghprbPullId}}/merge
           refspec: +refs/pull/${{ghprbPullId}}/*:refs/remotes/origin/pr/${{ghprbPullId}}/*
+          changelog-against:
+            remote: origin
+            branch: main
           timeout: 20
           skip-tag: true
           shallow-clone: true
+          depth: 50
           wipe-workspace: true
 
       - git:
