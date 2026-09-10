@@ -66,7 +66,7 @@
       - string:
           name: CEPH_REFERENCE_REPO
           default: ""
-          description: "Path to a local ceph.git reference/mirror repo on the builders to speed up cloning (ignored where it doesn't exist)"
+          description: "Location of the per-builder ceph.git mirror that speeds up cloning (auto-created and refreshed each run; default $HOME/ceph-mirror.git)"
 
       - string:
           name: CEPH_BUILD_BRANCH

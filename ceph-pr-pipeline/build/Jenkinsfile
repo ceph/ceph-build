@@ -266,24 +266,46 @@ def checkoutCephBuild() {
   """
 }
 
-// One shallow checkout of the PR merge ref into ./ceph.  Point
-// CEPH_REFERENCE_REPO at a local mirror to cut the 4-5 minute clone down to
-// seconds (the git plugin silently skips a reference path that doesn't exist).
+// One checkout of the PR merged onto its target branch, with the merge done
+// HERE rather than by GitHub: refs/pull/N/merge (and its merge_commit_sha)
+// is only refreshed when something pokes the PR's mergeability, so checking
+// it out can silently test a stale base.  prepare pinned HEAD_SHA and
+// BASE_SHA once, every leg merges those same two shas, and the S3 cache is
+// keyed by exactly those inputs -- nothing depends on GitHub's test merge.
+//
+// The full history needed for the merge base comes cheaply from a
+// per-builder mirror (heads only: all of refs/pull/* would be immense),
+// auto-created on first use and refreshed per run.  The mirror is purely an
+// optimization -- the clone below fetches whatever it lacks straight from
+// GitHub, so a missing or stale mirror costs minutes, never correctness.
+// CEPH_REFERENCE_REPO overrides its location.
 def checkoutCephPr() {
-  sh "rm -rf ceph"
-  checkout scmGit(
-    branches: [[name: "origin/pr/${params.ghprbPullId}/merge"]],
-    browser: [$class: 'GithubWeb', repoUrl: 'https://github.com/ceph/ceph'],
-    userRemoteConfigs: [[
-      url: ceph_repo,
-      refspec: "+refs/pull/${params.ghprbPullId}/*:refs/remotes/origin/pr/${params.ghprbPullId}/*",
-    ]],
-    extensions: [
-      [$class: 'RelativeTargetDirectory', relativeTargetDir: 'ceph'],
-      [$class: 'CloneOption', shallow: true, noTags: true, honorRefspec: true,
-       timeout: 20, reference: params.CEPH_REFERENCE_REPO ?: ''],
-    ],
-  )
+  sh """#!/bin/bash -ex
+    MIRROR="\${CEPH_REFERENCE_REPO:-\$HOME/ceph-mirror.git}"
+    if [ ! -d "\$MIRROR" ]; then
+      git init --bare "\$MIRROR"
+      git -C "\$MIRROR" remote add origin ${ceph_repo}
+      git -C "\$MIRROR" config remote.origin.fetch '+refs/heads/*:refs/heads/*'
+      # reference clones borrow objects from here; never let gc drop any
+      git -C "\$MIRROR" config gc.auto 0
+    fi
+    flock -w 900 "\$MIRROR" git -C "\$MIRROR" fetch --prune --no-tags origin || true
+
+    # sudo: an aborted windows run can skip its cleanup and leave uid-1000
+    # (subuid-owned) files from its vstart container in the tree, which
+    # plain rm cannot delete (run 1128: leftover build/boost on braggi21).
+    sudo rm -rf ceph
+    git clone --no-checkout --no-tags --reference "\$MIRROR" ${ceph_repo} ceph
+    cd ceph
+    git fetch --no-tags origin "+refs/pull/${params.ghprbPullId}/head:refs/remotes/origin/pr-head"
+    if [ "\$(git rev-parse refs/remotes/origin/pr-head)" != "${env.HEAD_SHA}" ]; then
+      echo "PR ${params.ghprbPullId} head is now \$(git rev-parse refs/remotes/origin/pr-head), this build is for ${env.HEAD_SHA}; superseded"
+      exit 1
+    fi
+    git checkout -q "${env.BASE_SHA}"
+    git -c user.name='Ceph PR pipeline' -c user.email='jenkins@ceph.com' \\
+        merge --no-edit --no-stat "${env.HEAD_SHA}"
+  """
 }
 
 def doPrepare() {
@@ -314,11 +336,25 @@ def doPrepare() {
   env.HEAD_SHA = pr_data.head.sha
   env.ghprbTargetBranch = pr_data.base.ref
   env.ghprbActualCommit = env.HEAD_SHA
+  // Pin the target branch head once; checkoutCephPr() merges the PR head
+  // onto exactly this sha on every leg, so all legs build one identical
+  // tree and the S3 cache is keyed by precisely its two inputs.  Keying by
+  // the head sha alone let a PR that sat still while its base moved keep
+  // restoring a tree built against an old base, which could no longer even
+  // re-run cmake in today's build container (runs 1137/1152: FindBoost
+  // "0.0.0" because /opt/ceph boost changed under a stale cached tree).
+  def base_ref = readJSON(text: sh(
+    label: "resolve ${env.ghprbTargetBranch} head",
+    script: gh_curl + "gh_curl -u \$GITHUB_RO_CREDS_USR:\$GITHUB_RO_CREDS_PSW " +
+            "-H 'Accept: application/vnd.github+json' " +
+            "'${github_api}/repos/${github_repo}/git/ref/heads/${env.ghprbTargetBranch}'",
+    returnStdout: true,
+  ))
+  env.BASE_SHA = base_ref.object.sha
 
-  // A conflicted PR has no refs/pull/N/merge on GitHub, so every leg's
-  // checkout would die with "Couldn't find any revision to build" and five
-  // cryptic red statuses.  Say it plainly on the applicable contexts and
-  // stop here instead.
+  // A conflicted PR can't be merged, so every leg's checkout would die in
+  // its local merge with conflict noise and five cryptic red statuses.
+  // Say it plainly on the applicable contexts and stop here instead.
   if (pr_data.mergeable == false) {
     params.CHECKS.tokenize(" ").each { key ->
       def branch_ok = true
@@ -338,12 +374,12 @@ def doPrepare() {
       (${pr_data.base.ref}) @ ${env.HEAD_SHA[0..7]}<br />
       not built: merge conflicts
     """.stripIndent()
-    error("PR ${params.ghprbPullId} has merge conflicts (mergeable=false); refs/pull/N/merge does not exist")
+    error("PR ${params.ghprbPullId} has merge conflicts (mergeable=false); nothing to build")
   }
 
   currentBuild.description = """\
     <a href="https://github.com/${github_repo}/pull/${params.ghprbPullId}">PR ${params.ghprbPullId}</a>
-    (${pr_data.base.ref}) @ ${env.HEAD_SHA[0..7]}<br />
+    (${pr_data.base.ref}) @ ${env.HEAD_SHA[0..7]} onto ${env.BASE_SHA[0..7]}<br />
     CHECKS=${params.CHECKS}
   """.stripIndent()
 
@@ -442,7 +478,7 @@ def bwcPreamble(String arch) {
     source ./ceph-build/ceph-pr-pipeline/build/s3_cache.sh
     export CACHE_ENDPOINTS="${cache_endpoints}"
     export CACHE_BUCKET="${cache_bucket}"
-    export CACHE_KEY="pr-builds/${params.ghprbPullId}/${env.HEAD_SHA}.${arch}.tar.zst"
+    export CACHE_KEY="pr-builds/${params.ghprbPullId}/${env.HEAD_SHA}-${env.BASE_SHA}.${arch}.tar.zst"
     export AWS_ACCESS_KEY_ID="\$CACHE_BUCKET_CREDS_USR"
     export AWS_SECRET_ACCESS_KEY="\$CACHE_BUCKET_CREDS_PSW"
     export DOCKER_HUB_USERNAME="\$DOCKER_HUB_CREDS_USR"
