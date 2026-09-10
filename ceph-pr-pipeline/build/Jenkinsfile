@@ -80,22 +80,31 @@ def postStatus(String key, String state, String description) {
   if (!env.HEAD_SHA) {
     return
   }
-  if (state != "pending") {
-    leg_finalized[key] = true
-  }
   writeFile(file: "status.json", text: groovy.json.JsonOutput.toJson([
     state: state,
     context: "${params.STATUS_PREFIX}${contexts[key]}",
     description: description,
     target_url: env.BUILD_URL,
   ]))
-  sh(
+  // Best-effort: a status POST must never change a leg's outcome (2026-09-09
+  // a GitHub API brownout turned dozens of green legs red).  Retry through
+  // transient errors; if the POST still fails, log it and move on, leaving
+  // the context unfinalized so the post{} sweep gets another shot later.
+  def rc = sh(
     label: "GitHub status: ${contexts[key]} -> ${state}",
-    script: "curl -sf -o /dev/null -X POST " +
+    returnStatus: true,
+    script: "curl -sfS -o /dev/null --retry 5 --retry-delay 10 --retry-all-errors -X POST " +
             "-u \$GITHUB_STATUS_CREDS_USR:\$GITHUB_STATUS_CREDS_PSW " +
             "-H 'Accept: application/vnd.github+json' -d @status.json " +
             "'${github_api}/repos/${github_repo}/statuses/${env.HEAD_SHA}'"
   )
+  if (rc != 0) {
+    echo "WARNING: could not post GitHub status ${contexts[key]} -> ${state} (curl exit ${rc})"
+    return
+  }
+  if (state != "pending") {
+    leg_finalized[key] = true
+  }
 }
 
 // Run a leg with pending/success/failure statuses around it.
@@ -757,6 +766,11 @@ pipeline {
     }
     failure {
       script { finalizePendingStatuses("error", "did not run: the pipeline failed earlier") }
+    }
+    // A SUCCESS build means every selected leg ran and passed; anything still
+    // unfinalized just lost its success POST to a transient GitHub error.
+    success {
+      script { finalizePendingStatuses("success", "succeeded") }
     }
   }
 }
