@@ -685,6 +685,34 @@ def doWindowsTests() {
   }
 }
 
+// The controller's compress-artifacts plugin rewrites the build's whole
+// archive on every archiveArtifacts call instead of adding to it
+// (ZipStorage.archive writes a fresh zip and renames it into place;
+// "TODO support updating entries" upstream), so when two parallel legs
+// both archive, whichever finishes last silently wipes the other's
+// artifacts.  Legs stash instead, and this lone archiveArtifacts call
+// ships everything at once.
+def archiveLegArtifacts() {
+  if (!run_windows && !run_api) {
+    return
+  }
+  node("small") {
+    dir("leg-artifacts") {
+      deleteDir()
+      for (name in ["windows-artifacts", "api-logs"]) {
+        try {
+          unstash(name)
+        } catch (hudson.AbortException e) {
+          // that leg never ran, or died before stashing
+        }
+      }
+      archiveArtifacts(artifacts: "artifacts/**, ceph/build/out/*.log",
+                       allowEmptyArchive: true)
+      deleteDir()
+    }
+  }
+}
+
 pipeline {
   agent none
   options {
@@ -771,7 +799,9 @@ pipeline {
                 mkdir -p artifacts
                 cp ceph/build/*.log vstart-container.log artifacts/ 2>/dev/null || true
               """
-              archiveArtifacts(artifacts: "artifacts/**", allowEmptyArchive: true)
+              // Archived by archiveLegArtifacts in the pipeline post{}.
+              stash(name: "windows-artifacts", includes: "artifacts/**",
+                    allowEmpty: true)
               sh """#!/bin/bash
                 source ./ceph-build/scripts/build_utils.sh
                 source ./ceph-build/scripts/ceph-windows/cleanup
@@ -846,8 +876,11 @@ pipeline {
                         try {
                           doApiTests()
                         } finally {
-                          archiveArtifacts(artifacts: "ceph/build/out/*.log",
-                                           allowEmptyArchive: true)
+                          // Archived by archiveLegArtifacts in the
+                          // pipeline post{}.
+                          stash(name: "api-logs",
+                                includes: "ceph/build/out/*.log",
+                                allowEmpty: true)
                           sh """#!/bin/bash
                             podman rm -f ceph_build 2>/dev/null || true
                             podman unshare chown -R 0:0 "\$WORKSPACE"/ceph 2>/dev/null || true
@@ -879,6 +912,11 @@ pipeline {
     // error.
     success {
       script { finalizePendingStatuses("success", "succeeded") }
+    }
+    // cleanup runs after the conditions above, so the status sweeps
+    // aren't stuck behind the wait for the archive node.
+    cleanup {
+      script { archiveLegArtifacts() }
     }
   }
 }
