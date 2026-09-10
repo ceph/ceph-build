@@ -22,9 +22,50 @@ set -o pipefail
 GH_REPO=${GH_REPO:-"ceph/ceph"}
 GH_API="https://api.github.com/repos/${GH_REPO}"
 
+# A bare `curl -sf` fails the whole check on a single 403 (GitHub's secondary
+# rate limit) or 5xx, with exit 22 and no clue which status it was.  Retry the
+# responses that can clear on their own, and say what we got otherwise.  Same
+# helper as gh_curl in the pipeline's Jenkinsfile.
 gh_api() {
-    curl -sf -u "${GITHUB_USER}:${GITHUB_PASS}" \
-        -H "Accept: application/vnd.github+json" "$@"
+    local out code attempt retry
+    local url="${@: -1}"
+    out=$(mktemp)
+    for attempt in 1 2 3 4 5; do
+        code=$(curl -s -o "$out" -w '%{http_code}' --max-time 60 \
+            -u "${GITHUB_USER}:${GITHUB_PASS}" \
+            -H "Accept: application/vnd.github+json" "$@") || code=""
+        case "$code" in
+            2??)
+                cat "$out"
+                rm -f "$out"
+                return 0
+                ;;
+            403)
+                # also what a revoked token gets; only the rate limit clears on its own
+                if grep -qi 'rate limit' "$out"; then retry=yes; else retry=no; fi
+                ;;
+            429|5??|"")
+                retry=yes
+                ;;
+            *)
+                retry=no
+                ;;
+        esac
+        if [ "$retry" = no ]; then
+            echo "gh_api: HTTP $code from $url, not retrying" >&2
+            cat "$out" >&2
+            rm -f "$out"
+            return 22
+        fi
+        echo "gh_api: HTTP ${code:-connection failure} from $url, attempt ${attempt}/5" >&2
+        if [ "$attempt" -lt 5 ]; then
+            sleep $((attempt * 5))
+        fi
+    done
+    echo "gh_api: giving up on $url after 5 attempts (last HTTP ${code:-connection failure})" >&2
+    cat "$out" >&2
+    rm -f "$out"
+    return 22
 }
 
 # Paginate a list endpoint ($1, e.g. "pulls/123/files") and emit one combined

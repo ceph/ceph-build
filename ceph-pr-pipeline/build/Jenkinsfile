@@ -59,6 +59,8 @@ import groovy.transform.Field
 @Field boolean run_api = false
 @Field boolean run_windows = false
 @Field boolean build_cached = false
+// true once prepare has resolved the PR and decided which legs run
+@Field boolean prepared = false
 // context key -> true once a terminal (non-pending) status was posted, so the
 // abort/failure sweep in post{} only finalizes contexts still left pending.
 @Field Map leg_finalized = [:]
@@ -74,14 +76,66 @@ def logNode() {
   echo "Running on ${shortname} (${env.JENKINS_URL}computer/${env.NODE_NAME}/)"
 }
 
+// Every GitHub API call in this pipeline goes through gh_curl.  A bare
+// `curl -sf` turns one bad response into exit 22 with no clue which status
+// it was: builds 1126 and 1127 both died in the same second on the PR fetch
+// in prepare, and because that happens before HEAD_SHA is known, no leg ever
+// posts a terminal status -- the six contexts the trigger had already set to
+// "queued" stay pending on the PR forever, blocking it silently.
+//
+// Plain `curl --retry` is not enough: it ignores 403 (which is what GitHub
+// uses for secondary rate limits), and --retry-all-errors doesn't exist on
+// the older builders' curl.  Retries are limited to the statuses that can
+// actually clear on their own; anything else still fails fast, now with the
+// status code and the response body in the log.
+@Field String gh_curl = '''#!/bin/bash
+set -e
+gh_curl() {
+  local out code attempt retry
+  local url="${@: -1}"
+  out=$(mktemp)
+  for attempt in 1 2 3 4 5; do
+    code=$(curl -s -o "$out" -w '%{http_code}' --max-time 60 "$@") || code=""
+    case "$code" in
+      2??)
+        cat "$out"
+        rm -f "$out"
+        return 0
+        ;;
+      403)
+        # also what a revoked token gets; only the rate limit clears on its own
+        if grep -qi 'rate limit' "$out"; then retry=yes; else retry=no; fi
+        ;;
+      429|5??|"")
+        retry=yes
+        ;;
+      *)
+        retry=no
+        ;;
+    esac
+    if [ "$retry" = no ]; then
+      echo "gh_curl: HTTP $code from $url, not retrying" >&2
+      cat "$out" >&2
+      rm -f "$out"
+      return 22
+    fi
+    echo "gh_curl: HTTP ${code:-connection failure} from $url, attempt ${attempt}/5" >&2
+    if [ "$attempt" -lt 5 ]; then
+      sleep $((attempt * 5))
+    fi
+  done
+  echo "gh_curl: giving up on $url after 5 attempts (last HTTP ${code:-connection failure})" >&2
+  cat "$out" >&2
+  rm -f "$out"
+  return 22
+}
+'''
+
 def postStatus(String key, String state, String description) {
   // Nothing to post against until prepare has resolved the head sha (e.g. a
   // build aborted while still in prepare).
   if (!env.HEAD_SHA) {
     return
-  }
-  if (state != "pending") {
-    leg_finalized[key] = true
   }
   writeFile(file: "status.json", text: groovy.json.JsonOutput.toJson([
     state: state,
@@ -89,13 +143,27 @@ def postStatus(String key, String state, String description) {
     description: description,
     target_url: env.BUILD_URL,
   ]))
-  sh(
+  // Best-effort: a status POST must never change a leg's outcome.  During
+  // the 2026-09-09 GitHub API brownout a throwing sh step here turned dozens
+  // of green legs red (build 985's 78-minute arm64 make check passed, then
+  // died posting "-> success").  If the POST still fails after gh_curl's
+  // retries, log it and move on; the context stays unfinalized so the
+  // post{} sweep gets another shot at it.
+  def rc = sh(
     label: "GitHub status: ${contexts[key]} -> ${state}",
-    script: "curl -sf -o /dev/null -X POST " +
+    returnStatus: true,
+    script: gh_curl + "gh_curl -X POST " +
             "-u \$GITHUB_STATUS_CREDS_USR:\$GITHUB_STATUS_CREDS_PSW " +
             "-H 'Accept: application/vnd.github+json' -d @status.json " +
-            "'${github_api}/repos/${github_repo}/statuses/${env.HEAD_SHA}'"
+            "'${github_api}/repos/${github_repo}/statuses/${env.HEAD_SHA}' > /dev/null"
   )
+  if (rc != 0) {
+    echo "WARNING: could not post GitHub status ${contexts[key]} -> ${state} (exit ${rc})"
+    return
+  }
+  if (state != "pending") {
+    leg_finalized[key] = true
+  }
 }
 
 // Run a leg with pending/success/failure statuses around it.
@@ -118,17 +186,35 @@ def withStatus(String key, String label, Closure body) {
 // from post{}, which has no agent, so it grabs one itself; best-effort by
 // nature (a hard kill skips post{} entirely).
 def finalizePendingStatuses(String state, String description) {
+  // If prepare died before resolving the PR (its GitHub fetch failed, or the
+  // head moved and it bailed as superseded), HEAD_SHA is unset and the run_*
+  // flags are all still false -- but the trigger has already set every
+  // context in CHECKS to "queued" on the sha it passed in, and without this
+  // they would stay pending on the PR forever.  Fall back to that sha and
+  // that list.  A manual run without HEAD_SHA has no trigger-posted
+  // statuses to clean up, so returning is right there.
   if (!env.HEAD_SHA) {
-    return
+    if (!params.HEAD_SHA) {
+      return
+    }
+    env.HEAD_SHA = params.HEAD_SHA
   }
-  def pending = [
-    "signed": run_signed,
-    "submodules": run_submodules,
-    "make-check": run_make_check,
-    "make-check-arm64": run_make_check_arm64,
-    "api": run_api,
-    "windows": run_windows,
-  ].findAll { key, will_run -> will_run && !leg_finalized[key] }.keySet()
+  def will_run
+  if (prepared) {
+    will_run = [
+      "signed": run_signed,
+      "submodules": run_submodules,
+      "make-check": run_make_check,
+      "make-check-arm64": run_make_check_arm64,
+      "api": run_api,
+      "windows": run_windows,
+    ]
+  } else {
+    will_run = params.CHECKS.tokenize(" ").findAll { contexts[it] }
+        .collectEntries { [(it): true] }
+  }
+  def pending = will_run
+      .findAll { key, run -> run && !leg_finalized[key] }.keySet()
   if (!pending) {
     return
   }
@@ -209,7 +295,8 @@ def doPrepare() {
   def pr_data = null
   for (int attempt = 0; attempt < 3; attempt++) {
     pr_data = readJSON(text: sh(
-      script: "curl -sf -u \$GITHUB_RO_CREDS_USR:\$GITHUB_RO_CREDS_PSW " +
+      label: "fetch PR ${params.ghprbPullId}",
+      script: gh_curl + "gh_curl -u \$GITHUB_RO_CREDS_USR:\$GITHUB_RO_CREDS_PSW " +
               "-H 'Accept: application/vnd.github+json' " +
               "'${github_api}/repos/${github_repo}/pulls/${params.ghprbPullId}'",
       returnStdout: true,
@@ -283,6 +370,7 @@ def doPrepare() {
       api_branches.any { env.ghprbTargetBranch ==~ it }
   run_windows = wantCheck("windows") && !qa_skip &&
       windows_branches.contains(env.ghprbTargetBranch)
+  prepared = true
 
   // Post pending for every leg that will run NOW, from the small node we're
   // already holding, so the PR shows all its checks within seconds of the
@@ -785,6 +873,12 @@ pipeline {
     }
     failure {
       script { finalizePendingStatuses("error", "did not run: the pipeline failed earlier") }
+    }
+    // A SUCCESS build means every selected leg ran and passed; anything
+    // still unfinalized just lost its success POST to a transient GitHub
+    // error.
+    success {
+      script { finalizePendingStatuses("success", "succeeded") }
     }
   }
 }
