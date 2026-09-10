@@ -1,0 +1,79 @@
+// ceph-windows-container-build: validation job for the containerized Ceph
+// Windows cross-build.  Runs ceph.git's win32_build.sh inside a podman
+// container on the builder host (scripts/ceph-windows/win32_build_container)
+// instead of the throwaway libvirt Ubuntu VM the windows CI has used so far,
+// and produces the same ceph.zip the windows test flow consumes.
+//
+// Testbed for moving ceph-pr-pipeline's windows leg off VMs; also usable for
+// one-off manual windows builds of a branch or PR.
+
+def checkoutCeph() {
+  if (params.ghprbPullId) {
+    sh "rm -rf ceph"
+    checkout scmGit(
+      branches: [[name: "origin/pr/${params.ghprbPullId}/merge"]],
+      browser: [$class: 'GithubWeb', repoUrl: 'https://github.com/ceph/ceph'],
+      userRemoteConfigs: [[
+        url: "https://github.com/ceph/ceph.git",
+        refspec: "+refs/pull/${params.ghprbPullId}/*:refs/remotes/origin/pr/${params.ghprbPullId}/*",
+      ]],
+      extensions: [
+        [$class: 'RelativeTargetDirectory', relativeTargetDir: 'ceph'],
+        [$class: 'CloneOption', shallow: true, noTags: true, honorRefspec: true,
+         timeout: 20],
+      ],
+    )
+  } else {
+    sh """#!/bin/bash -ex
+      rm -rf ceph
+      git clone --depth 1 --no-tags -b "${params.CEPH_BRANCH}" https://github.com/ceph/ceph.git ceph
+    """
+  }
+}
+
+pipeline {
+  agent { label params.NODE_LABEL }
+  options {
+    skipDefaultCheckout(true)
+    timeout(time: 5, unit: "HOURS")
+    timestamps()
+  }
+  environment {
+    TERM = "xterm"
+    DOCKER_HUB_CREDS = credentials("dgalloway-docker-hub")
+  }
+  stages {
+    stage("checkout") {
+      steps {
+        sh """#!/bin/bash -ex
+          rm -rf ceph-build
+          git clone --depth 1 --no-tags -b "${params.CEPH_BUILD_BRANCH}" https://github.com/ceph/ceph-build ceph-build
+        """
+        script { checkoutCeph() }
+      }
+    }
+    stage("build ceph windows") {
+      steps {
+        sh "./ceph-build/scripts/setup_container_runtime.sh"
+        sh """#!/bin/bash -ex
+          export DOCKER_HUB_USERNAME="\$DOCKER_HUB_CREDS_USR"
+          export DOCKER_HUB_PASSWORD="\$DOCKER_HUB_CREDS_PSW"
+          export NUM_WORKERS="${params.NUM_WORKERS}"
+          bash ./ceph-build/scripts/ceph-windows/win32_build_container
+        """
+      }
+    }
+  }
+  post {
+    always {
+      sh """#!/bin/bash
+        podman rm -f "ceph-win32-build-\$BUILD_ID" 2>/dev/null || true
+        rm -rf artifacts
+        mkdir -p artifacts
+        cp ceph/build/*.log artifacts/ 2>/dev/null || true
+        ls -lh ceph.zip 2>/dev/null || true
+      """
+      archiveArtifacts(artifacts: "artifacts/**", allowEmptyArchive: true)
+    }
+  }
+}

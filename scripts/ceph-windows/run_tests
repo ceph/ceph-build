@@ -8,8 +8,23 @@ if [[ ! -f $CEPH_KEYRING ]]; then echo "ERROR: The Ceph keyring file doesn't exi
 
 if [[ -z $WINDOWS_SSH_USER ]]; then echo "ERROR: The WINDOWS_SSH_USER env variable is not set"; exit 1; fi
 if [[ -z $WINDOWS_VM_IP ]]; then echo "ERROR: The WINDOWS_VM_IP env variable is not set"; exit 1; fi
-if [[ -z $UBUNTU_SSH_USER ]]; then echo "ERROR: The UBUNTU_SSH_USER env variable is not set"; exit 1; fi
-if [[ -z $UBUNTU_VM_IP ]]; then echo "ERROR: The UBUNTU_VM_IP env variable is not set"; exit 1; fi
+# The vstart cluster runs either in a libvirt VM (UBUNTU_VM_IP) or, when
+# VSTART_CONTAINER is set (see setup_ceph_vstart_container), in a container
+# on this host.
+if [[ -z $VSTART_CONTAINER ]]; then
+    if [[ -z $UBUNTU_SSH_USER ]]; then echo "ERROR: The UBUNTU_SSH_USER env variable is not set"; exit 1; fi
+    if [[ -z $UBUNTU_VM_IP ]]; then echo "ERROR: The UBUNTU_VM_IP env variable is not set"; exit 1; fi
+fi
+
+function cluster_status() {
+    if [[ -n $VSTART_CONTAINER ]]; then
+        podman exec -e CEPH_CONF=/ceph/build/vstart/ceph.conf \
+            -e CEPH_KEYRING=/ceph/build/vstart/keyring \
+            $VSTART_CONTAINER /ceph/build/bin/ceph status
+    else
+        SSH_USER=$UBUNTU_SSH_USER SSH_ADDRESS=$UBUNTU_VM_IP ssh_exec ./ceph/build/bin/ceph status
+    fi
+}
 
 export SSH_USER=$WINDOWS_SSH_USER
 export SSH_ADDRESS=$WINDOWS_VM_IP
@@ -53,19 +68,31 @@ function collect_artifacts() {
     mkdir -p $WORKSPACE/artifacts/cluster
     mkdir -p $WORKSPACE/artifacts/cluster/ceph_logs
 
-    SSH_USER=$UBUNTU_SSH_USER SSH_ADDRESS=$UBUNTU_VM_IP ssh_exec ./ceph/build/bin/ceph status
-    SSH_USER=$UBUNTU_SSH_USER SSH_ADDRESS=$UBUNTU_VM_IP ssh_exec free -h
-    SSH_USER=$UBUNTU_SSH_USER SSH_ADDRESS=$UBUNTU_VM_IP ssh_exec df -h
-    SSH_USER=$UBUNTU_SSH_USER SSH_ADDRESS=$UBUNTU_VM_IP ssh_exec \
-        "du -sh ./ceph-vstart/*"
+    cluster_status
+    if [[ -n $VSTART_CONTAINER ]]; then
+        podman exec $VSTART_CONTAINER bash -c "free -h; df -h; du -sh /ceph/build/vstart/*"
 
-    SSH_USER=$UBUNTU_SSH_USER SSH_ADDRESS=$UBUNTU_VM_IP ssh_exec \
-        "journalctl -b > /tmp/journal"
-    SSH_USER=$UBUNTU_SSH_USER SSH_ADDRESS=$UBUNTU_VM_IP scp_download \
-        /tmp/journal $WORKSPACE/artifacts/cluster/journal
+        sudo journalctl -b > $WORKSPACE/artifacts/cluster/journal || true
 
-    SSH_USER=$UBUNTU_SSH_USER SSH_ADDRESS=$UBUNTU_VM_IP scp_download \
-        './ceph-vstart/out/*.log' $WORKSPACE/artifacts/cluster/ceph_logs/
+        # tar via podman exec, not cp: the cluster runs as uid 1000 in the
+        # container, so on the host its files are owned by a subuid.
+        podman exec $VSTART_CONTAINER bash -c "cd /ceph/build/vstart/out && tar cf - *.log" \
+            | tar xf - -C $WORKSPACE/artifacts/cluster/ceph_logs/
+        cp $WORKSPACE/vstart-container.log $WORKSPACE/artifacts/cluster/ 2>/dev/null || true
+    else
+        SSH_USER=$UBUNTU_SSH_USER SSH_ADDRESS=$UBUNTU_VM_IP ssh_exec free -h
+        SSH_USER=$UBUNTU_SSH_USER SSH_ADDRESS=$UBUNTU_VM_IP ssh_exec df -h
+        SSH_USER=$UBUNTU_SSH_USER SSH_ADDRESS=$UBUNTU_VM_IP ssh_exec \
+            "du -sh ./ceph-vstart/*"
+
+        SSH_USER=$UBUNTU_SSH_USER SSH_ADDRESS=$UBUNTU_VM_IP ssh_exec \
+            "journalctl -b > /tmp/journal"
+        SSH_USER=$UBUNTU_SSH_USER SSH_ADDRESS=$UBUNTU_VM_IP scp_download \
+            /tmp/journal $WORKSPACE/artifacts/cluster/journal
+
+        SSH_USER=$UBUNTU_SSH_USER SSH_ADDRESS=$UBUNTU_VM_IP scp_download \
+            './ceph-vstart/out/*.log' $WORKSPACE/artifacts/cluster/ceph_logs/
+    fi
 
     scp_download /workspace/test_results $WORKSPACE/artifacts/test_results
     if [[ "$INCLUDE_USERSPACE_CRASH_DUMPS" = true ]]; then
@@ -98,7 +125,7 @@ function on_exit() {
 trap on_exit EXIT
 
 # View cluster status before test run
-SSH_USER=$UBUNTU_SSH_USER SSH_ADDRESS=$UBUNTU_VM_IP ssh_exec ./ceph/build/bin/ceph status
+cluster_status
 #
 # Run the Windows tests
 #
