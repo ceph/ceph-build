@@ -1275,7 +1275,10 @@ update_github_pr_status() {
   # already have their status managed by the GitHub Pull Request Builder plugin,
   # so posting here would just be a duplicate.  Check ROOT_BUILD_CAUSE too so a
   # job kicked off down an upstream chain from a manual trigger is still covered.
-  if [ "$BUILD_CAUSE" != "MANUALTRIGGER" ] && [ "$ROOT_BUILD_CAUSE" != "MANUALTRIGGER" ]; then
+  # Jobs with no status-posting plugin at all (e.g. generic-webhook-trigger
+  # jobs like ceph-pull-requests-ppc64le) set FORCE_GITHUB_PR_STATUS=true to
+  # post for every build cause.
+  if [ "$FORCE_GITHUB_PR_STATUS" != true ] && [ "$BUILD_CAUSE" != "MANUALTRIGGER" ] && [ "$ROOT_BUILD_CAUSE" != "MANUALTRIGGER" ]; then
     return 0
   fi
 
@@ -1703,10 +1706,13 @@ pr_only_for() {
   # receive by creating another local array ("$@")
   local -n local_patterns=$1
   local files
-  # Manually-triggered jobs don't get the ghprb* variables set by the GitHub
-  # Pull Request Builder plugin.  Assume ceph/ceph and look up the PR's target
-  # branch from the GitHub API.
-  if [ "$BUILD_CAUSE" = "MANUALTRIGGER" ]; then
+  # Manually-triggered and generic-webhook-triggered jobs don't get the
+  # ghprb* variables set by the GitHub Pull Request Builder plugin.  Assume
+  # ceph/ceph and look up the PR's target branch from the GitHub API.  Key on
+  # the variable being unset rather than the build cause: with an empty
+  # ghprbGhRepository the files lookup below hits repos//pulls/... (404), the
+  # file list comes back empty, and every *_pr_only check is vacuously true.
+  if [ -z "$ghprbGhRepository" ]; then
     ghprbGhRepository="ceph/ceph"
     ghprbTargetBranch="$(curl -s -u ${GITHUB_USER}:${GITHUB_PASS} https://api.github.com/repos/${ghprbGhRepository}/pulls/${ghprbPullId} | jq -r '.base.ref')"
   fi
