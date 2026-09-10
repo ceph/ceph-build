@@ -11,8 +11,9 @@
 //   - "jenkins test <check>" comments re-run individual checks (org members
 //     always; others only while the PR carries the ci-approved label).
 //   - A newly triggered run aborts still-running runs it supersedes: same
-//     PR on an older head, or overlapping checks on the same head.  Runs
-//     of disjoint checks on the same head are left alone.
+//     PR on an older head, or a same-head run whose checks the new run
+//     fully covers.  A same-head run doing anything the new run won't redo
+//     is left alone.
 
 import groovy.transform.Field
 
@@ -164,11 +165,17 @@ def hasCiPermission(String user) {
 }
 
 def removeLabel(String name) {
-  sh(
-    script: "curl -s -o /dev/null -X DELETE " +
+  def code = sh(
+    script: "curl -s -o /dev/null -w '%{http_code}' -X DELETE " +
             "-u \$GITHUB_STATUS_CREDS_USR:\$GITHUB_STATUS_CREDS_PSW " +
-            "'${github_api}/repos/${github_repo}/issues/${pr}/labels/${name}'"
-  )
+            "'${github_api}/repos/${github_repo}/issues/${pr}/labels/${name}'",
+    returnStdout: true,
+  ).trim()
+  // 404 = already gone (e.g. author-ci-perms.yml won the removal race).
+  if (code != "200" && code != "404") {
+    echo "WARNING: could not remove label '${name}' (HTTP ${code}); " +
+         "the github-status-check-token needs issues write access on ${github_repo}"
+  }
 }
 
 def postStatus(String context, String state, String description, String url) {
@@ -188,11 +195,13 @@ def postStatus(String context, String state, String description, String url) {
 }
 
 // Abort the running ceph-pr-pipeline builds this run supersedes: any build
-// of the same PR on an older head, or one running a check we are about to
-// run again on the same head.  Same-head builds of disjoint checks survive:
-// "one command per comment" means asking for two checks takes two comments,
-// and the second must not kill the first.  Needs one-time in-process script
-// approval (Jenkins model access from a sandboxed pipeline).
+// of the same PR on an older head, or a same-head build whose checks the
+// new run fully covers.  A same-head build doing anything the new run
+// won't redo survives — "jenkins test submodules" after ci-approved must
+// not kill the six-check run the label started, stranding the other five
+// contexts at "canceled" with nothing queued to redo them (PR 69804).
+// Needs one-time in-process script approval (Jenkins model access from a
+// sandboxed pipeline).
 @NonCPS
 def cancelRunningPrBuilds(String pr_number, String new_sha, String new_checks) {
   def wanted = new_checks.tokenize(" ")
@@ -211,13 +220,18 @@ def cancelRunningPrBuilds(String pr_number, String new_sha, String new_checks) {
     def b_sha = params.getParameter("HEAD_SHA")?.getValue()?.toString() ?: ""
     def b_checks = (params.getParameter("CHECKS")?.getValue()?.toString() ?: "")
         .tokenize(" ")
-    if (b_sha == new_sha && !b_checks.any { wanted.contains(it) }) {
+    if (b_sha == new_sha && !wanted.containsAll(b_checks)) {
       println("Keeping ${pipeline_job} build #${b.getNumber()}: " +
-              "same head, disjoint checks [${b_checks.join(' ')}]")
+              "same head, checks [${b_checks.join(' ')}] not fully covered " +
+              "by [${wanted.join(' ')}]")
       continue
     }
     println("Aborting superseded ${pipeline_job} build #${b.getNumber()}")
-    b.getExecutor()?.interrupt(hudson.model.Result.ABORTED)
+    // A pipeline build occupies only a flyweight executor while it waits
+    // for agents, and getExecutor() is null then; fall back to the one-off
+    // executor so those builds are aborted too.
+    def exec = b.getExecutor() ?: b.getOneOffExecutor()
+    exec?.interrupt(hudson.model.Result.ABORTED)
   }
 }
 
