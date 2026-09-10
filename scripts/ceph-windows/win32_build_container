@@ -77,7 +77,12 @@ fi
 
 # MINGW_LLVM_DIR must be set explicitly: mingw_conf.sh defaults it relative
 # to the ceph tree ($CEPH_DIR/build.deps), not to DEPS_DIR.
+# --pids-limit=-1 for the same reason build-with-container.py passes it:
+# podman's default pids cgroup cap can be exceeded by a 32-worker ninja's
+# process bursts, and ninja dies with "posix_spawn: Operation not
+# permitted" (pipeline run 1115 on adami10).
 podman run --rm --name "$CONTAINER_NAME" \
+    --pids-limit=-1 \
     -v "$WORKSPACE:/workspace" \
     -v "$deps_cache_dir:/depscache" \
     -v "$ccache_dir:/ccache" \
@@ -92,6 +97,6 @@ podman run --rm --name "$CONTAINER_NAME" \
     -e OS=ubuntu \
     -w /workspace/ceph \
     "$IMAGE" \
-    bash -c "ccache -s; timeout $WIN32_BUILD_TIMEOUT ./win32_build.sh; ccache -s"
+    bash -c "ccache -s; timeout $WIN32_BUILD_TIMEOUT ./win32_build.sh; rc=\$?; ccache -s; exit \$rc"
 
 ls -lh "$WORKSPACE/ceph.zip"
