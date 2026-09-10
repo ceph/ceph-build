@@ -43,6 +43,7 @@
           trigger-phrase: 'jenkins ceph-volume unit tests'
           github-hooks: true
           permit-all: false
+          allow-whitelist-orgs-as-admins: true
           auto-close-on-fail: false
           status-context: "ceph-volume tox testing"
           started-status: "ceph-volume tox running"
