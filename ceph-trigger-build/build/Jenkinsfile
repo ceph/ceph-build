@@ -55,6 +55,8 @@ def params_from_branch(initialParams) {
       params[-1]['ARCHS'] += ' arm64'
       break
     case ~/.*(tentacle|umbrella).*/:
+      // resolute is built for main only; don't inherit it from the defaults
+      params[0]['DISTROS'] = 'rocky10 centos9 jammy noble windows'
       if ( !singleSet ) {
         params << params[0].clone()
         params[-1]['ARCHS'] = 'x86_64'
