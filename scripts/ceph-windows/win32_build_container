@@ -97,6 +97,6 @@ podman run --rm --name "$CONTAINER_NAME" \
     -e OS=ubuntu \
     -w /workspace/ceph \
     "$IMAGE" \
-    bash -c "ccache -s; timeout $WIN32_BUILD_TIMEOUT ./win32_build.sh; ccache -s"
+    bash -c "ccache -s; timeout $WIN32_BUILD_TIMEOUT ./win32_build.sh; rc=\$?; ccache -s; exit \$rc"
 
 ls -lh "$WORKSPACE/ceph.zip"
