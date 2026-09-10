@@ -74,6 +74,61 @@ def logNode() {
   echo "Running on ${shortname} (${env.JENKINS_URL}computer/${env.NODE_NAME}/)"
 }
 
+// Every GitHub API call in this pipeline goes through gh_curl.  A bare
+// `curl -sf` turns one bad response into exit 22 with no clue which status
+// it was: builds 1126 and 1127 both died in the same second on the PR fetch
+// in prepare, and because that happens before HEAD_SHA is known, no leg ever
+// posts a terminal status -- the six contexts the trigger had already set to
+// "queued" stay pending on the PR forever, blocking it silently.
+//
+// Plain `curl --retry` is not enough: it ignores 403 (which is what GitHub
+// uses for secondary rate limits), and --retry-all-errors doesn't exist on
+// the older builders' curl.  Retries are limited to the statuses that can
+// actually clear on their own; anything else still fails fast, now with the
+// status code and the response body in the log.
+@Field String gh_curl = '''#!/bin/bash
+set -e
+gh_curl() {
+  local out code attempt retry
+  local url="${@: -1}"
+  out=$(mktemp)
+  for attempt in 1 2 3 4 5; do
+    code=$(curl -s -o "$out" -w '%{http_code}' --max-time 60 "$@") || code=""
+    case "$code" in
+      2??)
+        cat "$out"
+        rm -f "$out"
+        return 0
+        ;;
+      403)
+        # also what a revoked token gets; only the rate limit clears on its own
+        if grep -qi 'rate limit' "$out"; then retry=yes; else retry=no; fi
+        ;;
+      429|5??|"")
+        retry=yes
+        ;;
+      *)
+        retry=no
+        ;;
+    esac
+    if [ "$retry" = no ]; then
+      echo "gh_curl: HTTP $code from $url, not retrying" >&2
+      cat "$out" >&2
+      rm -f "$out"
+      return 22
+    fi
+    echo "gh_curl: HTTP ${code:-connection failure} from $url, attempt ${attempt}/5" >&2
+    if [ "$attempt" -lt 5 ]; then
+      sleep $((attempt * 5))
+    fi
+  done
+  echo "gh_curl: giving up on $url after 5 attempts (last HTTP ${code:-connection failure})" >&2
+  cat "$out" >&2
+  rm -f "$out"
+  return 22
+}
+'''
+
 def postStatus(String key, String state, String description) {
   // Nothing to post against until prepare has resolved the head sha (e.g. a
   // build aborted while still in prepare).
@@ -91,10 +146,10 @@ def postStatus(String key, String state, String description) {
   ]))
   sh(
     label: "GitHub status: ${contexts[key]} -> ${state}",
-    script: "curl -sf -o /dev/null -X POST " +
+    script: gh_curl + "gh_curl -X POST " +
             "-u \$GITHUB_STATUS_CREDS_USR:\$GITHUB_STATUS_CREDS_PSW " +
             "-H 'Accept: application/vnd.github+json' -d @status.json " +
-            "'${github_api}/repos/${github_repo}/statuses/${env.HEAD_SHA}'"
+            "'${github_api}/repos/${github_repo}/statuses/${env.HEAD_SHA}' > /dev/null"
   )
 }
 
@@ -209,7 +264,8 @@ def doPrepare() {
   def pr_data = null
   for (int attempt = 0; attempt < 3; attempt++) {
     pr_data = readJSON(text: sh(
-      script: "curl -sf -u \$GITHUB_RO_CREDS_USR:\$GITHUB_RO_CREDS_PSW " +
+      label: "fetch PR ${params.ghprbPullId}",
+      script: gh_curl + "gh_curl -u \$GITHUB_RO_CREDS_USR:\$GITHUB_RO_CREDS_PSW " +
               "-H 'Accept: application/vnd.github+json' " +
               "'${github_api}/repos/${github_repo}/pulls/${params.ghprbPullId}'",
       returnStdout: true,
