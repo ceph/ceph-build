@@ -59,6 +59,8 @@ import groovy.transform.Field
 @Field boolean run_api = false
 @Field boolean run_windows = false
 @Field boolean build_cached = false
+// true once prepare has resolved the PR and decided which legs run
+@Field boolean prepared = false
 // context key -> true once a terminal (non-pending) status was posted, so the
 // abort/failure sweep in post{} only finalizes contexts still left pending.
 @Field Map leg_finalized = [:]
@@ -135,22 +137,33 @@ def postStatus(String key, String state, String description) {
   if (!env.HEAD_SHA) {
     return
   }
-  if (state != "pending") {
-    leg_finalized[key] = true
-  }
   writeFile(file: "status.json", text: groovy.json.JsonOutput.toJson([
     state: state,
     context: "${params.STATUS_PREFIX}${contexts[key]}",
     description: description,
     target_url: env.BUILD_URL,
   ]))
-  sh(
+  // Best-effort: a status POST must never change a leg's outcome.  During
+  // the 2026-09-09 GitHub API brownout a throwing sh step here turned dozens
+  // of green legs red (build 985's 78-minute arm64 make check passed, then
+  // died posting "-> success").  If the POST still fails after gh_curl's
+  // retries, log it and move on; the context stays unfinalized so the
+  // post{} sweep gets another shot at it.
+  def rc = sh(
     label: "GitHub status: ${contexts[key]} -> ${state}",
+    returnStatus: true,
     script: gh_curl + "gh_curl -X POST " +
             "-u \$GITHUB_STATUS_CREDS_USR:\$GITHUB_STATUS_CREDS_PSW " +
             "-H 'Accept: application/vnd.github+json' -d @status.json " +
             "'${github_api}/repos/${github_repo}/statuses/${env.HEAD_SHA}' > /dev/null"
   )
+  if (rc != 0) {
+    echo "WARNING: could not post GitHub status ${contexts[key]} -> ${state} (exit ${rc})"
+    return
+  }
+  if (state != "pending") {
+    leg_finalized[key] = true
+  }
 }
 
 // Run a leg with pending/success/failure statuses around it.
@@ -173,17 +186,35 @@ def withStatus(String key, String label, Closure body) {
 // from post{}, which has no agent, so it grabs one itself; best-effort by
 // nature (a hard kill skips post{} entirely).
 def finalizePendingStatuses(String state, String description) {
+  // If prepare died before resolving the PR (its GitHub fetch failed, or the
+  // head moved and it bailed as superseded), HEAD_SHA is unset and the run_*
+  // flags are all still false -- but the trigger has already set every
+  // context in CHECKS to "queued" on the sha it passed in, and without this
+  // they would stay pending on the PR forever.  Fall back to that sha and
+  // that list.  A manual run without HEAD_SHA has no trigger-posted
+  // statuses to clean up, so returning is right there.
   if (!env.HEAD_SHA) {
-    return
+    if (!params.HEAD_SHA) {
+      return
+    }
+    env.HEAD_SHA = params.HEAD_SHA
   }
-  def pending = [
-    "signed": run_signed,
-    "submodules": run_submodules,
-    "make-check": run_make_check,
-    "make-check-arm64": run_make_check_arm64,
-    "api": run_api,
-    "windows": run_windows,
-  ].findAll { key, will_run -> will_run && !leg_finalized[key] }.keySet()
+  def will_run
+  if (prepared) {
+    will_run = [
+      "signed": run_signed,
+      "submodules": run_submodules,
+      "make-check": run_make_check,
+      "make-check-arm64": run_make_check_arm64,
+      "api": run_api,
+      "windows": run_windows,
+    ]
+  } else {
+    will_run = params.CHECKS.tokenize(" ").findAll { contexts[it] }
+        .collectEntries { [(it): true] }
+  }
+  def pending = will_run
+      .findAll { key, run -> run && !leg_finalized[key] }.keySet()
   if (!pending) {
     return
   }
@@ -339,6 +370,7 @@ def doPrepare() {
       api_branches.any { env.ghprbTargetBranch ==~ it }
   run_windows = wantCheck("windows") && !qa_skip &&
       windows_branches.contains(env.ghprbTargetBranch)
+  prepared = true
 
   // Post pending for every leg that will run NOW, from the small node we're
   // already holding, so the PR shows all its checks within seconds of the
@@ -841,6 +873,12 @@ pipeline {
     }
     failure {
       script { finalizePendingStatuses("error", "did not run: the pipeline failed earlier") }
+    }
+    // A SUCCESS build means every selected leg ran and passed; anything
+    // still unfinalized just lost its success POST to a transient GitHub
+    // error.
+    success {
+      script { finalizePendingStatuses("success", "succeeded") }
     }
   }
 }
