@@ -312,11 +312,22 @@ pipeline {
           if (is_comment) {
             authorized = approved || hasCiPermission(env.comment_author)
           } else if (env.action == "labeled") {
-            // Adding a label requires triage permission on ceph/ceph, so the
-            // label itself is the approval.  Clear author-ci-perms.yml's
-            // marker so the PR no longer looks blocked.
-            authorized = true
-            removeLabel("needs-ci-approval")
+            // Labels only need triage permission, a lower bar than the
+            // write access required of authors whose CI runs automatically;
+            // honor the label only when the person who added it meets that
+            // same bar (author-ci-perms.yml applies the identical check).
+            authorized = hasCiPermission(env.sender)
+            if (authorized) {
+              // Clear author-ci-perms.yml's marker so the PR no longer
+              // looks blocked.
+              removeLabel("needs-ci-approval")
+            } else {
+              // Strip the unauthorized approval: the opened/reopened and
+              // comment paths trust the label's mere presence, so leaving
+              // it would only delay the leak until the next comment.
+              echo "Ignoring ${approval_label} added by ${env.sender}: needs write access"
+              removeLabel(approval_label)
+            }
           } else if (env.action == "synchronize") {
             authorized = author_trusted
             if (!authorized && approved) {
