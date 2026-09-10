@@ -87,6 +87,13 @@ if [[ ! -S /var/run/libvirt/libvirt-sock ]]; then
     sudo systemctl status libvirtd
 fi
 
+# Start from a clean host: an aborted run can skip its cleanup, and a
+# leftover (shut-off) Windows VM still holds the qcow2 path, so this run's
+# virt-install would refuse with "Disk ... is already in use by other
+# guests".  With one executor per builder, any domain that exists here is
+# such a leftover.
+delete_libvirt_vms
+
 if ! sudo virsh net-info default &>/dev/null; then
     cat << EOF > $LIBVIRT_DIR/default-net.xml
 <network>
