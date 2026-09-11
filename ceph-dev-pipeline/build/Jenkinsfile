@@ -351,9 +351,26 @@ def doArtifactsChecksStage() {
 // cannot run dnf at all. Rebase it onto vault.centos.org, which still serves
 // all of 8-stream, and push the result: build-with-container.py builds with
 // `podman build --pull`, which refuses a base image that only exists locally.
+//
 // Another EL8 distro can't be substituted here -- install-deps.sh keys its el8
 // setup (powertools, gcc-toolset-11, the ceph/grpc copr, lab-extras) off
 // ID=centos with VERSION_ID=8, and does nothing at all for ID=rocky on el8.
+//
+// v19.2.4's install-deps.sh also still reaches lab-extras -- which supplies
+// libbabeltrace-devel for ceph.spec's lttng BuildRequires, and which nothing
+// else on el8 carries -- at apt-mirror.front.sepia.ceph.com. That name
+// redirects to https, but the certificate now only covers
+// apt-mirror.sepia.ceph.com (where ceph main's setup_lab_extras_repo points),
+// so dnf fails on it. Making the repo merely skippable isn't enough: dnf still
+// prints "Error: Failed to download metadata for repo ...", and install-deps.sh
+// greps its builddep output for /error:/ and exits 1 on a match even when
+// builddep itself succeeded.
+//
+// So point that repo at the working hostname. It has to be done under the repo
+// id install-deps.sh derives from the URL, in a file that sorts ahead of the
+// one `dnf config-manager --add-repo` writes: add-repo overwrites a file of
+// its own generated name, and for a duplicate repo id dnf keeps the first
+// definition it reads and only warns about the rest.
 def buildCentos8BaseImage() {
   def base_image = "${env.CEPH_BUILDER_IMAGE}:centos8-vault-base.${env.ARCH}"
   def context_dir = "${env.WORKSPACE}/centos8-base"
@@ -362,15 +379,30 @@ def buildCentos8BaseImage() {
     "-e 's|^#baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|'"
   )
   sh "mkdir -p ${context_dir}"
+  def lab_extras_repo_file = "00-ceph-lab-extras.repo"
+  writeFile(
+    file: "${context_dir}/${lab_extras_repo_file}",
+    text: [
+      "[apt-mirror.front.sepia.ceph.com_lab-extras_8_]",
+      "name=ceph-lab-extras-8 (pinned to the current apt-mirror hostname)",
+      "baseurl=https://apt-mirror.sepia.ceph.com/lab-extras/8/",
+      "enabled=1",
+      "gpgcheck=0",
+      "",
+    ].join("\n"),
+  )
   writeFile(
     file: "${context_dir}/Containerfile",
-    text: (
-      "FROM quay.io/centos/centos:stream8\n" +
-      "RUN sed -i ${sed_expr} /etc/yum.repos.d/CentOS-Stream-*.repo\n"
-    ),
+    text: [
+      "FROM quay.io/centos/centos:stream8",
+      "COPY ${lab_extras_repo_file} /etc/yum.repos.d/${lab_extras_repo_file}",
+      "RUN sed -i ${sed_expr} /etc/yum.repos.d/CentOS-Stream-*.repo",
+      "",
+    ].join("\n"),
   )
   sh """#!/bin/bash -ex
     export REGISTRY_AUTH_FILE="\${HOME}/.config/containers/auth.json"
+    cat ${context_dir}/Containerfile
     podman build --pull -t ${base_image} ${context_dir}
     podman push ${base_image}
   """
