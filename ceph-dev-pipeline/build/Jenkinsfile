@@ -345,6 +345,38 @@ def doArtifactsChecksStage() {
   }
 }
 
+// CentOS Stream 8 went EOL in May 2024: mirrorlist.centos.org no longer
+// resolves and mirror.centos.org no longer carries the 8-stream tree, so
+// build-with-container.py's default base image (quay.io/centos/centos:stream8)
+// cannot run dnf at all. Rebase it onto vault.centos.org, which still serves
+// all of 8-stream, and push the result: build-with-container.py builds with
+// `podman build --pull`, which refuses a base image that only exists locally.
+// Another EL8 distro can't be substituted here -- install-deps.sh keys its el8
+// setup (powertools, gcc-toolset-11, the ceph/grpc copr, lab-extras) off
+// ID=centos with VERSION_ID=8, and does nothing at all for ID=rocky on el8.
+def buildCentos8BaseImage() {
+  def base_image = "${env.CEPH_BUILDER_IMAGE}:centos8-vault-base.${env.ARCH}"
+  def context_dir = "${env.WORKSPACE}/centos8-base"
+  def sed_expr = (
+    "-e 's|^mirrorlist=|#mirrorlist=|' " +
+    "-e 's|^#baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|'"
+  )
+  sh "mkdir -p ${context_dir}"
+  writeFile(
+    file: "${context_dir}/Containerfile",
+    text: (
+      "FROM quay.io/centos/centos:stream8\n" +
+      "RUN sed -i ${sed_expr} /etc/yum.repos.d/CentOS-Stream-*.repo\n"
+    ),
+  )
+  sh """#!/bin/bash -ex
+    export REGISTRY_AUTH_FILE="\${HOME}/.config/containers/auth.json"
+    podman build --pull -t ${base_image} ${context_dir}
+    podman push ${base_image}
+  """
+  return base_image
+}
+
 // Stage 6 (builder container): log into container registries and pull/build/push the ceph-build container image for this matrix cell.
 def doBuilderContainerStage() {
   def os = get_os_info(env.DIST)
@@ -369,13 +401,14 @@ def doBuilderContainerStage() {
     true
   """
   def withCrimson = !(env.BRANCH in ['tentacle', 'squid', 'reef'])
+  def base_image_arg = (env.DIST == "centos8") ? "--base-image=${buildCentos8BaseImage()}" : ""
   sh """#!/bin/bash
     set -ex
     export REGISTRY_AUTH_FILE="\${HOME}/.config/containers/auth.json"
     echo > .env
     echo "WITH_CRIMSON=${withCrimson}" >> .env
     cd dist/ceph
-    python3 src/script/build-with-container.py --env-file=${env.WORKSPACE}/.env --image-repo=${env.CEPH_BUILDER_IMAGE} --tag=${ceph_builder_tag} --image-variant=packages -d ${env.DIST} -e build-container
+    python3 src/script/build-with-container.py --env-file=${env.WORKSPACE}/.env --image-repo=${env.CEPH_BUILDER_IMAGE} --tag=${ceph_builder_tag} --image-variant=packages -d ${env.DIST} ${base_image_arg} -e build-container
     podman tag ${env.CEPH_BUILDER_IMAGE}:${ceph_builder_tag} ${env.CEPH_BUILDER_IMAGE}:${ceph_builder_tag_short}
   """
   sh """#!/bin/bash -ex
@@ -736,7 +769,7 @@ pipeline {
         axes {
           axis {
             name 'DIST'
-            values 'centos9', 'centos10', 'rocky9', 'rocky10', 'focal', 'jammy', 'noble', 'resolute', 'bookworm', 'trixie'
+            values 'centos8', 'centos9', 'centos10', 'rocky9', 'rocky10', 'focal', 'jammy', 'noble', 'resolute', 'bookworm', 'trixie'
           }
           axis {
             name 'ARCH'
