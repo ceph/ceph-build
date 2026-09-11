@@ -33,14 +33,21 @@ webhook (pull_request / issue_comment)
 ```
 
 - **Cache:** build trees are zstd-tarred to the Sepia LRC's RGW (the doli
-  cluster) as `pr-builds/<PR>/<head sha>.<arch>.tar.zst`.  Re-runs for an
-  unchanged head sha skip compilation (`FORCE_BUILD=true` overrides).
+  cluster) as `pr-builds/<PR>/<head sha>-<base sha>.<arch>.tar.zst` — the
+  tree is a product of the PR merged onto its target branch, so the key is
+  exactly those two inputs and the cache invalidates itself when either
+  side moves.  Re-runs with both unchanged skip compilation
+  (`FORCE_BUILD=true` overrides).
 - **Statuses:** each leg posts its own context via the GitHub API.  Pending
   is posted from `prepare` before legs wait for executors; canceled/failed
   runs finalize any still-pending contexts.  Docs/container/gha-only PRs
   (plus qa-only for windows/arm64) report success without building.
-- **Checkout time:** set `CEPH_REFERENCE_REPO` to a local ceph.git mirror on
-  the builders to cut the remaining clones to seconds.
+- **Checkout:** each leg checks out the PR head and **merges it locally**
+  onto the target-branch head pinned once in prepare -- GitHub's
+  `refs/pull/N/merge` is refreshed lazily and can silently point at a stale
+  base, so nothing relies on it.  A per-builder ceph.git mirror (heads only,
+  auto-created on first use, refreshed each run; location overridable via
+  `CEPH_REFERENCE_REPO`) keeps the full-history clones down to seconds.
 
 ## The windows leg
 
@@ -55,7 +62,8 @@ persistent caches.  Measured: 79 min on a node with cold caches, ~60 warm.
 
 Steps, in order (all scripts in [scripts/ceph-windows](../scripts/ceph-windows/)):
 
-1. **Checkout**: ceph-build plus the PR merge ref, then submodules.
+1. **Checkout**: ceph-build, plus the PR merged locally onto the pinned
+   target-branch head, then submodules.
 2. **Cross-compile** (`win32_build_container`): runs the PR's own
    `win32_build.sh` in a podman container built from
    `win32-build.containerfile` (just the mingw toolchain packages; podman's
@@ -176,8 +184,8 @@ validation or one-off manual windows builds.
    LRC's RGW (any `doli0N.front.sepia.ceph.com:8080` endpoint; the legs
    pick the first one that answers).  The bucket-wide 21-day expiry
    lifecycle rule and a 20T quota on the `ceph-pr-builds` RGW user live
-   server-side.  Optionally seed reference mirrors for
-   `CEPH_REFERENCE_REPO`.
+   server-side.  The per-builder ceph.git mirrors
+   create themselves on first use.
 
 ## Known gaps
 
