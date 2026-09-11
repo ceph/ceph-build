@@ -838,10 +838,23 @@ pipeline {
               // Archived by archiveLegArtifacts in the pipeline post{}.
               stash(name: "windows-artifacts", includes: "artifacts/**",
                     allowEmpty: true)
-              sh """#!/bin/bash
-                source ./ceph-build/scripts/build_utils.sh
-                source ./ceph-build/scripts/ceph-windows/cleanup
-              """
+              // Best-effort cleanup.  The if -> WARNING at the end is to avoid
+              // sending "failed" back to the GitHub Check in case the actual
+              // tests passed but cleanup fails.
+              script {
+                def rc = sh(
+                  label: "clean up the windows host",
+                  returnStatus: true,
+                  script: """#!/bin/bash
+                    source ./ceph-build/scripts/build_utils.sh
+                    source ./ceph-build/scripts/ceph-windows/cleanup
+                  """
+                )
+                if (rc != 0) {
+                  echo "WARNING: windows host cleanup exited ${rc}; " +
+                       "the next run on this builder cleans up what is left"
+                }
+              }
             }
           }
         }
