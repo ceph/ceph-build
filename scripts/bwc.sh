@@ -14,8 +14,10 @@
 #   GIT_BRANCH - Pass the current branch name to BWC in order
 #                to generate a container tag. Defaults to "main"
 #   NPMCACHE - Path to shared npm cache directory.
+#   SCCACHE_DIR - Host directory for the compiler cache.  Defaults to
+#                 ~/.cache/ceph-sccache; set it empty to disable caching.
+#   SCCACHE_CACHE_SIZE - Cap for that directory.  Defaults to 40G.
 bwc() {
-    # TODO: enable (read-only?) sccache support
     # specify timeout in hours for $1
     local timeout=$(($1*60*60))
     shift
@@ -24,6 +26,19 @@ bwc() {
     local args=()
     if [ "${NPMCACHE}" ]; then
         args+=(--npm-cache-path="${NPMCACHE}")
+    fi
+    # The bwc images ship sccache and ceph's do_cmake.sh prefers it over
+    # ccache ("if type sccache ... elif type ccache"), but nothing pointed
+    # it at a directory outliving the container, so every build compiled
+    # from scratch into a cache that was thrown away with the container --
+    # ceph-pr-pipeline run 1202 logged "Building with sccache ... SCCACHE_CONF="
+    # and then 33m45s of full compile.  Give it a per-builder directory.
+    local sccache_dir="${SCCACHE_DIR-${HOME}/.cache/ceph-sccache}"
+    if [ "${sccache_dir}" ]; then
+        mkdir -p "${sccache_dir}"
+        args+=("--extra=--volume=${sccache_dir}:/sccache:z")
+        args+=("--extra=-eSCCACHE_DIR=/sccache")
+        args+=("--extra=-eSCCACHE_CACHE_SIZE=${SCCACHE_CACHE_SIZE:-40G}")
     fi
     args+=("${@}")
     timeout "${timeout}" ./src/script/build-with-container.py \
