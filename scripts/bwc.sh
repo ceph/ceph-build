@@ -40,6 +40,11 @@ bwc() {
         args+=("--extra=-eSCCACHE_DIR=/sccache")
         args+=("--extra=-eSCCACHE_CACHE_SIZE=${SCCACHE_CACHE_SIZE:-40G}")
     fi
+    local seccomp
+    seccomp=$(bwc_seccomp_profile)
+    if [ "${seccomp}" ]; then
+        args+=(--extra="${seccomp}")
+    fi
     args+=("${@}")
     timeout "${timeout}" ./src/script/build-with-container.py \
         -d "${DISTRO_BASE:-jammy}" \
@@ -47,6 +52,35 @@ bwc() {
         --current-branch="${current_branch}" \
         -t"+$(bwc_arch)" \
         "${args[@]}"
+}
+
+# bwc_seccomp_profile - Print a --security-opt argument holding the host's
+#   seccomp profile minus io_pgetevents. libaio 0.3.113 (ubuntu 24.04+) only
+#   falls back to io_getevents when io_pgetevents returns ENOSYS, and the
+#   default profile denies it with EPERM, which aborts every bluestore test.
+# Arguments: (none)
+# Variables:
+#   WORKSPACE - Path to write the generated profile to.
+# Output: --security-opt argument, or nothing
+bwc_seccomp_profile() {
+    local src dest
+    # this only applies to podman
+    command -v podman > /dev/null || return 0
+    # get the host's seccomp profile
+    src=$(podman info --format '{{.Host.Security.SECCOMPProfilePath}}' 2>/dev/null)
+    # if there isn't one, skip this
+    [ -r "${src}" ] || return 0
+    # a denied syscall has to come back as ENOSYS (38) for libaio to fall back
+    [ "$(jq -r '.defaultErrnoRet' "${src}")" = "38" ] || return 0
+    # make a temporary replacement seccomp profile
+    dest="${WORKSPACE:-$(mktemp -d)}/seccomp-ceph.json"
+    # drop io_pgetevents from the deny lists, and any list it empties
+    jq '.syscalls |= [.[]
+          | if .action != "SCMP_ACT_ALLOW"
+            then .names |= map(select(startswith("io_pgetevents") | not))
+            else . end
+          | select(.names | length > 0)]' "${src}" > "${dest}" || return 0
+    echo "--security-opt=seccomp=${dest}"
 }
 
 # bwc_populate_npm_cache - Configure the ceph sources and try to install
