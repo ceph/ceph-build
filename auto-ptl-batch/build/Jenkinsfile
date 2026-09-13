@@ -1,0 +1,381 @@
+/**
+ * auto-ptl-batch: automated PR batch testing for ceph/ceph.
+ *
+ * Flow:
+ *   1. group_prs.py discovers all open PRs carrying needs-QA + a component label
+ *      present in COMPONENT_SUITE_MAP, with no blocking labels
+ *      (needs-rebase, ready-to-merge, etc.), groups them
+ *      by (component, base_branch), detects file-level conflicts, and splits
+ *      into sub-batches of up to MAX_PRS_PER_BATCH.
+ *   2. For each sub-batch:
+ *        a. CI green check  (overall commit status on PR HEAD via check_pr_ci_status.py)
+ *        b. Local merge via ptl-tool.py  (--branch HEAD; local merge only)
+ *        c. Create branch from merged HEAD + push to ceph-ci
+ *           (SKIP_STATUS_POST=true skips the commit-status POST while still pushing)
+ *        d. Trigger teuthology-runner with the component suite
+ *   3. ceph-trigger-build fires ceph-dev-pipeline (slim) which on
+ *      success auto-schedules teuthology-runner with the teuthology
+ *      suite derived from COMPONENT_SUITE_MAP.
+ *
+ * ptl-tool.py is called with positional PR numbers .
+ * PTL_TOOL_BASE_REMOTE=origin tells ptl-tool to use the 'origin' remote
+ * (ceph/ceph) instead of its default 'upstream'.
+ */
+
+// Component label text may include '/' or other characters unsafe in git refs and image tags.
+String sanitizeBatchBranch(String component) {
+    def s = (component ?: 'unknown').trim()
+    s = s.replaceAll('[^a-zA-Z0-9._-]+', '-')
+    s = s.replaceAll('^-+|-+$', '')
+    return s ?: 'unknown'
+}
+
+String requireGitRef(String ref, String label) {
+    def r = (ref ?: '').trim()
+    if (!r || !(r ==~ '^[a-zA-Z0-9/._-]+$')) {
+        error("${label} contains unsupported characters: ${ref}")
+    }
+    return r
+}
+
+String requireTrailerValue(String val, String label) {
+    def v = (val ?: '').trim()
+    if (!v || !(v ==~ /^[a-zA-Z0-9._ -]+$/)) {
+        error("${label} rejected (unsupported characters): ${val}")
+    }
+    return v
+}
+
+String requireSuiteName(String suite) {
+    def s = (suite ?: '').trim()
+    if (!s || !(s ==~ /^[a-zA-Z0-9._-]+$/)) {
+        error("suite name rejected (unsupported characters): ${suite}")
+    }
+    return s
+}
+
+String requirePrArgs(List prs) {
+    def args = []
+    for (pr in prs) {
+        def s = pr.toString().trim()
+        if (!(s ==~ /^\d+$/)) {
+            error("Invalid PR number: ${s}")
+        }
+        args << s
+    }
+    return args.join(' ')
+}
+
+/** Inject github-readonly-token like JJB credentials-binding (env only, never argv). */
+void withGithubApi(Closure body) {
+    withCredentials([
+        usernamePassword(
+            credentialsId: 'github-readonly-token',
+            usernameVariable: 'GITHUB_USER',
+            passwordVariable: 'GITHUB_PASS',
+        ),
+    ]) {
+        body()
+    }
+}
+
+pipeline {
+    agent any
+    options {
+        timestamps()
+        timeout(time: 4, unit: 'HOURS')
+        buildDiscarder(logRotator(numToKeepStr: '50'))
+    }
+
+    stages {
+
+        stage('Setup') {
+            steps {
+                script {
+                    dir('ceph-src') {
+                        checkout scmGit(
+                            branches: [[name: 'main']],
+                            userRemoteConfigs: [[
+                                url: 'git@github.com:ceph/ceph.git',
+                                credentialsId: 'jenkins-build',
+                            ]],
+                            extensions: [
+                                [$class: 'CleanBeforeCheckout'],
+                                [
+                                    $class: 'CloneOption',
+                                    shallow: true,
+                                    depth: 50,
+                                    noTags: true,
+                                    timeout: 90,
+                                ],
+                            ],
+                        )
+                        sh 'git remote add ci git@github.com:ceph/ceph-ci.git'
+                    }
+                }
+                sh '''
+                    python3 -m venv ptl-venv
+                    ptl-venv/bin/pip install -q --upgrade pip
+                    ptl-venv/bin/pip install -q GitPython requests python-redmine
+                '''
+            }
+        }
+
+        stage('Discover & Group') {
+            environment {
+                REQUIRED_LABELS     = "${params.REQUIRED_LABELS     ?: 'needs-qa'}"
+                EXCLUDE_LABELS      = "${params.EXCLUDE_LABELS      ?: 'needs-rebase,ready-to-merge,passed-qa'}"
+                COMPONENT_SUITE_MAP = "${params.COMPONENT_SUITE_MAP ?: ''}"
+                UPDATED_WITHIN_DAYS = "${params.UPDATED_WITHIN_DAYS ?: '90'}"
+                CONFLICT_PATH_DEPTH = "${params.CONFLICT_PATH_DEPTH ?: '3'}"
+                MAX_PRS_PER_BATCH   = "${params.MAX_PRS_PER_BATCH   ?: '5'}"
+                BASE_BRANCH_FILTER  = "${params.CEPH_BASE_BRANCH    ?: ''}"
+            }
+            steps {
+                withGithubApi {
+                    script {
+                        sh(script: 'python3 auto-ptl-batch/scripts/group_prs.py > batches.json')
+
+                        def batchesRaw = readJSON file: 'batches.json'
+                        // Convert from JSONArray to plain ArrayList for sandbox compatibility.
+                        def batches = batchesRaw ? new ArrayList(batchesRaw as List) : []
+                        if (!batches) {
+                            echo 'No eligible PRs found; nothing to do.'
+                            currentBuild.description = 'no eligible PRs'
+                            return
+                        }
+                        echo "Planned sub-batches (${batches.size()}):"
+                        batches.each { b ->
+                            def msg = "  component=${b.component} branch=${b.branch}" +
+                                      " suite=${b.suite} batch=${b.batch} prs=${b.prs}"
+                            if (b.split_reason) { msg += "\n    split: ${b.split_reason}" }
+                            echo msg
+                        }
+                    }
+                }
+            }
+        }
+
+        stage('Check CI, Merge & Push') {
+            steps {
+                withGithubApi {
+                    script {
+                        def batchesRaw = readJSON file: 'batches.json'
+                        def batches    = batchesRaw ? new ArrayList(batchesRaw as List) : []
+                        if (!batches) {
+                            echo 'No batches to process.'
+                            return
+                        }
+
+                        def pushed    = []
+                        def skipped   = []
+                        def maxPushes = (params.MAX_PUSHES ?: '0').toInteger()
+                        def buildDistros = requireTrailerValue(
+                            (params.BUILD_DISTROS ?: 'jammy centos9 rocky10').trim(),
+                            'BUILD_DISTROS',
+                        )
+                        def buildArchs = requireTrailerValue(
+                            (params.BUILD_ARCHS ?: 'x86_64').trim(),
+                            'BUILD_ARCHS',
+                        )
+                        def buildFlavors = requireTrailerValue(
+                            (params.BUILD_FLAVORS ?: 'default').trim(),
+                            'BUILD_FLAVORS',
+                        )
+                        def buildCiContainer = params.BUILD_CI_CONTAINER ? 'true' : 'false'
+                        def runnerDelaySeconds = (params.TEUTHOLOGY_TRIGGER_DELAY_SECONDS ?: '5400').toInteger()
+                        if (runnerDelaySeconds < 0) {
+                            error("TEUTHOLOGY_TRIGGER_DELAY_SECONDS must be >= 0 (got ${runnerDelaySeconds})")
+                        }
+
+                        for (batch in batches) {
+                            def component  = batch.component as String
+                            def branch     = requireGitRef(batch.branch as String, 'base branch')
+                            def suite      = requireSuiteName(batch.suite as String)
+                            def batchNum   = batch.batch     as int
+                            // readJSON returns JSONArray. convert to plain ArrayList so
+                            // sandbox-whitelisted methods like .join() and .each() work.
+                            def prs        = new ArrayList(batch.prs as List)
+                            def sanitizedComponent = sanitizeBatchBranch(component)
+                            def branchName = requireGitRef(
+                                "wip-${sanitizedComponent}-${branch}-auto-batch${batchNum}",
+                                'batch branch',
+                            )
+                            def prArgs     = requirePrArgs(prs)
+
+                            echo "=== ${branchName}: prs=${prs} suite=${suite} ==="
+                            if (batch.split_reason) {
+                                echo "  (split reason: ${batch.split_reason})"
+                            }
+
+                            def ciOk = sh(
+                                script: "python3 auto-ptl-batch/scripts/check_pr_ci_status.py ${prArgs}",
+                                returnStatus: true,
+                            )
+                            if (ciOk == 3) {
+                                error('GitHub API error during CI check (missing token or rate limit)')
+                            }
+                            if (ciOk != 0) {
+                                echo "CI not green for ${branchName}; skipping."
+                                skipped << branchName
+                                continue
+                            }
+
+                            // Local merge via ptl-tool.py (no push)
+                            // --branch HEAD leaves HEAD detached with the merged
+                            // commits; push is handled separately below.
+                            def mergeOk = sh(
+                                script: """
+                                    cd ceph-src
+                                    PTL_TOOL_BASE_REMOTE=origin \\
+                                    PTL_TOOL_BASE_PATH=refs/remotes/origin/ \\
+                                    PTL_TOOL_GITHUB_TOKEN=\$GITHUB_PASS \\
+                                    PTL_TOOL_GITHUB_USER=\$GITHUB_USER \\
+                                        ../ptl-venv/bin/python3 src/script/ptl-tool.py \\
+                                            ${prArgs} \\
+                                            --base ${branch} \\
+                                            --branch HEAD \\
+                                            --merge-branch-name ${branchName}
+                                """,
+                                returnStatus: true,
+                            )
+                            if (mergeOk != 0) {
+                                echo "Merge conflict in ${branchName}; skipping."
+                                skipped << branchName
+                                sh "cd ceph-src && git checkout -f origin/${branch} 2>/dev/null || true"
+                                continue
+                            }
+
+                            // Inject git trailers consumed by ceph-trigger-build so the
+                            // batch branch builds only the platforms needed by this flow.
+                            def trailerOk = sh(
+                                script: """
+                                    cd ceph-src
+                                    msg_file=\$(mktemp)
+                                    git log -1 --pretty=%B > "\${msg_file}"
+                                    git interpret-trailers --in-place --if-exists replace --if-missing add \\
+                                      --trailer "CEPH-BUILD-JOB=ceph-dev-pipeline" \\
+                                      --trailer "DISTROS=${buildDistros}" \\
+                                      --trailer "ARCHS=${buildArchs}" \\
+                                      --trailer "FLAVORS=${buildFlavors}" \\
+                                      --trailer "CI-CONTAINER=${buildCiContainer}" \\
+                                      "\${msg_file}"
+                                    git commit --amend -F "\${msg_file}"
+                                    rm -f "\${msg_file}"
+                                """,
+                                returnStatus: true,
+                            )
+                            if (trailerOk != 0) {
+                                echo "Failed to set build trailers for ${branchName}; skipping."
+                                skipped << "${branchName}(trailer-failed)"
+                                sh "cd ceph-src && git checkout -f origin/${branch} 2>/dev/null || true"
+                                continue
+                            }
+
+                            if (params.DRY_RUN) {
+                                echo "DRY_RUN=true; skipping push for ${branchName}."
+                                skipped << "${branchName}(dry-run)"
+                                sh "cd ceph-src && git checkout -f origin/${branch} 2>/dev/null || true"
+                                continue
+                            }
+
+                            if (maxPushes > 0 && pushed.size() >= maxPushes) {
+                                echo "MAX_PUSHES=${maxPushes} reached; skipping ${branchName}."
+                                skipped << "${branchName}(max-pushes)"
+                                sh "cd ceph-src && git checkout -f origin/${branch} 2>/dev/null || true"
+                                continue
+                            }
+
+                            // Create branch on merged HEAD and push to ceph-ci
+                            // ptl-tool.py left HEAD detached with the merged commits;
+                            // we just anchor it to a branch name and push.
+                            def pushOk = 1
+                            sshagent(['jenkins-build']) {
+                                pushOk = sh(
+                                    script: """
+                                        cd ceph-src
+                                        git checkout -B ${branchName}
+                                        git push -f ci ${branchName}
+                                    """,
+                                    returnStatus: true,
+                                )
+                            }
+                            if (pushOk == 0) {
+                                echo "Pushed ${branchName} (suite=${suite})"
+                                pushed << "${branchName}(suite=${suite})"
+
+                                // Mark each PR's HEAD SHA as 'pending' so the
+                                // next daily run skips it until SHA changes or
+                                // teuthology posts a final result.
+                                // Skipped when SKIP_STATUS_POST=true (e.g. push-path testing).
+                                if (!params.SKIP_STATUS_POST) {
+                                    def prShas = batch.pr_shas ? new HashMap(batch.pr_shas as Map) : [:]
+                                    def statusDesc = "Batched: ${branchName}"
+                                    prs.each { pr ->
+                                        def sha = prShas[pr.toString()] ?: ''
+                                        if (sha) {
+                                            withEnv([
+                                                "STATUS_SHA=${sha}",
+                                                "STATUS_DESC=${statusDesc}",
+                                                "STATUS_URL=${env.BUILD_URL}",
+                                            ]) {
+                                                sh(
+                                                    script: '''
+                                                        python3 auto-ptl-batch/scripts/check_pr_ci_status.py \
+                                                            --post-status "$STATUS_SHA" "$STATUS_DESC" "$STATUS_URL"
+                                                    ''',
+                                                    returnStatus: true,
+                                                )
+                                            }
+                                        }
+                                    }
+                                } else {
+                                    echo "SKIP_STATUS_POST=true; not posting commit status for ${branchName}."
+                                }
+
+                                // Trigger teuthology asynchronously after a delay so package
+                                // artifacts have time to appear on Shaman/Chacra.
+                                def teuthParams = [
+                                    string(name: 'CEPH_BUILD_BRANCH', value: params.CEPH_BUILD_BRANCH ?: 'main'),
+                                    string(name: 'CEPH_BRANCH',       value: branchName),
+                                    string(name: 'CEPH_REPO',         value: 'https://github.com/ceph/ceph-ci.git'),
+                                    string(name: 'SUITE_REPO',        value: 'https://github.com/ceph/ceph.git'),
+                                    string(name: 'SUITE_LIST',        value: suite),
+                                    booleanParam(name: 'SKIP_SHAMAN_WAIT', value: false),
+                                ]
+                                if (!params.SKIP_STATUS_POST) {
+                                    def statusShas = prShas.values().join(',')
+                                    teuthParams << booleanParam(name: 'WAIT_FOR_RUNS', value: true)
+                                    teuthParams << booleanParam(name: 'RUN_AGGREGATE', value: true)
+                                    teuthParams << booleanParam(name: 'POST_AUTO_PTL_PR_STATUS', value: true)
+                                    teuthParams << string(name: 'AUTO_PTL_PR_STATUS_SHAS', value: statusShas)
+                                    teuthParams << string(name: 'AUTO_PTL_BATCH_BRANCH', value: branchName)
+                                }
+                                echo "Triggering teuthology-runner for ${branchName} suite=${suite} (quietPeriod=${runnerDelaySeconds}s) ..."
+                                build(
+                                    job: 'teuthology-runner',
+                                    wait: false,
+                                    quietPeriod: runnerDelaySeconds,
+                                    parameters: teuthParams,
+                                )
+                            } else {
+                                echo "Push failed for ${branchName}."
+                                skipped << branchName
+                            }
+
+                            sh "cd ceph-src && git checkout -f origin/${branch} 2>/dev/null || true"
+                        }
+
+                        echo "Pushed:  ${pushed}"
+                        echo "Skipped: ${skipped}"
+                        currentBuild.description = (
+                            "pushed=${pushed.join(',') ?: 'none'} " +
+                            "skipped=${skipped.join(',') ?: 'none'}"
+                        )
+                    }
+                }
+            }
+        }
+
+    }
+}
