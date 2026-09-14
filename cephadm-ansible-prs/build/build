@@ -1,5 +1,17 @@
 #!/bin/bash
 
+# The functional scenarios drive libvirt VMs through vagrant.  builder.yml will not
+# register a host labelled `libvirt` unless vagrant runs there, so this should never
+# fire; it only catches a label hand-edited in the Jenkins UI or vagrant removed from
+# a builder after provisioning.  Worth the two lines because update_vagrant_boxes
+# swallows the first "command not found" and the build would otherwise die ~150 lines
+# later as a bare `exit 127` out of tox.
+if [[ "$SCENARIO" == "functional" ]] && ! command -v vagrant > /dev/null; then
+  echo "ERROR: vagrant is not installed on ${NODE_NAME:-this builder}, but the ${SCENARIO} scenario requires it."
+  echo "Re-run ceph-build's ansible/examples/builder.yml against this host to install it."
+  exit 1
+fi
+
 # the following two methods exist in scripts/build_utils.sh
 pkgs=( "tox" )
 TEMPVENV=$(create_venv_dir)

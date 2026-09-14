@@ -1,12 +1,20 @@
 ---
 ## Instead of trying to keep 4 separate playbooks up to date, let's do it all here.
-## The only difference from using multiple playbooks is we need to specify `-e libvirt=true` and/or `-e permanent=true` if the builder will be permanent/static.
+## The only difference from using multiple playbooks is we need to specify `-e permanent=true` for a
+## permanent/static builder outside Sepia.  Sepia builders are detected by IP and set permanent themselves.
+## Vagrant/libvirt installation is driven by the host's `jenkins_labels` entry: a label containing `libvirt` installs them.  Override with `-e libvirt=true|false`.
 ## Tested on: CentOS 7, CentOS 8, Xenial, Bionic, Focal, Leap 15.1 using ansible 2.8.5
 ##
 ## Example:
 ## define labels in inventory "jenkins_labels" dict, keyed by fqdn
 ##
-## ansible-playbook -vvv -M ./library/ builder.yml, -e '{"api_uri": "https://jenkins.ceph.com"}' --limit braggi01*
+## From a ceph-sepia-secrets checkout (its ansible.cfg supplies the inventory and vault password,
+## and its group_vars supply default_secrets_path), a Sepia builder needs no extra vars at all:
+##
+##   ansible-playbook -M ~/src/ceph-build/ansible/library/ ~/src/ceph-build/ansible/examples/builder.yml --limit braggi01*
+##
+## Elsewhere, pass what the inventory does not provide, e.g.
+##   ansible-playbook -vvv -M ./library/ builder.yml -e '{"api_uri": "https://jenkins.ceph.com"}' --limit braggi01*
 #
 ##
 ## secrets files jenkins.ceph.com.apitoken.yml and 2.jenkins.ceph.com.apitoken.yml must
@@ -51,7 +59,13 @@
   become: true
   user: ubuntu # This should be overridden on the CLI (e.g., -e user=centos).  It doesn't matter on a mita/prado builder because the playbook is run locally by root.
   vars:
-    libvirt: false # Should vagrant be installed?
+    # Should vagrant be installed?  Derived from the builder's Jenkins label so that
+    # any host advertising `libvirt` actually gets vagrant and the vagrant-libvirt
+    # plugin.  Jobs select builders by label (e.g. cephadm-ansible-prs uses
+    # `libvirt && !centos9`), so a labelled host without vagrant fails at runtime with
+    # a bare `vagrant: command not found`.  Still overridable with `-e libvirt=true`
+    # or `-e libvirt=false`, since extra-vars take precedence over play vars.
+    libvirt: "{{ 'libvirt' in (jenkins_labels | default({})).get(inventory_hostname, '').split() }}"
     permanent: false # Is this a permanent builder?  Since the ephemeral (non-permanent) tasks get run more often, we'll default to false.
     jenkins_user: 'jenkins-build'
     api_user: 'ceph-jenkins'
@@ -63,10 +77,30 @@
     osc_user: 'username'
     osc_pass: 'password'
     container_mirror: 'docker-mirror.front.sepia.ceph.com:5000'
-    secrets_path: "{{ lookup('env', 'ANSIBLE_SECRETS_PATH') | default('/etc/ansible/secrets', true) }}"
+    # ANSIBLE_SECRETS_PATH still wins, and the /etc/ansible/secrets fallback keeps the
+    # ephemeral builders (which run this playbook locally as root) working.  In between,
+    # an inventory can point at its own secrets dir via `default_secrets_path`, which
+    # lets the sepia inventory supply the Jenkins API token with nothing on the CLI.
+    # Play vars outrank inventory vars, so this indirection -- rather than overriding
+    # secrets_path itself from group_vars -- is what makes that possible.
+    secrets_path: "{{ lookup('env', 'ANSIBLE_SECRETS_PATH') | default(default_secrets_path | default('/etc/ansible/secrets'), true) }}"
     java_version: 'java-21'
 
   tasks:
+    # The Jenkins label is how jobs pick builders, so it must never advertise libvirt on a
+    # host where vagrant was not installed.  `libvirt` defaults to the label, so this can
+    # only fire when someone overrides it off on a libvirt-labelled host.
+    - name: Refuse to provision a libvirt-labelled builder with vagrant disabled
+      assert:
+        that:
+          - libvirt|bool
+        fail_msg: >-
+          {{ inventory_hostname }} is labelled `libvirt` in jenkins_labels, which is how jobs
+          select vagrant builders, but libvirt=false so vagrant would not be installed.
+          Either drop `libvirt` from the label or drop the `-e libvirt=false` override.
+      when: "'libvirt' in (jenkins_labels | default({})).get(inventory_hostname, '').split()"
+      tags: always
+
     - name: "Include appropriate jenkins API token"
       # sets 'token'
       include_vars: "{{ secrets_path | mandatory }}/{{ api_uri | replace('https://', '')}}.apitoken.yml"
@@ -878,7 +912,7 @@
       tags: debian-keys
 
     ## VAGRANT PLUGIN TASKS
-    - name: Install vagrant-libvirt plugin
+    - name: Install and verify vagrant-libvirt plugin
       block:
         - name: Use system python for this part
           set_fact:
@@ -913,6 +947,17 @@
           environment:
             CONFIGURE_ARGS: 'with-libvirt-include=/usr/include/libvirt with-libvirt-lib=/usr/lib'
           when: ansible_os_family == "Debian" and ansible_distribution_major_version|int >= 20
+
+        # Builder registration happens at the end of this play, so failing here keeps a host
+        # that cannot run vagrant out of Jenkins entirely, rather than letting it come back
+        # online advertising `libvirt`.  This is what makes the label trustworthy: reaching
+        # registration at all means vagrant ran as the jenkins user.
+        - name: Verify vagrant and the vagrant-libvirt plugin are usable
+          shell: |
+            command -v vagrant || { echo "vagrant is not installed"; exit 1; }
+            vagrant plugin list | grep -q vagrant-libvirt || { echo "the vagrant-libvirt plugin is not installed"; exit 1; }
+          become_user: "{{ jenkins_user }}"
+          changed_when: false
 
         # NOTE: We can't use "{{ venv }}" here because it's a play-level var defined in the first
         # play, and play-level vars don't carry across plays (unlike set_fact, which is why
