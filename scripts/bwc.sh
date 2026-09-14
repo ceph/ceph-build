@@ -23,6 +23,7 @@ bwc() {
     shift
     local current_branch=${GIT_BRANCH:-main}
     current_branch=${current_branch//\//-}
+    bwc_seed_boost
     local args=()
     if [ "${NPMCACHE}" ]; then
         args+=(--npm-cache-path="${NPMCACHE}")
@@ -52,6 +53,61 @@ bwc() {
         --current-branch="${current_branch}" \
         -t"+$(bwc_arch)" \
         "${args[@]}"
+}
+
+# bwc_seed_boost - Extract a cached Boost tarball into src/boost so cmake
+#   skips the ExternalProject download.  BuildBoost.cmake uses an existing
+#   src/boost tree when one is present (that is how the release tarballs
+#   build); without one every leg re-downloads the tarball, and
+#   download.ceph.com throttles the builders -- ceph-pr-pipeline run 1331
+#   spent 40 of the x86 build's 50 minutes on that one download, with
+#   every C++ object gated behind it.  The version and checksum are parsed
+#   from the checkout so this tracks each branch's pinned Boost.
+# Arguments: (none)
+# Variables:
+#   BOOST_CACHE_DIR - Host directory the tarballs are kept in.  Defaults to
+#                     ~/.cache/ceph-boost; set it empty to leave the
+#                     download to cmake.
+bwc_seed_boost() {
+    local cache_dir="${BOOST_CACHE_DIR-${HOME}/.cache/ceph-boost}"
+    [ "${cache_dir}" ] || return 0
+    [ -e src/boost/bootstrap.sh ] && return 0
+    local version sha256
+    version=$(sed -n 's/^ *set(boost_version \([0-9.]*\)).*/\1/p' cmake/modules/BuildBoost.cmake 2>/dev/null)
+    sha256=$(sed -n 's/^ *set(boost_sha256 \([0-9a-f]*\)).*/\1/p' cmake/modules/BuildBoost.cmake 2>/dev/null)
+    if [ -z "${version}" ] || [ -z "${sha256}" ]; then
+        echo "bwc_seed_boost: no pinned boost tarball in this checkout; leaving the download to cmake"
+        return 0
+    fi
+    local tarball="${cache_dir}/boost_${version//./_}.tar.bz2"
+    if [ "$(sha256sum "${tarball}" 2>/dev/null | cut -d' ' -f1)" != "${sha256}" ]; then
+        mkdir -p "${cache_dir}"
+        local tmp url
+        tmp=$(mktemp "${tarball}.XXXXXX")
+        # The lab mirror first: download.ceph.com last, since OVH is
+        # throttling downloads from it (~55KB/s as of Sep 2026)
+        for url in \
+            "https://apt-mirror.sepia.ceph.com/qa/boost_${version//./_}.tar.bz2" \
+            "https://archives.boost.io/release/${version}/source/boost_${version//./_}.tar.bz2" \
+            "https://download.ceph.com/qa/boost_${version//./_}.tar.bz2"; do
+            curl -fsSL --retry 3 --max-time 1800 -o "${tmp}" "${url}" || continue
+            if [ "$(sha256sum "${tmp}" | cut -d' ' -f1)" = "${sha256}" ]; then
+                mv "${tmp}" "${tarball}"
+                break
+            fi
+        done
+        rm -f "${tmp}"
+    fi
+    if [ "$(sha256sum "${tarball}" 2>/dev/null | cut -d' ' -f1)" != "${sha256}" ]; then
+        echo "bwc_seed_boost: could not cache boost ${version}; leaving the download to cmake"
+        return 0
+    fi
+    # unpack beside the destination and rename, so a killed job can't leave
+    # a partial src/boost that configure would trust
+    rm -rf src/.boost-unpack
+    mkdir -p src/.boost-unpack
+    tar xjf "${tarball}" --strip-components=1 -C src/.boost-unpack
+    mv src/.boost-unpack src/boost
 }
 
 # bwc_seccomp_profile - Print a --security-opt argument holding the host's
