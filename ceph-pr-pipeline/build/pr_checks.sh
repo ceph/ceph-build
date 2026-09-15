@@ -139,13 +139,19 @@ do_classify() {
     )
     local gha_patterns=( '.github/*' )
     local qa_patterns=( 'qa/*' 'src/script/*' )
+    # Unlike qa/* (which make check lints via run-tox-qa and the API tests
+    # execute via qa/tasks/mgr), nothing in make check or the API tests
+    # exercises src/script/*, so those legs can skip script-only PRs too.
+    local script_patterns=( 'src/script/*' )
 
     local docs_only=false container_only=false gha_only=false qa_only=false
+    local script_only=false
     if [ -n "$files" ]; then
         only_matching docs_patterns "$files" && docs_only=true
         only_matching container_patterns "$files" && container_only=true
         only_matching gha_patterns "$files" && gha_only=true
         only_matching qa_patterns "$files" && qa_only=true
+        only_matching script_patterns "$files" && script_only=true
     fi
 
     tee "${WORKSPACE}/pr_changes.properties" << EOF
@@ -153,6 +159,7 @@ DOCS_ONLY=${docs_only}
 CONTAINER_ONLY=${container_only}
 GHA_ONLY=${gha_only}
 QA_ONLY=${qa_only}
+SCRIPT_ONLY=${script_only}
 EOF
 }
 

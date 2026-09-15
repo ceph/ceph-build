@@ -390,19 +390,23 @@ def doPrepare() {
   """
   def changes = readProperties(file: "pr_changes.properties")
   env.DOCS_ONLY = changes.DOCS_ONLY
-  // docs/, container/ or .github/-only changes need no binaries at all;
-  // windows additionally skips qa/-only changes.  Same as the old jobs.
+  // docs/, container/ or .github/-only changes need no binaries at all.
   def heavy_skip = [changes.DOCS_ONLY, changes.CONTAINER_ONLY, changes.GHA_ONLY]
       .contains("true")
+  // make check and the API tests also skip src/script/-only changes
+  // (nothing in either exercises those scripts), but must still run for
+  // qa/-only ones: make check lints qa/ via run-tox-qa, and the API tests
+  // execute qa/tasks/mgr.  The old jobs ran both for src/script-only PRs.
+  def script_skip = heavy_skip || changes.SCRIPT_ONLY == "true"
   // windows and arm64 additionally skip qa/-only changes
-  def qa_skip = heavy_skip || changes.QA_ONLY == "true"
+  def qa_skip = script_skip || changes.QA_ONLY == "true"
 
   run_signed = wantCheck("signed")
   run_submodules = wantCheck("submodules")
-  run_make_check = wantCheck("make-check") && !heavy_skip
+  run_make_check = wantCheck("make-check") && !script_skip
   run_make_check_arm64 = wantCheck("make-check-arm64") && !qa_skip &&
       arm64_branches.contains(env.ghprbTargetBranch)
-  run_api = wantCheck("api") && !heavy_skip &&
+  run_api = wantCheck("api") && !script_skip &&
       api_branches.any { env.ghprbTargetBranch ==~ it }
   run_windows = wantCheck("windows") && !qa_skip &&
       windows_branches.contains(env.ghprbTargetBranch)
@@ -426,21 +430,25 @@ def doPrepare() {
     }
   }
 
-  // Anything skipped for a doc/container/gha/qa-only PR is reported as
-  // success (these contexts are required by branch protection).
+  // Anything skipped for a doc/container/gha/script/qa-only PR is reported
+  // as success (these contexts are required by branch protection).  The
+  // descriptions name their leg: a qa-only PR skips arm64 but still runs
+  // x86_64 make check, and a bare "no need to run make check" on the arm64
+  // context reads like the pipeline ignored its own skip decision (build
+  // 1438) while the console keeps compiling for the x86_64 leg.
   if (wantCheck("make-check") && !run_make_check) {
-    postStatus("make-check", "success", "no need to run make check")
+    postStatus("make-check", "success", "no need to run make check for this change")
   }
   if (wantCheck("make-check-arm64") && qa_skip &&
       arm64_branches.contains(env.ghprbTargetBranch)) {
-    postStatus("make-check-arm64", "success", "no need to run make check")
+    postStatus("make-check-arm64", "success", "no need to run make check on arm64 for this change")
   }
-  if (wantCheck("api") && heavy_skip) {
-    postStatus("api", "success", "no need to run API tests")
+  if (wantCheck("api") && script_skip) {
+    postStatus("api", "success", "no need to run API tests for this change")
   }
   if (wantCheck("windows") && qa_skip &&
       windows_branches.contains(env.ghprbTargetBranch)) {
-    postStatus("windows", "success", "no need to run windows tests")
+    postStatus("windows", "success", "no need to run windows tests for this change")
   }
 }
 
