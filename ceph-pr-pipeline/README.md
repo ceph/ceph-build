@@ -41,7 +41,10 @@ webhook (pull_request / issue_comment)
 - **Statuses:** each leg posts its own context via the GitHub API.  Pending
   is posted from `prepare` before legs wait for executors; canceled/failed
   runs finalize any still-pending contexts.  Docs/container/gha-only PRs
-  (plus qa-only for windows/arm64) report success without building.
+  (plus src/script-only for make check and the API tests, and qa-only for
+  windows/arm64) report success without building.  qa-only PRs still run
+  make check (run-tox-qa lints qa/) and the API tests (which execute
+  qa/tasks/mgr).
 - **Checkout:** each leg checks out the PR head and **merges it locally**
   onto the target-branch head pinned once in prepare -- GitHub's
   `refs/pull/N/merge` is refreshed lazily and can silently point at a stale
