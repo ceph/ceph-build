@@ -3,10 +3,11 @@
     scm:
       - git:
           url: https://github.com/ceph/ceph.git
+          browser: githubweb
+          browser-url: https://github.com/ceph/ceph/
           branches:
             - ${{sha1}}
           refspec: +refs/pull/${{ghprbPullId}}/*:refs/remotes/origin/pr/${{ghprbPullId}}/*
-          browser: auto
           timeout: 20
           skip-tag: true
           wipe-workspace: true
@@ -17,9 +18,10 @@
     scm:
       - git:
           url: https://github.com/ceph/ceph-build.git
+          browser: githubweb
+          browser-url: https://github.com/ceph/ceph-build/
           branches:
             - origin/main
-          browser-url: https://github.com/ceph/ceph-build
           timeout: 20
           skip-tag: true
           wipe-workspace: false

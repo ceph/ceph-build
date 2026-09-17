@@ -6,10 +6,11 @@
     scm:
       - git:
           url: https://github.com/ceph/radosgw-agent.git
+          browser: githubweb
+          browser-url: https://github.com/ceph/radosgw-agent/
           branches:
             - ${{sha1}}
           refspec: +refs/pull/*:refs/remotes/origin/pr/*
-          browser: auto
           timeout: 20
           skip-tag: true
           wipe-workspace: false
@@ -20,7 +21,8 @@
     scm:
       - git:
           url: https://github.com/ceph/ceph-build.git
-          browser-url: https://github.com/ceph/ceph-build
+          browser: githubweb
+          browser-url: https://github.com/ceph/ceph-build/
           timeout: 20
           skip-tag: true
           wipe-workspace: false

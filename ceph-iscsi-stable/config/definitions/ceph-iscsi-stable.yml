@@ -3,6 +3,8 @@
     scm:
       - git:
           url: https://github.com/ceph/ceph-iscsi.git
+          browser: githubweb
+          browser-url: https://github.com/ceph/ceph-iscsi/
           branches:
             - $CEPH_ISCSI_BRANCH
           skip-tag: true
@@ -14,6 +16,8 @@
     scm:
       - git:
           url: https://github.com/ceph/ceph-iscsi-tools.git
+          browser: githubweb
+          browser-url: https://github.com/ceph/ceph-iscsi-tools/
           branches:
             - $CEPH_ISCSI_TOOLS_BRANCH
           skip-tag: true

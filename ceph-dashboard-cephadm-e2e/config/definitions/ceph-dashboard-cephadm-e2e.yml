@@ -58,17 +58,24 @@
     scm:
       - git:
           url: https://github.com/ceph/ceph.git
+          browser: githubweb
+          browser-url: https://github.com/ceph/ceph/
           branches:
             - origin/pr/${{ghprbPullId}}/merge
           refspec: +refs/pull/${{ghprbPullId}}/*:refs/remotes/origin/pr/${{ghprbPullId}}/*
-          browser: auto
+          changelog-against:
+            remote: origin
+            branch: main
           timeout: 20
           skip-tag: true
           shallow-clone: true
+          depth: 50
           wipe-workspace: true
 
       - git:
           url: https://github.com/ceph/ceph-build.git
+          browser: githubweb
+          browser-url: https://github.com/ceph/ceph-build/
           branches:
             - main
           basedir: ceph-build

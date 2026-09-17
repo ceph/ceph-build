@@ -5,6 +5,8 @@
     scm:
       - git:
           url: https://github.com/ceph/ceph.git
+          browser: githubweb
+          browser-url: https://github.com/ceph/ceph/
           branches:
             - origin/main
           skip-tag: true
@@ -18,6 +20,8 @@
     scm:
       - git:
           url: https://github.com/ceph/ceph.git
+          browser: githubweb
+          browser-url: https://github.com/ceph/ceph/
           branches:
             - origin/pr/${{ghprbPullId}}/merge
           refspec: +refs/pull/${{ghprbPullId}}/*:refs/remotes/origin/pr/${{ghprbPullId}}/*
@@ -31,6 +35,8 @@
     scm:
       - git:
           url: https://github.com/ceph/cbt.git
+          browser: githubweb
+          browser-url: https://github.com/ceph/cbt/
           refspec: +refs/heads/main:refs/remotes/origin/main
           do-not-fetch-tags: true
           honor-refspec: true
