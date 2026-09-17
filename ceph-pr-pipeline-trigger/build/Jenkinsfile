@@ -39,8 +39,8 @@ import groovy.transform.Field
 // with these too (needed for manual runs), but the trigger must also know
 // them so it never posts a pending status for a context no leg will ever
 // resolve (the GHPRB jobs simply never created those contexts).
-@Field List windows_branches = ["main", "umbrella", "tentacle", "squid", "reef"]
-@Field List api_branches = ["main", "umbrella", "tentacle", "squid", /feature-.*/]
+@Field List windows_branches = ["main", "vampire", "umbrella", "tentacle", "squid", "reef"]
+@Field List api_branches = ["main", "vampire", "umbrella", "tentacle", "squid", /feature-.*/]
 @Field List arm64_branches = ["main"]
 
 @Field String pr = ""

@@ -47,8 +47,8 @@ import groovy.transform.Field
 ]
 
 // Target-branch restrictions, same as the old freestyle jobs' whitelists.
-@Field List windows_branches = ["main", "umbrella", "tentacle", "squid", "reef"]
-@Field List api_branches = ["main", "umbrella", "tentacle", "squid", /feature-.*/]
+@Field List windows_branches = ["main", "vampire", "umbrella", "tentacle", "squid", "reef"]
+@Field List api_branches = ["main", "vampire", "umbrella", "tentacle", "squid", /feature-.*/]
 // The dashboard API suite is ~90 min of serial tests, so it runs as two
 // shards on two builders (~45 min each).  Shard B is the modules that
 // mutate mgr- or cluster-wide state (module enable/disable, config set,
@@ -70,7 +70,7 @@ import groovy.transform.Field
   "test_orchestrator", "test_cluster_configuration", "test_settings",
   "test_motd", "test_feedback", "test_telemetry", "test_mgr_module",
 ]
-@Field List arm64_branches = ["main", "umbrella", "tentacle", "squid"]
+@Field List arm64_branches = ["main", "vampire", "umbrella", "tentacle", "squid"]
 
 // Set by the prepare stage.
 @Field boolean run_signed = false

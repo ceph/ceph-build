@@ -68,7 +68,8 @@ def params_from_branch(initialParams) {
       }
       break
     case ~/.*vampire.*/:
-      params[-1]['DISTROS'] = 'rocky10 noble resolute'
+      // https://docs.ceph.com/en/latest/start/os-recommendations/#platforms
+      params[-1]['DISTROS'] = 'rocky10 noble resolute windows'
       params[-1]['ARCHS'] += ' arm64'
       break
     case ~/.*centos9-only.*/:

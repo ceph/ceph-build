@@ -86,6 +86,7 @@
           os_label: installed-os-noble
           target_branches:
             - main
+            - vampire
             - umbrella
             - tentacle
             - "feature-.*"
