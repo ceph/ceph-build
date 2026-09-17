@@ -10,6 +10,13 @@ project=${1}
 release=${2}
 sha1=${3}
 
+# chacra.ceph.com no longer runs sshd: its package tree is served over ssh by the
+# chacra-sync pod on the pok OpenShift cluster (ns chacra-ceph-com), rooted at /data.
+# The signer's key must be in that pod's authorized_keys (secret chacra-sync-keys).
+CHACRA_SYNC_HOST=${CHACRA_SYNC_HOST:-syncuser@chacra-sync.front.sepia.ceph.com}
+CHACRA_SYNC_REPOS=${CHACRA_SYNC_REPOS:-/data/repos}
+CHACRA_SYNC_RSH="ssh -o StrictHostKeyChecking=accept-new"
+
 echo "sync for: $project $release"
 echo "********************************************"
 
@@ -61,10 +68,10 @@ mkdir -p /opt/repos/$project/$relver/{debian/jessie,centos/9,rocky/10}
 if [[ "$project" == "ceph" ]] ; then
   # Replace $highest_combo with your own DISTRO/VERSION if you don't want to sync from the repo with the most packages.
   if [[ -n "$highest_combo" ]] ; then
-    deb_cmd="ubuntu@chacra.ceph.com:/opt/repos/$project/$release/$sha1/$highest_combo/flavors/default/* /opt/repos/$project/$relver/debian/jessie/"
+    deb_cmd="$CHACRA_SYNC_HOST:$CHACRA_SYNC_REPOS/$project/$release/$sha1/$highest_combo/flavors/default/* /opt/repos/$project/$relver/debian/jessie/"
     echo $deb_cmd
     echo "--------------------------------------------"
-    rsync -Lavh --progress --exclude '*lockfile*' $deb_cmd
+    rsync -Lavh --progress -e "$CHACRA_SYNC_RSH" --exclude '*lockfile*' $deb_cmd
   fi
 fi
 
@@ -75,9 +82,9 @@ for el_version in centos/9 rocky/10; do
   status=$(curl -fsSo - --connect-timeout 5 --max-time 10 "https://shaman.ceph.com/api/repos/$project/$release/$sha1/$el_version/flavors/default/" | jq -r '.[].status // empty')
 
   if [ "$status" = "ready" ]; then
-    el_cmd="ubuntu@chacra.ceph.com:/opt/repos/$project/$release/$sha1/$el_version/flavors/default/* /opt/repos/$project/$relver/$el_version/"
+    el_cmd="$CHACRA_SYNC_HOST:$CHACRA_SYNC_REPOS/$project/$release/$sha1/$el_version/flavors/default/* /opt/repos/$project/$relver/$el_version/"
     echo "$el_cmd"
-    rsync -Lavh --progress $el_cmd
+    rsync -Lavh --progress -e "$CHACRA_SYNC_RSH" $el_cmd
   else
     echo "Shaman repo for $el_version is not ready (status: ${status:-unknown}). Skipping."
   fi
