@@ -29,7 +29,8 @@ webhook (pull_request / issue_comment)
             └─ build and test
                  build ceph           (huge)  ONE clone, bwc -e buildtests, tree → S3
                  ├─ make check        tree ← S3, bwc -e tests
-                 └─ ceph API tests    tree ← S3, run-backend-api-tests (in container)
+                 ├─ ceph API tests A  tree ← S3, run-backend-api-tests <modules> (in container)
+                 └─ ceph API tests B  tree ← S3, run-backend-api-tests <modules> (in container)
 ```
 
 - **Cache:** build trees are zstd-tarred to the Sepia LRC's RGW (the doli
@@ -38,6 +39,13 @@ webhook (pull_request / issue_comment)
   exactly those two inputs and the cache invalidates itself when either
   side moves.  Re-runs with both unchanged skip compilation
   (`FORCE_BUILD=true` overrides).
+- **API test shards:** the dashboard suite is ~90 min of serial tests, so
+  it runs as two shards on two builders under the one `ceph API tests`
+  status.  Shard B is the fixed list in the Jenkinsfile (`api_shard_b`:
+  modules that touch mgr/cluster-wide state) plus `test_module_selftest`
+  last; shard A is every other `qa/tasks/mgr/dashboard/test_*.py` in the
+  tree, so new modules need no change here.  Each shard's vstart logs are
+  archived under `api-logs-<shard>/`.
 - **Statuses:** each leg posts its own context via the GitHub API.  Pending
   is posted from `prepare` before legs wait for executors; canceled/failed
   runs finalize any still-pending contexts.  Docs/container/gha-only PRs
@@ -194,6 +202,11 @@ validation or one-off manual windows builds.
 
 - API tests now run inside the build container (was: bare noble host);
   validate on a real PR before the flip.
+- The two API test shards change which modules run after which.  One
+  hidden dependency is already known and handled (`test_module_selftest`
+  needs a filesystem to exist, see `api_shard_b` in the Jenkinsfile);
+  run `jenkins test api` a few times on a scratch PR before relying on
+  the split, and move a module across if another turns up.
 - Dashboard-frontend cobertura publishing is not wired up yet.
 - A hard kill (double abort) skips `post{}`, so statuses stay pending.
 - `build-with-container.py` names its container `ceph_build`: one leg per

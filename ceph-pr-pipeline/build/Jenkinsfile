@@ -49,6 +49,27 @@ import groovy.transform.Field
 // Target-branch restrictions, same as the old freestyle jobs' whitelists.
 @Field List windows_branches = ["main", "umbrella", "tentacle", "squid", "reef"]
 @Field List api_branches = ["main", "umbrella", "tentacle", "squid", /feature-.*/]
+// The dashboard API suite is ~90 min of serial tests, so it runs as two
+// shards on two builders (~45 min each).  Shard B is the modules that
+// mutate mgr- or cluster-wide state (module enable/disable, config set,
+// auth/password policy, settings) plus test_module_selftest, which
+// stresses the mgr and must stay last; shard A is every other
+// qa/tasks/mgr/dashboard/test_*.py the checked-out tree has, so a new
+// module lands in A without a change here and a release branch missing
+// one of B's modules just skips it.  Within each shard the modules keep
+// the alphabetical order the unsharded run used.
+//
+// test_health is in B for a reason: the selftest's telemetry check tells
+// every MDS to dump_mempools through mds_command2, which fails with ENOENT
+// against a standby MDS in no filesystem -- and the vstart cluster starts
+// with exactly that.  A DashboardTestCase with CEPHFS=True (cephfs, health,
+// logs, summary) creates the filesystem, so one of them has to run in B
+// before test_module_selftest (found on the first sharded run, build 1641).
+@Field List api_shard_b = [
+  "test_auth", "test_user", "test_role", "test_host", "test_health",
+  "test_orchestrator", "test_cluster_configuration", "test_settings",
+  "test_motd", "test_feedback", "test_telemetry", "test_mgr_module",
+]
 @Field List arm64_branches = ["main", "umbrella", "tentacle", "squid"]
 
 // Set by the prepare stage.
@@ -668,22 +689,73 @@ def doMakeCheckArm64() {
   }
 }
 
-def doApiTests() {
+// One shard of the dashboard API tests (see api_shard_b).  The terminal
+// "api" status is posted by the caller once both shards are done, not
+// here: two shards posting a final state to one context would race, and
+// the last POST wins.
+def doApiTests(String shard) {
   restoreBuildTree()
-  withStatus("api", "ceph API tests") {
-    // Runs inside the same build container the tree was compiled in (the
-    // custom command runs as root in the container, hence plain apt-get).
-    // sudo must be installed even though we are root: vstart_runner shells
-    // out through `sudo kill` etc. and dies with exit 127 without it.
-    // locales provides the en_US.UTF-8 the test script sets via LC_ALL,
-    // and psmisc provides the killall its cleanup calls at the end.
-    sh(
-      label: "run dashboard API tests",
-      script: bwcPreamble("x86_64") + """
-        cd ceph
-        bwc 3 -e custom -- "apt-get update && apt-get install -y python3-scipy python3-routes sudo locales psmisc && locale-gen en_US.UTF-8 && cd src/pybind/mgr/dashboard && timeout 7200 ./run-backend-api-tests.sh"
-      """
-    )
+  // Runs inside the same build container the tree was compiled in (the
+  // custom command runs as root in the container, hence plain apt-get).
+  // sudo must be installed even though we are root: vstart_runner shells
+  // out through `sudo kill` etc. and dies with exit 127 without it.
+  // locales provides the en_US.UTF-8 the test script sets via LC_ALL,
+  // and psmisc provides the killall its cleanup calls at the end.
+  //
+  // run-backend-api-tests.sh runs exactly the modules it is given, in that
+  // order, on a vstart cluster it creates itself; with no arguments it
+  // would run the whole suite.
+  sh(
+    label: "run dashboard API tests (shard ${shard})",
+    script: bwcPreamble("x86_64") + """
+      cd ceph
+      shard_b="${api_shard_b.join(' ')}"
+      modules=""
+      case "${shard}" in
+        A)
+          for f in qa/tasks/mgr/dashboard/test_*.py; do
+            m=\$(basename "\$f" .py)
+            case " \$shard_b " in
+              *" \$m "*) ;;
+              *) modules="\$modules tasks.mgr.dashboard.\$m" ;;
+            esac
+          done
+          ;;
+        B)
+          modules="tasks.mgr.test_dashboard"
+          for m in \$shard_b; do
+            [ -f "qa/tasks/mgr/dashboard/\$m.py" ] && modules="\$modules tasks.mgr.dashboard.\$m"
+          done
+          modules="\$modules tasks.mgr.test_module_selftest"
+          ;;
+      esac
+      echo "API test shard ${shard}:\$modules"
+      bwc 3 -e custom -- "apt-get update && apt-get install -y python3-scipy python3-routes sudo locales psmisc && locale-gen en_US.UTF-8 && cd src/pybind/mgr/dashboard && timeout 7200 ./run-backend-api-tests.sh \$modules"
+    """
+  )
+}
+
+// Stash this shard's vstart logs (archived by archiveLegArtifacts in the
+// pipeline post{}) and drop the build container.
+def apiShardCleanup(String shard) {
+  stash(name: "api-logs-${shard}",
+        includes: "ceph/build/out/*.log",
+        allowEmpty: true)
+  sh """#!/bin/bash
+    podman rm -f ceph_build 2>/dev/null || true
+    podman unshare chown -R 0:0 "\$WORKSPACE"/ceph 2>/dev/null || true
+  """
+}
+
+// Terminal "api" status once both shards have reported (see the leg).
+def postApiTerminalStatus(Map results) {
+  if (results.values().contains("aborted")) {
+    postStatus("api", "error", "ceph API tests aborted")
+  } else if (results.values().contains("failure")) {
+    def failed = results.findAll { it.value == "failure" }.keySet().sort()
+    postStatus("api", "failure", "ceph API tests failed (shard ${failed.join(', ')})")
+  } else {
+    postStatus("api", "success", "ceph API tests succeeded")
   }
 }
 
@@ -743,14 +815,19 @@ def archiveLegArtifacts() {
   node("small") {
     dir("leg-artifacts") {
       deleteDir()
-      for (name in ["windows-artifacts", "api-logs"]) {
+      for (name in ["windows-artifacts", "api-logs-A", "api-logs-B"]) {
         try {
-          unstash(name)
+          if (name.startsWith("api-logs-")) {
+            // both shards stash the same ceph/build/out/*.log paths
+            dir(name) { unstash(name) }
+          } else {
+            unstash(name)
+          }
         } catch (hudson.AbortException e) {
           // that leg never ran, or died before stashing
         }
       }
-      archiveArtifacts(artifacts: "artifacts/**, ceph/build/out/*.log",
+      archiveArtifacts(artifacts: "artifacts/**, api-logs-*/ceph/build/out/*.log",
                        allowEmptyArchive: true)
       deleteDir()
     }
@@ -928,22 +1005,43 @@ pipeline {
                     }
                   }
                   if (run_api) {
+                    // Two shards under ONE "api" status.  No failFast: a
+                    // failing shard must not cancel the other, so one run
+                    // reports every failing test.  This stage is "agent
+                    // none" and postStatus shells out, so every POST has
+                    // to happen inside a shard's node: each shard posts
+                    // its own "running" pending, and whichever finishes
+                    // last posts the terminal status for both (naming the
+                    // failed shard(s)).  A shard that never got a node
+                    // leaves the context pending for the post{} sweep.
                     legs["ceph API tests"] = {
-                      node("huge && x86_64 && installed-os-noble && sepia") {
-                        try {
-                          doApiTests()
-                        } finally {
-                          // Archived by archiveLegArtifacts in the
-                          // pipeline post{}.
-                          stash(name: "api-logs",
-                                includes: "ceph/build/out/*.log",
-                                allowEmpty: true)
-                          sh """#!/bin/bash
-                            podman rm -f ceph_build 2>/dev/null || true
-                            podman unshare chown -R 0:0 "\$WORKSPACE"/ceph 2>/dev/null || true
-                          """
+                      def results = [:]  // shard -> success | failure | aborted
+                      def shards = [:]
+                      for (s in ["A", "B"]) {
+                        def shard = s
+                        shards["ceph API tests (${shard})"] = {
+                          node("huge && x86_64 && installed-os-noble && sepia") {
+                            def outcome = "success"
+                            try {
+                              postStatus("api", "pending", "running ceph API tests (shard ${shard})")
+                              doApiTests(shard)
+                            } catch (org.jenkinsci.plugins.workflow.steps.FlowInterruptedException e) {
+                              outcome = "aborted"
+                              throw e
+                            } catch (Exception e) {
+                              outcome = "failure"
+                              throw e
+                            } finally {
+                              results[shard] = outcome
+                              apiShardCleanup(shard)
+                              if (results.size() == 2) {
+                                postApiTerminalStatus(results)
+                              }
+                            }
+                          }
                         }
                       }
+                      parallel shards
                     }
                   }
                   if (legs) {
