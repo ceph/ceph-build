@@ -13,6 +13,9 @@ function create_venv_dir() {
 function release_from_version() {
     local ver=$1
     case $ver in
+    22.*)
+        rel="vampire"
+        ;;
     21.*)
         rel="umbrella"
         ;;

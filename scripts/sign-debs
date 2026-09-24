@@ -12,7 +12,7 @@ if [[ $# -lt 1 ]] ; then usage ; exit 1 ; fi
 project=$1; shift
 
 if [ $# -eq 0 ]; then
-    releases=( reef squid tentacle umbrella )
+    releases=( reef squid tentacle umbrella vampire )
 else
     releases=( "$@" )
 fi

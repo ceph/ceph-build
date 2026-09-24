@@ -67,6 +67,11 @@ def params_from_branch(initialParams) {
         params[0]['FLAVOR'] += ' debug'
       }
       break
+    case ~/.*vampire.*/:
+      // https://docs.ceph.com/en/latest/start/os-recommendations/#platforms
+      params[-1]['DISTROS'] = 'rocky10 noble resolute windows'
+      params[-1]['ARCHS'] += ' arm64'
+      break
     case ~/.*centos9-only.*/:
       params[0]['DISTROS'] = 'centos9'
       if ( !singleSet ) {
