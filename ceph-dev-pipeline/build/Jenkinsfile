@@ -719,7 +719,9 @@ pipeline {
     stage("parallel build") {
       matrix {
         agent {
-          label "(installed-os-centos9||installed-os-noble)&&${ARCH}&&${base_node_label}"
+          // pulp.front.sepia.ceph.com resolves to a lab-private address, so
+          // cells that talk to Pulp must land on a sepia-networked builder.
+          label "(installed-os-centos9||installed-os-noble)&&${ARCH}&&${base_node_label}${(params.PULP_UPLOAD || params.PULP_REGISTRY_UPLOAD) ? '&&sepia' : ''}"
         }
         when {
           beforeAgent true
