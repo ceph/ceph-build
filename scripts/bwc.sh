@@ -46,6 +46,11 @@ bwc() {
     if [ "${seccomp}" ]; then
         args+=(--extra="${seccomp}")
     fi
+    local base_image
+    base_image=$(bwc_apt_mirror_base_image)
+    if [ "${base_image}" ]; then
+        args+=(--base-image="${base_image}")
+    fi
     args+=("${@}")
     timeout "${timeout}" ./src/script/build-with-container.py \
         -d "${DISTRO_BASE:-jammy}" \
@@ -53,6 +58,83 @@ bwc() {
         --current-branch="${current_branch}" \
         -t"+$(bwc_arch)" \
         "${args[@]}"
+}
+
+# bwc_apt_mirror_base_image - Print the tag of a local derivative of the
+#   distro's stock base image whose apt sources point at the sepia lab's
+#   Ubuntu mirror, building it if needed.  The bwc build image is rebuilt
+#   for every PR (its tag embeds the branch name), so every run apt-gets
+#   the whole build dependency set from archive/security.ubuntu.com -- and
+#   a publish race there fails the leg: ceph-pr-pipeline build 2282 got a
+#   404 for libexpat1 2.4.7-1ubuntu0.9, which left the pool between the
+#   builder's `apt-get update` and the fetch.  The lab mirror is a
+#   consistent snapshot the builders pull from at LAN speed.
+#
+#   Prints nothing (leaving bwc on the stock image) whenever the mirror
+#   can't be used: off-lab builders (the probe fails), non-amd64 (the
+#   mirror only carries amd64), non-ubuntu DISTRO_BASE, or a checkout
+#   whose build-with-container.py predates --base-image.
+#
+#   The stock ubuntu images ship no ca-certificates and the mirror is
+#   https-only (http redirects), so the host's CA bundle is baked in and
+#   handed to apt via Acquire::https::CAInfo.  The mirror carries no
+#   -backports pockets; those entries are dropped (nothing bwc installs
+#   comes from backports).
+# Arguments: (none)
+# Variables:
+#   DISTRO_BASE - same distro selection bwc() uses.  Defaults to "jammy".
+#   CEPH_APT_MIRROR - Ubuntu mirror URL; set it empty to disable.
+# Output: image tag, or nothing
+bwc_apt_mirror_base_image() {
+    local mirror="${CEPH_APT_MIRROR-https://distro-mirror.front.sepia.ceph.com/ubuntu/}"
+    [ "${mirror}" ] || return 0
+    [ "$(bwc_arch)" = amd64 ] || return 0
+    command -v podman > /dev/null || return 0
+    local from codename
+    case "${DISTRO_BASE:-jammy}" in
+        jammy|ubuntu22.04)    from="docker.io/ubuntu:22.04"; codename=jammy ;;
+        noble|ubuntu24.04)    from="docker.io/ubuntu:24.04"; codename=noble ;;
+        resolute|ubuntu26.04) from="docker.io/ubuntu:26.04"; codename=resolute ;;
+        *) return 0 ;;
+    esac
+    grep -q -- '--base-image' ./src/script/build-with-container.py 2>/dev/null || return 0
+    local cacert=/etc/ssl/certs/ca-certificates.crt
+    [ -r "${cacert}" ] || return 0
+    curl -fs --max-time 10 -o /dev/null "${mirror%/}/dists/${codename}-security/Release" || return 0
+    local tag="localhost/ceph-build-apt-mirror:${codename}"
+    local ctx
+    ctx=$(mktemp -d) || return 0
+    cp "${cacert}" "${ctx}/ca-certificates.crt"
+    # jammy uses the classic /etc/apt/sources.list; noble and later use
+    # deb822 (ubuntu.sources), where -backports is a word in a Suites line.
+    cat > "${ctx}/Containerfile" << 'EOF'
+ARG FROM_IMAGE
+FROM $FROM_IMAGE
+ARG MIRROR_URL
+COPY ca-certificates.crt /usr/local/share/lab-apt-mirror-ca.crt
+RUN set -e; \
+    echo 'Acquire::https::CAInfo "/usr/local/share/lab-apt-mirror-ca.crt";' \
+        > /etc/apt/apt.conf.d/99-lab-apt-mirror; \
+    if [ -f /etc/apt/sources.list.d/ubuntu.sources ]; then \
+        sed -i -e "s|http://archive.ubuntu.com/ubuntu/*|${MIRROR_URL}|" \
+               -e "s|http://security.ubuntu.com/ubuntu/*|${MIRROR_URL}|" \
+               -e "s/ [a-z]*-backports//" /etc/apt/sources.list.d/ubuntu.sources; \
+    fi; \
+    if [ -f /etc/apt/sources.list ]; then \
+        sed -i -e "/-backports/d" \
+               -e "s|http://archive.ubuntu.com/ubuntu/*|${MIRROR_URL}|" \
+               -e "s|http://security.ubuntu.com/ubuntu/*|${MIRROR_URL}|" /etc/apt/sources.list; \
+    fi
+EOF
+    if podman build -q -t "${tag}" \
+            --build-arg=FROM_IMAGE="${from}" \
+            --build-arg=MIRROR_URL="${mirror%/}/" \
+            "${ctx}" >&2; then
+        echo "${tag}"
+    else
+        echo "bwc_apt_mirror_base_image: build failed; using the stock base image" >&2
+    fi
+    rm -rf "${ctx}"
 }
 
 # bwc_seed_boost - Extract a cached Boost tarball into src/boost so cmake
