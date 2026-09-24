@@ -60,9 +60,9 @@ bwc() {
         "${args[@]}"
 }
 
-# bwc_apt_mirror_base_image - Print the tag of a local derivative of the
-#   distro's stock base image whose apt sources point at the sepia lab's
-#   Ubuntu mirror, building it if needed.  The bwc build image is rebuilt
+# bwc_apt_mirror_base_image - Print a containers-storage: reference to a
+#   local derivative of the distro's stock base image whose apt sources
+#   point at the sepia lab's Ubuntu mirror, building it if needed.  The bwc build image is rebuilt
 #   for every PR (its tag embeds the branch name), so every run apt-gets
 #   the whole build dependency set from archive/security.ubuntu.com -- and
 #   a publish race there fails the leg: ceph-pr-pipeline build 2282 got a
@@ -84,7 +84,7 @@ bwc() {
 # Variables:
 #   DISTRO_BASE - same distro selection bwc() uses.  Defaults to "jammy".
 #   CEPH_APT_MIRROR - Ubuntu mirror URL; set it empty to disable.
-# Output: image tag, or nothing
+# Output: containers-storage: image reference, or nothing
 bwc_apt_mirror_base_image() {
     local mirror="${CEPH_APT_MIRROR-https://distro-mirror.front.sepia.ceph.com/ubuntu/}"
     [ "${mirror}" ] || return 0
@@ -126,11 +126,15 @@ RUN set -e; \
                -e "s|http://security.ubuntu.com/ubuntu/*|${MIRROR_URL}|" /etc/apt/sources.list; \
     fi
 EOF
+    # The containers-storage: transport, because bwc's `podman build --pull`
+    # treats a bare localhost/ reference as a registry and dies pinging
+    # localhost:443 (build 2355); the transport names the local store
+    # directly, so there is nothing to pull.
     if podman build -q -t "${tag}" \
             --build-arg=FROM_IMAGE="${from}" \
             --build-arg=MIRROR_URL="${mirror%/}/" \
             "${ctx}" >&2; then
-        echo "${tag}"
+        echo "containers-storage:${tag}"
     else
         echo "bwc_apt_mirror_base_image: build failed; using the stock base image" >&2
     fi
