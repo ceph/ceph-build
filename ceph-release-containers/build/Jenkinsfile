@@ -26,7 +26,9 @@ pipeline {
             }
             environment {
               // set up env the way build.sh expects it
-              // BRANCH, VERSION, REMOVE_LOCAL_IMAGES, NO_PUSH already set
+              // VERSION, REMOVE_LOCAL_IMAGES, NO_PUSH already set
+              // strip an accidental "-release" suffix (e.g. "squid-release" -> "squid")
+              BRANCH = "${params.BRANCH.replaceAll('-release$', '')}"
               FLAVOR = 'default'
               CEPH_SHA1 = "${SHA1}"
               ARCH = "${ARCH}"
