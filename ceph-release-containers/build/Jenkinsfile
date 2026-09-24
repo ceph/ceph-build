@@ -22,11 +22,13 @@ pipeline {
         stages {
           stage("arch-specific image") {
             agent {
-              label "centos9&&${ARCH}"
+              label "(installed-os-centos9||installed-os-noble)&&${ARCH}"
             }
             environment {
               // set up env the way build.sh expects it
-              // BRANCH, VERSION, REMOVE_LOCAL_IMAGES, NO_PUSH already set
+              // VERSION, REMOVE_LOCAL_IMAGES, NO_PUSH already set
+              // strip an accidental "-release" suffix (e.g. "squid-release" -> "squid")
+              BRANCH = "${params.BRANCH.replaceAll('-release$', '')}"
               FLAVOR = 'default'
               CEPH_SHA1 = "${SHA1}"
               ARCH = "${ARCH}"
@@ -84,10 +86,10 @@ pipeline {
     }
     stage("make manifest-list image") {
       agent {
-        // exclude ppc64le: those nodes also carry the centos9 label but
-        // lack the github.com SSH host key needed to clone ceph-releases.git
-        // (and the /home/jenkins-build paths assumed below)
-        label "centos9&&!ppc64le"
+        // exclude ppc64le: those nodes lack the github.com SSH host key
+        // needed to clone ceph-releases.git (and the /home/jenkins-build
+        // paths assumed below)
+        label "(installed-os-centos9||installed-os-noble)&&!ppc64le"
       }
       environment {
         CONTAINER_REPO_HOSTNAME = 'quay.ceph.io'
@@ -96,6 +98,8 @@ pipeline {
         REGISTRY_AUTH_FILE = '/home/jenkins-build/manifest.auth.json'
       }
       steps {
+        // installs podman and skopeo if missing, whatever the host distro
+        sh './scripts/setup_container_runtime.sh'
         dir('ceph') {
           checkout scmGit(
             branches: [[ name: env.SHA1 ]],
@@ -107,7 +111,6 @@ pipeline {
           )
           script {
             sh '''#!/bin/bash -ex
-              command -v skopeo || sudo dnf install -y skopeo
               podman login -u ${CONTAINER_REPO_CREDS_USR} -p ${CONTAINER_REPO_CREDS_PSW} ${CONTAINER_REPO_HOSTNAME}/${CONTAINER_REPO_ORGANIZATION}
               skopeo login -u ${CONTAINER_REPO_CREDS_USR} -p ${CONTAINER_REPO_CREDS_PSW} ${CONTAINER_REPO_HOSTNAME}/${CONTAINER_REPO_ORGANIZATION}
               cd container;
