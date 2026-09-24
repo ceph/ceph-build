@@ -27,6 +27,15 @@ function setup_container_runtime () {
     fi
   fi
 
+  if ! command -v skopeo; then
+    if command -v dnf; then
+      sudo dnf install -y skopeo
+    elif command -v apt-get; then
+      sudo apt-get update -q
+      DEBIAN_FRONTEND=noninteractive sudo apt-get install -y skopeo
+    fi
+  fi
+
   if command -v podman; then
     if [ "$(podman version -f "{{ lt .Client.Version \"5.6.1\" }}")" = "true" ] && \
     ! echo "928238bfcdc79a26ceb51d7d9759f99144846c0a  /etc/tmpfiles.d/podman.conf" | sha1sum --status --check -; then

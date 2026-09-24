@@ -217,6 +217,7 @@
           - jq
           - tmpreaper
           - podman
+          - skopeo
           - locales
         tmp_cleaner_name: tmpreaper
         tmp_cleaner_args: "--runtime=0 14d /tmp/"
