@@ -116,6 +116,45 @@
       when: ansible_os_family == "Debian"
       ignore_errors: yes
 
+    # Removing unattended-upgrades isn't enough: apt-daily.timer still runs
+    # `apt.systemd.daily update`, which takes the apt lists lock.  On braggi10
+    # one of those runs hung on a dead mirror connection for 14 days and every
+    # Jenkins job that ran `apt-get update` on the node failed with "Could not
+    # get lock /var/lib/apt/lists/lock".  Jenkins jobs refresh apt themselves,
+    # so the timers are pure downside on a builder.  Mask them.
+    - name: Mask apt-daily timers and services
+      systemd:
+        name: "{{ item }}"
+        enabled: false
+        masked: true
+        state: stopped
+      loop:
+        - apt-daily.timer
+        - apt-daily-upgrade.timer
+        - apt-daily.service
+        - apt-daily-upgrade.service
+      when: ansible_os_family == "Debian"
+      ignore_errors: yes
+
+    # And make sure no apt invocation (the jobs' own apt-get update included)
+    # can hang forever on a wedged mirror: bounded timeouts + retries, and
+    # periodic apt turned off in case something unmasks the timers.
+    - name: Bound apt network timeouts and disable periodic apt
+      copy:
+        dest: /etc/apt/apt.conf.d/99ceph-builder
+        owner: root
+        group: root
+        mode: '0644'
+        content: |
+          // Managed by ceph-build builder.yml
+          Acquire::http::Timeout "60";
+          Acquire::https::Timeout "60";
+          Acquire::Retries "3";
+          APT::Periodic::Enable "0";
+          APT::Periodic::Update-Package-Lists "0";
+          APT::Periodic::Unattended-Upgrade "0";
+      when: ansible_os_family == "Debian"
+
     - name: Gather service facts
       service_facts:
     
