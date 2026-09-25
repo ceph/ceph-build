@@ -108,7 +108,14 @@ if ! sudo virsh net-info default &>/dev/null; then
 </network>
 EOF
     sudo virsh net-define $LIBVIRT_DIR/default-net.xml
-    sudo virsh net-start default
-    sudo virsh net-autostart default
     rm $LIBVIRT_DIR/default-net.xml
 fi
+
+# The network can exist but be inactive: an aborted run's cleanup may get
+# through net-destroy without reaching net-undefine, and a libvirtd restart
+# won't start a network that lost its autostart flag.  virt-install then
+# fails with "network 'default' is not active", so always (re)start it.
+if ! sudo virsh net-info default | grep -qE '^Active:\s+yes'; then
+    sudo virsh net-start default
+fi
+sudo virsh net-autostart default
