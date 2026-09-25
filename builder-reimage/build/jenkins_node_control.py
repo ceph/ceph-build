@@ -79,7 +79,7 @@ def node_is_busy(node_info):
     return False
 
 
-def wait_until_idle(session, base_url, node_name, timeout=3600, interval=15):
+def wait_until_idle(session, base_url, node_name, timeout=7200, interval=15):
     waited = 0
 
     while waited < timeout:

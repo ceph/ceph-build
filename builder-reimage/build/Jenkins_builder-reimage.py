@@ -28,7 +28,7 @@ from aiohttp.client_exceptions import (
 # Global Defaults
 # -------------------------------------------------------------------------
 LOG_FILE_DEFAULT = "maas_reimage.log"
-STATUS_WAIT_TIMEOUT = 1200
+STATUS_WAIT_TIMEOUT = 7200
 DEFAULT_OWNER = "jitendra"
 
 MAAS_URL = "http://soko02.front.sepia.ceph.com:5240/MAAS"
