@@ -244,11 +244,29 @@ def finalizePendingStatuses(String state, String description) {
   }
 }
 
-// Abort older still-running builds this one supersedes: same PR on an
-// older head, or overlapping CHECKS on the same head (the trigger also
-// does this, but manual/raced runs are covered here).  Same-head builds
-// of disjoint checks survive -- separate "jenkins test" comments must not
-// kill each other.  Needs one-time in-process script approval.
+// Abort older still-running builds of the same PR that this build makes
+// pointless.  The trigger already does this, but manual runs and webhook
+// races don't go through the trigger, so we check again here.
+//
+// The rules, by example.  Say opening a PR started build A with all six
+// checks, A is still running, and now someone comments
+// "jenkins test windows", starting build B:
+//
+//   - B must NOT kill A.  A is doing five things B won't redo, so killing
+//     it leaves those five contexts stuck at "aborted" with nothing queued
+//     to re-run them.  The windows context gets run twice.  Oh well.
+//     (This exact thing happened on ceph/ceph#72090: the windows-only
+//     build 2458 killed the full run 2456.)
+//   - A later "jenkins retest" build DOES kill both A and B.  It re-runs
+//     all six checks itself, so nothing is lost and there's no point
+//     burning builders on duplicate work.
+//   - A build for an older head of the PR (someone pushed) gets killed no
+//     matter what it was running.  Those results are stale.
+//
+// In short: abort an older same-PR build only when its head is outdated
+// or this build's CHECKS fully cover the older build's.  Same predicate
+// as cancelRunningPrBuilds in the trigger, which learned this lesson in
+// PR 69804.  Needs one-time in-process script approval.
 @NonCPS
 def abortOlderBuilds() {
   def me = currentBuild.rawBuild
@@ -266,9 +284,10 @@ def abortOlderBuilds() {
     def b_sha = b_params.getParameter("HEAD_SHA")?.getValue()?.toString() ?: ""
     def b_checks = (b_params.getParameter("CHECKS")?.getValue()?.toString() ?: "")
         .tokenize(" ")
-    if (my_sha && b_sha == my_sha && !b_checks.any { my_checks.contains(it) }) {
+    if (my_sha && b_sha == my_sha && !my_checks.containsAll(b_checks)) {
       println("Keeping build #${b.getNumber()}: " +
-              "same head, disjoint checks [${b_checks.join(' ')}]")
+              "same head, checks [${b_checks.join(' ')}] not fully covered " +
+              "by [${my_checks.join(' ')}]")
       continue
     }
     println("Aborting superseded build #${b.getNumber()}")
