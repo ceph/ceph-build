@@ -12,6 +12,7 @@ WITHOUT_WERROR=true
 DISABLE_FIO=true
 JENKINS_HOME=${JENKINS_HOME}
 REWRITE_COVERAGE_ROOTDIR=${PWD}/src/pybind/mgr/dashboard/frontend
+CMAKE_OPTS=-DWITH_RADOSGW_LANCEDB=OFF
 EOF
 bwc() {
   # specify timeout in hours for $1
