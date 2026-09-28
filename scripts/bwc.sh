@@ -14,8 +14,9 @@
 #   GIT_BRANCH - Pass the current branch name to BWC in order
 #                to generate a container tag. Defaults to "main"
 #   NPMCACHE - Path to shared npm cache directory.
-#   SCCACHE_DIR - Host directory for the compiler cache.  Defaults to
-#                 ~/.cache/ceph-sccache; set it empty to disable caching.
+#   SCCACHE_DIR - Host directory for the compiler cache (C/C++ and
+#                 Rust).  Defaults to ~/.cache/ceph-sccache; set it empty
+#                 to disable caching.
 #   SCCACHE_CACHE_SIZE - Cap for that directory.  Defaults to 40G.
 bwc() {
     # specify timeout in hours for $1
@@ -40,6 +41,8 @@ bwc() {
         args+=("--extra=--volume=${sccache_dir}:/sccache:z")
         args+=("--extra=-eSCCACHE_DIR=/sccache")
         args+=("--extra=-eSCCACHE_CACHE_SIZE=${SCCACHE_CACHE_SIZE:-40G}")
+        args+=("--extra=-eRUSTC_WRAPPER=sccache")
+        args+=("--extra=-eCARGO_INCREMENTAL=0")
     fi
     local seccomp
     seccomp=$(bwc_seccomp_profile)
