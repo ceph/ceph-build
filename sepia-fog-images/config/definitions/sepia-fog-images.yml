@@ -2,7 +2,7 @@
     name: sepia-fog-images
     project-type: pipeline
     display-name: 'Sepia FOG Image Creator'
-    description: "Refreshes FOG testnode images: FOG-deploys the existing image for each distro, updates it in place with cephlab.yml, preps and fscks it, then recaptures it."
+    description: "Refreshes FOG testnode images: FOG-deploys the existing image for each distro, updates it in place with cephlab.yml, preps and fscks it, then recaptures it.  For a brand-new distro or machine type with no captured image yet, tick STARTWITHMAAS to install the OS from MAAS as the starting point instead."
     concurrent: false
     quiet-period: 0
     properties:
@@ -40,7 +40,7 @@
       - string:
           name: DEFINEDHOSTS
           default: ""
-          description: "Define a list of systems to use instead of using teuthology-lock to lock unused systems.  Also used to seed a brand new distro image: image a host by hand, then run this job with DEFINEDHOSTS pointing at it."
+          description: "Define a list of systems to use instead of using teuthology-lock to lock unused systems.  Can also seed a brand new distro image: image a host by hand, then run this job with DEFINEDHOSTS pointing at it (or skip the by-hand step entirely with STARTWITHMAAS)."
       - string:
           name: IMAGETYPE
           default: ""
@@ -49,6 +49,10 @@
           name: SKIPDEPLOY
           default: false
           description: "Skip FOG-deploying the existing image first and capture the hosts' current OS (still updated by cephlab.yml/prep-fog-capture.yml).  Useful with DEFINEDHOSTS when the node is already running exactly what you want, or when the existing image is too old to boot with current ssh keys."
+      - bool:
+          name: STARTWITHMAAS
+          default: false
+          description: "Install the OS from MAAS as the starting point instead of FOG-deploying an existing image (use for a brand-new distro or machine type with no captured image yet): the host's PXE entry on the dnsmasq server (soko01) is pointed at maas, MAAS (soko02) deploys the matching boot resource, the host is registered in FOG if it wasn't already, PXE goes back to fog, and the normal update/capture/verify flow runs.  Requires the host to be enrolled in MAAS and the maas CLI on the agent.  When unchecked, a distro with no usable FOG image is a fatal error."
       - choice:
           name: FSCKMETHOD
           choices:
