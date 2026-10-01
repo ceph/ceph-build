@@ -9,9 +9,12 @@ ansible, fscking the root filesystem, and recapturing it.
 
 The job is a pipeline (``build/Jenkinsfile``); each stage runs one phase of
 ``build/fog-images.sh`` (prepare, lock, deploy, ansible, fsck, capture,
-unlock, and cleanup on failure/abort).  The ``CEPH_BUILD_BRANCH`` parameter
-selects which ceph-build branch the Jenkinsfile and script come from, so
-changes can be tested before merging.
+unlock, and cleanup on failure/abort).  The OS-agnostic plumbing (FOG API,
+IPMI, PXE repointing, MAAS machine state, teuthology lock/queue handling)
+lives in ``build/fog-lib.sh`` so other image jobs can share it;
+``fog-images.sh`` keeps everything distro-specific.  The
+``CEPH_BUILD_BRANCH`` parameter selects which ceph-build branch the
+Jenkinsfile and script come from, so changes can be tested before merging.
 
 Prerequisites
 -------------
