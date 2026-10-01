@@ -10,6 +10,9 @@
 #     variables mapped below (SEPIA_IPMI_PSW, FOG_USR/_PSW, MAAS_API_KEY).
 #   - funPauseQueue reads $PAUSEQUEUE and $pausetypes from the caller.
 #   - funWaitForCaptureTasks reads $fogcaptureid from the caller.
+#   - The task-wait helpers re-reboot hosts whose task is never picked up
+#     (see funNudgeUncheckedTasks), so the sourcing script must define
+#     funReboot <host>.
 # The caller is expected to run under set -ex; the set +x/set -x dances in
 # here assume xtrace is on.
 
@@ -122,15 +125,52 @@ funActivateVenv () {
     source $WORKSPACE/teuthology/.venv/bin/activate
 }
 
-# Wait until none of the given FOG host IDs have active tasks.
-# Usage: funWaitForOurTasks '["1","2"]' [maxretries]
+# A host whose FOG task is never picked up needs another reboot: a warm
+# IPMI power cycle on the newer trial sleds intermittently skips PXE (the
+# E810 link is not up in time for the PXE DHCP window) and the host boots
+# its local OS, leaving the task queued with checkInTime unset forever.
+# Build #40 (2026-09-27) lost 2 of 4 captures to this and #41 nearly
+# followed; a clean reboot PXE'd reliably both times it was tried.  So:
+# count the polls each of our hosts spends with a queued (stateID 1),
+# never-checked-in task, and after $3 such polls funReboot it again, at
+# most twice per host per wait.  A task that has checked in (imaging, or
+# merely slow) is never touched.  The counters are globals reset by the
+# wait helpers below.
+# Usage: funNudgeUncheckedTasks <active-tasks-json> <hostids-json> <gracepolls>
+declare -A fognudgeseen fognudgecount
+funNudgeUncheckedTasks () {
+  local host
+  while read -r host; do
+    [ -n "$host" ] || continue
+    fognudgeseen[$host]=$(( ${fognudgeseen[$host]:-0} + 1 ))
+    if [ "${fognudgeseen[$host]}" -ge "$3" ] && [ "${fognudgecount[$host]:-0}" -lt 2 ]; then
+      fognudgecount[$host]=$(( ${fognudgecount[$host]:-0} + 1 ))
+      fognudgeseen[$host]=0
+      echo "$(date) -- ${host}'s FOG task was never picked up (host likely fell through PXE to local boot); rebooting it again (nudge ${fognudgecount[$host]}/2)"
+      funReboot $host || true
+    fi
+  done < <(echo "$1" | jq -r --argjson ids "$2" '
+    (.tasks // [])[]
+    | select((.hostID|tostring) as $h | $ids | index($h))
+    | select((.stateID|tostring) == "1")
+    | select(((.checkInTime // "") | startswith("0000")) or (.checkInTime // "") == "")
+    | .host.name // empty')
+}
+
+# Wait until none of the given FOG host IDs have active tasks, re-rebooting
+# hosts whose task is never picked up (10 polls ~= 5min; see
+# funNudgeUncheckedTasks).  Usage: funWaitForOurTasks '["1","2"]' [maxretries]
 funWaitForOurTasks () {
-  local currentretries=0 activetasks
+  local currentretries=0 activetasks resp
+  fognudgeseen=()
+  fognudgecount=()
   while true; do
-    activetasks=$(funFogApi GET /task/active | jq -r --argjson ids "$1" '[(.tasks // [])[] | select((.hostID|tostring) as $h | $ids | index($h))] | length')
+    resp=$(funFogApi GET /task/active)
+    activetasks=$(echo "$resp" | jq -r --argjson ids "$1" '[(.tasks // [])[] | select((.hostID|tostring) as $h | $ids | index($h))] | length')
     if [ "${activetasks:-1}" == "0" ]; then
       break
     fi
+    funNudgeUncheckedTasks "$resp" "$1" 10
     echo "$(date) -- $activetasks FOG tasks for our hosts still active.  Sleeping 30sec"
     sleep 30
     ((++currentretries))
@@ -506,13 +546,24 @@ funClaimExtraHost () {
 }
 
 # Wait until FOG reports no active Capture tasks.  Uses $fogcaptureid.
+# With a JSON array of our FOG host IDs as $1, hosts whose capture task is
+# never picked up are re-rebooted (30 polls ~= 5min; see
+# funNudgeUncheckedTasks); the exit condition is unchanged.
+# Usage: funWaitForCaptureTasks ['["1","2"]']
 funWaitForCaptureTasks () {
-  local capturetasks currentretries=0
-  capturetasks=$(funFogApi GET /task/active '{"typeID": "'${fogcaptureid}'"}' | jq -r '.count // 0')
+  local capturetasks currentretries=0 resp
+  fognudgeseen=()
+  fognudgecount=()
+  resp=$(funFogApi GET /task/active '{"typeID": "'${fogcaptureid}'"}')
+  capturetasks=$(echo "$resp" | jq -r '.count // 0')
   while [ "${capturetasks:-1}" -gt 0 ]; do
+    if [ -n "${1:-}" ]; then
+      funNudgeUncheckedTasks "$resp" "$1" 30
+    fi
     echo "$(date) -- $capturetasks FOG capture tasks still queued.  Sleeping 10sec"
     sleep 10
-    capturetasks=$(funFogApi GET /task/active '{"typeID": "'${fogcaptureid}'"}' | jq -r '.count // 0')
+    resp=$(funFogApi GET /task/active '{"typeID": "'${fogcaptureid}'"}')
+    capturetasks=$(echo "$resp" | jq -r '.count // 0')
     ((++currentretries))
     # Retry for 30min
     funRetry $currentretries 180

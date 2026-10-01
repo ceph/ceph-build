@@ -725,8 +725,11 @@ phase_capture () {
     fi
   done 3< $statefile
 
-  # Wait for Capture tasks to finish
-  funWaitForCaptureTasks
+  # Wait for Capture tasks to finish.  Our host IDs let the wait re-reboot
+  # a host whose capture task is never picked up (the warm-cycle PXE flake
+  # that killed build #40 and nearly #41).
+  capturehostids=$(awk '{print $3}' $statefile | jq -R . | jq -sc .)
+  funWaitForCaptureTasks "$capturehostids"
 
   # A major-tracking distro (rocky_10) is also captured under the point
   # release the host is actually running (trial_rocky_10.2), so jobs that
@@ -760,7 +763,7 @@ phase_capture () {
     twincaptures=true
   done 3< $statefile
   if [ "$twincaptures" == "true" ]; then
-    funWaitForCaptureTasks
+    funWaitForCaptureTasks "$capturehostids"
   fi
   # NOTE: the queue deliberately stays paused here; the verify phase unpauses
   # it once the new images have been proven to boot.
