@@ -1,0 +1,56 @@
+- job:
+    name: sepia-fog-windows-images
+    project-type: pipeline
+    display-name: 'Sepia FOG Windows Image Creator'
+    description: "Refreshes the Windows Server FOG testnode images: FOG-deploys the existing <machinetype>_windows_<version> image, runs Windows Update, cleans up, recaptures, and verifies the capture on a second host.  Manual trigger only.  To seed a brand-new golden image, install Windows by hand per the README, then run with DEFINEDHOSTS pointing at that host and SKIPDEPLOY checked.  https://tracker.ceph.com/issues/80811"
+    concurrent: false
+    quiet-period: 0
+    properties:
+      - build-discarder:
+          days-to-keep: 15
+          num-to-keep: 30
+          artifact-days-to-keep: -1
+          artifact-num-to-keep: -1
+
+    parameters:
+      - string:
+          name: WINDOWS_VERSION
+          default: "2025"
+          description: "The Windows Server version to refresh; names the <machinetype>_windows_<version> FOG image and is matched against the installed ProductName."
+      - string:
+          name: MACHINETYPES
+          default: "trial"
+          description: "The machine type(s) whose Windows images this run refreshes.  One node per type is locked, updated, and captured back as <type>_windows_<WINDOWS_VERSION>.  trial (UEFI-only hosts) is the supported type for now."
+      - string:
+          name: TEUTHOLOGYBRANCH
+          default: main
+          description: "Optionally define a different teuthology branch (useful for testing)"
+      - string:
+          name: PAUSEQUEUE
+          default: "false"
+          description: "Should the teuthology queue be paused?  teuthology does not deploy the windows images yet, so the default is false; locking the capture hosts is protection enough."
+      - string:
+          name: DEFINEDHOSTS
+          default: ""
+          description: "Define a list of systems to use instead of using teuthology-lock to lock unused systems.  Used together with SKIPDEPLOY to seed a brand-new golden image from a host installed by hand."
+      - bool:
+          name: SKIPDEPLOY
+          default: false
+          description: "Skip FOG-deploying the existing image first and capture the host's current Windows install (still updated/prepped).  Required for seeding the first golden image."
+      - bool:
+          name: UPDATEWINDOWS
+          default: true
+          description: "Run Windows Update (PSWindowsUpdate via a SYSTEM scheduled task, up to 3 rounds) before capturing."
+      - string:
+          name: CEPH_BUILD_BRANCH
+          default: main
+          description: "Use the Jenkinsfile and scripts from this ceph-build branch"
+
+    pipeline-scm:
+      scm:
+        - git:
+            url: https://github.com/ceph/ceph-build.git
+            branches:
+              - ${{CEPH_BUILD_BRANCH}}
+      script-path: sepia-fog-windows-images/build/Jenkinsfile
+      lightweight-checkout: true
