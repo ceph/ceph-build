@@ -57,14 +57,30 @@ set -x
 
 # Thin wrapper around the FOG API.  Usage: funFogApi <METHOD> </path> [data]
 # (xtrace is suppressed inside so the API tokens stay out of the console log)
+#
+# Responses are scrubbed of per-host secrets before they can reach the
+# (public) console log: FOG host records carry the host's client auth token
+# and AD/product-key fields, and the PUT /host responses in the deploy,
+# capture, and verify phases land on stdout unconsumed.  walk() is defined
+# inline for jq-1.5 compatibility; a non-JSON response passes through as-is.
+# No caller reads any of the deleted fields.
 funFogApi () {
   { set +x; } 2>/dev/null
-  local rc
-  curl -f -s -k \
+  local rc out
+  out=$(curl -f -s -k \
     -H "fog-api-token: ${FOG_API_TOKEN}" \
     -H "fog-user-token: ${FOG_USER_TOKEN}" \
-    -X "$1" "http://${fogserver}/fog${2}" ${3:+-d "$3"}
+    -X "$1" "http://${fogserver}/fog${2}" ${3:+-d "$3"})
   rc=$?
+  printf '%s' "$out" | jq '
+    def walk(f): . as $in
+      | if type == "object" then
+          reduce keys_unsorted[] as $key ({}; . + {($key): ($in[$key] | walk(f))}) | f
+        elif type == "array" then map(walk(f)) | f
+        else f end;
+    walk(if type == "object"
+         then del(.token, .sec_tok, .ADPass, .ADPassLegacy, .productKey)
+         else . end)' 2>/dev/null || printf '%s\n' "$out"
   set -x
   return $rc
 }
