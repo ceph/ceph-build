@@ -160,7 +160,7 @@ funRedfish () {
 # is written to $WORKSPACE/seed-admin-password-<host> (mode 600) for RDP
 # use; ongoing access is ssh keys.  Usage: funSeedFromIso <host>
 funSeedFromIso () {
-  local host=$1 tmpl=$(dirname "${BASH_SOURCE[0]}")
+  local host=$1 tmpl=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
   local seeddir=$WORKSPACE/seed-$host frontip port currentretries=0
 
   if [ -z "$SEPIA_IPMI_PASS" ]; then
@@ -235,10 +235,13 @@ funSeedFromIso () {
     -o $seeddir/seed.iso $extract
   rm -rf $extract
 
-  # Serve it to the BMC over HTTP from this agent's front address
+  # Serve it to the BMC over HTTP from this agent's front address.  The
+  # BMC's CD emulation reads the ISO with Range requests, which stock
+  # "python3 -m http.server" does not support (the BMC gives up right
+  # after its HEAD probe), so range-http.py it is.
   frontip=$(ip -4 route get $(getent hosts ${host}.ipmi.sepia.ceph.com | awk '{print $1; exit}') | grep -oE 'src [0-9.]+' | awk '{print $2}')
   port=$(( 8600 + RANDOM % 1000 ))
-  (cd $seeddir && nohup python3 -m http.server $port --bind $frontip > http.log 2>&1 & echo $! > http.pid)
+  (cd $seeddir && nohup python3 $tmpl/range-http.py --bind $frontip $port > http.log 2>&1 & echo $! > http.pid)
 
   # Mount it and boot from it, once.  The virtual-media resource name
   # varies by BMC generation -- CD1 on older Supermicro firmware,
