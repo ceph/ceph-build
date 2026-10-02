@@ -36,7 +36,23 @@
       - bool:
           name: SKIPDEPLOY
           default: false
-          description: "Skip FOG-deploying the existing image first and capture the host's current Windows install (still updated/prepped).  Required for seeding the first golden image."
+          description: "Skip FOG-deploying the existing image first and capture the host's current Windows install (still updated/prepped)."
+      - bool:
+          name: STARTWITHISO
+          default: false
+          description: "Install Windows from the evaluation ISO as the starting point (unattended, via BMC Redfish virtual media) instead of FOG-deploying an existing image -- the seeding path for a brand-new Windows version with no captured image yet.  The Windows analog of the Linux job's STARTWITHMAAS."
+      - string:
+          name: ISOURL
+          default: "https://go.microsoft.com/fwlink/?linkid=2345730&clcid=0x409&culture=en-us&country=us"
+          description: "Where STARTWITHISO downloads the Windows Server evaluation ISO from (cached in the workspace between runs)."
+      - string:
+          name: IMAGEINDEX
+          default: "2"
+          description: "WIM image index to install with STARTWITHISO: 1=Standard Core, 2=Standard Desktop Experience, 3=Datacenter Core, 4=Datacenter Desktop Experience."
+      - string:
+          name: SSHKEYURLS
+          default: "https://raw.githubusercontent.com/ceph/keys/main/ssh/jenkins-build.pub"
+          description: "Space-separated URLs of ssh public keys STARTWITHISO bakes into the golden image's administrators_authorized_keys."
       - bool:
           name: UPDATEWINDOWS
           default: true

@@ -6,8 +6,12 @@
 #   fog-windows.sh lock      Lock one testnode per machine type
 #   fog-windows.sh deploy    FOG-deploy the existing Windows image and wait
 #                            for ssh + the FOG client hostname rename.  With
-#                            SKIPDEPLOY (seeding), verify the host is already
-#                            running the right Windows instead
+#                            STARTWITHISO the OS is installed from the
+#                            evaluation ISO instead (unattended, via BMC
+#                            Redfish virtual media) -- the Windows analog of
+#                            the Linux job's STARTWITHMAAS.  With SKIPDEPLOY,
+#                            verify the host is already running the right
+#                            Windows instead
 #   fog-windows.sh update    Run Windows Update via PSWindowsUpdate until no
 #                            reboot is pending (bounded)
 #   fog-windows.sh prep      DISM component cleanup, drop update/temp litter,
@@ -39,6 +43,22 @@ statefile="$WORKSPACE/fog-windows-hosts.state"
 
 winver="${WINDOWS_VERSION:-2025}"
 winuser="Administrator"
+
+# BMC credentials for Redfish (virtual-media seeding) and IPMI fallback.
+# Jenkins provides SEPIA_IPMI_USR/_PSW via credentials(); outside Jenkins
+# (a manual seed run on a teuthology host) fall back to the agent's
+# /etc/teuthology.yaml, the same single-source-of-truth pattern fog-lib
+# uses for the FOG tokens.  set +x so nothing leaks into the console log.
+{ set +x; } 2>/dev/null
+if [ -z "$SEPIA_IPMI_PASS" ] && [ -r /etc/teuthology.yaml ]; then
+  SEPIA_IPMI_PASS=$(awk '$1 == "ipmi_password:" {print $2}' /etc/teuthology.yaml)
+fi
+ipmiuser=${SEPIA_IPMI_USR:-$(awk '$1 == "ipmi_user:" {print $2}' /etc/teuthology.yaml 2>/dev/null || true)}
+ipmiuser=${ipmiuser:-inktank}
+set -x
+
+# Where funSeedFromIso caches the evaluation ISO between runs
+isocache="$WORKSPACE/windows-${winver}-eval.iso"
 
 # funPauseQueue (fog-lib) reads these.  PAUSEQUEUE defaults to false in the
 # job definition: teuthology does not deploy the windows images yet, so
@@ -111,6 +131,124 @@ funCheckWindowsVersion () {
     return 1
   fi
   echo "$host is running '$product' as expected"
+}
+
+# Thin wrapper around a testnode BMC's Redfish API.
+# Usage: funRedfish <host> <METHOD> </redfish/path> [data]
+# (xtrace off inside so the BMC credentials stay out of the console log)
+funRedfish () {
+  { set +x; } 2>/dev/null
+  local rc
+  curl -sk -X "$2" -u "${ipmiuser}:${SEPIA_IPMI_PASS}" \
+    -H "Content-Type: application/json" ${4:+-d "$4"} \
+    "https://${1}.ipmi.sepia.ceph.com${3}"
+  rc=$?
+  set -x
+  return $rc
+}
+
+# Install Windows from the evaluation ISO, fully unattended -- the Windows
+# analog of the Linux job's MAAS seeding.  The ISO is cached in the
+# workspace, repacked with a rendered autounattend.xml (hostname, random
+# admin password) and a $OEM$ postinstall payload (OpenSSH + lab keys, FOG
+# client, PSWindowsUpdate, PXE-first boot order; see postinstall.ps1.in),
+# served over HTTP from the agent, and mounted on the testnode's BMC via
+# Redfish virtual media with a one-shot UEFI CD boot override.  Setup's
+# own reboots land back on the half-installed disk because Windows puts
+# its boot entry first; postinstall puts PXE back first and drops
+# C:\seed-done, which is what this function waits for.  The admin password
+# is written to $WORKSPACE/seed-admin-password-<host> (mode 600) for RDP
+# use; ongoing access is ssh keys.  Usage: funSeedFromIso <host>
+funSeedFromIso () {
+  local host=$1 tmpl=$(dirname "${BASH_SOURCE[0]}")
+  local seeddir=$WORKSPACE/seed-$host frontip port currentretries=0
+
+  if [ -z "$SEPIA_IPMI_PASS" ]; then
+    echo "ERROR: no BMC credentials (SEPIA_IPMI_PASS empty and no ipmi_password in /etc/teuthology.yaml); cannot drive virtual media"
+    exit 1
+  fi
+
+  # Fetch (or reuse) the evaluation ISO
+  if [ ! -s "$isocache" ]; then
+    echo "Downloading the Windows Server ${winver} evaluation ISO"
+    curl -fSL -o "$isocache.part" "$ISOURL"
+    mv "$isocache.part" "$isocache"
+  fi
+
+  rm -rf $seeddir
+  mkdir -p $seeddir
+
+  # Render autounattend.xml and postinstall.ps1 (xtrace off: passwords)
+  { set +x; } 2>/dev/null
+  local pw pwb64 autob64 keys
+  pw=$(openssl rand -hex 12)
+  pwb64=$(python3 -c 'import base64,sys; print(base64.b64encode((sys.argv[1]+"AdministratorPassword").encode("utf-16-le")).decode())' "$pw")
+  autob64=$(python3 -c 'import base64,sys; print(base64.b64encode((sys.argv[1]+"Password").encode("utf-16-le")).decode())' "$pw")
+  (umask 077; echo "$pw" > $WORKSPACE/seed-admin-password-$host)
+  sed -e "s|@HOSTNAME@|${host}|" -e "s|@IMAGEINDEX@|${IMAGEINDEX:-2}|" \
+      -e "s|@ADMINPASS_B64@|${pwb64}|" -e "s|@AUTOLOGON_B64@|${autob64}|" \
+      $tmpl/autounattend.xml.in > $seeddir/autounattend.xml
+  set -x
+  keys=$(for u in $SSHKEYURLS; do curl -fsSL "$u" || exit 1; done) || {
+    echo "ERROR: could not fetch the ssh public keys ($SSHKEYURLS)"
+    exit 1
+  }
+  awk -v r="$keys" '{gsub(/@SSHKEYS@/, r)}1' $tmpl/postinstall.ps1.in \
+    | sed -e "s|@FOGSERVER@|${fogserver}|" > $seeddir/postinstall.ps1
+
+  # Repack the ISO with the answer file and the $OEM$ payload (replayed
+  # boot records keep it UEFI-bootable)
+  xorriso -indev "$isocache" -outdev $seeddir/seed.iso \
+    -boot_image any replay \
+    -map $seeddir/autounattend.xml /autounattend.xml \
+    -map $seeddir/postinstall.ps1 '/sources/$OEM$/$1/seed/postinstall.ps1'
+
+  # Serve it to the BMC over HTTP from this agent's front address
+  frontip=$(ip -4 route get $(getent hosts ${host}.ipmi.sepia.ceph.com | awk '{print $1; exit}') | grep -oE 'src [0-9.]+' | awk '{print $2}')
+  port=$(( 8600 + RANDOM % 1000 ))
+  (cd $seeddir && nohup python3 -m http.server $port --bind $frontip > http.log 2>&1 & echo $! > http.pid)
+
+  # Mount it and boot from it, once
+  funRedfish $host POST /redfish/v1/Managers/1/VirtualMedia/CD1/Actions/VirtualMedia.EjectMedia '{}' || true
+  funRedfish $host POST /redfish/v1/Managers/1/VirtualMedia/CD1/Actions/VirtualMedia.InsertMedia \
+    '{"Image": "http://'${frontip}':'${port}'/seed.iso", "TransferProtocolType": "HTTP"}'
+  if ! funRedfish $host GET /redfish/v1/Managers/1/VirtualMedia/CD1 | jq -e '.Inserted == true' > /dev/null; then
+    echo "ERROR: the BMC did not mount the seed ISO (http://${frontip}:${port}/seed.iso); check ${seeddir}/http.log and the BMC's virtual media state"
+    exit 1
+  fi
+  funRedfish $host PATCH /redfish/v1/Systems/1 \
+    '{"Boot": {"BootSourceOverrideEnabled": "Once", "BootSourceOverrideTarget": "Cd", "BootSourceOverrideMode": "UEFI"}}'
+  if funRedfish $host GET /redfish/v1/Systems/1 | jq -e '.PowerState == "Off"' > /dev/null; then
+    funRedfish $host POST /redfish/v1/Systems/1/Actions/ComputerSystem.Reset '{"ResetType": "On"}'
+  else
+    funRedfish $host POST /redfish/v1/Systems/1/Actions/ComputerSystem.Reset '{"ResetType": "ForceRestart"}'
+  fi
+
+  # A from-scratch install takes a while; C:\seed-done is dropped by
+  # postinstall.ps1 at the very end
+  until wssh $host 'Test-Path C:\seed-done' 2>/dev/null | tr -d '\r' | grep -q True; do
+    echo "$(date) -- Windows setup still running on ${host}.  Sleeping 60sec"
+    sleep 60
+    ((++currentretries))
+    # Retry for 100min
+    funRetry $currentretries 100
+  done
+
+  # The postinstall log tells us whether the PXE-first reorder worked; a
+  # Windows-first boot order would keep every later reboot out of FOG's
+  # hands, so this is fatal, not cosmetic.
+  wssh $host 'Get-Content C:\seed\postinstall.log -Tail 40' || true
+  if ! wssh $host 'Get-Content C:\seed\postinstall.log' | tr -d '\r' | grep -q '^PXE-first: ok'; then
+    echo "ERROR: postinstall could not put PXE first in ${host}'s UEFI boot order; fix it by hand (bcdedit /set '{fwbootmgr}' displayorder <pxe-entry> /addfirst) before capturing"
+    exit 1
+  fi
+  wssh $host 'Remove-Item -Recurse -Force C:\seed-done, C:\seed\FOGService.msi -ErrorAction SilentlyContinue; exit 0'
+
+  # Unhook the virtual media and stop the HTTP server
+  funRedfish $host POST /redfish/v1/Managers/1/VirtualMedia/CD1/Actions/VirtualMedia.EjectMedia '{}' || true
+  funRedfish $host PATCH /redfish/v1/Systems/1 '{"Boot": {"BootSourceOverrideEnabled": "Disabled"}}' || true
+  kill $(cat $seeddir/http.pid) 2>/dev/null || true
+  rm -f $seeddir/seed.iso
 }
 
 phase_prepare () {
@@ -223,11 +361,18 @@ phase_deploy () {
 
     deployed=false
     deployedat=""
-    if [ "$SKIPDEPLOY" == "true" ] || [ -z "$deployimageid" ]; then
+    if [ "$STARTWITHISO" == "true" ]; then
+      # Install the OS from the evaluation ISO instead of deploying an
+      # existing image: the seeding path for a brand-new Windows version
+      # (or machine type) with no captured image yet
+      funSeedFromIso $host
+      funCheckWindowsVersion $host || exit 1
+      deployed=iso
+    elif [ "$SKIPDEPLOY" == "true" ] || [ -z "$deployimageid" ]; then
       if [ "$SKIPDEPLOY" != "true" ]; then
         if [ "$use_teuthologylock" = true ]; then
           echo "ERROR: No captured FOG image named ${imagename} exists so there is nothing to deploy and update."
-          echo "Seed the golden image by hand (see the README), then rerun with DEFINEDHOSTS pointing at it and SKIPDEPLOY checked."
+          echo "Rerun with STARTWITHISO to install Windows from the evaluation ISO, or point DEFINEDHOSTS at a host already running it with SKIPDEPLOY checked."
           exit 1
         fi
         echo "No captured ${imagename} image to deploy; capturing ${host}'s current Windows install"
@@ -316,6 +461,11 @@ phase_prep () {
   while read -u3 -r host foghostid fogimageid deployed type deployedat; do
     wssh $host 'dism /online /Cleanup-Image /StartComponentCleanup /ResetBase' || true
     wssh $host 'Remove-Item -Recurse -Force C:\fog-wu.ps1, C:\fog-wu.log, C:\fog-wu.done -ErrorAction SilentlyContinue; schtasks /Delete /TN FogWU /F 2>$null; Remove-Item -Recurse -Force $env:TEMP\*, C:\Windows\Temp\* -ErrorAction SilentlyContinue; exit 0'
+    # Drop the FOG client's pairing token so every clone of this capture
+    # enrolls with the server fresh (by MAC); a captured token would make
+    # the server reject the clones' check-ins and HostnameChanger would
+    # never rename them.
+    wssh $host 'Stop-Service FOGService -ErrorAction SilentlyContinue; Remove-Item "C:\Program Files (x86)\FOG\token.dat", "C:\Program Files\FOG\token.dat" -ErrorAction SilentlyContinue; exit 0'
     if wssh $host 'fsutil dirty query C:' | tr -d '\r' | grep -qi " is dirty"; then
       echo "${host}'s C: is dirty; scheduling an offline repair and rebooting"
       wssh $host 'Repair-Volume -DriveLetter C -OfflineScanAndFix' || true
@@ -419,6 +569,18 @@ phase_cleanup () {
 
   allhosts=$(funAllHosts)
   set +e
+
+  # Unwind a dead STARTWITHISO seed: stop the ISO HTTP server(s) and
+  # unhook the virtual media so the node isn't left booting the installer
+  for pidfile in $WORKSPACE/seed-*/http.pid; do
+    [ -f "$pidfile" ] && kill $(cat $pidfile) 2>/dev/null
+  done
+  if [ "$STARTWITHISO" == "true" ]; then
+    for machine in $allhosts; do
+      funRedfish $machine POST /redfish/v1/Managers/1/VirtualMedia/CD1/Actions/VirtualMedia.EjectMedia '{}' || true
+      funRedfish $machine PATCH /redfish/v1/Systems/1 '{"Boot": {"BootSourceOverrideEnabled": "Disabled"}}' || true
+    done
+  fi
 
   for tasktype in Capture Deploy; do
     tasktypeid=$(funFogApi GET /tasktype '{"name": "'${tasktype}'"}' | jq -r '.tasktypes[0].id')

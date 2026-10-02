@@ -24,48 +24,46 @@ rearms are a finite resource, and duplicate machine SIDs are harmless for
 hostname-unique testnodes (including domain join and DC promotion).  The
 FOG client's HostnameChanger gives every deployed node its own hostname.
 
-Golden image prerequisites
---------------------------
+Seeding the first image (STARTWITHISO)
+--------------------------------------
 
-The first image is installed by hand once; after that this job refreshes
-it.  Install Windows Server Evaluation (Desktop Experience or Core, the
-job does not care) on a testnode via BMC virtual media with an
-``autounattend.xml``, and bake in:
+With ``STARTWITHISO`` checked, the starting point is a fresh unattended
+install from the Windows Server **Evaluation** ISO -- the Windows analog
+of the Linux job's ``STARTWITHMAAS``.  No manual steps: the job
 
-#. **OpenSSH Server**, enabled and started, with PowerShell as the default
-   shell::
+#. downloads the evaluation ISO (``ISOURL``, cached in the workspace),
+#. repacks it (xorriso) with a rendered ``autounattend.xml`` -- GPT
+   EFI/MSR/C: layout on disk 0, the host's own name as ComputerName, a
+   random per-run Administrator password (written to
+   ``$WORKSPACE/seed-admin-password-<host>``, mode 600, for RDP; ongoing
+   access is ssh keys) -- and a ``$OEM$`` payload carrying
+   ``postinstall.ps1``,
+#. serves the repacked ISO over HTTP from the agent, mounts it on the
+   testnode's BMC via **Redfish virtual media**, sets a one-shot UEFI CD
+   boot override, and power-cycles,
+#. waits for ``postinstall.ps1`` (run once by FirstLogonCommands) to
+   finish: it sets up **OpenSSH** (PowerShell default shell, the
+   ``SSHKEYURLS`` keys in ``administrators_authorized_keys``), installs
+   the **FOG client** from the FOG server (its HostnameChanger renames
+   every deployed clone -- the job's readiness signal, the Windows
+   equivalent of the Linux images' sentinel file), installs
+   **PSWindowsUpdate** (the update phase runs it as SYSTEM, since the
+   Windows Update API refuses ssh logons), enables RDP, and puts **PXE
+   back first** in the UEFI boot order (Windows setup put itself first,
+   which would keep every later reboot out of FOG's hands; a failed
+   reorder fails the seed),
+#. then continues with the normal update/prep/capture/verify flow; the
+   ``<type>_windows_<version>`` FOG image record (Windows osID, Single
+   Disk - Resizable) is created in the deploy phase and filled by the
+   first capture.
 
-     Add-WindowsCapability -Online -Name OpenSSH.Server~~~~0.0.1.0
-     Set-Service sshd -StartupType Automatic; Start-Service sshd
-     New-ItemProperty -Path "HKLM:\SOFTWARE\OpenSSH" -Name DefaultShell `
-       -Value "C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe" -PropertyType String -Force
+Networking is DHCP (dnsmasq hands out the MAC-reserved IP).  Before
+every capture the FOG client is stopped and its pairing ``token.dat``
+removed, so clones enroll with the server fresh (matched by MAC) and
+HostnameChanger works on them.
 
-#. The ``jenkins-build`` and teuthology public keys in
-   ``C:\ProgramData\ssh\administrators_authorized_keys`` (mind the ACLs:
-   Administrators + SYSTEM only), so the job can ssh as ``Administrator``.
-
-#. The **FOG client** (SmartInstaller, pointed at the FOG server) -- its
-   HostnameChanger module renames each deployed host to its FOG host
-   record's name and reboots it.  That rename is the job's readiness
-   signal, the Windows equivalent of the Linux images' sentinel file.
-
-#. The **PSWindowsUpdate** module (``Install-Module PSWindowsUpdate``) --
-   the update phase runs it from a SYSTEM scheduled task, because the
-   Windows Update API refuses most operations from an ssh (network) logon.
-
-#. DHCP networking (dnsmasq hands out the MAC-reserved IP; do not
-   configure anything static) and RDP enabled for interactive users.
-
-Seeding the first image
------------------------
-
-#. Install the golden image by hand as above on a locked testnode.
-#. Make sure the host's dnsmasq PXE entry points at ``fog`` and the host
-   is registered in FOG (the trial nodes already are).
-#. Run this job with ``DEFINEDHOSTS=<host>`` and ``SKIPDEPLOY`` checked:
-   the host's current install is update/prepped and captured as
-   ``<type>_windows_<version>`` (the FOG image record is created on first
-   capture, with Windows osID and Single Disk - Resizable).
+A host already running the right Windows can be captured without the
+ISO: run with ``DEFINEDHOSTS=<host>`` and ``SKIPDEPLOY`` checked.
 
 How it works
 ------------
