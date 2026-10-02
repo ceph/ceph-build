@@ -49,9 +49,18 @@ if (Get-Service FOGService -ErrorAction SilentlyContinue) {
 Install-PackageProvider -Name NuGet -MinimumVersion 2.8.5.201 -Force | Out-Null
 Install-Module PSWindowsUpdate -Force -Confirm:$false
 
-# --- Put PXE back first in the UEFI boot order ---
-# bcdboot made "Windows Boot Manager" the first UEFI entry during setup; the
-# lab expects PXE-first (FOG chains to local boot when a host has no task).
+# --- Keep PXE first in the UEFI boot order, on every boot ---
+# bcdboot made "Windows Boot Manager" the first UEFI entry during setup,
+# and -- the part that bit later -- a CLONE of this image does the same
+# thing on its own first boot: it finds no {bootmgr} entry in its NVRAM,
+# creates one at the top of BootOrder, and from then on that node never
+# PXEs again, so no later FOG deploy or capture can reach it (trial162,
+# 2026-10-02: four straight missed pickups).  The lab expects PXE-first
+# (FOG chains to local boot when a host has no task), so bake the reorder
+# as a boot-time SYSTEM task that every clone runs itself, and run it
+# once now for the golden host.
+$pxefirst = 'C:\seed\pxefirst.ps1'
+@'
 $fwout = (bcdedit /enum firmware | Out-String) -split '(\r?\n)(\r?\n)+'
 $pxe = $fwout | Where-Object { $_ -match 'UEFI PXE IPv4' } | Select-Object -First 1
 if ($pxe -and $pxe -match '\{[0-9a-fA-F-]+\}') {
@@ -60,6 +69,10 @@ if ($pxe -and $pxe -match '\{[0-9a-fA-F-]+\}') {
 } else {
   Write-Output 'PXE-first: FAILED'
 }
+'@ | Out-File -FilePath $pxefirst -Encoding ascii
+schtasks /Create /TN PXEFirst /SC ONSTART /RU SYSTEM /F `
+  /TR "powershell -NoProfile -ExecutionPolicy Bypass -File $pxefirst" | Out-Null
+& powershell -NoProfile -ExecutionPolicy Bypass -File $pxefirst
 
 # --- Turn autologon back off; access from here on is ssh keys or RDP ---
 Set-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon' -Name AutoAdminLogon -Value '0'
