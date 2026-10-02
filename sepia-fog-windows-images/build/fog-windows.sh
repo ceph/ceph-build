@@ -311,6 +311,10 @@ funSeedFromIso () {
     echo "ERROR: postinstall could not put PXE first in ${host}'s UEFI boot order; fix it by hand (bcdedit /set '{fwbootmgr}' displayorder <pxe-entry> /addfirst) before capturing"
     exit 1
   fi
+  if ! wssh $host 'Get-Content C:\seed\postinstall.log' | tr -d '\r' | grep -q '^FOG client: ok'; then
+    echo "ERROR: the FOG client did not install on ${host}; without its HostnameChanger no deployed clone would take its own hostname"
+    exit 1
+  fi
   wssh $host 'Remove-Item -Recurse -Force C:\seed-done, C:\seed\FOGService.msi -ErrorAction SilentlyContinue; exit 0'
 
   # Unhook the virtual media and stop the HTTP server

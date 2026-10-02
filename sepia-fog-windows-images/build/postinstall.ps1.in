@@ -23,10 +23,26 @@ New-Item -ItemType Directory -Path (Split-Path $ak) -Force | Out-Null
 icacls $ak /inheritance:r /grant 'Administrators:F' /grant 'SYSTEM:F' | Out-Null
 Set-Service sshd -StartupType Automatic
 Start-Service sshd
+# Server 2025's inbox sshd ships without the inbound firewall rule the
+# optional-capability install would have created (seed #4: sshd Running,
+# connections timing out), so make one unconditionally.
+if (-not (Get-NetFirewallRule -Name sshd-in -ErrorAction SilentlyContinue)) {
+  New-NetFirewallRule -Name sshd-in -DisplayName 'OpenSSH Server (sshd)' -Enabled True `
+    -Direction Inbound -Protocol TCP -Action Allow -LocalPort 22 | Out-Null
+}
 
 # --- FOG client (HostnameChanger renames every deployed clone) ---
-Invoke-WebRequest -UseBasicParsing "http://@FOGSERVER@/fog/client/download.php?msi" -OutFile C:\seed\FOGService.msi
+# The MSI lives at a fixed path; download.php?msi answers an empty HTML
+# page (seed #4 installed nothing, silently).  The whole refresh flow
+# leans on HostnameChanger, so a missing client is fatal here.
+Invoke-WebRequest -UseBasicParsing "http://@FOGSERVER@/fog/client/FOGService.msi" -OutFile C:\seed\FOGService.msi
 Start-Process msiexec -ArgumentList '/i','C:\seed\FOGService.msi','/quiet','/norestart',"WEBADDRESS=@FOGSERVER@",'WEBROOT=/fog','USETRAY=0','HTTPS=0' -Wait
+if (Get-Service FOGService -ErrorAction SilentlyContinue) {
+  Set-Service FOGService -StartupType Automatic
+  Write-Output 'FOG client: ok'
+} else {
+  Write-Output 'FOG client: FAILED'
+}
 
 # --- PSWindowsUpdate (the refresh job's update phase runs it as SYSTEM) ---
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
