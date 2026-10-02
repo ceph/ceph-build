@@ -261,6 +261,11 @@ funSeedFromIso () {
     exit 1
   fi
   funRedfish $host POST "$vmpath/Actions/VirtualMedia.EjectMedia" '{}' || true
+  # Both the eject and the insert are async BMC tasks: an insert issued
+  # straight after the eject gets a 400 and silently does nothing
+  # (observed on trial015), so give the eject a moment, then poll
+  # Inserted after the insert.
+  sleep 10
   funRedfish $host POST "$vmpath/Actions/VirtualMedia.InsertMedia" \
     '{"Image": "http://'${frontip}':'${port}'/seed.iso", "TransferProtocolType": "HTTP"}'
   currentretries=0
@@ -272,8 +277,16 @@ funSeedFromIso () {
     # virtual media state
     funRetry $currentretries 18
   done
+  # The virtual CD is a USB device on Supermicro BMCs: the "Cd" override
+  # targets the (empty) SATA bay and the firmware sails past it to the
+  # next boot entry, so prefer "UsbCd" wherever the firmware offers it
+  # (trial015 booted local CentOS twice under "Cd" before this).
+  local boottarget=Cd
+  if funRedfish $host GET /redfish/v1/Systems/1 | jq -e '(.Boot["BootSourceOverrideTarget@Redfish.AllowableValues"] // []) | index("UsbCd")' > /dev/null; then
+    boottarget=UsbCd
+  fi
   funRedfish $host PATCH /redfish/v1/Systems/1 \
-    '{"Boot": {"BootSourceOverrideEnabled": "Once", "BootSourceOverrideTarget": "Cd", "BootSourceOverrideMode": "UEFI"}}'
+    '{"Boot": {"BootSourceOverrideEnabled": "Once", "BootSourceOverrideTarget": "'${boottarget}'", "BootSourceOverrideMode": "UEFI"}}'
   if funRedfish $host GET /redfish/v1/Systems/1 | jq -e '.PowerState == "Off"' > /dev/null; then
     funRedfish $host POST /redfish/v1/Systems/1/Actions/ComputerSystem.Reset '{"ResetType": "On"}'
   else
