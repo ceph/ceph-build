@@ -1,0 +1,85 @@
+// sepia-fog-windows-images: refresh the Windows Server FOG images by
+// deploying the existing image, running Windows Update, cleaning up, and
+// recapturing it.  All the real logic lives in
+// sepia-fog-windows-images/build/fog-windows.sh; each stage runs one phase.
+
+def phase(String name) {
+    sh "bash sepia-fog-windows-images/build/fog-windows.sh ${name}"
+}
+
+pipeline {
+    agent { label 'teuthology' }
+
+    environment {
+        // SEPIA_IPMI_USR/_PSW, FOG_USR/_PSW; fog-lib.sh maps these onto
+        // the variable names it uses.  The FOG tokens are only a fallback
+        // for when the agent's /etc/teuthology.yaml has no fog: block.
+        SEPIA_IPMI = credentials('sepia-ipmi')
+        FOG = credentials('fog')
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Prepare') {
+            steps {
+                phase 'prepare'
+            }
+        }
+
+        stage('Lock') {
+            steps {
+                phase 'lock'
+            }
+        }
+
+        stage('Deploy') {
+            steps {
+                phase 'deploy'
+            }
+        }
+
+        stage('Update') {
+            steps {
+                phase 'update'
+            }
+        }
+
+        stage('Prep') {
+            steps {
+                phase 'prep'
+            }
+        }
+
+        stage('Capture') {
+            steps {
+                phase 'capture'
+            }
+        }
+
+        stage('Verify') {
+            steps {
+                phase 'verify'
+            }
+        }
+
+        stage('Unlock') {
+            steps {
+                phase 'unlock'
+            }
+        }
+    }
+
+    post {
+        failure {
+            phase 'cleanup'
+        }
+        aborted {
+            phase 'cleanup'
+        }
+    }
+}
