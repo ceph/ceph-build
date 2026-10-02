@@ -240,14 +240,35 @@ funSeedFromIso () {
   port=$(( 8600 + RANDOM % 1000 ))
   (cd $seeddir && nohup python3 -m http.server $port --bind $frontip > http.log 2>&1 & echo $! > http.pid)
 
-  # Mount it and boot from it, once
-  funRedfish $host POST /redfish/v1/Managers/1/VirtualMedia/CD1/Actions/VirtualMedia.EjectMedia '{}' || true
-  funRedfish $host POST /redfish/v1/Managers/1/VirtualMedia/CD1/Actions/VirtualMedia.InsertMedia \
-    '{"Image": "http://'${frontip}':'${port}'/seed.iso", "TransferProtocolType": "HTTP"}'
-  if ! funRedfish $host GET /redfish/v1/Managers/1/VirtualMedia/CD1 | jq -e '.Inserted == true' > /dev/null; then
-    echo "ERROR: the BMC did not mount the seed ISO (http://${frontip}:${port}/seed.iso); check ${seeddir}/http.log and the BMC's virtual media state"
+  # Mount it and boot from it, once.  The virtual-media resource name
+  # varies by BMC generation -- CD1 on older Supermicro firmware,
+  # VirtualMedia1 on the H13/X14 era, which marks CD1 obsolete (an
+  # InsertMedia there is "accepted" but never surfaces Inserted=true) --
+  # so discover the CD-capable member instead of hardcoding one, and
+  # poll Inserted: the mount is an async BMC task, not instantaneous.
+  local vmpath="" member
+  for member in $(funRedfish $host GET /redfish/v1/Managers/1/VirtualMedia | jq -r '(.Members // [])[]."@odata.id"'); do
+    if funRedfish $host GET "$member" | jq -e '(.MediaTypes // []) | map(ascii_upcase) | any(test("CD|DVD"))' > /dev/null; then
+      vmpath=$member
+      break
+    fi
+  done
+  if [ -z "$vmpath" ]; then
+    echo "ERROR: no CD-capable Redfish virtual media on ${host}'s BMC"
     exit 1
   fi
+  funRedfish $host POST "$vmpath/Actions/VirtualMedia.EjectMedia" '{}' || true
+  funRedfish $host POST "$vmpath/Actions/VirtualMedia.InsertMedia" \
+    '{"Image": "http://'${frontip}':'${port}'/seed.iso", "TransferProtocolType": "HTTP"}'
+  currentretries=0
+  until funRedfish $host GET "$vmpath" | jq -e '.Inserted == true' > /dev/null; do
+    echo "$(date) -- ${host}'s BMC has not mounted the seed ISO yet.  Sleeping 10sec"
+    sleep 10
+    ((++currentretries))
+    # 3min, then give up: check ${seeddir}/http.log and the BMC's
+    # virtual media state
+    funRetry $currentretries 18
+  done
   funRedfish $host PATCH /redfish/v1/Systems/1 \
     '{"Boot": {"BootSourceOverrideEnabled": "Once", "BootSourceOverrideTarget": "Cd", "BootSourceOverrideMode": "UEFI"}}'
   if funRedfish $host GET /redfish/v1/Systems/1 | jq -e '.PowerState == "Off"' > /dev/null; then
@@ -277,7 +298,7 @@ funSeedFromIso () {
   wssh $host 'Remove-Item -Recurse -Force C:\seed-done, C:\seed\FOGService.msi -ErrorAction SilentlyContinue; exit 0'
 
   # Unhook the virtual media and stop the HTTP server
-  funRedfish $host POST /redfish/v1/Managers/1/VirtualMedia/CD1/Actions/VirtualMedia.EjectMedia '{}' || true
+  funRedfish $host POST "$vmpath/Actions/VirtualMedia.EjectMedia" '{}' || true
   funRedfish $host PATCH /redfish/v1/Systems/1 '{"Boot": {"BootSourceOverrideEnabled": "Disabled"}}' || true
   kill $(cat $seeddir/http.pid) 2>/dev/null || true
   rm -f $seeddir/seed.iso
@@ -609,7 +630,9 @@ phase_cleanup () {
   done
   if [ "$STARTWITHISO" == "true" ]; then
     for machine in $allhosts; do
-      funRedfish $machine POST /redfish/v1/Managers/1/VirtualMedia/CD1/Actions/VirtualMedia.EjectMedia '{}' || true
+      for member in $(funRedfish $machine GET /redfish/v1/Managers/1/VirtualMedia 2>/dev/null | jq -r '(.Members // [])[]."@odata.id"'); do
+        funRedfish $machine POST "$member/Actions/VirtualMedia.EjectMedia" '{}' || true
+      done
       funRedfish $machine PATCH /redfish/v1/Systems/1 '{"Boot": {"BootSourceOverrideEnabled": "Disabled"}}' || true
     done
   fi
