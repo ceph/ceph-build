@@ -196,12 +196,44 @@ funSeedFromIso () {
   awk -v r="$keys" '{gsub(/@SSHKEYS@/, r)}1' $tmpl/postinstall.ps1.in \
     | sed -e "s|@FOGSERVER@|${fogserver}|" > $seeddir/postinstall.ps1
 
-  # Repack the ISO with the answer file and the $OEM$ payload (replayed
-  # boot records keep it UEFI-bootable)
-  xorriso -indev "$isocache" -outdev $seeddir/seed.iso \
-    -boot_image any replay \
-    -map $seeddir/autounattend.xml /autounattend.xml \
-    -map $seeddir/postinstall.ps1 '/sources/$OEM$/$1/seed/postinstall.ps1'
+  # Repack the ISO with the answer file and the $OEM$ payload.  A Windows
+  # ISO cannot be modified in place with xorriso: its big files (notably
+  # sources/install.wim) live only in the UDF tree, which xorriso does not
+  # read -- a naive -indev/-outdev repack produces a 450KB husk with no
+  # boot images (first seed attempt, 2026-10-02).  So: extract with 7z
+  # (which does read UDF), split install.wim under the 4GB ISO9660 file
+  # limit (Windows Setup picks up install.swm natively), and rebuild with
+  # mkisofs semantics.  The EFI boot image must be efisys_noprompt.bin:
+  # the stock efisys.bin asks to "Press any key to boot from CD", which
+  # would hang an unattended boot forever.
+  for tool in 7z wimlib-imagex; do
+    command -v $tool >/dev/null || {
+      echo "ERROR: $tool is required to repack the Windows ISO (apt install p7zip-full wimtools)"
+      exit 1
+    }
+  done
+  local extract=$seeddir/extract etfs efisys wimsize
+  7z x -y -o$extract "$isocache" > /dev/null
+  cp $seeddir/autounattend.xml $extract/autounattend.xml
+  mkdir -p "$extract/sources/\$OEM\$/\$1/seed"
+  cp $seeddir/postinstall.ps1 "$extract/sources/\$OEM\$/\$1/seed/postinstall.ps1"
+  wimsize=$(stat -c %s $extract/sources/install.wim 2>/dev/null || echo 0)
+  if [ "$wimsize" -gt $(( 4000 * 1024 * 1024 )) ]; then
+    wimlib-imagex split $extract/sources/install.wim $extract/sources/install.swm 3800
+    rm -f $extract/sources/install.wim
+  fi
+  etfs=$(find $extract -ipath "*boot/etfsboot.com" | head -1)
+  efisys=$(find $extract -ipath "*efi/microsoft/boot/efisys_noprompt.bin" | head -1)
+  if [ -z "$efisys" ]; then
+    echo "ERROR: no efisys_noprompt.bin in the ISO; an unattended CD boot would hang at 'Press any key'"
+    exit 1
+  fi
+  xorriso -as mkisofs -iso-level 3 -J -joliet-long -R \
+    -V "WIN_SEED_${winver}" \
+    -b "${etfs#$extract/}" -no-emul-boot -boot-load-size 8 \
+    -eltorito-alt-boot -e "${efisys#$extract/}" -no-emul-boot \
+    -o $seeddir/seed.iso $extract
+  rm -rf $extract
 
   # Serve it to the BMC over HTTP from this agent's front address
   frontip=$(ip -4 route get $(getent hosts ${host}.ipmi.sepia.ceph.com | awk '{print $1; exit}') | grep -oE 'src [0-9.]+' | awk '{print $2}')
