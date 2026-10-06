@@ -1,0 +1,81 @@
+# Seed-time post-install for the FOG Windows golden image (STARTWITHISO).
+# Runs once as Administrator via autounattend FirstLogonCommands; lands at
+# C:\seed\postinstall.ps1 through the ISO's $OEM$ payload.  @TOKENS@ are
+# substituted by funSeedFromIso.  Everything the refresh job relies on is
+# set up here: ssh access, the FOG client, PSWindowsUpdate, and a PXE-first
+# UEFI boot order (Windows setup puts its own boot entry first, which would
+# keep every later reboot out of FOG's hands).
+$ErrorActionPreference = 'Continue'
+Start-Transcript -Path C:\seed\postinstall.log -Append
+
+# --- OpenSSH server, PowerShell as the default shell, lab keys ---
+# Server 2025 ships the OpenSSH server inbox; the capability add is a no-op
+# fallback for images where it is missing.
+Add-WindowsCapability -Online -Name OpenSSH.Server~~~~0.0.1.0 -ErrorAction SilentlyContinue
+New-Item -Path "HKLM:\SOFTWARE\OpenSSH" -Force | Out-Null
+New-ItemProperty -Path "HKLM:\SOFTWARE\OpenSSH" -Name DefaultShell `
+  -Value "C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe" -PropertyType String -Force | Out-Null
+$ak = 'C:\ProgramData\ssh\administrators_authorized_keys'
+New-Item -ItemType Directory -Path (Split-Path $ak) -Force | Out-Null
+@'
+@SSHKEYS@
+'@ | Out-File -FilePath $ak -Encoding ascii
+icacls $ak /inheritance:r /grant 'Administrators:F' /grant 'SYSTEM:F' | Out-Null
+Set-Service sshd -StartupType Automatic
+Start-Service sshd
+# Server 2025's inbox sshd ships without the inbound firewall rule the
+# optional-capability install would have created (seed #4: sshd Running,
+# connections timing out), so make one unconditionally.
+if (-not (Get-NetFirewallRule -Name sshd-in -ErrorAction SilentlyContinue)) {
+  New-NetFirewallRule -Name sshd-in -DisplayName 'OpenSSH Server (sshd)' -Enabled True `
+    -Direction Inbound -Protocol TCP -Action Allow -LocalPort 22 | Out-Null
+}
+
+# --- FOG client (HostnameChanger renames every deployed clone) ---
+# The MSI lives at a fixed path; download.php?msi answers an empty HTML
+# page (seed #4 installed nothing, silently).  The whole refresh flow
+# leans on HostnameChanger, so a missing client is fatal here.
+Invoke-WebRequest -UseBasicParsing "http://@FOGSERVER@/fog/client/FOGService.msi" -OutFile C:\seed\FOGService.msi
+Start-Process msiexec -ArgumentList '/i','C:\seed\FOGService.msi','/quiet','/norestart',"WEBADDRESS=@FOGSERVER@",'WEBROOT=/fog','USETRAY=0','HTTPS=0' -Wait
+if (Get-Service FOGService -ErrorAction SilentlyContinue) {
+  Set-Service FOGService -StartupType Automatic
+  Write-Output 'FOG client: ok'
+} else {
+  Write-Output 'FOG client: FAILED'
+}
+
+# --- PSWindowsUpdate (the refresh job's update phase runs it as SYSTEM) ---
+[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+Install-PackageProvider -Name NuGet -MinimumVersion 2.8.5.201 -Force | Out-Null
+Install-Module PSWindowsUpdate -Force -Confirm:$false
+
+# --- Keep PXE first in the UEFI boot order, on every boot ---
+# bcdboot made "Windows Boot Manager" the first UEFI entry during setup,
+# and -- the part that bit later -- a CLONE of this image does the same
+# thing on its own first boot: it finds no {bootmgr} entry in its NVRAM,
+# creates one at the top of BootOrder, and from then on that node never
+# PXEs again, so no later FOG deploy or capture can reach it (trial162,
+# 2026-10-02: four straight missed pickups).  The lab expects PXE-first
+# (FOG chains to local boot when a host has no task), so bake the reorder
+# as a boot-time SYSTEM task that every clone runs itself, and run it
+# once now for the golden host.
+$pxefirst = 'C:\seed\pxefirst.ps1'
+@'
+$fwout = (bcdedit /enum firmware | Out-String) -split '(\r?\n)(\r?\n)+'
+$pxe = $fwout | Where-Object { $_ -match 'UEFI PXE IPv4' } | Select-Object -First 1
+if ($pxe -and $pxe -match '\{[0-9a-fA-F-]+\}') {
+  bcdedit /set '{fwbootmgr}' displayorder $Matches[0] /addfirst | Out-Null
+  Write-Output 'PXE-first: ok'
+} else {
+  Write-Output 'PXE-first: FAILED'
+}
+'@ | Out-File -FilePath $pxefirst -Encoding ascii
+schtasks /Create /TN PXEFirst /SC ONSTART /RU SYSTEM /F `
+  /TR "powershell -NoProfile -ExecutionPolicy Bypass -File $pxefirst" | Out-Null
+& powershell -NoProfile -ExecutionPolicy Bypass -File $pxefirst
+
+# --- Turn autologon back off; access from here on is ssh keys or RDP ---
+Set-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon' -Name AutoAdminLogon -Value '0'
+
+Stop-Transcript
+New-Item -ItemType File -Path C:\seed-done -Force | Out-Null
