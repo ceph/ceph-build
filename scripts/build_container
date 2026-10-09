@@ -8,9 +8,13 @@ PS4="\$(date --rfc-3339=seconds) + "
 # build container image that supports building crimson-osd
 if [[ $CI_CONTAINER == "true" && $DISTRO =~ centos|rocky|alma && "$RELEASE" =~ 8|9|10 ]] ; then
     podman login -u $CONTAINER_REPO_USERNAME -p $CONTAINER_REPO_PASSWORD $CONTAINER_REPO_HOSTNAME/$CONTAINER_REPO_ORGANIZATION
-    loop=0
+    # Two bounds: a hard deadline on the whole wait, and a shorter stall
+    # deadline that re-arms whenever shaman still shows a repo record that
+    # just isn't ready yet (chacra has the repo build queued or running).
+    hard_deadline=$((SECONDS + 2700))
+    stall_deadline=$((SECONDS + 900))
     ready=false
-    while ((loop < 15)); do
+    while ((SECONDS < hard_deadline)); do
       curl -s "https://shaman.ceph.com/api/search/?project=ceph&distros=${DISTRO}/${RELEASE}/${ARCH}&sha1=${SHA1}&ref=${BRANCH}&flavor=${FLAVOR}" > shaman.status
       # Shaman holds several repo records for the same sha1 (one per backend
       # and per uploading job), so scan all of them instead of .[0].
@@ -20,14 +24,22 @@ if [[ $CI_CONTAINER == "true" && $DISTRO =~ centos|rocky|alma && "$RELEASE" =~ 8
       # Otherwise wait for a ready record posted by this very build.
       if [[ ${UPLOADED:-true} == "false" || ${CI_COMPILE:-true} == "false" ]]; then
         ready=$(jq -r '[.[] | select(.status == "ready")] | length > 0' < shaman.status)
+        pending=$(jq -r 'length > 0' < shaman.status)
       else
         ready=$(jq -r --arg build_url "${BUILD_URL}" \
           '[.[] | select(.status == "ready" and (.extra.build_url? // "") == $build_url)] | length > 0' < shaman.status)
+        pending=$(jq -r --arg build_url "${BUILD_URL}" \
+          '[.[] | select((.extra.build_url? // "") == $build_url)] | length > 0' < shaman.status)
       fi
       if [[ "$ready" == "true" ]]; then
         break
       fi
-      ((loop = loop + 1))
+      if [[ "$pending" == "true" ]]; then
+        stall_deadline=$((SECONDS + 900))
+      elif ((SECONDS >= stall_deadline)); then
+        echo "TIMEOUT: no shaman repo record for this build after 15 minutes without progress"
+        break
+      fi
       sleep 60
     done
 
