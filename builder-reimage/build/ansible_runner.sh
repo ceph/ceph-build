@@ -348,6 +348,29 @@ if ! (
     FAILED_LOGS+=("${LOG_DIR}/${TARGET_FQDN}-play6-main-builder.log")
 fi
 
+##############################################
+# PLAYBOOK 7 — alloy.yml (metrics/log shipping)
+##############################################
+# A fresh deploy wipes Grafana Alloy (node_exporter -> Mimir, journald/auditd
+# -> Loki), which the fleet-wide alloy.yml runs installed.  Re-apply it here so
+# a reimaged builder comes back observable without waiting for the next fleet
+# run.  The play's host pattern covers ci_infrastructure, which contains the
+# jenkins builders; --limit narrows it to this node.
+if ! (
+  cd "${ANSIBLE_DIR}"
+
+  CMD="ANSIBLE_HOST_KEY_CHECKING=False ANSIBLE_STDOUT_CALLBACK=json ansible-playbook alloy.yml \
+        -i '${INVENTORY_PATH}' \
+        ${VAULT_ARG} \
+        --limit='${TARGET_FQDN}' \
+        -e ansible_ssh_user='${SSH_USER}'"
+
+  run_playbook "play7-alloy" "${CMD}"
+); then
+    FAILED_PLAYBOOKS+=("play7-alloy")
+    FAILED_LOGS+=("${LOG_DIR}/${TARGET_FQDN}-play7-alloy.log")
+fi
+
 fi
 
 echo "========================================"
