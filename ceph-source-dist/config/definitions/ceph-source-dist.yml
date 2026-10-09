@@ -17,10 +17,10 @@
       do-not-fetch-tags: true
     properties:
       - build-discarder:
-          days-to-keep: -1
-          num-to-keep: 100
-          artifact-days-to-keep: -1
-          artifact-num-to-keep: 50
+          days-to-keep: 7
+          num-to-keep: -1
+          artifact-days-to-keep: 7
+          artifact-num-to-keep: -1
       - copyartifact:
           projects: ceph-dev-pipeline,ceph-dev,ceph-dev-build,ceph-dev-new,ceph-dev-new-build
 
