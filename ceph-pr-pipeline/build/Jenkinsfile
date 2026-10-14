@@ -495,7 +495,10 @@ def doPrepare() {
 def doSignedCheck() {
   logNode()
   checkoutCephBuild()
-  withStatus("signed", "commit signature check") {
+  def label = env.DOCS_ONLY == "true" ?
+      "commit title check (Signed-off-by not required for docs-only PRs)" :
+      "commit signature check"
+  withStatus("signed", label) {
     sh """#!/bin/bash -ex
       export GITHUB_USER=\$GITHUB_RO_CREDS_USR GITHUB_PASS=\$GITHUB_RO_CREDS_PSW
       bash ./ceph-build/ceph-pr-pipeline/build/pr_checks.sh signed
