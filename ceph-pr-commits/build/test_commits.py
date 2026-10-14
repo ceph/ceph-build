@@ -58,7 +58,9 @@ class TestCommits(object):
                 wrong_commits
             ))
 
+    # runs for both docs-only and code PRs: the DCO applies to every commit
     @pytest.mark.code_test
+    @pytest.mark.doc_test
     def test_signed_off_by(self):
         signed_off_regex = r'Signed-off-by: \S.* <[^@]+@[^@]+\.[^@]+>'
         # '-z' puts a '\0' between commits, see later split('\0')

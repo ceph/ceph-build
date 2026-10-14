@@ -13,8 +13,9 @@
 #   ghprbTargetBranch - PR target branch (e.g. main)
 #   GITHUB_USER/GITHUB_PASS - GitHub API credentials (read-only is fine)
 # classify writes $WORKSPACE/pr_changes.properties (DOCS_ONLY=..., etc.).
-# signed additionally reads DOCS_ONLY (exported by the pipeline from the
-# classify stage) to decide which check to apply, mirroring ceph-pr-commits.
+# signed always requires a Signed-off-by trailer on every commit, and
+# additionally reads DOCS_ONLY (exported by the pipeline from the classify
+# stage) to apply the doc-title check to docs-only PRs.
 
 set -o errexit
 set -o pipefail
@@ -186,7 +187,6 @@ do_signed() {
             return 1
         fi
         echo "All commit titles look good."
-        return 0
     fi
 
     wrong=$(echo "$commits" | jq -r \
