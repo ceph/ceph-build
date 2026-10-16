@@ -115,7 +115,13 @@ fi
 # through net-destroy without reaching net-undefine, and a libvirtd restart
 # won't start a network that lost its autostart flag.  virt-install then
 # fails with "network 'default' is not active", so always (re)start it.
-if ! sudo virsh net-info default | grep -qE '^Active:\s+yes'; then
+#
+# Not "virsh net-info | grep -q": this script runs under pipefail, grep -q
+# exits on its first match and virsh then dies of SIGPIPE, so the pipeline
+# "failed" on an active network and net-start aborted the run with "network
+# is already active" (18 ceph-pr-pipeline runs on 2026-10-15/16).
+net_info=$(sudo virsh net-info default)
+if ! grep -qE '^Active:\s+yes' <<< "${net_info}"; then
     sudo virsh net-start default
 fi
 sudo virsh net-autostart default
