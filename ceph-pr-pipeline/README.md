@@ -27,10 +27,10 @@ webhook (pull_request / issue_comment)
             ├─ ceph windows tests     (noble+libvirt) container builds + Windows VM
             ├─ build and test (arm64) (arm64)  restore-or-build + tests
             └─ build and test
-                 build ceph           (huge)  ONE clone, bwc -e buildtests, tree → S3
-                 ├─ make check        tree ← S3, bwc -e tests
-                 ├─ ceph API tests A  tree ← S3, run-backend-api-tests <modules> (in container)
-                 └─ ceph API tests B  tree ← S3, run-backend-api-tests <modules> (in container)
+                 build ceph           (huge)  ONE clone, bwc -e buildtests, tree + image → S3
+                 ├─ make check        tree + image ← S3, bwc -e tests
+                 ├─ ceph API tests A  tree + image ← S3, run-backend-api-tests <modules> (in container)
+                 └─ ceph API tests B  tree + image ← S3, run-backend-api-tests <modules> (in container)
 ```
 
 - **Cache:** build trees are zstd-tarred to the Sepia LRC's RGW (the doli
@@ -39,6 +39,16 @@ webhook (pull_request / issue_comment)
   exactly those two inputs and the cache invalidates itself when either
   side moves.  Re-runs with both unchanged skip compilation
   (`FORCE_BUILD=true` overrides).
+- **Image travels with the tree:** the bwc build image the tree was
+  compiled in is `podman save`d next to it (`….<arch>.image.tar.zst`,
+  ~1.7G compressed) and `podman load`ed by the test legs before bwc runs.
+  bwc's own cache check only compares a hash of the image's *sources*, and
+  every builder used to build its own copy, so identically-tagged images
+  differed across the fleet (2026-10-16: 2371 cached PR images in six
+  distinct sizes, a tree built against `/opt/ceph` boost landing in a copy
+  without it).  The arm64 leg builds and tests on one node and needs none
+  of this.  A tree cached before this existed has no image object and the
+  test legs fall back to the builder's own image, with a note in the log.
 - **API test shards:** the dashboard suite is ~90 min of serial tests, so
   it runs as two shards on two builders under the one `ceph API tests`
   status.  Shard B is the fixed list in the Jenkinsfile (`api_shard_b`:
