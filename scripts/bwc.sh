@@ -299,4 +299,19 @@ bwc_arch() {
     esac
 }
 
+# bwc_image_name - Print the local name of the build image bwc built or
+#   used for this branch on this host (e.g. localhost/ceph-build:
+#   origin-pr-123-merge.ubuntu22.04.amd64), looked up by its tag pattern
+#   rather than by re-deriving bwc's tag scheme here.
+# Arguments: (none)
+# Variables:
+#   GIT_BRANCH - same branch bwc() derived the tag from.  Defaults to "main"
+# Output: image reference, or nothing if bwc has not built one
+bwc_image_name() {
+    local current_branch=${GIT_BRANCH:-main}
+    current_branch=${current_branch//\//-}
+    podman images --format '{{.Repository}}:{{.Tag}}' \
+        --filter "reference=ceph-build:${current_branch}.*.$(bwc_arch)" | head -n 1
+}
+
 # vim: ts=4 sw=4 expandtab
