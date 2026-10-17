@@ -1,7 +1,7 @@
 #!/bin/bash -ex
 # vim: ts=4 sw=4 expandtab
 "$WORKSPACE/scripts/setup_uv.sh"
-~/.local/bin/uv tool install chacractl
+~/.local/bin/uv tool install 'chacractl==0.0.25'
 
 if [ -z "$chacra_url" ]; then
   # -f: shaman answers 404 ("no healthy chacra nodes available") when it has
