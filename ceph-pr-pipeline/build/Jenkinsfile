@@ -345,6 +345,19 @@ def checkoutCephPr() {
     git checkout -q "${env.BASE_SHA}"
     git -c user.name='Ceph PR pipeline' -c user.email='jenkins@ceph.com' \\
         merge --no-edit --no-stat "${env.HEAD_SHA}"
+
+    # Two submodules live on chromium.googlesource.com, which answered 503
+    # for two hours on 2026-10-16 and failed 15 runs in their submodule
+    # clone.  Fetch them from the lab's git.ceph.com mirrors instead
+    # (sepia-openshift git/git-ceph-com-stack.yaml lists them).  Repo-level
+    # config rather than --global so it also governs the clones do_cmake.sh
+    # runs inside the bwc container, where /ceph/.git/config is the only git
+    # config there is.  (Neither has nested submodules: breakpad pulls its
+    # own deps with DEPS, not .gitmodules.)
+    git config url.https://git.ceph.com/breakpad.git.insteadOf \\
+        https://chromium.googlesource.com/breakpad/breakpad
+    git config url.https://git.ceph.com/linux-syscall-support.git.insteadOf \\
+        https://chromium.googlesource.com/linux-syscall-support
   """
 }
 
