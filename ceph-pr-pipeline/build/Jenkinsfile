@@ -611,11 +611,15 @@ def doBuild() {
       npm_cache_info
     """
   )
+  // The image goes up with the tree: the test legs must run in the image
+  // this tree was compiled in, not in whatever copy of it their builder has
+  // (see s3_image_put in s3_cache.sh).
   sh(
-    label: "upload build tree to cache",
+    label: "upload build tree and image to cache",
     script: bwcPreamble("x86_64") + """
       s3_setup
       s3_cache_put ceph
+      s3_image_put "\$(bwc_image_name)"
     """
   )
 }
@@ -624,12 +628,21 @@ def restoreBuildTree() {
   logNode()
   checkoutCephBuild()
   sh "./ceph-build/scripts/setup_container_runtime.sh"
+  // A tree cached before images were cached alongside it has no image
+  // object; only then let bwc fall back to this builder's own image.  Any
+  // other failure to load the image fails the leg rather than silently
+  // running the tree in a possibly different image.
   sh(
-    label: "download build tree from cache",
+    label: "download build tree and image from cache",
     script: bwcPreamble("x86_64") + """
       rm -rf ceph
       s3_setup
       s3_cache_get ceph
+      if head=\$(s3_image_exists 2>&1); then
+        s3_image_get
+      else
+        echo "no cached image for this build (cached before images were kept?); bwc will use or build this builder's own: \$head"
+      fi
     """
   )
 }
