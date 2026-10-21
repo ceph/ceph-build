@@ -545,6 +545,10 @@ def bwcPreamble(String arch) {
     export DOCKER_HUB_USERNAME="\$DOCKER_HUB_CREDS_USR"
     export DOCKER_HUB_PASSWORD="\$DOCKER_HUB_CREDS_PSW"
     export GIT_BRANCH="origin/pr/${params.ghprbPullId}/merge"
+    # Build trees move between builders here, so a build image that came
+    # out without /opt/ceph boost (shaman/chacra flake) must fail to build
+    # rather than be kept and handed trees configured against it.
+    export REQUIRE_BOOST_PKGS=1
     export NPMCACHE="\${HOME}/npmcache"
     # bwc passes --npm-cache-path whenever NPMCACHE is set, and podman
     # refuses to start if the mount source doesn't exist.  The build
