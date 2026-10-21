@@ -13,8 +13,9 @@
 #   ghprbTargetBranch - PR target branch (e.g. main)
 #   GITHUB_USER/GITHUB_PASS - GitHub API credentials (read-only is fine)
 # classify writes $WORKSPACE/pr_changes.properties (DOCS_ONLY=..., etc.).
-# signed additionally reads DOCS_ONLY (exported by the pipeline from the
-# classify stage) to decide which check to apply, mirroring ceph-pr-commits.
+# signed reads DOCS_ONLY (exported by the pipeline from the classify stage)
+# to decide which check gates: docs-only PRs gate on commit titles with the
+# Signed-off-by check advisory only, everything else gates on Signed-off-by.
 
 set -o errexit
 set -o pipefail
@@ -163,6 +164,15 @@ SCRIPT_ONLY=${script_only}
 EOF
 }
 
+# Commits in the JSON array $1 lacking a Signed-off-by trailer, one
+# "<sha12> <title>" per line.
+unsigned_commits() {
+    echo "$1" | jq -r \
+        '.[] | select((.commit.message
+                       | test("Signed-off-by: \\S.* <[^@]+@[^@]+\\.[^@]+>")) | not)
+             | .sha[0:12] + " " + (.commit.message | split("\n")[0])'
+}
+
 do_signed() {
     local commits
     commits="$(pr_commits)"
@@ -186,13 +196,18 @@ do_signed() {
             return 1
         fi
         echo "All commit titles look good."
+        wrong=$(unsigned_commits "$commits")
+        if [ -n "$wrong" ]; then
+            echo "WARNING: the following commits have no Signed-off-by trailer."
+            echo "The CSC does not require Signed-off-by for docs-only PRs, so this"
+            echo "does not fail the check, but signing is still encouraged:"
+            echo "https://github.com/ceph/ceph/blob/main/SubmittingPatches.rst#1-sign-your-work"
+            echo "$wrong"
+        fi
         return 0
     fi
 
-    wrong=$(echo "$commits" | jq -r \
-        '.[] | select((.commit.message
-                       | test("Signed-off-by: \\S.* <[^@]+@[^@]+\\.[^@]+>")) | not)
-             | .sha[0:12] + " " + (.commit.message | split("\n")[0])')
+    wrong=$(unsigned_commits "$commits")
     if [ -n "$wrong" ]; then
         echo "The following commits are not signed.  Please sign all commits as"
         echo "described in the 'Submitting Patches' guide:"
