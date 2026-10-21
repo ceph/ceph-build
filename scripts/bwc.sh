@@ -18,6 +18,11 @@
 #                 Rust).  Defaults to ~/.cache/ceph-sccache; set it empty
 #                 to disable caching.
 #   SCCACHE_CACHE_SIZE - Cap for that directory.  Defaults to 40G.
+#   REQUIRE_BOOST_PKGS - If set, build the image with the build arg of the
+#                        same name, so it fails instead of coming out
+#                        without /opt/ceph boost when shaman/chacra can't
+#                        serve ceph-libboost.  Ignored (with a note) on
+#                        branches whose Dockerfile.build doesn't take it.
 bwc() {
     # specify timeout in hours for $1
     local timeout=$(($1*60*60))
@@ -53,6 +58,16 @@ bwc() {
     base_image=$(bwc_apt_mirror_base_image)
     if [ "${base_image}" ]; then
         args+=(--base-image="${base_image}")
+    fi
+    if [ "${REQUIRE_BOOST_PKGS}" ]; then
+        # needs both halves: bwc's --build-arg (2025-06) and the ARG in
+        # Dockerfile.build (ceph#72789; release branches via its backports)
+        if grep -q -- '"--build-arg"' ./src/script/build-with-container.py 2>/dev/null &&
+           grep -q '^ARG REQUIRE_BOOST_PKGS' ./Dockerfile.build 2>/dev/null; then
+            args+=(--build-arg=REQUIRE_BOOST_PKGS=1)
+        else
+            echo "bwc: this branch's build image doesn't support REQUIRE_BOOST_PKGS; not requiring ceph-libboost" >&2
+        fi
     fi
     args+=("${@}")
     timeout "${timeout}" ./src/script/build-with-container.py \
