@@ -31,7 +31,7 @@
       - bool:
           name: TAG
           description: |
-            When this is checked, Jenkins will remove the previous private tag and recreate it again, changing the control files and committing again. When this is unchecked, Jenkins will not do any commit or tag operations. If you've already created the private tag separately or are re-running a build, leave this unchecked.
+            When this is checked, Jenkins will remove the previous private tag and recreate it, changing the control files and committing again. When this is unchecked, Jenkins will not do any commit or tag operations. If you've already created the private tag separately or are re-running a build, leave this unchecked. The tag is no longer automatically pushed to ceph.git.
             Defaults to checked.
           default: true
 

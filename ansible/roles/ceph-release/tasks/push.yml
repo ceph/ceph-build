@@ -82,7 +82,9 @@
   tags: pr
   no_log: true
 
-- name: push the newly created tag
-  command: git push upstream v{{ version }}
-  args:
-    chdir: ceph
+# 10/22/2026 - @batrick requested this be a manual step
+#              Keeping here for posterity
+#- name: push the newly created tag
+#  command: git push upstream v{{ version }}
+#  args:
+#    chdir: ceph
