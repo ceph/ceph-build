@@ -1,0 +1,88 @@
+# ceph-pr-crimson-qa: schedule a crimson-rados teuthology run against a ceph PR.
+# Triggered by the GitHub comment phrase "jenkins test crimson-qa" via the
+# generic-webhook-trigger plugin; uses the same webhook as ceph-pr-pipeline-trigger
+# (add the issue_comment event to the repo webhook pointing at Jenkins).
+
+- job:
+    name: ceph-pr-crimson-qa
+    description: |
+      Schedule a crimson-rados teuthology suite run against a ceph.git pull request.
+      Triggered by "jenkins test crimson-qa" in a PR comment, or by a manual build
+      with ghprbPullId set.  Delegates suite scheduling to the teuthology-runner job.
+    project-type: pipeline
+    quiet-period: 1
+    concurrent: true
+    properties:
+      - build-discarder:
+          days-to-keep: 30
+          num-to-keep: 200
+      - github:
+          url: https://github.com/ceph/ceph/
+    pipeline-scm:
+      scm:
+        - git:
+            url: https://github.com/ceph/ceph-build
+            branches:
+              - ${{CEPH_BUILD_BRANCH}}
+            shallow-clone: true
+            submodule:
+              disable: true
+            wipe-workspace: true
+      script-path: ceph-pr-crimson-qa/build/Jenkinsfile
+      lightweight-checkout: true
+      do-not-fetch-tags: true
+
+    # Webhook filter: only accept issue_comment "created" events on PRs that
+    # contain the "jenkins test crimson-qa" phrase.  Point the same repo or org
+    # webhook used by ceph-pr-pipeline-trigger at:
+    #   https://jenkins.ceph.com/generic-webhook-trigger/invoke?token=ceph-pr-crimson-qa
+    triggers:
+      - generic-webhook-trigger:
+          token: ceph-pr-crimson-qa
+          token-credential-id: pr-crimson-qa-trigger-token
+          print-contrib-var: true
+          post-content-params:
+            - type: JSONPath
+              key: action
+              value: $.action
+            - type: JSONPath
+              key: issue_number
+              value: $.issue.number
+            - type: JSONPath
+              key: issue_is_pr
+              value: $.issue.pull_request.url
+            - type: JSONPath
+              key: comment_body
+              value: $.comment.body
+            - type: JSONPath
+              key: comment_author
+              value: $.comment.user.login
+          regex-filter-text: $action:$issue_is_pr:$comment_body
+          # Accept only "created" comments on PRs containing the trigger phrase.
+          regex-filter-expression: "(?is)^created:https[^:]*:.*jenkins\\s+test\\s+crimson-qa\\b.*$"
+          cause: "GitHub comment by $comment_author on PR $issue_number"
+
+    parameters:
+      - string:
+          name: ghprbPullId
+          description: "Pull request number (e.g. 72). Set automatically from the webhook; can be set manually for ad-hoc runs."
+
+      - string:
+          name: CEPH_BUILD_BRANCH
+          default: main
+          description: "ceph-build branch for the Jenkinsfile and scripts."
+
+      - string:
+          name: TEUTHOLOGY_RUNNER_JOB_NAME
+          default: teuthology-runner
+          description: "Jenkins job name of the teuthology-runner pipeline."
+
+      - string:
+          name: SUITE_MACHINE_TYPE
+          default: trial
+          description: "teuthology-suite --machine-type passed to teuthology-runner."
+
+    wrappers:
+      - inject-passwords:
+          global: true
+          mask-password-params: true

@@ -1,0 +1,230 @@
+/**
+ * ceph-pr-crimson-qa: schedule a crimson-rados teuthology run against a ceph PR.
+ *
+ * Triggered by "jenkins test crimson-qa" in a PR comment (via generic-webhook-trigger),
+ * or run manually by setting ghprbPullId.  The build:
+ *   1. Resolves the PR's head SHA and target branch via the GitHub API.
+ *   2. Verifies the PR is open and the commenter has CI permission (write/admin).
+ *   3. Posts a GitHub status check (pending → success/failure).
+ *   4. Delegates to teuthology-runner with SKIP_SHAMAN_WAIT=true; the PR build
+ *      is used directly (CEPH_SHA1 = PR head SHA, CEPH_BRANCH = PR target branch).
+ */
+
+import groovy.transform.Field
+
+@Field String github_repo  = "ceph/ceph"
+@Field String github_org   = "ceph"
+@Field String github_api   = "https://api.github.com"
+@Field String status_context = "crimson-qa"
+@Field String suite_name   = "crimson-rados"
+
+pipeline {
+    agent any
+    options {
+        skipDefaultCheckout(true)
+        timestamps()
+        buildDiscarder(logRotator(numToKeepStr: '200'))
+        timeout(time: 4, unit: 'HOURS')
+    }
+    environment {
+        GITHUB_STATUS_CREDS = credentials("github-status-check-token")
+    }
+    parameters {
+        string(name: 'ghprbPullId',             defaultValue: '', description: 'PR number (set by webhook or manually).')
+        string(name: 'CEPH_BUILD_BRANCH',       defaultValue: 'main', description: 'ceph-build branch for SCM / scripts.')
+        string(name: 'TEUTHOLOGY_RUNNER_JOB_NAME', defaultValue: 'teuthology-runner', description: 'Jenkins job name of the teuthology-runner pipeline.')
+        string(name: 'SUITE_MACHINE_TYPE',      defaultValue: 'trial', description: 'teuthology-suite --machine-type.')
+        string(name: 'TEUTHOLOGY_SUITE_NEWEST', defaultValue: '100',   description: 'teuthology-suite --newest. Empty = omit.')
+        string(name: 'TEUTHOLOGY_REPO_URL',     defaultValue: 'https://github.com/ceph/teuthology.git', description: 'Teuthology repo.')
+        string(name: 'TEUTHOLOGY_BRANCH',       defaultValue: 'main',  description: 'Teuthology branch.')
+        string(name: 'SUITE_REPO',              defaultValue: 'https://github.com/ceph/ceph.git', description: 'teuthology-suite --suite-repo.')
+        string(name: 'PADDLES_URL',             defaultValue: '',  description: 'Optional Paddles URL override.')
+        string(name: 'PULPITO_BASE',            defaultValue: 'https://pulpito.ceph.com', description: 'Pulpito base URL.')
+        booleanParam(name: 'WAIT_FOR_RUNS',     defaultValue: false, description: 'Pass WAIT_FOR_RUNS to teuthology-runner.')
+        booleanParam(name: 'RUN_AGGREGATE',     defaultValue: false, description: 'Pass RUN_AGGREGATE to teuthology-runner.')
+    }
+
+    stages {
+        stage('Resolve PR') {
+            steps {
+                script {
+                    // Prefer webhook-injected value; fall back to build parameter.
+                    def prNum = (env.issue_number?.trim() ?: params.ghprbPullId?.trim())
+                    if (!prNum || !(prNum ==~ /^[0-9]+$/)) {
+                        error("ghprbPullId / issue_number is not set or not a number: '${prNum}'")
+                    }
+                    env.PR_NUMBER = prNum
+
+                    def prData = ghApi("/repos/${github_repo}/pulls/${prNum}")
+                    if (prData.state != "open") {
+                        currentBuild.description = "PR ${prNum}: not open (${prData.state}) — skipped"
+                        currentBuild.result = 'ABORTED'
+                        error("PR ${prNum} is not open")
+                    }
+                    env.HEAD_SHA     = prData.head.sha
+                    env.TARGET_BRANCH = prData.base.ref
+                    env.PR_AUTHOR     = prData.user.login
+
+                    currentBuild.description =
+                        "<a href=\"https://github.com/${github_repo}/pull/${prNum}\">PR ${prNum}</a>" +
+                        " (${env.TARGET_BRANCH})"
+                }
+            }
+        }
+
+        stage('Authorize') {
+            steps {
+                script {
+                    // Commenter is injected by the webhook as comment_author; for
+                    // manual builds fall back to the PR author.
+                    def actor = (env.comment_author?.trim() ?: env.PR_AUTHOR?.trim())
+                    if (!hasCiPermission(actor)) {
+                        postStatus("failure", "User '${actor}' does not have write/admin access on ${github_repo}")
+                        currentBuild.description += " — not authorized (${actor})"
+                        currentBuild.result = 'ABORTED'
+                        error("User '${actor}' is not authorized to trigger crimson-qa")
+                    }
+                    echo "Authorized: ${actor} has CI permission on ${github_repo}"
+                    currentBuild.description += " triggered by ${actor}"
+                }
+            }
+        }
+
+        stage('Post pending status') {
+            steps {
+                script {
+                    postStatus("pending", "crimson-rados run queued")
+                }
+            }
+        }
+
+        stage('Trigger teuthology-runner') {
+            steps {
+                script {
+                    def runnerJob = (params.TEUTHOLOGY_RUNNER_JOB_NAME ?: 'teuthology-runner').trim()
+                    def newest = params.TEUTHOLOGY_SUITE_NEWEST?.trim()
+
+                    def suiteRunsJson = """[{"suite":"${suite_name}","priority":"101","forcePriority":true}]"""
+
+                    def tp = []
+                    tp << string(name: 'CEPH_BUILD_BRANCH',       value: params.CEPH_BUILD_BRANCH.trim())
+                    tp << string(name: 'CEPH_BRANCH',             value: env.TARGET_BRANCH)
+                    tp << string(name: 'CEPH_REPO',               value: 'https://github.com/ceph/ceph.git')
+                    tp << string(name: 'CEPH_SHA1',               value: env.HEAD_SHA)
+                    tp << string(name: 'SUITE_SHA',               value: env.HEAD_SHA)
+                    tp << string(name: 'SUITE_REPO',              value: params.SUITE_REPO.trim())
+                    tp << string(name: 'SUITE_MACHINE_TYPE',      value: params.SUITE_MACHINE_TYPE.trim())
+                    tp << booleanParam(name: 'USE_WORKSPACE_TEUTHOLOGY', value: true)
+                    tp << string(name: 'TEUTHOLOGY_REPO_URL',     value: params.TEUTHOLOGY_REPO_URL.trim())
+                    tp << string(name: 'TEUTHOLOGY_BRANCH',       value: params.TEUTHOLOGY_BRANCH.trim())
+                    tp << text(name: 'SUITE_RUNS_JSON',           value: suiteRunsJson)
+                    tp << booleanParam(name: 'SKIP_SHAMAN_WAIT',  value: true)
+                    tp << booleanParam(name: 'WAIT_FOR_RUNS',     value: params.WAIT_FOR_RUNS)
+                    tp << booleanParam(name: 'RUN_AGGREGATE',     value: params.RUN_AGGREGATE)
+                    tp << string(name: 'PULPITO_BASE',            value: (params.PULPITO_BASE ?: 'https://pulpito.ceph.com').trim())
+                    if (params.PADDLES_URL?.trim()) {
+                        tp << string(name: 'PADDLES_URL',         value: params.PADDLES_URL.trim())
+                    }
+                    if (newest) {
+                        tp << string(name: 'TEUTHOLOGY_SUITE_NEWEST', value: newest)
+                    }
+
+                    def downstream = build(
+                        job:          runnerJob,
+                        wait:         true,
+                        propagate:    false,
+                        parameters:   tp,
+                    )
+
+                    if (downstream.result == 'SUCCESS') {
+                        postStatus("success", "crimson-rados run scheduled successfully")
+                    } else {
+                        postStatus("failure", "teuthology-runner finished with result: ${downstream.result}")
+                        currentBuild.result = downstream.result
+                    }
+                    currentBuild.description +=
+                        " → <a href=\"${downstream.absoluteUrl}\">${runnerJob} #${downstream.number}</a>"
+                }
+            }
+        }
+    }
+
+    post {
+        failure {
+            script {
+                postStatus("failure", "ceph-pr-crimson-qa build failed: ${currentBuild.currentResult}")
+            }
+        }
+        aborted {
+            script {
+                postStatus("failure", "ceph-pr-crimson-qa build was aborted")
+            }
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+def ghApi(String path) {
+    def text = sh(
+        script: "curl -sf " +
+                "-u \$GITHUB_STATUS_CREDS_USR:\$GITHUB_STATUS_CREDS_PSW " +
+                "-H 'Accept: application/vnd.github+json' " +
+                "'${github_api}${path}'",
+        returnStdout: true,
+    )
+    return readJSON(text: text)
+}
+
+def hasCiPermission(String user) {
+    if (!user) {
+        return false
+    }
+    def out = sh(
+        script: "curl -s " +
+                "-u \$GITHUB_STATUS_CREDS_USR:\$GITHUB_STATUS_CREDS_PSW " +
+                "-H 'Accept: application/vnd.github+json' " +
+                "'${github_api}/repos/${github_repo}/collaborators/${user}/permission'",
+        returnStdout: true,
+    )
+    def permission = ""
+    try {
+        permission = readJSON(text: out).permission ?: ""
+    } catch (Exception e) {
+        echo "WARNING: Could not parse permission response for '${user}': ${e.message}"
+    }
+    if (permission) {
+        return permission in ["admin", "write"]
+    }
+    // Fallback: org membership (less precise, but avoids locking everyone out
+    // if the token lacks collaborator-read access).
+    echo "WARNING: permission lookup failed for ${user}; falling back to org membership check"
+    def code = sh(
+        script: "curl -s -o /dev/null -w '%{http_code}' " +
+                "-u \$GITHUB_STATUS_CREDS_USR:\$GITHUB_STATUS_CREDS_PSW " +
+                "'${github_api}/orgs/${github_org}/members/${user}'",
+        returnStdout: true,
+    ).trim()
+    return code == "204"
+}
+
+def postStatus(String state, String description) {
+    writeFile(
+        file: "status.json",
+        text: groovy.json.JsonOutput.toJson([
+            state:       state,
+            context:     status_context,
+            description: description,
+            target_url:  "${env.BUILD_URL}",
+        ])
+    )
+    sh(
+        script: "curl -sf -o /dev/null -X POST " +
+                "-u \$GITHUB_STATUS_CREDS_USR:\$GITHUB_STATUS_CREDS_PSW " +
+                "-H 'Accept: application/vnd.github+json' " +
+                "-d @status.json " +
+                "'${github_api}/repos/${github_repo}/statuses/${env.HEAD_SHA}'"
+    )
+}
