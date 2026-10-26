@@ -81,6 +81,14 @@
           cd src/pybind/mgr/dashboard; timeout 7200 ./run-frontend-e2e-tests.sh
 
     wrappers:
+      - timeout:
+          # Inner steps are bounded at 2h (run-make) + 2h (e2e), but the
+          # e2e deps install (apt-get update) is not; one hung there for
+          # 41 days on braggi03 and held the executor the whole time.
+          # Successful runs top out around 2.5h.
+          timeout: 300
+          fail: true
+          type: absolute
       - inject-passwords:
           global: true
           mask-password-params: true
