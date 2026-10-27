@@ -198,6 +198,7 @@ pipeline {
     post {
         success {
           script {
+            // only post final status when this run actually executed on a resolved PR SHA
             if (currentBuild.result != 'ABORTED') {
               safePostStatus("success", "crimson-rados run scheduled")
             }
@@ -206,8 +207,9 @@ pipeline {
         failure {
             script {
               // only true execution failures should mark red
+              // don't paint PR red for intentional abort paths (unauthorized/closed/duplicate)
               if (currentBuild.result != 'ABORTED') {
-                safePostStatus("failure", "crimson-rados scheduling failed: ${currentBuild.currentResult}")
+                safePostStatus("failure", "crimson-rados scheduling failed")
               }
             }
         }

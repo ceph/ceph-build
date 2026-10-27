@@ -50,8 +50,9 @@ Credentials
   - ``github-status-check-token`` — username/password credential with
     *repo:status* and *read:org* scopes on ``ceph/ceph``
     (shared with ``ceph-pr-pipeline-trigger``).
-  - ``pr-crimson-qa-trigger-token`` — secret-text credential holding the
-    generic-webhook-trigger token ``ceph-pr-crimson-qa``.
+  - ``pr-crimson-qa-trigger-token`` — secret-text credential 
+    Use a random high-entropy value (for example generated via `openssl rand -hex 32`)
+    and keep it out of git/docs.
 
 Webhook
   Add the ``issue_comment`` event to the repo (or org) webhook that already
@@ -76,7 +77,7 @@ Parameter                          Default           Description
 ``CEPH_BUILD_BRANCH``              ``main``          ceph-build branch for the Jenkinsfile.
 ``TEUTHOLOGY_RUNNER_JOB_NAME``     ``teuthology-runner``  Runner job name.
 ``SUITE_MACHINE_TYPE``             ``trial``         ``teuthology-suite --machine-type``.
-``TEUTHOLOGY_SUITE_NEWEST``        ``100``           ``teuthology-suite --newest`` (empty = omit).
+``TEUTHOLOGY_SUITE_NEWEST``        ````              ``teuthology-suite --newest`` (empty = omit).
 ``TEUTHOLOGY_REPO_URL``            upstream GitHub   Teuthology repo to clone.
 ``TEUTHOLOGY_BRANCH``              ``main``          Teuthology branch.
 ``SUITE_REPO``                     ceph/ceph.git     ``teuthology-suite --suite-repo``.
