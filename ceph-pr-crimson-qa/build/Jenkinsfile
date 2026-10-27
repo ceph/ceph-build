@@ -18,6 +18,15 @@ import groovy.transform.Field
 @Field String status_context = "crimson-qa"
 @Field String suite_name   = "crimson-rados"
 
+// 1) Add explicit run mode and exit helpers near top-level helpers:
+//
+// - Detect webhook vs manual trigger
+// - Abort cleanly without throwing error() when we intentionally skip
+
+@Field String run_mode = "unknown"   // "webhook" | "manual"
+@Field String actor = ""
+
+
 pipeline {
     agent any
     options {
@@ -34,7 +43,7 @@ pipeline {
         string(name: 'CEPH_BUILD_BRANCH',       defaultValue: 'main', description: 'ceph-build branch for SCM / scripts.')
         string(name: 'TEUTHOLOGY_RUNNER_JOB_NAME', defaultValue: 'teuthology-runner', description: 'Jenkins job name of the teuthology-runner pipeline.')
         string(name: 'SUITE_MACHINE_TYPE',      defaultValue: 'trial', description: 'teuthology-suite --machine-type.')
-        string(name: 'TEUTHOLOGY_SUITE_NEWEST', defaultValue: '100',   description: 'teuthology-suite --newest. Empty = omit.')
+        string(name: 'TEUTHOLOGY_SUITE_NEWEST', defaultValue: '',   description: 'teuthology-suite --newest. Empty = omit.')
         string(name: 'TEUTHOLOGY_REPO_URL',     defaultValue: 'https://github.com/ceph/teuthology.git', description: 'Teuthology repo.')
         string(name: 'TEUTHOLOGY_BRANCH',       defaultValue: 'main',  description: 'Teuthology branch.')
         string(name: 'SUITE_REPO',              defaultValue: 'https://github.com/ceph/ceph.git', description: 'teuthology-suite --suite-repo.')
@@ -44,10 +53,13 @@ pipeline {
         booleanParam(name: 'RUN_AGGREGATE',     defaultValue: false, description: 'Pass RUN_AGGREGATE to teuthology-runner.')
     }
 
+    // 2) Resolve PR stage: set mode, gather full PR head metadata for forks, and do soft-abort on closed PR
     stages {
         stage('Resolve PR') {
             steps {
                 script {
+                    run_mode = isWebhookTrigger() ? "webhook" : "manual"
+
                     // Prefer webhook-injected value; fall back to build parameter.
                     def prNum = (env.issue_number?.trim() ?: params.ghprbPullId?.trim())
                     if (!prNum || !(prNum ==~ /^[0-9]+$/)) {
@@ -56,33 +68,55 @@ pipeline {
                     env.PR_NUMBER = prNum
 
                     def prData = ghApi("/repos/${github_repo}/pulls/${prNum}")
-                    if (prData.state != "open") {
-                        currentBuild.description = "PR ${prNum}: not open (${prData.state}) — skipped"
-                        currentBuild.result = 'ABORTED'
-                        error("PR ${prNum} is not open")
-                    }
-                    env.HEAD_SHA     = prData.head.sha
-                    env.TARGET_BRANCH = prData.base.ref
-                    env.PR_AUTHOR     = prData.user.login
+                    // Set these BEFORE state checks so later logic can make safe decisions
+                    env.HEAD_SHA        = prData.head?.sha ?: ""
+                    env.TARGET_BRANCH   = prData.base?.ref ?: ""
+                    env.PR_AUTHOR       = prData.user?.login ?: ""
+                    env.HEAD_REPO_URL   = prData.head?.repo?.clone_url ?: ""
+                    env.HEAD_REF        = prData.head?.ref ?: ""
+                    env.IS_FORK         = ((prData.head?.repo?.full_name ?: "") != github_repo).toString()
 
                     currentBuild.description =
                         "<a href=\"https://github.com/${github_repo}/pull/${prNum}\">PR ${prNum}</a>" +
                         " (${env.TARGET_BRANCH})"
+
+                    if (prData.state != "open") {
+                        setAbortedAndReturn("PR ${prNum} is not open (${prData.state})")
+                        // IMPORTANT: return, not error()
+                        return
+                    }
                 }
             }
         }
 
+        // 3) Authorize stage: require comment_author for webhook, require build-user permission for manual.
+        //    Do NOT post failure status on auth rejection; just abort cleanly.
         stage('Authorize') {
+            when {
+              expression { currentBuild.result != 'ABORTED' }
+            }
             steps {
                 script {
-                    // Commenter is injected by the webhook as comment_author; for
-                    // manual builds fall back to the PR author.
-                    def actor = (env.comment_author?.trim() ?: env.PR_AUTHOR?.trim())
+                  // Commenter is injected by the webhook as comment_author; for
+                  // manual builds fall back to the PR author.
+                  def actor = (env.comment_author?.trim() ?: env.PR_AUTHOR?.trim())
+                  if (run_mode == "webhook") {
+                    actor = env.comment_author?.trim()
+                      if (!actor) {
+                        setAbortedAndReturn("Missing comment_author in webhook payload")
+                          return
+                      }
+                  } else {
+                    // Manual: do NOT fallback to PR author
+                    actor = getBuildUserLoginOrEmpty() // implement via Build User Vars / cause inspection
+                      if (!actor) {
+                        setAbortedAndReturn("Unable to determine manual trigger user")
+                          return
+                      }
+                  }
                     if (!hasCiPermission(actor)) {
-                        postStatus("failure", "User '${actor}' does not have write/admin access on ${github_repo}")
-                        currentBuild.description += " — not authorized (${actor})"
-                        currentBuild.result = 'ABORTED'
-                        error("User '${actor}' is not authorized to trigger crimson-qa")
+                        setAbortedAndReturn("User '${actor}' is not authorized to trigger crimson-qa")
+                        return
                     }
                     echo "Authorized: ${actor} has CI permission on ${github_repo}"
                     currentBuild.description += " triggered by ${actor}"
@@ -90,7 +124,11 @@ pipeline {
             }
         }
 
+        // 4) Post pending status only for executable path (authorized + open PR + HEAD_SHA present)
         stage('Post pending status') {
+            when {
+              expression { currentBuild.result != 'ABORTED' && env.HEAD_SHA?.trim() }
+            }
             steps {
                 script {
                     postStatus("pending", "crimson-rados run queued")
@@ -98,22 +136,35 @@ pipeline {
             }
         }
 
+        // 5) Trigger teuthology-runner:
+        //    - pass HEAD_REPO_URL + HEAD_REF for fork PR support
+        //    - default newest omitted unless non-empty
+        //    - add dedupe guard (same PR + HEAD_SHA + suite) to avoid double comment duplication
         stage('Trigger teuthology-runner') {
+            when {
+              expression { currentBuild.result != 'ABORTED' }
+            }
             steps {
                 script {
+                    if (alreadyQueuedOrRunning(env.PR_NUMBER, env.HEAD_SHA, suite_name)) {
+                      setAbortedAndReturn("Duplicate request: already queued/running for PR ${env.PR_NUMBER} @ ${env.HEAD_SHA}")
+                        return
+                    }
                     def runnerJob = (params.TEUTHOLOGY_RUNNER_JOB_NAME ?: 'teuthology-runner').trim()
-                    def newest = params.TEUTHOLOGY_SUITE_NEWEST?.trim()
-
+                    def newest = params.TEUTHOLOGY_SUITE_NEWEST?.trim()  // change default to '' in parameters block
+                    // We use priority 101 for crimson-rados to ensure it runs after the default priority 100 teuthology-runner jobs, but before any lower-priority jobs.
                     def suiteRunsJson = """[{"suite":"${suite_name}","priority":"101","forcePriority":true}]"""
 
                     def tp = []
                     tp << string(name: 'CEPH_BUILD_BRANCH',       value: params.CEPH_BUILD_BRANCH.trim())
                     tp << string(name: 'CEPH_BRANCH',             value: env.TARGET_BRANCH)
-                    tp << string(name: 'CEPH_REPO',               value: 'https://github.com/ceph/ceph.git')
+                    tp << string(name: 'CEPH_REPO',               value: env.HEAD_REPO_URL ?: 'https://github.com/ceph/ceph.git')
                     tp << string(name: 'CEPH_SHA1',               value: env.HEAD_SHA)
                     tp << string(name: 'SUITE_SHA',               value: env.HEAD_SHA)
                     tp << string(name: 'SUITE_REPO',              value: params.SUITE_REPO.trim())
                     tp << string(name: 'SUITE_MACHINE_TYPE',      value: params.SUITE_MACHINE_TYPE.trim())
+                    tp << string(name: 'PR_HEAD_REF',             value: env.HEAD_REF ?: "")
+                    tp << string(name: 'PR_HEAD_REPO',            value: env.HEAD_REPO_URL ?: "")
                     tp << booleanParam(name: 'USE_WORKSPACE_TEUTHOLOGY', value: true)
                     tp << string(name: 'TEUTHOLOGY_REPO_URL',     value: params.TEUTHOLOGY_REPO_URL.trim())
                     tp << string(name: 'TEUTHOLOGY_BRANCH',       value: params.TEUTHOLOGY_BRANCH.trim())
@@ -129,35 +180,40 @@ pipeline {
                         tp << string(name: 'TEUTHOLOGY_SUITE_NEWEST', value: newest)
                     }
 
-                    def downstream = build(
+                    build(
                         job:          runnerJob,
-                        wait:         true,
+                        wait:         false,
                         propagate:    false,
                         parameters:   tp,
                     )
 
-                    if (downstream.result == 'SUCCESS') {
-                        postStatus("success", "crimson-rados run scheduled successfully")
-                    } else {
-                        postStatus("failure", "teuthology-runner finished with result: ${downstream.result}")
-                        currentBuild.result = downstream.result
-                    }
-                    currentBuild.description +=
-                        " → <a href=\"${downstream.absoluteUrl}\">${runnerJob} #${downstream.number}</a>"
                 }
             }
         }
     }
 
+    // 6) post {} behavior:
+    //    - only set success/failure status if we actually executed and have HEAD_SHA
+    //    - ABORTED (unauthorized/closed/duplicate) should NOT paint PR red
     post {
+        success {
+          script {
+            if (currentBuild.result != 'ABORTED') {
+              safePostStatus("success", "crimson-rados run scheduled")
+            }
+          }
+        }
         failure {
             script {
-                postStatus("failure", "ceph-pr-crimson-qa build failed: ${currentBuild.currentResult}")
+              // only true execution failures should mark red
+              if (currentBuild.result != 'ABORTED') {
+                safePostStatus("failure", "crimson-rados scheduling failed: ${currentBuild.currentResult}")
+              }
             }
         }
         aborted {
             script {
-                postStatus("failure", "ceph-pr-crimson-qa build was aborted")
+               echo "Run aborted intentionally; no failure status posted."
             }
         }
     }
@@ -227,4 +283,23 @@ def postStatus(String state, String description) {
                 "-d @status.json " +
                 "'${github_api}/repos/${github_repo}/statuses/${env.HEAD_SHA}'"
     )
+}
+
+def isWebhookTrigger() {
+    return env.issue_number?.trim() && env.comment_author?.trim()
+}
+
+def setAbortedAndReturn(String reason) {
+    currentBuild.result = 'ABORTED'
+    currentBuild.description = ((currentBuild.description ?: "") + " — ${reason}").trim()
+    echo "ABORTED: ${reason}"
+}
+
+def safePostStatus(String state, String description) {
+    // only post when HEAD_SHA exists
+    if (env.HEAD_SHA?.trim()) {
+        postStatus(state, description)
+    } else {
+        echo "Skipping status '${state}': HEAD_SHA not set"
+    }
 }
