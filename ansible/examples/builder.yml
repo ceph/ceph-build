@@ -155,6 +155,37 @@
           APT::Periodic::Unattended-Upgrade "0";
       when: ansible_os_family == "Debian"
 
+    # Keep the DHCP address if networkd fails the link.  Takes effect at
+    # next boot; networkd is deliberately not reloaded under running builds.
+    - name: Check for netplan
+      stat:
+        path: /etc/netplan
+      register: netplan_dir
+      when: ansible_os_family == "Debian"
+
+    - name: Mark the default interface's DHCP lease as critical
+      copy:
+        dest: /etc/netplan/60-ceph-builder-critical.yaml
+        owner: root
+        group: root
+        mode: '0600'
+        content: |
+          # Managed by ceph-build builder.yml
+          network:
+            version: 2
+            ethernets:
+              {{ ansible_default_ipv4.interface }}:
+                critical: true
+      register: netplan_critical
+      when:
+        - ansible_os_family == "Debian"
+        - netplan_dir.stat.isdir | default(false)
+        - ansible_default_ipv4.interface is defined
+
+    - name: Regenerate networkd config from netplan
+      command: netplan generate
+      when: netplan_critical is changed
+
     - name: Gather service facts
       service_facts:
     
