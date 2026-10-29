@@ -169,22 +169,17 @@ pipeline {
                         tp << string(name: 'TEUTHOLOGY_SUITE_NEWEST', value: newest)
                     }
 
-                    // We need to report the build result of the teuthology-runner job back to this job,
-                    // so we use wait: true and propagate: true.
+                    // wait+propagate: a failed schedule (e.g. no packages on
+                    // Shaman for this sha) fails this build and the status.
                     def trun = build(
                         job:          runnerJob,
                         wait:         true,
                         propagate:    true,
                         parameters:   tp,
                     )
-                    if (trun.result == 'SUCCESS') {
-                        safePostStatus("success", "crimson-rados run scheduled successfully")
-                    } else {
-                      safePostStatus("failure", "crimson-rados run scheduling failed with result ${trun.result}")
-                      currentBuild.result = trun.result //'FAILURE'
-                    }
-                    currentBuild.description += 
-                      " → <a href=\"${trun.getAbsoluteUrl()}\">${runnerJob} #${trun.number}</a>"
+                    env.RUNNER_URL = trun.absoluteUrl
+                    currentBuild.description +=
+                      " → <a href=\"${trun.absoluteUrl}\">${runnerJob} #${trun.number}</a>"
                 }
             }
         }
