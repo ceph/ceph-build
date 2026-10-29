@@ -188,27 +188,19 @@ pipeline {
     // 6) post {} behavior:
     //    - only set success/failure status if we actually executed and have HEAD_SHA
     //    - ABORTED (unauthorized/closed/duplicate) should NOT paint PR red
+    // Resolve the pending status whatever the final result.  The soft-abort
+    // paths (closed PR, unauthorized) never post pending, so they stay silent.
     post {
-        success {
-          script {
-            // only post final status when this run actually executed on a resolved PR SHA
-            if (currentBuild.result != 'ABORTED') {
-              safePostStatus("success", "crimson-rados run scheduled")
-            }
-          }
-        }
-        failure {
+        always {
             script {
-              // only true execution failures should mark red
-              // don't paint PR red for intentional abort paths (unauthorized/closed/duplicate)
-              if (currentBuild.result != 'ABORTED') {
-                safePostStatus("failure", "crimson-rados scheduling failed")
-              }
-            }
-        }
-        aborted {
-            script {
-               echo "Run aborted intentionally; no failure status posted."
+                if (env.STATUS_POSTED == "true") {
+                    def result = currentBuild.currentResult
+                    if (result == 'SUCCESS') {
+                        postStatus("success", "crimson-rados run scheduled")
+                    } else {
+                        postStatus("failure", "crimson-rados scheduling ${result.toLowerCase()}")
+                    }
+                }
             }
         }
     }
