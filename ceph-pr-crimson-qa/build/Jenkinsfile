@@ -260,7 +260,7 @@ def postStatus(String state, String description) {
             state:       state,
             context:     status_context,
             description: description,
-            target_url:  "${env.BUILD_URL}",
+            target_url:  env.RUNNER_URL ?: env.BUILD_URL,
         ])
     )
     sh(
