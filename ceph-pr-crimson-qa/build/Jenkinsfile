@@ -161,8 +161,6 @@ pipeline {
                     tp << string(name: 'TEUTHOLOGY_BRANCH',       value: params.TEUTHOLOGY_BRANCH.trim())
                     tp << text(name: 'SUITE_RUNS_JSON',           value: suiteRunsJson)
                     tp << booleanParam(name: 'SKIP_SHAMAN_WAIT',  value: true)
-                    tp << booleanParam(name: 'WAIT_FOR_RUNS',     value: params.WAIT_FOR_RUNS)
-                    tp << booleanParam(name: 'RUN_AGGREGATE',     value: params.RUN_AGGREGATE)
                     tp << string(name: 'PULPITO_BASE',            value: (params.PULPITO_BASE ?: 'https://pulpito.ceph.com').trim())
                     if (params.PADDLES_URL?.trim()) {
                         tp << string(name: 'PADDLES_URL',         value: params.PADDLES_URL.trim())
