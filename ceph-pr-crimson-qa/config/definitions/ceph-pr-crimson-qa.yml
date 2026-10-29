@@ -1,7 +1,6 @@
 # ceph-pr-crimson-qa: schedule a crimson-rados teuthology run against a ceph PR.
 # Triggered by the GitHub comment phrase "jenkins test crimson-qa" via the
-# generic-webhook-trigger plugin. This job needs its OWN dedicated GitHub webhook
-# (Issue comments events only). Do NOT repoint the ceph-pr-pipeline-trigger hook.
+# generic-webhook-trigger plugin.
 
 - job:
     name: ceph-pr-crimson-qa
@@ -37,7 +36,8 @@
     # below; never commit its value.
     triggers:
       - generic-webhook-trigger:
-          token-credential-id: pr-crimson-qa-trigger-token
+          token: ceph-pr-pipeline-trigger
+          token-credential-id: pr-check-trigger-token
           print-contrib-var: true
           post-content-params:
             - type: JSONPath

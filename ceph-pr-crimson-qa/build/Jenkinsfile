@@ -11,6 +11,7 @@
  */
 
 import groovy.transform.Field
+import com.cloudbees.groovy.cps.NonCPS
 
 @Field String github_repo  = "ceph/ceph"
 @Field String github_org   = "ceph"
@@ -107,8 +108,6 @@ pipeline {
                           return
                       }
                   } else {
-                    // Manual: do NOT fallback to PR author
-                    actor = getBuildUserLoginOrEmpty() // implement via Build User Vars / cause inspection
                       if (!actor) {
                         setAbortedAndReturn("Unable to determine manual trigger user")
                           return
@@ -152,8 +151,8 @@ pipeline {
                     }
                     def runnerJob = (params.TEUTHOLOGY_RUNNER_JOB_NAME ?: 'teuthology-runner').trim()
                     def newest = params.TEUTHOLOGY_SUITE_NEWEST?.trim()  // change default to '' in parameters block
-                    // We use priority 101 for crimson-rados to ensure it runs after the default priority 100 teuthology-runner jobs, but before any lower-priority jobs.
-                    def suiteRunsJson = """[{"suite":"${suite_name}","priority":"101","forcePriority":true}]"""
+                    // We use priority 101 for crimson-rados and debug flavor, rocky 10 by default
+                    def suiteRunsJson = """[{"suite":"${suite_name}","priority":"101","forcePriority":true,"flavor":"debug"}]"""
 
                     def tp = []
                     tp << string(name: 'CEPH_BUILD_BRANCH',       value: params.CEPH_BUILD_BRANCH.trim())
@@ -180,13 +179,22 @@ pipeline {
                         tp << string(name: 'TEUTHOLOGY_SUITE_NEWEST', value: newest)
                     }
 
-                    build(
+                    // We need to report the build result of the teuthology-runner job back to this job,
+                    // so we use wait: true and propagate: true.
+                    def trun = build(
                         job:          runnerJob,
-                        wait:         false,
-                        propagate:    false,
+                        wait:         true,
+                        propagate:    true,
                         parameters:   tp,
                     )
-
+                    if (trun.result == 'SUCCESS') {
+                        safePostStatus("success", "crimson-rados run scheduled successfully")
+                    } else {
+                      safePostStatus("failure", "crimson-rados run scheduling failed with result ${trun.result}")
+                      currentBuild.result = trun.result //'FAILURE'
+                    }
+                    currentBuild.description += 
+                      " → <a href=\"${trun.getAbsoluteUrl()}\">${runnerJob} #${trun.number}</a>"
                 }
             }
         }
@@ -304,4 +312,71 @@ def safePostStatus(String state, String description) {
     } else {
         echo "Skipping status '${state}': HEAD_SHA not set"
     }
+}
+
+@NonCPS
+def alreadyQueuedOrRunning(String pr_number, String head_sha, String suite) {
+    try {
+        def me = currentBuild.rawBuild
+        def parentJob = me?.getParent()
+        if (parentJob != null) {
+            for (def b : parentJob.getBuilds()) {
+                if (b.getNumber() >= me.getNumber() || !b.isBuilding()) {
+                    continue
+                }
+                def b_params = b.getAction(hudson.model.ParametersAction.class)
+                def b_pr = b_params?.getParameter("ghprbPullId")?.getValue()?.toString()
+                def desc = b.getDescription() ?: ""
+                if ((b_pr && b_pr == pr_number) || (pr_number && desc.contains("PR ${pr_number}"))) {
+                    println("Duplicate build: ${parentJob.getName()} #${b.getNumber()} is already running for PR ${pr_number}")
+                    return true
+                }
+            }
+        }
+
+        def runnerJobName = (params.TEUTHOLOGY_RUNNER_JOB_NAME ?: 'teuthology-runner').trim()
+        def jenkinsInstance = jenkins.model.Jenkins.get()
+        if (jenkinsInstance != null) {
+            def runnerJob = jenkinsInstance.getItemByFullName(runnerJobName)
+            if (runnerJob != null) {
+                for (def b : runnerJob.getBuilds()) {
+                    if (!b.isBuilding()) {
+                        continue
+                    }
+                    def b_params = b.getAction(hudson.model.ParametersAction.class)
+                    def b_sha = b_params?.getParameter("CEPH_SHA1")?.getValue()?.toString() ?: ""
+                    def b_runsJson = b_params?.getParameter("SUITE_RUNS_JSON")?.getValue()?.toString() ?: ""
+                    if (head_sha && b_sha == head_sha && (!suite || b_runsJson.contains(suite))) {
+                        println("Duplicate build: ${runnerJobName} #${b.getNumber()} is already running for SHA ${head_sha}")
+                        return true
+                    }
+                }
+            }
+
+            def queue = jenkinsInstance.getQueue()
+            if (queue != null) {
+                for (def item : queue.getItems()) {
+                    def taskName = item.task?.getName()
+                    def q_params = item.getAction(hudson.model.ParametersAction.class)
+                    if (parentJob != null && taskName == parentJob.getName()) {
+                        def q_pr = q_params?.getParameter("ghprbPullId")?.getValue()?.toString()
+                        if (q_pr && q_pr == pr_number) {
+                            println("Duplicate build: ${taskName} is already queued for PR ${pr_number}")
+                            return true
+                        }
+                    } else if (taskName == runnerJobName) {
+                        def q_sha = q_params?.getParameter("CEPH_SHA1")?.getValue()?.toString() ?: ""
+                        def q_runsJson = q_params?.getParameter("SUITE_RUNS_JSON")?.getValue()?.toString() ?: ""
+                        if (head_sha && q_sha == head_sha && (!suite || q_runsJson.contains(suite))) {
+                            println("Duplicate build: ${runnerJobName} is already queued for SHA ${head_sha}")
+                            return true
+                        }
+                    }
+                }
+            }
+        }
+    } catch (Exception e) {
+        println("WARNING: alreadyQueuedOrRunning check failed: ${e.message}")
+    }
+    return false
 }
