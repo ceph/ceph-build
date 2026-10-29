@@ -96,20 +96,19 @@ pipeline {
             }
             steps {
                 script {
-                  // Commenter is injected by the webhook as comment_author; for
-                  // manual builds fall back to the PR author.
-                  def actor = (env.comment_author?.trim() ?: env.PR_AUTHOR?.trim())
+                  // Webhook builds: the commenter.  Manual builds: whoever
+                  // clicked Build (Jenkins logins here are GitHub logins).
+                  def actor = ""
                   if (run_mode == "webhook") {
                     actor = env.comment_author?.trim()
-                      if (!actor) {
-                        setAbortedAndReturn("Missing comment_author in webhook payload")
-                          return
-                      }
                   } else {
-                      if (!actor) {
-                        setAbortedAndReturn("Unable to determine manual trigger user")
-                          return
-                      }
+                    wrap([$class: 'BuildUser']) {
+                      actor = env.BUILD_USER_ID?.trim()
+                    }
+                  }
+                  if (!actor) {
+                    setAbortedAndReturn("Unable to determine who triggered this build")
+                    return
                   }
                     if (!hasCiPermission(actor)) {
                         setAbortedAndReturn("User '${actor}' is not authorized to trigger crimson-qa")
