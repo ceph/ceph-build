@@ -50,8 +50,6 @@ pipeline {
         string(name: 'SUITE_REPO',              defaultValue: 'https://github.com/ceph/ceph.git', description: 'teuthology-suite --suite-repo.')
         string(name: 'PADDLES_URL',             defaultValue: '',  description: 'Optional Paddles URL override.')
         string(name: 'PULPITO_BASE',            defaultValue: 'https://pulpito.ceph.com', description: 'Pulpito base URL.')
-        booleanParam(name: 'WAIT_FOR_RUNS',     defaultValue: false, description: 'Pass WAIT_FOR_RUNS to teuthology-runner.')
-        booleanParam(name: 'RUN_AGGREGATE',     defaultValue: false, description: 'Pass RUN_AGGREGATE to teuthology-runner.')
     }
 
     // 2) Resolve PR stage: set mode, gather full PR head metadata for forks, and do soft-abort on closed PR
