@@ -156,8 +156,6 @@ pipeline {
                     tp << string(name: 'SUITE_SHA',               value: env.HEAD_SHA)
                     tp << string(name: 'SUITE_REPO',              value: params.SUITE_REPO.trim())
                     tp << string(name: 'SUITE_MACHINE_TYPE',      value: params.SUITE_MACHINE_TYPE.trim())
-                    tp << string(name: 'PR_HEAD_REF',             value: env.HEAD_REF ?: "")
-                    tp << string(name: 'PR_HEAD_REPO',            value: env.HEAD_REPO_URL ?: "")
                     tp << booleanParam(name: 'USE_WORKSPACE_TEUTHOLOGY', value: true)
                     tp << string(name: 'TEUTHOLOGY_REPO_URL',     value: params.TEUTHOLOGY_REPO_URL.trim())
                     tp << string(name: 'TEUTHOLOGY_BRANCH',       value: params.TEUTHOLOGY_BRANCH.trim())
