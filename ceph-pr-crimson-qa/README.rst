@@ -55,22 +55,11 @@ Credentials
   - ``github-status-check-token`` — username/password credential with
     *repo:status* and *read:org* scopes on ``ceph/ceph``
     (shared with ``ceph-pr-pipeline-trigger``).
-  - ``pr-crimson-qa-trigger-token`` — secret-text credential 
-    Use a random high-entropy value (for example generated via `openssl rand -hex 32`)
-    and keep it out of git/docs.
 
 Webhook
-  Add the ``issue_comment`` event to the repo (or org) webhook that already
-  points at::
-
-      https://jenkins.ceph.com/generic-webhook-trigger/invoke?token=ceph-pr-crimson-qa
-
-  If no such webhook exists yet, create one at
-  ``https://github.com/ceph/ceph/settings/hooks`` with:
-
-  - Payload URL: above URL
-  - Content type: ``application/json``
-  - Events: *Issue comments*
+  None to add.  The job shares the ``ceph-pr-pipeline-trigger`` token, so the
+  existing ``ceph/ceph`` webhook (which already sends ``issue_comment``
+  events) fires it; the job's own regex filter keeps every other comment out.
 
 Parameters
 ----------
