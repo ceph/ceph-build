@@ -83,8 +83,6 @@ Parameter                          Default           Description
 ``SUITE_REPO``                     ceph/ceph.git     ``teuthology-suite --suite-repo``.
 ``PADDLES_URL``                    *(from config)*   Optional Paddles override.
 ``PULPITO_BASE``                   pulpito.ceph.com  Pulpito base URL.
-``WAIT_FOR_RUNS``                  ``false``         Forward to teuthology-runner.
-``RUN_AGGREGATE``                  ``false``         Forward to teuthology-runner.
 =================================  ================  ==========================================
 
 Files
