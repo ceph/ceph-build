@@ -143,10 +143,6 @@ pipeline {
             }
             steps {
                 script {
-                    if (alreadyQueuedOrRunning(env.PR_NUMBER, env.HEAD_SHA, suite_name)) {
-                      setAbortedAndReturn("Duplicate request: already queued/running for PR ${env.PR_NUMBER} @ ${env.HEAD_SHA}")
-                        return
-                    }
                     def runnerJob = (params.TEUTHOLOGY_RUNNER_JOB_NAME ?: 'teuthology-runner').trim()
                     def newest = params.TEUTHOLOGY_SUITE_NEWEST?.trim()  // change default to '' in parameters block
                     // We use priority 101 for crimson-rados and debug flavor, rocky 10 by default
