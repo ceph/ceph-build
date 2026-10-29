@@ -35,10 +35,15 @@ How it works
 
    - ``CEPH_SHA1`` = PR head SHA (Shaman wait is skipped: ``SKIP_SHAMAN_WAIT=true``)
    - ``CEPH_BRANCH`` = PR target branch (for ``teuthology-suite`` version selection)
-   - ``SUITE_RUNS_JSON`` = ``[{"suite":"crimson-rados","priority":"101","forcePriority":true}]``
+   - ``SUITE_RUNS_JSON`` = ``[{"suite":"crimson-rados","priority":"101","forcePriority":true,"flavor":"debug"}]``
+
+   The PR head must already have packages on Shaman, i.e. the same commits
+   pushed to ``ceph-ci.git`` and built.  Otherwise ``teuthology-suite`` fails
+   and the status goes red.
 
 5. **Post final status** — updates the ``crimson-qa`` commit status to
-   ``success`` or ``failure`` based on teuthology-runner's outcome.
+   ``success`` once the run is scheduled, or ``failure`` if scheduling failed.
+   The run's own result is not reported back.
 
 Requirements
 ------------
