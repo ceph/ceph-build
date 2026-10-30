@@ -19,11 +19,14 @@
       - copyartifact:
           projects: ceph-dev-cron
 
+    # A full run fans out to ~40 x86 builds, nearly the whole x86 builder
+    # pool for 2+ hours.  Keep it off-peak: weekday x86 utilization is
+    # 80-91% from 09-18 UTC (PR pipeline traffic) but 22-42% from 22-04 UTC.
     triggers:
       - timed: |
           TZ=Etc/UTC
-          H 14 * * *
-          H 20 * * *
+          H 2 * * *
+          H 22 * * *
 
     pipeline-scm:
       scm:
