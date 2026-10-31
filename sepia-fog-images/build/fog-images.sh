@@ -505,6 +505,8 @@ phase_deploy () {
           exit 1
         fi
       fi
+      # The capture must land in this image's own directory
+      funEnsureImagePath $captureimageid
       deployed=false
       deployedat=""
       if [ "$STARTWITHMAAS" == "true" ]; then
@@ -756,6 +758,7 @@ phase_capture () {
       echo "WARNING: could not create image ${minorname}; skipping the minor-named twin"
       continue
     fi
+    funEnsureImagePath $minorid
     echo "Capturing $host again as ${minorname} (image $minorid)"
     funFogApi PUT /host/$foghostid '{"imageID": "'${minorid}'"}'
     funFogApi POST /host/$foghostid/task '{"taskTypeID": "'${fogcaptureid}'"}'
