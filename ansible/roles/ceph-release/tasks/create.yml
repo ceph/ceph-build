@@ -93,6 +93,21 @@
     dch_release_type: rc
   when: "release == 'RELEASE_CANDIDATE'"
 
+- name: check if src/ceph_release exists
+  stat:
+    path: ceph/src/ceph_release
+  register: ceph_release_file
+
+# third line of src/ceph_release is the release type: dev, rc or stable
+- name: set the release type in src/ceph_release
+  lineinfile:
+    dest: ceph/src/ceph_release
+    regexp: '^(dev|rc|stable)$'
+    line: "{{ dch_release_type|default('stable') }}"
+  when:
+    - ceph_release_file.stat.exists
+    - tag|bool is true
+
 - name: set the debian version
   command: dch -v {{ version }}-1 -D {{ dch_release_type|default('stable') }} "New upstream release"
   args:
