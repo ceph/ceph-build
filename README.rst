@@ -318,7 +318,7 @@ run your job on a different Jenkins controller:
 
     # Example
     $ cat my-cool-job/config/JENKINS_URL
-    2.jenkins.ceph.com
+    jenkins.example.com
 
 A note on inclusive language
 ----------------------------
