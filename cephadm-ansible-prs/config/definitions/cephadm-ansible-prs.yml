@@ -1,6 +1,6 @@
 - project:
     name: cephadm-ansible-prs-syntax
-    worker_labels: 'libvirt && !centos9'
+    worker_labels: 'libvirt'
     scenario:
       - flake8
       - mypy
@@ -10,7 +10,7 @@
 
 - project:
     name: cephadm-ansible-prs-functional
-    worker_labels: 'libvirt && !centos9'
+    worker_labels: 'libvirt'
     distribution:
       - el9
       - el10
