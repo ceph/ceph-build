@@ -62,7 +62,7 @@
     # Should vagrant be installed?  Derived from the builder's Jenkins label so that
     # any host advertising `libvirt` actually gets vagrant and the vagrant-libvirt
     # plugin.  Jobs select builders by label (e.g. cephadm-ansible-prs uses
-    # `libvirt && !centos9`), so a labelled host without vagrant fails at runtime with
+    # `libvirt`), so a labelled host without vagrant fails at runtime with
     # a bare `vagrant: command not found`.  Still overridable with `-e libvirt=true`
     # or `-e libvirt=false`, since extra-vars take precedence over play vars.
     libvirt: "{{ 'libvirt' in (jenkins_labels | default({})).get(inventory_hostname, '').split() }}"
