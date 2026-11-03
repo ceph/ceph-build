@@ -442,6 +442,21 @@ funUsableImageId () {
   fi
 }
 
+# Make sure a FOG image's storage path matches its name.  Two image records
+# sharing one path means a capture into either silently overwrites the
+# other's files (a renamed record keeps its old path).  Fixes the record
+# before anything is captured into it.  Usage: funEnsureImagePath <image id>
+funEnsureImagePath () {
+  local name path
+  name=$(funFogApi GET /image/$1 | jq -r '.name // ""')
+  path=$(funFogApi GET /image/$1 | jq -r '.path // ""')
+  [ -n "$name" ] && [ "$name" != "null" ] || return 0
+  if [ "${path%/}" != "$name" ]; then
+    echo "WARNING: FOG image ${name} (id $1) has storage path '${path}'; setting it to '${name}' so capturing it cannot overwrite another image"
+    funFogApi PUT /image/$1 '{"path": "'${name}'"}' >/dev/null
+  fi
+}
+
 # FOG's per-host "deployed" timestamp is only bumped when a deploy task
 # completes successfully, so it tells a real deploy apart from a task that
 # was cancelled or died in FOS (after which the node just boots whatever
