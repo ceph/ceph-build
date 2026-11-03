@@ -20,6 +20,13 @@
       src: templates/nginx.conf
       dest: /etc/nginx/nginx.conf
 
+  - name: install nginx rate-limit zones
+    template:
+      src: templates/jenkins-ratelimit.conf
+      dest: /etc/nginx/conf.d/jenkins-ratelimit.conf
+    notify:
+      - restart nginx
+
   - name: create nginx site config
     template:
       src: templates/jenkins.conf
