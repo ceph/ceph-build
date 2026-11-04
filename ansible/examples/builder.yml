@@ -17,7 +17,7 @@
 ##   ansible-playbook -vvv -M ./library/ builder.yml -e '{"api_uri": "https://jenkins.ceph.com"}' --limit braggi01*
 #
 ##
-## secrets files jenkins.ceph.com.apitoken.yml and 2.jenkins.ceph.com.apitoken.yml must
+## the secrets file <api_uri FQDN>.apitoken.yml (e.g. jenkins.ceph.com.apitoken.yml) must
 ## exist in ANSIBLE_SECRETS_PATH
 
 - hosts: all
