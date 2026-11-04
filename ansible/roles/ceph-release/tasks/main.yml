@@ -2,8 +2,9 @@
 - import_tasks: create.yml
   when: "stage == 'create'"
 
+# Runs for tag=false too: a rebuild still has to push the version commit
+# and open the PR if an earlier pipeline run died before this stage.
 - import_tasks: push.yml
   when:
     - "stage == 'push'"
     - "release != 'SECURITY'"
-    - tag|bool is true
