@@ -21,16 +21,16 @@ node('built-in') {
               [distros:'centos9 rocky10 noble', flavors:'debug', archs:'x86_64']
           ]
       ],
-      vampire: [
-          distros: 'resolute noble rocky10 windows',
-          extras : [
-              [distros:'rocky10 noble', flavors:'debug', archs:'x86_64']
-          ]
-      ],
       umbrella: [
           distros: 'noble jammy rocky10 centos9 windows',
           extras : [
               [distros:'centos9 rocky10 noble', flavors:'debug', archs:'x86_64']
+          ]
+      ],
+      vampire: [
+          distros: 'resolute noble rocky10 windows',
+          extras : [
+              [distros:'rocky10 noble', flavors:'debug', archs:'x86_64']
           ]
       ],
       main: [
