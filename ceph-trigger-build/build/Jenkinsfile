@@ -46,10 +46,6 @@ def params_from_branch(initialParams) {
     case "main":
       params[0]['ARCHS'] += ' arm64'
       break
-    case ~/.*reef.*/:
-      params[-1]['DISTROS'] = 'centos9 jammy focal windows'
-      params[-1]['ARCHS'] += ' arm64'
-      break
     case ~/.*squid.*/:
       params[-1]['DISTROS'] = 'centos9 jammy noble windows'
       params[-1]['ARCHS'] += ' arm64'
