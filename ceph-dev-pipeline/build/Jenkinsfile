@@ -372,7 +372,7 @@ def doBuilderContainerStage() {
     podman pull ${env.CEPH_BUILDER_IMAGE}:${ceph_builder_tag_short} || \
     true
   """
-  def withCrimson = !(env.BRANCH in ['tentacle', 'squid', 'reef'])
+  def withCrimson = !(env.BRANCH in ['tentacle', 'squid',])
   sh """#!/bin/bash
     set -ex
     export REGISTRY_AUTH_FILE="\${HOME}/.config/containers/auth.json"
