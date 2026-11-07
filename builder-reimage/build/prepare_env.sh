@@ -55,6 +55,13 @@ MAIN_URL=$(adjust_url "${MAIN_REPO}")
 SECRETS_URL=$(adjust_url "${SECRETS_REPO}")
 
 clone_repo "${ANSIBLE_URL}" "${ANSIBLE_DIR}"
+
+# wip: run cm-ansible from this branch (ceph/ceph-cm-ansible#905), also in reused workspaces
+CM_ANSIBLE_BRANCH="wip-builder-disk-root-guard"
+log "Checking out cm-ansible ${CM_ANSIBLE_BRANCH}"
+git -C "${ANSIBLE_DIR}" fetch --depth 1 origin "${CM_ANSIBLE_BRANCH}"
+git -C "${ANSIBLE_DIR}" checkout -q -B "${CM_ANSIBLE_BRANCH}" FETCH_HEAD
+git -C "${ANSIBLE_DIR}" log -1 --oneline
 clone_repo "${MAIN_URL}" "${MAIN_DIR}" "${CEPH_BUILD_BRANCH}"
 clone_repo "${SECRETS_URL}" "${SECRETS_DIR}"
 
