@@ -107,6 +107,7 @@ set -- \
   --machine-type "${MACHINE_TYPE}" \
   --ceph "${CEPH_BRANCH}" \
   --ceph-repo "${CEPH_REPO}" \
+  --validate-sha1 false \
   --non-interactive
 
 if [[ -n "${TEUTHOLOGY_SUITE_NEWEST:-}" ]]; then
