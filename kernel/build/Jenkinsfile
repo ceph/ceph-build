@@ -1,0 +1,58 @@
+pipeline {
+  agent none
+  stages {
+    stage("build") {
+      matrix {
+        agent {
+          // Every distro is built in a container, so any container host will do
+          label "(installed-os-centos9||installed-os-noble)&&huge&&${ARCH}"
+        }
+        when {
+          beforeAgent true
+          allOf {
+            expression { params.DISTROS.split().contains(env.DIST) }
+            expression { params.ARCHS.split().contains(env.ARCH) }
+          }
+        }
+        axes {
+          axis {
+            name 'DIST'
+            values 'centos9', 'rocky10', 'jammy', 'noble'
+          }
+          axis {
+            name 'ARCH'
+            values 'x86_64'
+          }
+        }
+        environment {
+          CHACRACTL_KEY = credentials('chacractl-key')
+          SHAMAN_API_KEY = credentials('shaman-api-key')
+          DOCKER_HUB_CREDS = credentials('dgalloway-docker-hub')
+        }
+        stages {
+          stage("checkout ceph-client") {
+            steps {
+              dir("ceph-client") {
+                checkout scmGit(
+                  branches: [[name: params.BRANCH]],
+                  userRemoteConfigs: [[url: 'https://github.com/ceph/ceph-client.git']],
+                  extensions: [
+                    [$class: 'WipeWorkspace'],
+                    [$class: 'CloneOption', shallow: true, noTags: true, timeout: 20],
+                    [$class: 'CheckoutOption', timeout: 20]
+                  ]
+                )
+              }
+            }
+          }
+          stage("build") {
+            steps {
+              sh './scripts/setup_container_runtime.sh'
+              sh './kernel/build/build'
+            }
+          }
+        }
+      }
+    }
+  }
+}
