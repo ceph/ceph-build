@@ -1,0 +1,139 @@
+#!/bin/bash
+# Build kernel packages for $DIST in a container and push them to chacra.
+# Expects the ceph-client checkout in $WORKSPACE/ceph-client.
+set -ex
+
+source "$WORKSPACE/scripts/build_utils.sh"
+
+case $DIST in
+    centos9)
+        DISTRO=centos RELEASE=9 PKG=rpm
+        FROM_IMAGE=quay.io/centos/centos:stream9
+        ;;
+    rocky10)
+        DISTRO=rocky RELEASE=10 PKG=rpm
+        FROM_IMAGE=docker.io/rockylinux/rockylinux:10
+        ;;
+    jammy)
+        DISTRO=ubuntu RELEASE=jammy PKG=deb
+        FROM_IMAGE=docker.io/library/ubuntu:22.04
+        ;;
+    noble)
+        DISTRO=ubuntu RELEASE=noble PKG=deb
+        FROM_IMAGE=docker.io/library/ubuntu:24.04
+        ;;
+    *)
+        echo "unsupported DIST: $DIST"
+        exit 1
+        ;;
+esac
+
+BRANCH=$(branch_slash_filter "$BRANCH")
+SRC="$WORKSPACE/ceph-client"
+# shaman links builds by the ceph-client commit
+export SHA1=$(git -C "$SRC" rev-parse HEAD)
+
+report_failure() {
+    [ $? -eq 0 ] || failed_build_status "kernel" $DISTRO $RELEASE $ARCH
+}
+trap report_failure EXIT
+
+pkgs=( "chacractl>=0.0.21" )
+TEMPVENV=$(create_venv_dir)
+VENV=${TEMPVENV}/bin
+install_python_packages $TEMPVENV "pkgs[@]"
+
+# ask shaman which chacra instance to use
+chacra_url=$(curl -u $SHAMAN_API_USER:$SHAMAN_API_KEY https://shaman.ceph.com/api/nodes/next/)
+make_chacractl_config $chacra_url
+
+update_build_status "started" "kernel" $DISTRO $RELEASE $ARCH
+
+# Build the image with the kernel build dependencies
+export REGISTRY_AUTH_FILE="$HOME/.config/containers/auth.json"
+mkdir -p "${REGISTRY_AUTH_FILE%/*}"
+podman login -u "$DOCKER_HUB_CREDS_USR" -p "$DOCKER_HUB_CREDS_PSW" docker.io
+# el10 glibc can't load under the SELinux/seccomp confinement of an el9 host
+CONTAINER_OPTS="--security-opt label=disable --security-opt seccomp=unconfined"
+IMAGE=kernel-build-$DIST
+if [ "$PKG" = rpm ]; then
+    podman build $CONTAINER_OPTS -t $IMAGE - << EOF
+FROM $FROM_IMAGE
+RUN dnf install -y dnf-plugins-core && dnf config-manager --set-enabled crb && \
+    dnf install -y bc bison diffutils dwarves elfutils-devel \
+    elfutils-libelf-devel findutils flex gcc git hostname kmod make \
+    openssl openssl-devel perl python3 rpm-build rsync tar xz zstd && \
+    dnf clean all
+EOF
+else
+    podman build $CONTAINER_OPTS -t $IMAGE - << EOF
+FROM $FROM_IMAGE
+RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y \
+    bc bison build-essential cpio debhelper dwarves fakeroot flex git kmod \
+    libdw-dev libelf-dev libssl-dev lsb-release perl python3 rsync \
+    xz-utils zstd && \
+    apt-get clean
+EOF
+fi
+# bindeb-pkg writes the debs to the parent of the source tree, so mount all
+# of $WORKSPACE
+RUN="podman run --rm $CONTAINER_OPTS -v $WORKSPACE:$WORKSPACE -w $SRC $IMAGE"
+
+cd "$SRC"
+git clean -fxd
+rm -f "$WORKSPACE"/*.deb
+
+# Write and update the kernel config
+bash "$WORKSPACE/kernel/build/kernel-config-$PKG.sh"
+$RUN make olddefconfig
+
+# CONFIG_LOCALVERSION_AUTO embeds the commit hash into the package metadata
+# and 'uname -r', e.g. 7.4.0-rc2-gccd87864c9bb
+if ! grep -q "^CONFIG_LOCALVERSION_AUTO=y" .config; then
+    echo "CONFIG_LOCALVERSION_AUTO is not set, check kernel-config-*.sh"
+    exit 1
+fi
+kernelrelease=$($RUN make -s kernelrelease)
+
+echo "Building kernel $kernelrelease for $DIST"
+NPROC=$(getconf _NPROCESSORS_ONLN)
+if [ "$PKG" = rpm ]; then
+    $RUN make -j$NPROC binrpm-pkg
+    packages=$(find "$SRC/rpmbuild" -name '*.rpm')
+    PACKAGE_MANAGER_VERSION=$($RUN rpm --queryformat '%{VERSION}-%{RELEASE}\n' -qp \
+        $(echo "$packages" | grep "\.$ARCH\.rpm$" | head -1))
+else
+    $RUN make -j$NPROC KDEB_SOURCENAME="linux-$kernelrelease" bindeb-pkg
+    packages=$(find "$WORKSPACE" -maxdepth 1 -name '*.deb')
+    PACKAGE_MANAGER_VERSION=$($RUN dpkg-deb -f $(echo "$packages" | head -1) Version)
+fi
+[ -n "$packages" ]
+
+if [ "$THROWAWAY" = false ]; then
+    chacra_endpoint="kernel/${BRANCH}/${SHA1}/${DISTRO}/${RELEASE}"
+    [ "$FORCE" = true ] && chacra_flags="--force" || chacra_flags=""
+
+    # push binaries to chacra
+    echo "$packages" | $VENV/chacractl binary ${chacra_flags} create ${chacra_endpoint}/${ARCH}/
+
+    # write json file with build info
+    cat > $WORKSPACE/repo-extra.json << EOF
+{
+    "version":"$kernelrelease",
+    "package_manager_version":"$PACKAGE_MANAGER_VERSION",
+    "build_url":"$BUILD_URL",
+    "root_build_cause":"$ROOT_BUILD_CAUSE",
+    "node_name":"$NODE_NAME",
+    "job_name":"$JOB_NAME"
+}
+EOF
+    # post the json to repo-extra json to chacra
+    curl -X POST -H "Content-Type:application/json" --data "@$WORKSPACE/repo-extra.json" -u $CHACRACTL_USER:$CHACRACTL_KEY ${chacra_url}repos/${chacra_endpoint}/extra/
+
+    # start repo creation
+    $VENV/chacractl repo update ${chacra_endpoint}
+
+    echo Check the status of the repo at: https://shaman.ceph.com/api/repos/${chacra_endpoint}
+fi
+
+update_build_status "completed" "kernel" $DISTRO $RELEASE $ARCH
