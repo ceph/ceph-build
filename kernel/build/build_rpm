@@ -3,7 +3,8 @@ set -ex
 
 cd $WORKSPACE
 
-get_rpm_dist
+# setup already set these for the rocky10 container build
+[ "$DISTRO" = "rocky" ] || get_rpm_dist
 
 chacra_endpoint="kernel/${BRANCH}/${GIT_COMMIT}/${DISTRO}/${RELEASE}"
 chacra_check_url="${chacra_endpoint}/${ARCH}/kernel-${VERSION}-${RPM_RELEASE}.${DIST}.${ARCH}.rpm"
@@ -28,7 +29,7 @@ rm -rf ./rpmbuild/
 
 # Build the rpms
 echo "Building RPMs"
-make -j$(getconf _NPROCESSORS_ONLN) binrpm-pkg
+$MAKE -j$(getconf _NPROCESSORS_ONLN) binrpm-pkg
 
 [ "$FORCE" = true ] && chacra_flags="--force" || chacra_flags=""
 

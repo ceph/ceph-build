@@ -29,6 +29,8 @@ if test $(id -u) != 0 ; then
 fi
 export LC_ALL=C # the following is vulnerable to i18n
 
+MAKE=make
+
 if test -f /etc/redhat-release ; then
     $SUDO yum install -y bc perl
     $SUDO yum install -y elfutils-libelf-devel  # for ORC unwinder
@@ -37,7 +39,24 @@ if test -f /etc/redhat-release ; then
     $SUDO yum install -y elfutils-devel  # for dwarf.h
 
     # Set vars for shaman status updating
-    get_rpm_dist
+    if [ "$DIST" = "rocky10" ]; then
+        # No rocky10 builders: run make in a rockylinux:10 container on the
+        # centos9 host.  el10 glibc needs SELinux/seccomp confinement off.
+        DISTRO=rocky
+        RELEASE=10
+        DISTRO_VERSION=10
+        CONTAINER_OPTS="--security-opt label=disable --security-opt seccomp=unconfined"
+        podman build $CONTAINER_OPTS -t kernel-build-rocky10 - << EOF
+FROM docker.io/rockylinux/rockylinux:10
+RUN dnf install -y bc bison diffutils dwarves elfutils-devel \
+    elfutils-libelf-devel findutils flex gcc git hostname kmod make \
+    openssl openssl-devel perl python3 rpm-build rsync tar xz zstd && \
+    dnf clean all
+EOF
+        MAKE="podman run --rm $CONTAINER_OPTS -v $WORKSPACE:$WORKSPACE -w $WORKSPACE kernel-build-rocky10 make"
+    else
+        get_rpm_dist
+    fi
     NORMAL_DISTRO=$DISTRO
     NORMAL_DISTRO_VERSION=$DISTRO_VERSION
 fi

@@ -16,8 +16,8 @@
 
       - string:
           name: DISTROS
-          description: "A list of distros to build for. Available options are: centos9, noble, and jammy"
-          default: "centos9 jammy noble"
+          description: "A list of distros to build for. Available options are: centos9, rocky10, noble, and jammy"
+          default: "centos9 rocky10 jammy noble"
 
       - string:
           name: ARCHS
@@ -43,7 +43,11 @@ If this is checked, then the binaries will be built and pushed to chacra even if
           default: "/tmp/"
 
     execution-strategy:
-       combination-filter: DIST==AVAILABLE_DIST && ARCH==AVAILABLE_ARCH
+       # rocky10 has no dedicated builders; it is built in a rockylinux:10
+       # container on a centos9 builder (see build/setup).
+       combination-filter: |
+         ARCH == AVAILABLE_ARCH &&
+         (DIST == AVAILABLE_DIST || (DIST == "rocky10" && AVAILABLE_DIST == "centos9"))
     axes:
       - axis:
           type: label-expression
