@@ -531,6 +531,15 @@ def doSubmodulesCheck() {
 }
 
 // Shell preamble shared by the build/test legs: ceph-build helpers plus the
+// Label expression for the x86_64 legs.  The default is the bare-metal
+// huge pool; X86_LABEL overrides it so a set of builders outside that pool
+// (the pok VMs, label "pok") can be validated with STATUS_PREFIX before they
+// are given the fleet labels.  The override still has to reach the S3 cache.
+def x86Label(String fleetDefault) {
+  def override = (params.X86_LABEL ?: "").trim()
+  return override ?: fleetDefault
+}
+
 // S3 cache functions, with the cache key for this PR+sha+arch.  Docker Hub
 // creds are exported here (not just in the build stage) because any leg may
 // have to build the bwc builder container image on a node that has never
@@ -999,7 +1008,7 @@ pipeline {
           when { beforeAgent true; expression { run_make_check || run_api } }
           stages {
             stage("build ceph") {
-              agent { label "huge && x86_64 && installed-os-noble && sepia" }
+              agent { label x86Label("huge && x86_64 && installed-os-noble && sepia") }
               steps {
                 script {
                   try {
@@ -1037,7 +1046,7 @@ pipeline {
                   def legs = [:]
                   if (run_make_check) {
                     legs["make check"] = {
-                      node("x86_64 && installed-os-noble && sepia") {
+                      node(x86Label("x86_64 && installed-os-noble && sepia")) {
                         try {
                           doMakeCheck()
                         } finally {
@@ -1072,7 +1081,7 @@ pipeline {
                       for (s in ["A", "B"]) {
                         def shard = s
                         shards["ceph API tests (${shard})"] = {
-                          node("huge && x86_64 && installed-os-noble && sepia") {
+                          node(x86Label("huge && x86_64 && installed-os-noble && sepia")) {
                             def outcome = "success"
                             try {
                               postStatus("api", "pending", "running ceph API tests (shard ${shard})")

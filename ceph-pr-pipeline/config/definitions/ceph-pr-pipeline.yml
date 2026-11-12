@@ -69,6 +69,11 @@
           description: "Location of the per-builder ceph.git mirror that speeds up cloning (auto-created and refreshed each run; default $HOME/ceph-mirror.git)"
 
       - string:
+          name: X86_LABEL
+          default: ""
+          description: "Label expression for the x86_64 build, make check and API legs instead of the bare-metal huge pool (e.g. 'pok' for the OpenShift VMs); must still reach the S3 cache"
+
+      - string:
           name: CEPH_BUILD_BRANCH
           default: main
           description: "Use the Jenkinsfile from this ceph-build branch"
