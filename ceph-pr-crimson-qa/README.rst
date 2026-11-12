@@ -24,8 +24,8 @@ How it works
 
 1. **Resolve PR** — fetches the PR from the GitHub API to obtain the head SHA
    and target branch.  Aborts immediately if the PR is not open.
-2. **Authorize** — verifies that the commenter (or the PR author for manual
-   runs) has *write* or *admin* permission on ``ceph/ceph`` (same bar as
+2. **Authorize** — verifies that the commenter has *write* or *admin* 
+   permission on ``ceph/ceph`` (same bar as
    ``ceph-pr-pipeline-trigger``).  Falls back to org membership if the
    credentials lack collaborator-read scope, and logs a loud warning.
 3. **Post pending status** — writes a ``crimson-qa`` commit status (``pending``)
