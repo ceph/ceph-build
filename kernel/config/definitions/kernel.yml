@@ -1,14 +1,24 @@
 - job:
     name: kernel
-    project-type: matrix
-    defaults: global
+    project-type: pipeline
     display-name: 'kernel'
-    block-downstream: false
-    block-upstream: false
+    concurrent: true
+    pipeline-scm:
+      scm:
+        - git:
+            url: https://github.com/ceph/ceph-build
+            branches:
+              - ${{CEPH_BUILD_BRANCH}}
+            shallow-clone: true
+            submodule:
+              disable: true
+            wipe-workspace: true
+      script-path: kernel/build/Jenkinsfile
+      lightweight-checkout: true
+      do-not-fetch-tags: true
     properties:
       - github:
           url: https://github.com/ceph/ceph-client
-    concurrent: true
     parameters:
       - string:
           name: BRANCH
@@ -16,8 +26,8 @@
 
       - string:
           name: DISTROS
-          description: "A list of distros to build for. Available options are: centos9, noble, and jammy"
-          default: "centos9 jammy noble"
+          description: "A list of distros to build for. Available options are: centos9, rocky10, noble, and jammy"
+          default: "centos9 rocky10 jammy noble"
 
       - string:
           name: ARCHS
@@ -33,132 +43,14 @@ Default: False. When True it will not POST binaries to chacra. Artifacts will no
       - bool:
           name: FORCE
           description: "
-If this is unchecked, then nothing is built or pushed if they already exist in chacra. This is the default.
-
-If this is checked, then the binaries will be built and pushed to chacra even if they already exist in chacra."
+If this is checked, binaries that already exist in chacra are overwritten."
 
       - string:
-          name: BUILD_VIRTUALENV
-          description: "Base parent path for virtualenv locations, set to avoid issues with extremely long paths that are incompatible with tools like pip. Defaults to '/tmp/' (note the trailing slash, which is required)."
-          default: "/tmp/"
-
-    execution-strategy:
-       combination-filter: DIST==AVAILABLE_DIST && ARCH==AVAILABLE_ARCH
-    axes:
-      - axis:
-          type: label-expression
-          name: MACHINE_SIZE
-          values:
-            - huge
-      - axis:
-          type: label-expression
-          name: AVAILABLE_ARCH
-          values:
-            - x86_64
-      - axis:
-          type: label-expression
-          name: AVAILABLE_DIST
-          values:
-            - centos9
-            - jammy
-            - noble
-      - axis:
-          type: dynamic
-          name: DIST
-          values:
-            - DISTROS
-      - axis:
-          type: dynamic
-          name: ARCH
-          values:
-            - ARCHS
-
-    scm:
-    - raw:
-        xml: |
-          <scm class="hudson.plugins.git.GitSCM">
-            <configVersion>2</configVersion>
-            <userRemoteConfigs>
-              <hudson.plugins.git.UserRemoteConfig>
-                <name>origin</name>
-                <refspec>+refs/heads/*:refs/remotes/origin/*</refspec>
-                <url>https://github.com/ceph/ceph-client.git</url>
-              </hudson.plugins.git.UserRemoteConfig>
-            </userRemoteConfigs>
-            <branches>
-              <hudson.plugins.git.BranchSpec>
-                <name>$BRANCH</name>
-              </hudson.plugins.git.BranchSpec>
-            </branches>
-            <disableSubmodules>false</disableSubmodules>
-            <recursiveSubmodules>false</recursiveSubmodules>
-            <doGenerateSubmoduleConfigurations>false</doGenerateSubmoduleConfigurations>
-            <remotePoll>false</remotePoll>
-            <gitTool>Default</gitTool>
-            <submoduleCfg class="list"/>
-            <reference/>
-            <gitConfigName/>
-            <gitConfigEmail/>
-            <extensions>
-              <hudson.plugins.git.extensions.impl.CloneOption>
-                <shallow>true</shallow>
-                <noTags>true</noTags>
-                <timeout>20</timeout>
-              </hudson.plugins.git.extensions.impl.CloneOption>
-              <hudson.plugins.git.extensions.impl.CheckoutOption>
-                <timeout>20</timeout>
-              </hudson.plugins.git.extensions.impl.CheckoutOption>
-              <hudson.plugins.git.extensions.impl.WipeWorkspace/>
-            </extensions>
-          </scm>
-
-    builders:
-      - shell: |
-          echo "Cleaning up top-level workarea (shared among workspaces)"
-          rm -rf dist
-          rm -rf venv
-          rm -rf release
-      # debian build scripts
-      - shell:
-          !include-raw-verbatim:
-            - ../../build/validate_deb
-            - ../../../scripts/build_utils.sh
-            - ../../build/setup
-            - ../../build/kernel-config-deb.sh
-            - ../../build/prepare_config
-            - ../../build/build_deb
-      # rpm build scripts
-      - shell:
-          !include-raw-verbatim:
-            - ../../build/validate_rpm
-            - ../../../scripts/build_utils.sh
-            - ../../build/setup
-            - ../../build/kernel-config-rpm.sh
-            - ../../build/prepare_config
-            - ../../build/build_rpm
-
-    publishers:
-      - postbuildscript:
-          builders:
-            - role: SLAVE
-              build-on:
-                  - FAILURE
-                  - ABORTED
-              build-steps:
-                - shell:
-                    !include-raw-verbatim:
-                      - ../../../scripts/build_utils.sh
-                      - ../../build/failure
+          name: CEPH_BUILD_BRANCH
+          description: "Use the Jenkinsfile from this ceph-build branch"
+          default: main
 
     wrappers:
       - inject-passwords:
           global: true
           mask-password-params: true
-      - credentials-binding:
-          - text:
-              credential-id: chacractl-key
-              variable: CHACRACTL_KEY
-      - credentials-binding:
-          - text:
-              credential-id: shaman-api-key
-              variable: SHAMAN_API_KEY
