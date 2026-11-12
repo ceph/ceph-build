@@ -1,21 +1,23 @@
 node('built-in') {
   def repoUrl  = 'https://github.com/ceph/ceph'
-  def branches = ['main','vampire','umbrella','tentacle','squid','reef']
+  def branches = ['main','vampire','umbrella','tentacle','squid']
 
   // Define flavor/distro combinations per branch.
   // Below when we trigger, we send ARCHS=x86_64 and FLAVORS=default by default
   // so the extras list should be used to specify a distro/flavor/arch combination other than
   // those defaults (e.g., any arm64 or debug builds need an extras[] entry.
   def cfg = [
-      reef: [
-          distros: 'jammy focal centos9 windows',
-          extras : []
-      ],
       squid: [
           distros: 'noble jammy centos9 windows',
           extras : []
       ],
       tentacle: [
+          distros: 'noble jammy rocky10 centos9 windows',
+          extras : [
+              [distros:'centos9 rocky10 noble', flavors:'debug', archs:'x86_64']
+          ]
+      ],
+      umbrella: [
           distros: 'noble jammy rocky10 centos9 windows',
           extras : [
               [distros:'centos9 rocky10 noble', flavors:'debug', archs:'x86_64']
@@ -27,17 +29,11 @@ node('built-in') {
               [distros:'rocky10 noble', flavors:'debug', archs:'x86_64']
           ]
       ],
-      umbrella: [
-          distros: 'noble jammy rocky10 centos9 windows',
-          extras : [
-              [distros:'centos9 rocky10 noble', flavors:'debug', archs:'x86_64']
-          ]
-      ],
       main: [
-          distros: 'resolute noble jammy rocky10 centos9 windows',
+          distros: 'resolute noble rocky10 windows',
           extras : [
-              [distros:'centos9 rocky10 noble', flavors:'debug', archs:'x86_64'],
-              [distros:'centos9 rocky10', flavors:'default', archs:'arm64'],
+              [distros:'rocky10 noble', flavors:'debug', archs:'x86_64'],
+              [distros:'rocky10', flavors:'default', archs:'arm64'],
           ]
       ]
   ]
@@ -87,7 +83,7 @@ node('built-in') {
     // against the previously stored values to determine which branches have
     // changed and need downstream builds triggered.
 
-    // branches is the list of branch names (e.g., ['main','vampire','umbrella','tentacle','squid','reef'])
+    // branches is the list of branch names (e.g., ['main','vampire','umbrella','tentacle','squid'])
     // b is short for branch.  We're just looping over branches here.
     // Ultimately we end up with array "tips" that looks like "last" but is the current
     // tip of each branch instead of the last job's tips.
