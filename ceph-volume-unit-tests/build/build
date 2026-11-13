@@ -1,21 +1,38 @@
 #!/bin/bash
 set -ex
 
-# set up variables needed for
-# githubstatus to report back to the github PR
-# if this project was started manually
-github_status_setup
+# Webhook (issue_comment) triggers arrive straight from the generic webhook
+# trigger with no authorization layer in front of this job, so gate here the
+# same way ceph-pr-pipeline-trigger does: the commenter needs write/admin on
+# ceph/ceph, or the PR must carry the ci-approved label.  comment_author is
+# only set for webhook triggers; manual builds skip the check.
+if [ -n "${comment_author}" ]; then
+    permission=$(curl -s -u ${GITHUB_STATUS_USER}:${GITHUB_STATUS_TOKEN} \
+        -H "Accept: application/vnd.github+json" \
+        "https://api.github.com/repos/ceph/ceph/collaborators/${comment_author}/permission" | jq -r '.permission')
+    if [ "$permission" != "admin" ] && [ "$permission" != "write" ]; then
+        labels=$(curl -s -u ${GITHUB_USER}:${GITHUB_PASS} \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/ceph/ceph/issues/${ghprbPullId}/labels" | jq -r '.[].name')
+        if ! grep -qxF "ci-approved" <<< "$labels"; then
+            echo "${comment_author} lacks write access and PR ${ghprbPullId} has no ci-approved label; not building"
+            exit 0
+        fi
+    fi
+fi
 
-# the following two methods exist in scripts/build_utils.sh
-pkgs=( "tox" "github-status>0.0.3")
+# No plugin posts statuses for webhook triggers, so post them ourselves for
+# every build cause; the EXIT trap reports success/failure wherever we exit.
+export FORCE_GITHUB_PR_STATUS=true
+trap 'report_github_pr_status $? "ceph-volume unit tests"' EXIT
+
+update_github_pr_status "pending" "ceph-volume unit tests running" "ceph-volume unit tests"
+
+pkgs=( "tox" )
 TEMPVENV=$(create_venv_dir)
 VENV=${TEMPVENV}/bin
 install_python_packages $TEMPVENV "pkgs[@]"
 
 cd src/ceph-volume
 
-GITHUB_STATUS_STATE="pending" $VENV/github-status create
-
 $VENV/tox -vr
-
-GITHUB_STATUS_STATE="success" $VENV/github-status create
