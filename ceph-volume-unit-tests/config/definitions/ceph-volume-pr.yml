@@ -1,6 +1,12 @@
 - job:
     name: ceph-volume-unit-tests
     display-name: 'ceph-volume: Pull Request unit tests'
+    description: |
+      Runs the ceph-volume tox unit tests for a ceph.git PR.  Triggered by
+      commenting "jenkins ceph-volume unit tests" (or "jenkins test
+      ceph-volume") on the PR via the generic webhook trigger; the ceph/ceph
+      webhook that feeds ceph-pr-pipeline-trigger feeds this job too.  Can
+      also be run manually by setting ghprbPullId.
     node: small && centos9
     project-type: freestyle
     defaults: global
@@ -16,79 +22,69 @@
 
     parameters:
       - string:
-          name: sha1
-          description: "A pull request ID, like 'origin/pr/72/head'"
+          name: ghprbPullId
+          description: "the GitHub pull id, like '72' in 'ceph/pull/72'"
 
-      # this is injected by the ghprb plugin, and is fully optional but may help in manually triggering
-      # a job that can end up updating a PR
-      - string:
-          name: ghprbSourceBranch
-          description: "When manually triggered, and the remote PR isn't a branch in the ceph.git repo This can be specified to determine the actual branch."
-      - string:
-          name: ghprbTargetBranch
-          description: 'Required when manually triggered,  the targeted branch needs to be set (e.g. "luminous" or "main")'
-      - string:
-          name: GITHUB_SHA
-          description: "The tip (last commit) in the PR, a sha1 like 7d787849556788961155534039886aedfcdb2a88 (if set, will report status to Github)"
-      - password:
-          name: GITHUB_OAUTH_TOKEN
-          description: "Secret API Token to set status. Only needed when manually triggering a PR test"
-
+    # Same shared ceph/ceph webhook as ceph-pr-pipeline-trigger (matched by
+    # the pr-check-trigger-token credential); the filter only fires this job
+    # for new PR comments containing the trigger phrase.  Authorization
+    # (commenter permission / ci-approved label) is checked in the build
+    # script.  ghprbPullId comes from the payload's issue number, which the
+    # SCM branch spec below picks up.
     triggers:
-      - github-pull-request:
-          org-list:
-            - ceph
-          cancel-builds-on-update: true
-          only-trigger-phrase: true
-          trigger-phrase: 'jenkins ceph-volume unit tests'
-          github-hooks: true
-          permit-all: false
-          allow-whitelist-orgs-as-admins: true
-          auto-close-on-fail: false
-          status-context: "ceph-volume tox testing"
-          started-status: "ceph-volume tox running"
-          success-status: "ceph-volume tox OK"
-          failure-status: "ceph-volume tox failed"
+      - generic-webhook-trigger:
+          token: ceph-volume-unit-tests
+          token-credential-id: pr-check-trigger-token
+          print-contrib-var: true
+          post-content-params:
+            - type: JSONPath
+              key: action
+              value: $.action
+            - type: JSONPath
+              key: ghprbPullId
+              value: $.issue.number
+            - type: JSONPath
+              key: issue_is_pr
+              value: $.issue.pull_request.url
+            - type: JSONPath
+              key: comment_body
+              value: $.comment.body
+            - type: JSONPath
+              key: comment_author
+              value: $.comment.user.login
+          regex-filter-text: $action:$issue_is_pr:$comment_body
+          # A created issue_comment on a PR (issue_is_pr non-empty) containing
+          # the trigger phrase.
+          regex-filter-expression: "(?is)^created:https[^:]*:.*jenkins\\s+(ceph-volume\\s+unit\\s+tests|test\\s+ceph-volume)\\b.*$"
+          cause: "GitHub comment by $comment_author on PR $ghprbPullId"
 
     scm:
       - git:
           url: https://github.com/ceph/ceph
           browser: auto
           branches:
-            - ${{sha1}}
-          refspec: +refs/pull/*:refs/remotes/origin/pr/*
+            - origin/pr/${{ghprbPullId}}/merge
+          refspec: +refs/pull/${{ghprbPullId}}/*:refs/remotes/origin/pr/${{ghprbPullId}}/*
           skip-tag: true
+          shallow-clone: true
+          honor-refspec: true
           timeout: 20
           wipe-workspace: true
 
     builders:
-      - inject:
-          properties-content: |
-            GITHUB_REPOSITORY="ceph/ceph"
-            GITHUB_STATUS_CONTEXT="ceph-volume unit tests"
-            GITHUB_STATUS_STARTED="running"
-            GITHUB_STATUS_SUCCESS="OK"
-            GITHUB_STATUS_FAILURE="failed"
-            GITHUB_STATUS_ERROR="completed with errors"
       - shell:
           !include-raw-verbatim:
             - ../../../scripts/build_utils.sh
             - ../../build/build
 
     wrappers:
-      - inject-passwords:
-          global: true
-          mask-password-params: true
-
-    publishers:
-      - postbuildscript:
-          builders:
-            - role: SLAVE
-              build-on:
-                  - FAILURE
-                  - ABORTED
-              build-steps:
-                - shell:
-                    !include-raw-verbatim:
-                      - ../../../scripts/build_utils.sh
-                      - ../../build/teardown
+      - ansicolor
+      - credentials-binding:
+          - username-password-separated:
+              credential-id: github-readonly-token
+              username: GITHUB_USER
+              password: GITHUB_PASS
+          - username-password-separated:
+              credential-id: github-status-check-token
+              username: GITHUB_STATUS_USER
+              password: GITHUB_STATUS_TOKEN

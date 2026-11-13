@@ -16,6 +16,9 @@ cd "${WORKSPACE}/ceph-main"
 sha_main=$(git rev-parse --short HEAD)
 cd "${WORKSPACE}/ceph-pr"
 sha_pr=$(git rev-parse --short HEAD)
+# HEAD is the PR merge commit; the check must be posted on the PR head.
+# ghprbActualCommit is only set by the old PR builder plugin.
+ghprbActualCommit="${ghprbActualCommit:-$(git rev-parse "refs/remotes/origin/pr/${ghprbPullId}/head")}"
 store_tag=$(cat "${WORKSPACE}/perf-store-tag")
 
 # shellcheck disable=SC1091

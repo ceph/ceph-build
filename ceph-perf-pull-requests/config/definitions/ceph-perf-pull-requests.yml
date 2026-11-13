@@ -97,22 +97,38 @@
           default: ''
           description: 'Extra CMake arguments appended to the build (use this to disable additional components for a more minimal build).'
 
+    # Same shared ceph/ceph webhook as ceph-pr-pipeline-trigger (matched by
+    # the pr-check-trigger-token credential); the filter only fires this job
+    # for new PR comments containing the trigger phrase.  Authorization
+    # (commenter permission / ci-approved label) is checked in common.sh at
+    # the top of every build step.  ghprbPullId comes from the payload's
+    # issue number, which the ceph-pr SCM picks up.
     triggers:
-      - github-pull-request:
-          allow-whitelist-orgs-as-admins: true
-          org-list:
-            - ceph
-          trigger-phrase: '(?i)jenkins\s+test\s+{osd-flavor}\s+perf\b'
-          skip-build-phrase: '(?i)^jenkins do not test.*'
-          only-trigger-phrase: true
-          github-hooks: true
-          permit-all: false
-          auto-close-on-fail: false
-          cancel-builds-on-update: true
-          status-context: 'ceph {osd-flavor} perf regression'
-          started-status: 'running ceph {osd-flavor} perf regression'
-          success-status: 'ceph {osd-flavor} perf regression passed'
-          failure-status: 'ceph {osd-flavor} perf regression failed'
+      - generic-webhook-trigger:
+          token: ceph-perf-{osd-flavor}
+          token-credential-id: pr-check-trigger-token
+          print-contrib-var: true
+          post-content-params:
+            - type: JSONPath
+              key: action
+              value: $.action
+            - type: JSONPath
+              key: ghprbPullId
+              value: $.issue.number
+            - type: JSONPath
+              key: issue_is_pr
+              value: $.issue.pull_request.url
+            - type: JSONPath
+              key: comment_body
+              value: $.comment.body
+            - type: JSONPath
+              key: comment_author
+              value: $.comment.user.login
+          regex-filter-text: $action:$issue_is_pr:$comment_body
+          # A created issue_comment on a PR (issue_is_pr non-empty) containing
+          # the trigger phrase.
+          regex-filter-expression: "(?is)^created:https[^:]*:.*jenkins\\s+test\\s+{osd-flavor}\\s+perf\\b.*$"
+          cause: "GitHub comment by $comment_author on PR $ghprbPullId"
 
     scm:
       - ceph-main
@@ -218,6 +234,14 @@
           - file:
               credential-id: cephacheck.2020-04-29.private-key.pem
               variable: GITHUB_CHECK_PKEY_PEM
+          - username-password-separated:
+              credential-id: github-readonly-token
+              username: GITHUB_USER
+              password: GITHUB_PASS
+          - username-password-separated:
+              credential-id: github-status-check-token
+              username: GITHUB_STATUS_USER
+              password: GITHUB_STATUS_TOKEN
 
 - project:
     name: ceph-perf
