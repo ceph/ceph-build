@@ -25,6 +25,26 @@ def inject_acceptable(doc: dict, acceptable: dict) -> None:
     raise SystemExit("no cbt/radosbench task found in workload YAML")
 
 
+def use_top_monitoring(doc: dict) -> str | None:
+    """Replace the cbt monitoring profiles with ``top``.
+
+    cbt always adds a ``collectl`` monitor, which is not packaged for EL10;
+    with no monitor producing output, cbt's idle-monitoring sync fails on an
+    empty directory. The classic YAML sets no profiles (collectl only). The
+    crimson YAMLs use cbt's ``perf`` profile with a ``{pid}`` placeholder,
+    which cbt main (since 2026-10) rejects (per-PID monitoring is the
+    ``osd_perf`` profile). ``top`` only needs procps. The job never used the
+    perf data (cpu_cycles_per_op is not compared), so this loses nothing.
+    """
+    for task in doc.get("tasks") or []:
+        if not isinstance(task, dict) or "cbt" not in task:
+            continue
+        before = sorted(task["cbt"].get("monitoring_profiles") or {})
+        task["cbt"]["monitoring_profiles"] = {"top": {}}
+        return f"monitoring_profiles={'+'.join(before) or 'none'}->top"
+    return None
+
+
 def warmup_read_prefill(doc: dict) -> str | None:
     """Warm the system with writes before a read measurement.
 
@@ -115,6 +135,9 @@ def main() -> int:
         inject_acceptable(doc, acceptable)
         # perf-basic has no prefill; add a warm-up write pass before measuring.
         meta.append(f"radosbench_4K_write.yaml_{warmup_write_prefill(doc)}")
+        note = use_top_monitoring(doc)
+        if note:
+            meta.append(f"radosbench_4K_write.yaml_{note}")
         (out / "radosbench_4K_write.yaml").write_text(
             yaml.safe_dump(doc, sort_keys=False)
         )
@@ -128,6 +151,9 @@ def main() -> int:
             doc = yaml.safe_load(src.read_text())
             inject_acceptable(doc, acceptable)
             note = warmup_read_prefill(doc)
+            if note:
+                meta.append(f"{name}_{note}")
+            note = use_top_monitoring(doc)
             if note:
                 meta.append(f"{name}_{note}")
             (out / name).write_text(yaml.safe_dump(doc, sort_keys=False))

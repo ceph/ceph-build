@@ -157,3 +157,53 @@ cleanup_vstart() {
     done
     kill_cluster_procs
 }
+
+# Webhook (issue_comment) triggers arrive straight from the generic webhook
+# trigger with no authorization layer in front of this job, so gate the same
+# way ceph-pr-pipeline-trigger does: the commenter needs write/admin on
+# ceph/ceph, or the PR must carry the ci-approved label.  comment_author is
+# only set for webhook triggers; manual builds skip the check.  This runs at
+# the top of every build step (common.sh is concatenated into each), so the
+# verdict is cached per build in a marker file and a denied trigger turns
+# every step into a no-op instead of failing the build (which would reboot
+# the perf node).
+pr_trigger_gate() {
+    local denied="${WORKSPACE}/.pr-trigger-denied-${BUILD_ID}"
+    local allowed="${WORKSPACE}/.pr-trigger-allowed-${BUILD_ID}"
+    local permission labels
+    test -n "${comment_author:-}" || return 0
+    if test -e "$denied"; then
+        echo "trigger by ${comment_author} was denied; skipping this step"
+        exit 0
+    fi
+    test -e "$allowed" && return 0
+    permission=$(curl -s -u "${GITHUB_STATUS_USER}:${GITHUB_STATUS_TOKEN}" \
+        -H "Accept: application/vnd.github+json" \
+        "https://api.github.com/repos/ceph/ceph/collaborators/${comment_author}/permission" | jq -r '.permission')
+    if test "$permission" != "admin" && test "$permission" != "write"; then
+        labels=$(curl -s -u "${GITHUB_USER}:${GITHUB_PASS}" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/ceph/ceph/issues/${ghprbPullId}/labels" | jq -r '.[].name')
+        if ! grep -qxF "ci-approved" <<< "$labels"; then
+            echo "${comment_author} lacks write access and PR ${ghprbPullId} has no ci-approved label; not building"
+            touch "$denied"
+            # Give the artifact archiver one matching file: with nothing to
+            # archive it scans the whole workspace (two ceph trees) to
+            # explain the empty match, which takes far longer than the build.
+            echo "not built: ${comment_author} lacks write access and PR ${ghprbPullId} has no ci-approved label" \
+                > "${WORKSPACE}/perf-meta.txt"
+            exit 0
+        fi
+    fi
+    touch "$allowed"
+}
+pr_trigger_gate
+
+# The PR builder plugin used to inject the PR head sha as ghprbActualCommit;
+# the webhook trigger only gives the PR number.  ceph-pr's HEAD is the merge
+# commit and the checks (setup-post, compare) must go on the head, so resolve
+# it from the fetched pull refs.  Every step runs with set -u after this.
+if test -z "${ghprbActualCommit:-}" && test -n "${ghprbPullId:-}"; then
+    ghprbActualCommit=$(git -C "${WORKSPACE}/ceph-pr" rev-parse "refs/remotes/origin/pr/${ghprbPullId}/head")
+    export ghprbActualCommit
+fi

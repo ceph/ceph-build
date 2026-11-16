@@ -70,18 +70,19 @@ else
     compare_workload "4K write" write
 fi
 
+check_name="${STATUS_PREFIX:-}${CHECK_NAME}"
 github-check \
   --owner "${CHECK_REPO_OWNER}" \
   --repo "${CHECK_REPO_NAME}" \
   --pkey-file "${GITHUB_CHECK_PKEY_PEM}" \
   --app-id "${CHECK_APP_ID}" \
   --install-id "${CHECK_INSTALL_ID}" \
-  --name "${CHECK_NAME}" \
+  --name "${check_name}" \
   --sha "${ghprbActualCommit}" \
   --external-id "${BUILD_ID}" \
   --details-url "${BUILD_URL}" \
   --status completed --conclusion "${result}" \
-  --title "${CHECK_NAME}" \
+  --title "${check_name}" \
   --summary "${result}" \
   --text "$report"
 
