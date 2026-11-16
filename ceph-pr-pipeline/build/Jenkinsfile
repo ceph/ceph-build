@@ -968,7 +968,7 @@ pipeline {
           post {
             always {
               sh """#!/bin/bash
-                bash ./ceph-build/ceph-pull-requests-arm64/build/kill-tests || true
+                bash ./ceph-build/ceph-pr-pipeline/build/kill-tests || true
                 podman rm -f ceph_build 2>/dev/null || true
                 podman unshare chown -R 0:0 "\$WORKSPACE"/ceph 2>/dev/null || true
               """
@@ -1070,7 +1070,7 @@ pipeline {
                         } finally {
                           sh """#!/bin/bash
                             source ./ceph-build/scripts/build_utils.sh 2>/dev/null || true
-                            bash ./ceph-build/ceph-pull-requests/build/kill-tests || true
+                            bash ./ceph-build/ceph-pr-pipeline/build/kill-tests || true
                             podman rm -f ceph_build 2>/dev/null || true
                             podman unshare chown -R 0:0 "\$WORKSPACE"/ceph 2>/dev/null || true
                           """
