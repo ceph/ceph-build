@@ -167,10 +167,14 @@ validation or one-off manual windows builds.
 
 ## Rollout
 
-1. Credentials: `pr-check-trigger-token`, `github-status-check-token`
-   (repo:status + issues write + org read), `github-readonly-token`,
-   `dgalloway-docker-hub`, `doli-lrc-pr-builds` (RGW keys for the
-   `ceph-pr-builds` user on the doli LRC), `ceph_win_ci_private_key`.
+1. Credentials: `pr-check-trigger-token`, `github-app-ceph-jenkins` (GitHub
+   App `ceph-jenkins-ci`, installed on the ceph org with commit statuses,
+   pull requests and issues write and contents/metadata read; both the
+   trigger and the pipeline bind it as a username/password credential and
+   get a one-hour installation token, so the pipeline binds it around each
+   API call rather than once per run), `dgalloway-docker-hub`,
+   `doli-lrc-pr-builds` (RGW keys for the `ceph-pr-builds` user on the doli
+   LRC), `ceph_win_ci_private_key`.
 2. Deploy both jobs with JJB, then pre-approve the sandbox signatures in
    Manage Jenkins → Script Console:
 
