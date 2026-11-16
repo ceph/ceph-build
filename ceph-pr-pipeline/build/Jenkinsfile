@@ -152,6 +152,20 @@ gh_curl() {
 }
 '''
 
+// A function rather than a one-time environment{} binding: the GitHub App
+// token rotates every hour and the pipeline runs longer than that.
+@Field String github_credential = "github-app-ceph-jenkins"
+
+def withGithubCreds(Closure body) {
+  withCredentials([usernamePassword(
+    credentialsId: github_credential,
+    usernameVariable: "GITHUB_CREDS_USR",
+    passwordVariable: "GITHUB_CREDS_PSW",
+  )]) {
+    body()
+  }
+}
+
 def postStatus(String key, String state, String description) {
   // Nothing to post against until prepare has resolved the head sha (e.g. a
   // build aborted while still in prepare).
@@ -170,14 +184,17 @@ def postStatus(String key, String state, String description) {
   // died posting "-> success").  If the POST still fails after gh_curl's
   // retries, log it and move on; the context stays unfinalized so the
   // post{} sweep gets another shot at it.
-  def rc = sh(
-    label: "GitHub status: ${contexts[key]} -> ${state}",
-    returnStatus: true,
-    script: gh_curl + "gh_curl -X POST " +
-            "-u \$GITHUB_STATUS_CREDS_USR:\$GITHUB_STATUS_CREDS_PSW " +
-            "-H 'Accept: application/vnd.github+json' -d @status.json " +
-            "'${github_api}/repos/${github_repo}/statuses/${env.HEAD_SHA}' > /dev/null"
-  )
+  def rc
+  withGithubCreds {
+    rc = sh(
+      label: "GitHub status: ${contexts[key]} -> ${state}",
+      returnStatus: true,
+      script: gh_curl + "gh_curl -X POST " +
+              "-u \$GITHUB_CREDS_USR:\$GITHUB_CREDS_PSW " +
+              "-H 'Accept: application/vnd.github+json' -d @status.json " +
+              "'${github_api}/repos/${github_repo}/statuses/${env.HEAD_SHA}' > /dev/null"
+    )
+  }
   if (rc != 0) {
     echo "WARNING: could not post GitHub status ${contexts[key]} -> ${state} (exit ${rc})"
     return
@@ -368,18 +385,20 @@ def doPrepare() {
   // computation, and .mergeable stays null until it finishes.  Retry a
   // couple of times so the conflict check below sees a real answer.
   def pr_data = null
-  for (int attempt = 0; attempt < 3; attempt++) {
-    pr_data = readJSON(text: sh(
-      label: "fetch PR ${params.ghprbPullId}",
-      script: gh_curl + "gh_curl -u \$GITHUB_RO_CREDS_USR:\$GITHUB_RO_CREDS_PSW " +
-              "-H 'Accept: application/vnd.github+json' " +
-              "'${github_api}/repos/${github_repo}/pulls/${params.ghprbPullId}'",
-      returnStdout: true,
-    ))
-    if (pr_data.mergeable != null) {
-      break
+  withGithubCreds {
+    for (int attempt = 0; attempt < 3; attempt++) {
+      pr_data = readJSON(text: sh(
+        label: "fetch PR ${params.ghprbPullId}",
+        script: gh_curl + "gh_curl -u \$GITHUB_CREDS_USR:\$GITHUB_CREDS_PSW " +
+                "-H 'Accept: application/vnd.github+json' " +
+                "'${github_api}/repos/${github_repo}/pulls/${params.ghprbPullId}'",
+        returnStdout: true,
+      ))
+      if (pr_data.mergeable != null) {
+        break
+      }
+      sleep 10
     }
-    sleep 10
   }
   if (params.HEAD_SHA && params.HEAD_SHA != pr_data.head.sha) {
     // The PR moved between the webhook and this build starting; the trigger
@@ -396,13 +415,16 @@ def doPrepare() {
   // restoring a tree built against an old base, which could no longer even
   // re-run cmake in today's build container (runs 1137/1152: FindBoost
   // "0.0.0" because /opt/ceph boost changed under a stale cached tree).
-  def base_ref = readJSON(text: sh(
-    label: "resolve ${env.ghprbTargetBranch} head",
-    script: gh_curl + "gh_curl -u \$GITHUB_RO_CREDS_USR:\$GITHUB_RO_CREDS_PSW " +
-            "-H 'Accept: application/vnd.github+json' " +
-            "'${github_api}/repos/${github_repo}/git/ref/heads/${env.ghprbTargetBranch}'",
-    returnStdout: true,
-  ))
+  def base_ref
+  withGithubCreds {
+    base_ref = readJSON(text: sh(
+      label: "resolve ${env.ghprbTargetBranch} head",
+      script: gh_curl + "gh_curl -u \$GITHUB_CREDS_USR:\$GITHUB_CREDS_PSW " +
+              "-H 'Accept: application/vnd.github+json' " +
+              "'${github_api}/repos/${github_repo}/git/ref/heads/${env.ghprbTargetBranch}'",
+      returnStdout: true,
+    ))
+  }
   env.BASE_SHA = base_ref.object.sha
 
   // A conflicted PR can't be merged, so every leg's checkout would die in
@@ -437,10 +459,12 @@ def doPrepare() {
   """.stripIndent()
 
   checkoutCephBuild()
-  sh """#!/bin/bash -ex
-    export GITHUB_USER=\$GITHUB_RO_CREDS_USR GITHUB_PASS=\$GITHUB_RO_CREDS_PSW
-    bash ./ceph-build/ceph-pr-pipeline/build/pr_checks.sh classify
-  """
+  withGithubCreds {
+    sh """#!/bin/bash -ex
+      export GITHUB_USER=\$GITHUB_CREDS_USR GITHUB_PASS=\$GITHUB_CREDS_PSW
+      bash ./ceph-build/ceph-pr-pipeline/build/pr_checks.sh classify
+    """
+  }
   def changes = readProperties(file: "pr_changes.properties")
   env.DOCS_ONLY = changes.DOCS_ONLY
   // docs/, container/ or .github/-only changes need no binaries at all.
@@ -512,10 +536,12 @@ def doSignedCheck() {
       "commit title check (Signed-off-by not required for docs-only PRs)" :
       "commit signature check"
   withStatus("signed", label) {
-    sh """#!/bin/bash -ex
-      export GITHUB_USER=\$GITHUB_RO_CREDS_USR GITHUB_PASS=\$GITHUB_RO_CREDS_PSW
-      bash ./ceph-build/ceph-pr-pipeline/build/pr_checks.sh signed
-    """
+    withGithubCreds {
+      sh """#!/bin/bash -ex
+        export GITHUB_USER=\$GITHUB_CREDS_USR GITHUB_PASS=\$GITHUB_CREDS_PSW
+        bash ./ceph-build/ceph-pr-pipeline/build/pr_checks.sh signed
+      """
+    }
   }
 }
 
@@ -523,10 +549,12 @@ def doSubmodulesCheck() {
   logNode()
   checkoutCephBuild()
   withStatus("submodules", "submodule check") {
-    sh """#!/bin/bash -ex
-      export GITHUB_USER=\$GITHUB_RO_CREDS_USR GITHUB_PASS=\$GITHUB_RO_CREDS_PSW
-      bash ./ceph-build/ceph-pr-pipeline/build/pr_checks.sh submodules
-    """
+    withGithubCreds {
+      sh """#!/bin/bash -ex
+        export GITHUB_USER=\$GITHUB_CREDS_USR GITHUB_PASS=\$GITHUB_CREDS_PSW
+        bash ./ceph-build/ceph-pr-pipeline/build/pr_checks.sh submodules
+      """
+    }
   }
 }
 
@@ -898,8 +926,7 @@ pipeline {
     ghprbPullId = "${params.ghprbPullId}"
     ghprbGhRepository = "ceph/ceph"
     DISTRO_BASE = "${params.DISTRO_BASE}"
-    GITHUB_STATUS_CREDS = credentials("github-status-check-token")
-    GITHUB_RO_CREDS = credentials("github-readonly-token")
+    // GitHub credentials are bound per call, see withGithubCreds.
     // Pipeline-level so the scripted-parallel test legs (which can't use a
     // stage environment{} block) get these too: any leg may need the S3
     // cache, and any leg may have to (re)build the bwc container image,

@@ -126,8 +126,8 @@ def ghApi(String path) {
 }
 
 def isOrgMember(String user) {
-  // 204 = member.  The token's user must itself be an org member for
-  // non-public memberships to be visible.
+  // 204 = member.  Needs the app's "Members" organization permission
+  // (read); without it every lookup is a 404 and nobody is a member.
   def code = sh(
     script: "curl -s -o /dev/null -w '%{http_code}' " +
             "-u \$GITHUB_STATUS_CREDS_USR:\$GITHUB_STATUS_CREDS_PSW " +
@@ -175,7 +175,7 @@ def removeLabel(String name) {
   // 404 = already gone (e.g. author-ci-perms.yml won the removal race).
   if (code != "200" && code != "404") {
     echo "WARNING: could not remove label '${name}' (HTTP ${code}); " +
-         "the github-status-check-token needs issues write access on ${github_repo}"
+         "the GitHub App needs issues write access on ${github_repo}"
   }
 }
 
@@ -242,7 +242,7 @@ pipeline {
   agent any
   options { skipDefaultCheckout(true) }
   environment {
-    GITHUB_STATUS_CREDS = credentials("github-status-check-token")
+    GITHUB_STATUS_CREDS = credentials("github-app-ceph-jenkins")
   }
   stages {
     stage("evaluate event") {
