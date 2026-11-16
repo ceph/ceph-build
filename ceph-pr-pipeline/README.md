@@ -10,10 +10,10 @@ rules don't change.
 | --- | --- | --- |
 | `Signed-off-by` | [ceph-pr-commits](../ceph-pr-commits/) | GitHub API only, no clone, seconds |
 | `Unmodified Submodules` | [ceph-pr-submodules](../ceph-pr-submodules/) | GitHub API only, no clone, seconds |
-| `make check` | [ceph-pull-requests](../ceph-pull-requests/) | shared build → ctest on its own builder |
-| `ceph API tests` | [ceph-pr-api](../ceph-pr-api/) | shared build → API tests on its own builder |
-| `ceph windows tests` | [ceph-windows-pull-requests](../ceph-windows-pull-requests/) | parallel leg, containerized builds + one Windows VM (see below) |
-| `make check (arm64)` | [ceph-pull-requests-arm64](../ceph-pull-requests-arm64/) | parallel leg, build+test on one arm64 node |
+| `make check` | [ceph-pull-requests](../attic/ceph-pull-requests/) | shared build → ctest on its own builder |
+| `ceph API tests` | [ceph-pr-api](../attic/ceph-pr-api/) | shared build → API tests on its own builder |
+| `ceph windows tests` | [ceph-windows-pull-requests](../attic/ceph-windows-pull-requests/) | parallel leg, containerized builds + one Windows VM (see below) |
+| `make check (arm64)` | [ceph-pull-requests-arm64](../attic/ceph-pull-requests-arm64/) | parallel leg, build+test on one arm64 node |
 
 ## Flow
 
@@ -72,7 +72,7 @@ webhook (pull_request / issue_comment)
 
 ## The windows leg
 
-Historically ([ceph-windows-pull-requests](../ceph-windows-pull-requests/))
+Historically ([ceph-windows-pull-requests](../attic/ceph-windows-pull-requests/))
 this check provisioned three VMs per run: an Ubuntu VM to cross-compile
 Ceph for Windows in, a second Ubuntu VM to build and host a vstart cluster,
 and a Windows VM to run the tests — 114–177 minutes, most of it VM

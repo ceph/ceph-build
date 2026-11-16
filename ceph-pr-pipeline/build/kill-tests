@@ -2,7 +2,7 @@
 
 # kill all descendant processes of ctest
 
-# ceph-pull-requests/build/build is killed by jenkins when the ceph-pull-requests job is aborted or
+# the make check legs of ceph-pr-pipeline are killed by jenkins when the build is aborted or
 # canceled, see https://www.jenkins.io/doc/book/using/aborting-a-build/ . but build/build does not
 # wait until all its children processes quit. after ctest is killed by SIGTERM, there is chance
 # that some tests are still running as ctest does not get a chance to kill them before it terminates.
