@@ -25,7 +25,7 @@ New-NetFirewallRule -Name "sshd" -DisplayName 'OpenSSH Server (sshd)' -Enabled T
 # Authorize the SSH key
 $authorizedKeysFile = Join-Path $env:ProgramData "ssh\administrators_authorized_keys"
 New-Item -ItemType File -Path $authorizedKeysFile -Force
-Set-Content -Path $authorizedKeysFile -Value (Get-Content "${PSScriptRoot}\id_rsa.pub") -Encoding ascii
+Set-Content -Path $authorizedKeysFile -Value (Get-Content "${PSScriptRoot}\authorized_keys.txt") -Encoding ascii
 $acl = Get-Acl $authorizedKeysFile
 $acl.SetAccessRuleProtection($true, $false)
 $administratorsRule = New-Object system.security.accesscontrol.filesystemaccessrule("Administrators", "FullControl", "Allow")

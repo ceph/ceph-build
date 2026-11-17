@@ -7,12 +7,20 @@ if [[ -z $SSH_PRIVATE_KEY ]]; then
     exit 1
 fi
 
-WINDOWS_SERVER_2019_ISO_URL=${WINDOWS_SERVER_2019_ISO_URL:-"https://software-download.microsoft.com/download/pr/17763.737.190906-2324.rs5_release_svc_refresh_SERVER_EVAL_x64FRE_en-us_1.iso"}
-VIRTIO_WIN_ISO_URL=${VIRTIO_WIN_ISO_URL:-"https://fedorapeople.org/groups/virt/virtio-win/direct-downloads/stable-virtio/virtio-win.iso"}
+WINDOWS_SERVER_2019_ISO_URL=${WINDOWS_SERVER_2019_ISO_URL:-"https://apt-mirror.sepia.ceph.com/windows/17763.737.190906-2324.rs5_release_svc_refresh_SERVER_EVAL_x64FRE_en-us_1.iso"}
+VIRTIO_WIN_ISO_URL=${VIRTIO_WIN_ISO_URL:-"https://apt-mirror.sepia.ceph.com/windows/virtio-win.iso"}
 
 BUILD_DIR="$(cd $(dirname "${BASH_SOURCE[0]}") && pwd)"
 
 source ${BUILD_DIR}/../../scripts/build_utils.sh
+
+# The keys authorized on the image are the committed authorized_keys/*.pub.
+# The build logs in with SSH_PRIVATE_KEY, so its public key must be one of them.
+cat ${BUILD_DIR}/authorized_keys/*.pub > ${BUILD_DIR}/authorized_keys.txt
+if ! grep -qF "$(ssh-keygen -y -f $SSH_PRIVATE_KEY | cut -d' ' -f1,2)" ${BUILD_DIR}/authorized_keys.txt; then
+    echo "ERROR: The public key of SSH_PRIVATE_KEY is not in ${BUILD_DIR}/authorized_keys/"
+    exit 1
+fi
 
 
 function restart_windows_vm() {
@@ -48,6 +56,10 @@ if ! which jq >/dev/null; then
     sudo apt-get update -o Acquire::Languages=none -o Acquire::Translation=none || true
     sudo apt-get install -y jq
 fi
+if ! which mkfs.msdos >/dev/null; then
+    sudo apt-get update -o Acquire::Languages=none -o Acquire::Translation=none || true
+    sudo apt-get install -y dosfstools
+fi
 
 if ! sudo virsh net-info default &>/dev/null; then
     cat << EOF > $WORKSPACE/default-net.xml
@@ -79,12 +91,11 @@ qemu-img create -f raw ${BUILD_DIR}/floppy.img 1440k
 mkfs.msdos -s 1 ${BUILD_DIR}/floppy.img
 mkdir ${BUILD_DIR}/floppy
 sudo mount ${BUILD_DIR}/floppy.img ${BUILD_DIR}/floppy
-ssh-keygen -y -f $SSH_PRIVATE_KEY > ${BUILD_DIR}/id_rsa.pub
 sudo cp \
     ${BUILD_DIR}/autounattend.xml \
     ${BUILD_DIR}/first-logon.ps1 \
     ${BUILD_DIR}/utils.ps1 \
-    ${BUILD_DIR}/id_rsa.pub \
+    ${BUILD_DIR}/authorized_keys.txt \
     ${BUILD_DIR}/floppy/
 sudo umount ${BUILD_DIR}/floppy
 rmdir ${BUILD_DIR}/floppy
@@ -190,22 +201,20 @@ sudo mv "${BUILD_DIR}/ceph-win-ltsc2019-ci-image.qcow2" ${WORKSPACE}/
 
 ${BUILD_DIR}/cleanup
 
-echo "Image successfully built at: ${WORKSPACE}/ceph-win-ltsc2019-ci-image.qcow2"
-
-ssh-keyscan -H drop.front.sepia.ceph.com &>> $SSH_KNOWN_HOSTS_FILE
-
-export SSH_USER="${FILEDUMP_USER}"
-export SSH_KEY="${FILEDUMP_SSH_KEY}"
-export SSH_ADDRESS="drop.front.sepia.ceph.com"
-for FILE in ceph-win-ltsc2019-ci-image.qcow2 ceph-win-ltsc2019-ci-image.qcow2.sha256; do
-    FILE_PATH="/ceph/filedump.ceph.com/windows/${FILE}"
-    if ssh_exec test -f ${FILE_PATH}; then
-        echo "Backup existing image file https://filedump.ceph.com/windows/${FILE}"
-        ssh_exec sudo mv ${FILE_PATH} ${FILE_PATH}.old
-    fi
-done
-
-echo "Uploading the image to https://filedump.ceph.com/windows/"
 cd ${WORKSPACE}
 sha256sum ceph-win-ltsc2019-ci-image.qcow2 > ceph-win-ltsc2019-ci-image.qcow2.sha256
-rsync -azvP ceph-win-ltsc2019-ci-image.qcow2 ceph-win-ltsc2019-ci-image.qcow2.sha256 --rsync-path="sudo rsync" -e "ssh -i ${FILEDUMP_SSH_KEY} -o UserKnownHostsFile=${SSH_KNOWN_HOSTS_FILE}" ${FILEDUMP_USER}@drop.front.sepia.ceph.com:/ceph/filedump.ceph.com/windows/
+cat ceph-win-ltsc2019-ci-image.qcow2.sha256
+
+# The image is served from apt-mirror.sepia.ceph.com/windows/ (see
+# scripts/ceph-windows/setup_libvirt_windows_vm), which is only writable
+# from the OpenShift cluster, so publishing is a manual step.
+cat << EOF
+Image successfully built at: ${WORKSPACE}/ceph-win-ltsc2019-ci-image.qcow2
+
+To publish it, serve the workspace from this builder:
+    cd ${WORKSPACE} && python3 -m http.server 8000
+then run sepia-openshift/apt-mirror/repo-update-job.yaml with
+    REPO_DIR=/data/windows
+    RPM_URL=http://$(hostname -f):8000/ceph-win-ltsc2019-ci-image.qcow2
+    SHA256=$(cut -d' ' -f1 ceph-win-ltsc2019-ci-image.qcow2.sha256)
+EOF
