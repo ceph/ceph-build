@@ -7,31 +7,53 @@ if [[ -z $SSH_PRIVATE_KEY ]]; then
     exit 1
 fi
 
-WINDOWS_SERVER_2019_ISO_URL=${WINDOWS_SERVER_2019_ISO_URL:-"https://software-download.microsoft.com/download/pr/17763.737.190906-2324.rs5_release_svc_refresh_SERVER_EVAL_x64FRE_en-us_1.iso"}
-VIRTIO_WIN_ISO_URL=${VIRTIO_WIN_ISO_URL:-"https://fedorapeople.org/groups/virt/virtio-win/direct-downloads/stable-virtio/virtio-win.iso"}
+WINDOWS_SERVER_2019_ISO_URL=${WINDOWS_SERVER_2019_ISO_URL:-"https://apt-mirror.sepia.ceph.com/windows/17763.737.190906-2324.rs5_release_svc_refresh_SERVER_EVAL_x64FRE_en-us_1.iso"}
+VIRTIO_WIN_ISO_URL=${VIRTIO_WIN_ISO_URL:-"https://apt-mirror.sepia.ceph.com/windows/virtio-win.iso"}
 
 BUILD_DIR="$(cd $(dirname "${BASH_SOURCE[0]}") && pwd)"
 
 source ${BUILD_DIR}/../../scripts/build_utils.sh
 
+# The keys authorized on the image are the committed authorized_keys/*.pub.
+# The build logs in with SSH_PRIVATE_KEY, so its public key must be one of them.
+cat ${BUILD_DIR}/authorized_keys/*.pub > ${BUILD_DIR}/authorized_keys.txt
+if ! grep -qF "$(ssh-keygen -y -f $SSH_PRIVATE_KEY | cut -d' ' -f1,2)" ${BUILD_DIR}/authorized_keys.txt; then
+    echo "ERROR: The public key of SSH_PRIVATE_KEY is not in ${BUILD_DIR}/authorized_keys/"
+    exit 1
+fi
 
-function restart_windows_vm() {
-    echo "Restarting Windows VM"
-    ssh_exec "shutdown.exe /r /t 0 & sc.exe stop sshd"
+
+function wait_windows_vm() {
+    # Wait until SSH works and keeps working: after a Windows update reboot,
+    # servicing restarts sshd a minute or so after it first answers.
     SECONDS=0
     TIMEOUT=${1:-600}
+    STABLE_SECS=180
+    STABLE_SINCE=""
     while true; do
         if [[ $SECONDS -gt $TIMEOUT ]]; then
             echo "Timeout waiting for the VM to start"
             exit 1
         fi
-        ssh_exec hostname || {
+        if ssh_exec hostname; then
+            if [[ -z $STABLE_SINCE ]]; then
+                STABLE_SINCE=$SECONDS
+            elif [[ $((SECONDS - STABLE_SINCE)) -ge $STABLE_SECS ]]; then
+                break
+            fi
+        else
             echo "Cannot execute SSH commands yet"
-            sleep 10
-            continue
-        }
-        break
+            STABLE_SINCE=""
+        fi
+        sleep 30
     done
+    echo "Windows VM is reachable"
+}
+
+function restart_windows_vm() {
+    echo "Restarting Windows VM"
+    ssh_exec "shutdown.exe /r /t 0 & sc.exe stop sshd"
+    wait_windows_vm ${1:-600}
     echo "Windows VM restarted"
 }
 
@@ -47,6 +69,10 @@ fi
 if ! which jq >/dev/null; then
     sudo apt-get update -o Acquire::Languages=none -o Acquire::Translation=none || true
     sudo apt-get install -y jq
+fi
+if ! which mkfs.msdos >/dev/null; then
+    sudo apt-get update -o Acquire::Languages=none -o Acquire::Translation=none || true
+    sudo apt-get install -y dosfstools
 fi
 
 if ! sudo virsh net-info default &>/dev/null; then
@@ -79,12 +105,11 @@ qemu-img create -f raw ${BUILD_DIR}/floppy.img 1440k
 mkfs.msdos -s 1 ${BUILD_DIR}/floppy.img
 mkdir ${BUILD_DIR}/floppy
 sudo mount ${BUILD_DIR}/floppy.img ${BUILD_DIR}/floppy
-ssh-keygen -y -f $SSH_PRIVATE_KEY > ${BUILD_DIR}/id_rsa.pub
 sudo cp \
     ${BUILD_DIR}/autounattend.xml \
     ${BUILD_DIR}/first-logon.ps1 \
     ${BUILD_DIR}/utils.ps1 \
-    ${BUILD_DIR}/id_rsa.pub \
+    ${BUILD_DIR}/authorized_keys.txt \
     ${BUILD_DIR}/floppy/
 sudo umount ${BUILD_DIR}/floppy
 rmdir ${BUILD_DIR}/floppy
@@ -95,6 +120,7 @@ VM_NAME="ceph-win-ltsc2019"
 sudo virt-install \
     --name $VM_NAME \
     --os-variant win2k19 \
+    --import \
     --boot hd,cdrom \
     --virt-type kvm \
     --graphics spice \
@@ -152,11 +178,28 @@ while true; do
 done
 export SSH_ADDRESS=$VM_IP
 
+# Cumulative updates chain (each pass can need a reboot before the next
+# one is offered), so install, reboot and repeat until a pass installs nothing.
 scp_upload ${BUILD_DIR}/install-windows-updates.ps1 /install-windows-updates.ps1
-SSH_TIMEOUT=1h ssh_exec powershell.exe -File /install-windows-updates.ps1
+for UPDATE_PASS in 1 2 3 4 5 6; do
+    echo "Windows updates pass ${UPDATE_PASS}"
+    UPDATE_LOG="${WORKSPACE}/windows-updates-${UPDATE_PASS}.log"
+    RC=0
+    SSH_TIMEOUT=1h ssh_exec powershell.exe -File /install-windows-updates.ps1 > "$UPDATE_LOG" 2>&1 || RC=$?
+    cat "$UPDATE_LOG"
+    if [[ $RC -eq 255 ]]; then
+        echo "Lost the SSH connection during updates pass ${UPDATE_PASS}, retrying"
+        wait_windows_vm 1800
+        continue
+    elif [[ $RC -ne 0 ]]; then
+        exit $RC
+    fi
+    restart_windows_vm 1800
+    if grep -q "INSTALLED_UPDATES=0" "$UPDATE_LOG"; then
+        break
+    fi
+done
 ssh_exec powershell.exe Remove-Item -Force /install-windows-updates.ps1
-
-restart_windows_vm 1800
 
 scp_upload ${BUILD_DIR}/utils.ps1 /utils.ps1
 scp_upload ${BUILD_DIR}/setup.ps1 /setup.ps1
@@ -190,22 +233,20 @@ sudo mv "${BUILD_DIR}/ceph-win-ltsc2019-ci-image.qcow2" ${WORKSPACE}/
 
 ${BUILD_DIR}/cleanup
 
-echo "Image successfully built at: ${WORKSPACE}/ceph-win-ltsc2019-ci-image.qcow2"
-
-ssh-keyscan -H drop.front.sepia.ceph.com &>> $SSH_KNOWN_HOSTS_FILE
-
-export SSH_USER="${FILEDUMP_USER}"
-export SSH_KEY="${FILEDUMP_SSH_KEY}"
-export SSH_ADDRESS="drop.front.sepia.ceph.com"
-for FILE in ceph-win-ltsc2019-ci-image.qcow2 ceph-win-ltsc2019-ci-image.qcow2.sha256; do
-    FILE_PATH="/ceph/filedump.ceph.com/windows/${FILE}"
-    if ssh_exec test -f ${FILE_PATH}; then
-        echo "Backup existing image file https://filedump.ceph.com/windows/${FILE}"
-        ssh_exec sudo mv ${FILE_PATH} ${FILE_PATH}.old
-    fi
-done
-
-echo "Uploading the image to https://filedump.ceph.com/windows/"
 cd ${WORKSPACE}
 sha256sum ceph-win-ltsc2019-ci-image.qcow2 > ceph-win-ltsc2019-ci-image.qcow2.sha256
-rsync -azvP ceph-win-ltsc2019-ci-image.qcow2 ceph-win-ltsc2019-ci-image.qcow2.sha256 --rsync-path="sudo rsync" -e "ssh -i ${FILEDUMP_SSH_KEY} -o UserKnownHostsFile=${SSH_KNOWN_HOSTS_FILE}" ${FILEDUMP_USER}@drop.front.sepia.ceph.com:/ceph/filedump.ceph.com/windows/
+cat ceph-win-ltsc2019-ci-image.qcow2.sha256
+
+# The image is served from apt-mirror.sepia.ceph.com/windows/ (see
+# scripts/ceph-windows/setup_libvirt_windows_vm), which is only writable
+# from the OpenShift cluster, so publishing is a manual step.
+cat << EOF
+Image successfully built at: ${WORKSPACE}/ceph-win-ltsc2019-ci-image.qcow2
+
+To publish it, serve the workspace from this builder:
+    cd ${WORKSPACE} && python3 -m http.server 8000
+then run sepia-openshift/apt-mirror/repo-update-job.yaml with
+    REPO_DIR=/data/windows
+    RPM_URL=http://$(hostname -f):8000/ceph-win-ltsc2019-ci-image.qcow2
+    SHA256=$(cut -d' ' -f1 ceph-win-ltsc2019-ci-image.qcow2.sha256)
+EOF

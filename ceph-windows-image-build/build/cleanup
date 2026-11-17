@@ -15,4 +15,4 @@ clear_libvirt_networks
 
 sudo rm -rf "${BUILD_DIR}/virtio-win.iso" "${BUILD_DIR}/windows-server-2019.iso" \
     "${BUILD_DIR}/floppy" "${BUILD_DIR}/floppy.img" "${BUILD_DIR}/ceph-win-ltsc2019-ci-image.qcow2" \
-    "${BUILD_DIR}/known_hosts" "${BUILD_DIR}/id_rsa.pub"
+    "${BUILD_DIR}/known_hosts" "${BUILD_DIR}/authorized_keys.txt"

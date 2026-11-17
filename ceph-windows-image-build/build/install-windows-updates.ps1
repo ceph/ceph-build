@@ -11,6 +11,8 @@ $updateScript = {
     Import-Module "PSWindowsUpdate"
     Install-WindowsUpdate -AcceptAll -IgnoreReboot | Out-File -FilePath "${env:SystemDrive}\PSWindowsUpdate.log" -Encoding ascii
 }
+# A previous pass may have lost its SSH session after scheduling the task.
+Get-ScheduledTask -TaskName "PSWindowsUpdate" -ErrorAction SilentlyContinue | Unregister-ScheduledTask -Confirm:$false
 Invoke-WUJob -Script $updateScript -Confirm:$false -RunNow
 while($true) {
     $task = Get-ScheduledTask -TaskName "PSWindowsUpdate"
@@ -19,7 +21,11 @@ while($true) {
     }
     Start-Sleep -Seconds 10
 }
-Get-Content "${env:SystemDrive}\PSWindowsUpdate.log"
+$log = Get-Content "${env:SystemDrive}\PSWindowsUpdate.log"
+Write-Output $log
 Remove-Item -Force -Path "${env:SystemDrive}\PSWindowsUpdate.log"
 Unregister-ScheduledTask -TaskName "PSWindowsUpdate" -Confirm:$false
+# Parsed by the build script, which reboots and reruns until nothing is left.
+$installed = @($log | Select-String -SimpleMatch " Installed ").Count
+Write-Output "INSTALLED_UPDATES=${installed}"
 Write-Output "Windows updates successfully installed"
