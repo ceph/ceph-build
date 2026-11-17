@@ -195,6 +195,24 @@ function Install-WnbdDriver {
     Import-Certificate -FilePath "${outDir}\wnbd.cer" -Cert Cert:\LocalMachine\TrustedPublisher
     Invoke-CommandLine "wnbd-client.exe" "install-driver ${outDir}\wnbd.inf"
     Invoke-CommandLine "wevtutil.exe" "im ${outDir}\wnbdevents.xml"
+    Remove-WdkTestCertificates
+}
+
+function Remove-WdkTestCertificates {
+    # The wnbd build left its WDKTestCert in the Administrator's user stores.
+    # After sysprep that key is unusable, yet the WDK still picks the cert for
+    # test signing in the CI jobs. Remove it; the public copies in
+    # LocalMachine Root/TrustedPublisher stay for the installed driver.
+    foreach($store in @("PrivateCertStore", "My")) {
+        $path = "Cert:\CurrentUser\${store}"
+        if(!(Test-Path $path)) {
+            continue
+        }
+        Get-ChildItem $path | Where-Object { $_.Subject -like "CN=WDKTestCert*" } | ForEach-Object {
+            Write-Output "Removing $($_.Subject) ($($_.Thumbprint)) from CurrentUser\${store}"
+            Remove-Item -Path $_.PSPath -DeleteKey -Force
+        }
+    }
 }
 
 function Install-Python3 {
