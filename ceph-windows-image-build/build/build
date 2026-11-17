@@ -23,31 +23,37 @@ if ! grep -qF "$(ssh-keygen -y -f $SSH_PRIVATE_KEY | cut -d' ' -f1,2)" ${BUILD_D
 fi
 
 
-function restart_windows_vm() {
-    echo "Restarting Windows VM"
-    ssh_exec "shutdown.exe /r /t 0 & sc.exe stop sshd"
+function wait_windows_vm() {
+    # Wait until SSH works and keeps working: after a Windows update reboot,
+    # servicing restarts sshd a minute or so after it first answers.
     SECONDS=0
     TIMEOUT=${1:-600}
+    STABLE_SECS=180
+    STABLE_SINCE=""
     while true; do
         if [[ $SECONDS -gt $TIMEOUT ]]; then
             echo "Timeout waiting for the VM to start"
             exit 1
         fi
-        ssh_exec hostname || {
+        if ssh_exec hostname; then
+            if [[ -z $STABLE_SINCE ]]; then
+                STABLE_SINCE=$SECONDS
+            elif [[ $((SECONDS - STABLE_SINCE)) -ge $STABLE_SECS ]]; then
+                break
+            fi
+        else
             echo "Cannot execute SSH commands yet"
-            sleep 10
-            continue
-        }
-        # Windows may reboot once more right after coming up (update
-        # servicing); only trust a VM that stays reachable for a minute.
-        sleep 60
-        ssh_exec hostname || {
-            echo "SSH dropped again, waiting for the VM to come back"
-            sleep 10
-            continue
-        }
-        break
+            STABLE_SINCE=""
+        fi
+        sleep 30
     done
+    echo "Windows VM is reachable"
+}
+
+function restart_windows_vm() {
+    echo "Restarting Windows VM"
+    ssh_exec "shutdown.exe /r /t 0 & sc.exe stop sshd"
+    wait_windows_vm ${1:-600}
     echo "Windows VM restarted"
 }
 
@@ -175,10 +181,19 @@ export SSH_ADDRESS=$VM_IP
 # Cumulative updates chain (each pass can need a reboot before the next
 # one is offered), so install, reboot and repeat until a pass installs nothing.
 scp_upload ${BUILD_DIR}/install-windows-updates.ps1 /install-windows-updates.ps1
-for UPDATE_PASS in 1 2 3 4 5; do
+for UPDATE_PASS in 1 2 3 4 5 6; do
     echo "Windows updates pass ${UPDATE_PASS}"
     UPDATE_LOG="${WORKSPACE}/windows-updates-${UPDATE_PASS}.log"
-    SSH_TIMEOUT=1h ssh_exec powershell.exe -File /install-windows-updates.ps1 | tee "$UPDATE_LOG"
+    RC=0
+    SSH_TIMEOUT=1h ssh_exec powershell.exe -File /install-windows-updates.ps1 > "$UPDATE_LOG" 2>&1 || RC=$?
+    cat "$UPDATE_LOG"
+    if [[ $RC -eq 255 ]]; then
+        echo "Lost the SSH connection during updates pass ${UPDATE_PASS}, retrying"
+        wait_windows_vm 1800
+        continue
+    elif [[ $RC -ne 0 ]]; then
+        exit $RC
+    fi
     restart_windows_vm 1800
     if grep -q "INSTALLED_UPDATES=0" "$UPDATE_LOG"; then
         break

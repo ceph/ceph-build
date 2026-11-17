@@ -11,6 +11,8 @@ $updateScript = {
     Import-Module "PSWindowsUpdate"
     Install-WindowsUpdate -AcceptAll -IgnoreReboot | Out-File -FilePath "${env:SystemDrive}\PSWindowsUpdate.log" -Encoding ascii
 }
+# A previous pass may have lost its SSH session after scheduling the task.
+Get-ScheduledTask -TaskName "PSWindowsUpdate" -ErrorAction SilentlyContinue | Unregister-ScheduledTask -Confirm:$false
 Invoke-WUJob -Script $updateScript -Confirm:$false -RunNow
 while($true) {
     $task = Get-ScheduledTask -TaskName "PSWindowsUpdate"
