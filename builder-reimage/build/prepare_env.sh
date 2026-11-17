@@ -8,9 +8,9 @@ set -euo pipefail
 TARGET_FQDN="$1"
 WORK_DIR="$2"
 SSH_AVAILABLE="${3:-false}"
-MAIN_REPO="${4:-git@github.com:ceph/ceph-build.git}"
-ANSIBLE_REPO="${5:-git@github.com:ceph/ceph-cm-ansible.git}"
-SECRETS_REPO="${6:-git@github.com:ceph/ceph-sepia-secrets.git}"
+MAIN_REPO="${4:-https://github.com/ceph/ceph-build.git}"
+ANSIBLE_REPO="${5:-https://github.com/ceph/ceph-cm-ansible.git}"
+SECRETS_REPO="${6:-https://github.com/ceph/ceph-sepia-secrets.git}"
 CEPH_BUILD_BRANCH="${7:-main}"
 
 SHORTNAME="${TARGET_FQDN%%.*}"
@@ -35,15 +35,17 @@ adjust_url() {
   fi
 }
 
-# SSH access relies on the caller exporting GIT_SSH_COMMAND pointing at the
-# deploy key (the Jenkinsfile does this before invoking us).
+# Authentication is the caller's business: the Jenkinsfile passes https URLs
+# with user x-access-token and exports GIT_ASKPASS, which answers the password
+# prompt with a GitHub App installation token.
 clone_repo() {
   local url="$1"
   local dir="$2"
   local branch="${3:-}"
   if [ -d "${dir}/.git" ]; then
     log "Updating existing repo ${dir}"
-    (cd "${dir}" && git fetch --all --prune)
+    # a clone left by an earlier run may still point at the ssh URL
+    (cd "${dir}" && git remote set-url origin "${url}" && git fetch --all --prune)
   else
     log "Cloning ${url}${branch:+ (branch ${branch})} -> ${dir}"
     git clone --depth 1 ${branch:+--branch "${branch}"} "${url}" "${dir}"

@@ -43,7 +43,9 @@ pipeline {
                                 def TARGET_FQDN = "${machine}.${env.DOMAIN}"
                                 def INVENTORY_FILE = "${WORK_DIR}/repos/secret-repo/ansible/inventory/group_vars/jenkins_builders.yml"
                                 def JENKINS_NODE_STATE_FILE = "${WORK_DIR}/jenkins-node-state.json"
-                                def JENKINS_GIT_KEY_FILE = "${WORK_DIR}/jenkins_git_key"
+                                // git reads the GitHub App token through this helper (GIT_ASKPASS),
+                                // so it never appears in a URL or on a command line
+                                def GIT_ASKPASS_HELPER = "${env.WORKSPACE}/builder-reimage/build/git-askpass.sh"
 
                                 try {
 
@@ -53,34 +55,30 @@ pipeline {
 
                                     stage("Prepare-${machine}") {
                                         withCredentials([
-                                            sshUserPrivateKey(credentialsId: 'ansible-ssh-key', keyFileVariable: 'SSH_KEY')
+                                            // GitHub App installation token: contents read on every ceph org repo
+                                            usernamePassword(credentialsId: 'github-app-ceph-jenkins', usernameVariable: 'GITHUB_APP', passwordVariable: 'GITHUB_TOKEN')
                                         ]) {
                                             sh """#!/bin/bash
                                                 set -euo pipefail
 
                                                 mkdir -p "${WORK_DIR}"
 
-                                                cp "\$SSH_KEY" "${JENKINS_GIT_KEY_FILE}"
-                                                chmod 600 "${JENKINS_GIT_KEY_FILE}"
-
-                                                # Set GIT_SSH_COMMAND to use the per-node Jenkins git key during prepare_env    
-
-                                                export GIT_SSH_COMMAND="ssh -i ${JENKINS_GIT_KEY_FILE} -o StrictHostKeyChecking=no"
+                                                export GIT_ASKPASS="${GIT_ASKPASS_HELPER}"
+                                                export GIT_TERMINAL_PROMPT=0
 
                                                 bash builder-reimage/build/prepare_env.sh \
                                                     "${TARGET_FQDN}" \
                                                     "${WORK_DIR}" \
-                                                    true \
-                                                    git@github.com:ceph/ceph-build.git \
-                                                    git@github.com:ceph/ceph-cm-ansible.git \
-                                                    git@github.com:ceph/ceph-sepia-secrets.git \
+                                                    false \
+                                                    https://x-access-token@github.com/ceph/ceph-build.git \
+                                                    https://x-access-token@github.com/ceph/ceph-cm-ansible.git \
+                                                    https://x-access-token@github.com/ceph/ceph-sepia-secrets.git \
                                                     "${params.CEPH_BUILD_BRANCH}"
-                                                
+
                                                 # Temporary test helper to use a non-default secrets repo branch.
                                                 # Uncomment the lines below only for branch-based inventory validation.
 
-                                                # export GIT_SSH_COMMAND="ssh -i ${JENKINS_GIT_KEY_FILE} -o StrictHostKeyChecking=no"
-                                                # cd "${WORK_DIR}/repos/secret-repo"    
+                                                # cd "${WORK_DIR}/repos/secret-repo"
                                                 # git fetch origin <local_branch_name>
                                                 # git checkout -B <local_branch_name> FETCH_HEAD
                                             """
@@ -215,7 +213,7 @@ pipeline {
                                         withCredentials([
                                             string(credentialsId: 'builder-api-token', variable: 'BUILDER_TOKEN'),
                                             string(credentialsId: 'ansible-vault-pass', variable: 'VAULT_PASS'),
-                                            sshUserPrivateKey(credentialsId: 'ansible-ssh-key', keyFileVariable: 'SSH_KEY')
+                                            usernamePassword(credentialsId: 'github-app-ceph-jenkins', usernameVariable: 'GITHUB_APP', passwordVariable: 'GITHUB_TOKEN')
                                         ]) {
 
                                             sh """#!/bin/bash
@@ -230,20 +228,18 @@ pipeline {
 
                                                 mkdir -p "\$WORK_DIR"
 
-                                                cp "\$SSH_KEY" "${JENKINS_GIT_KEY_FILE}"
-                                                chmod 600 "${JENKINS_GIT_KEY_FILE}"
-
-                                                export GIT_SSH_COMMAND="ssh -i ${JENKINS_GIT_KEY_FILE} -o StrictHostKeyChecking=no"
+                                                export GIT_ASKPASS="${GIT_ASKPASS_HELPER}"
+                                                export GIT_TERMINAL_PROMPT=0
 
                                                 VAULT_FILE="/home/jenkins-build/.vault_pass.txt"
                                                 echo "\$VAULT_PASS" > "\$VAULT_FILE"
 
                                                 cd "\$BUILD_DIR"
 
-                                                bash prepare_env.sh "\$TARGET_FQDN" "\$WORK_DIR" true \
-                                                  git@github.com:ceph/ceph-build.git \
-                                                  git@github.com:ceph/ceph-cm-ansible.git \
-                                                  git@github.com:ceph/ceph-sepia-secrets.git \
+                                                bash prepare_env.sh "\$TARGET_FQDN" "\$WORK_DIR" false \
+                                                  https://x-access-token@github.com/ceph/ceph-build.git \
+                                                  https://x-access-token@github.com/ceph/ceph-cm-ansible.git \
+                                                  https://x-access-token@github.com/ceph/ceph-sepia-secrets.git \
                                                   "${params.CEPH_BUILD_BRANCH}"
 
                                                 bash ansible_runner.sh \
@@ -301,10 +297,6 @@ pipeline {
                                             '''
                                         }
                                     }
-
-                                    sh """#!/bin/bash
-                                            rm -f "${JENKINS_GIT_KEY_FILE}" || true
-                                        """
                                 }
                             }
                         }
