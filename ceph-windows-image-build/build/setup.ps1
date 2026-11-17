@@ -141,6 +141,20 @@ function Install-Git {
     Write-Output "Successfully installed Git"
 }
 
+function Add-WdkToolsToPath {
+    # vcvarsall.bat only adds the SDK bin dir; the WDK tools (stampinf.exe)
+    # may live in a different Windows Kits version dir.
+    $kitsBin = Join-Path ${env:ProgramFiles(x86)} "Windows Kits\10\bin"
+    Get-ChildItem -Path $kitsBin | Out-String | Write-Output
+    $stampinf = Get-ChildItem -Path $kitsBin -Recurse -Filter "stampinf.exe" -ErrorAction SilentlyContinue | `
+        Where-Object { $_.Directory.Name -eq "x64" } | Sort-Object FullName -Descending | Select-Object -First 1
+    if(!$stampinf) {
+        Throw "stampinf.exe (WDK) not found under ${kitsBin}"
+    }
+    Write-Output "Using WDK tools from $($stampinf.DirectoryName)"
+    $env:Path = "$($stampinf.DirectoryName);${env:Path}"
+}
+
 function Install-WnbdDriver {
     $outDir = Join-Path $env:SystemDrive "wnbd"
     $gitDir = Join-Path $env:TEMP "wnbd"
@@ -148,6 +162,7 @@ function Install-WnbdDriver {
     Push-Location $gitDir
     try {
         Set-VCVars
+        Add-WdkToolsToPath
         Invoke-CommandLine "MSBuild.exe" "vstudio\wnbd.sln /p:Configuration=Release"
         Copy-Item -Force -Path "vstudio\x64\Release\driver\*" -Destination "${outDir}\"
         Copy-Item -Force -Path "vstudio\x64\Release\libwnbd.dll" -Destination "${outDir}\"
