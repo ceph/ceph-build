@@ -4,6 +4,7 @@ $ProgressPreference = "SilentlyContinue"
 . "${PSScriptRoot}\utils.ps1"
 
 $VS_2019_BUILD_TOOLS_URL = "https://aka.ms/vs/16/release/vs_buildtools.exe"
+$WINDOWS_SDK_URL = "https://download.microsoft.com/download/1/0/e/10e6da02-01f7-40d4-8942-b98b53b36cf9/windowssdk/winsdksetup.exe"  # Windows 11 SDK (10.0.22000.832), must match the WDK version below.
 $WDK_URL = "https://download.microsoft.com/download/7/d/6/7d602355-8ae9-414c-ae36-109ece2aade6/wdk/wdksetup.exe"  # Windows 11 WDK (22000.1). It can be used to develop drivers for previous OS releases.
 $PYTHON3_URL = "https://www.python.org/ftp/python/3.11.0/python-3.11.0-amd64.exe"
 $FIO_URL = "https://bsdio.com/fio/releases/fio-3.27-x64.msi"
@@ -91,6 +92,19 @@ function Install-VisualStudio2019BuildTools {
     )
     Install-Tool -URL $VS_2019_BUILD_TOOLS_URL -Params $params -AllowedExitCodes @(0, 3010)
     Write-Output "Successfully installed Visual Studio 2019 Build Tools"
+}
+
+function Install-WindowsSDK {
+    # The VS 2019 Build Tools bootstrapper no longer installs the
+    # Windows11SDK.22000 component, so install the SDK on its own.
+    Write-Output "Installing Windows SDK"
+    Install-Tool -URL $WINDOWS_SDK_URL -Params @("/quiet", "/norestart", "/ceip", "off", "/features", "+") -AllowedExitCodes @(0, 3010)
+    $windowsH = Join-Path ${env:ProgramFiles(x86)} "Windows Kits\10\Include\10.0.22000.0\um\windows.h"
+    if(!(Test-Path $windowsH)) {
+        Get-ChildItem -Path (Join-Path ${env:ProgramFiles(x86)} "Windows Kits\10") -Depth 1 | Out-String | Write-Output
+        Throw "Windows SDK headers not found at ${windowsH}"
+    }
+    Write-Output "Successfully installed Windows SDK"
 }
 
 function Install-WDK {
@@ -233,6 +247,7 @@ function Install-Dokany {
 Get-WindowsBuildInfo
 Install-Requirements
 Install-VisualStudio2019BuildTools
+Install-WindowsSDK
 Install-WDK
 Install-Git
 Install-WnbdDriver
