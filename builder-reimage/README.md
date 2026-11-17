@@ -129,16 +129,17 @@ Passed to the builder playbook.
 ### ***ansible-vault-pass***
 Used to unlock Ansible Vault protected data.
 
-### ***ansible-ssh-key***
-Used to clone and update private Git repositories over SSH.
+### ***github-app-ceph-jenkins***
+GitHub App credential; its installation token clones and updates the three
+repositories over https (`GIT_ASKPASS` hands it to git).
 
 ## Required repositories
 The pipeline uses these repositories:
 
 ```
-git@github.com:ceph/ceph-build.git
-git@github.com:ceph/ceph-cm-ansible.git
-git@github.com:ceph/ceph-sepia-secrets.git
+https://github.com/ceph/ceph-build.git
+https://github.com/ceph/ceph-cm-ansible.git
+https://github.com/ceph/ceph-sepia-secrets.git
 ```
 
 ## Ansible playbooks executed
@@ -163,7 +164,7 @@ To reproduce this pipeline, the following are required:
   - maas-api-key
   - builder-api-token
   - ansible-vault-pass
-  - ansible-ssh-key
+  - github-app-ceph-jenkins
 
 
 - access to the required GitHub repositories
