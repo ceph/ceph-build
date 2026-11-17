@@ -72,12 +72,6 @@
             - ../../../scripts/dashboard/install-e2e-test-deps.sh
       - shell: |
           export CYPRESS_ARGS="--record --key $CYPRESS_RECORD_KEY --tag $ghprbTargetBranch" COMMIT_INFO_MESSAGE="$ghprbPullTitle"
-          export APPLITOOLS_BATCH_ID="PR-${{ghprbPullId}}_${{BUILD_TAG}}"
-          export APPLITOOLS_BATCH_NAME="PR-${{ghprbPullId}}"
-          export APPLITOOLS_BRANCH_NAME="$ghprbSourceBranch"
-          export APPLITOOLS_PARENT_BRANCH_NAME="$ghprbTargetBranch"
-          mkdir -p .applitools
-          echo "$APPLITOOLS_BATCH_ID" > .applitools/BATCH_ID
           cd src/pybind/mgr/dashboard; timeout 7200 ./run-frontend-e2e-tests.sh
 
     wrappers:
@@ -100,16 +94,6 @@
           - text:
               credential-id: cd-cypress-record-key
               variable: CYPRESS_RECORD_KEY
-          - text:
-              credential-id: cd-applitools-api-key
-              variable: APPLITOOLS_API_KEY
-      - raw:
-          xml: |
-            <com.applitools.jenkins.ApplitoolsBuildWrapper plugin="applitools-eyes@1.13">
-              <serverURL>https://eyes.applitools.com</serverURL>
-              <notifyByCompletion>true</notifyByCompletion>
-              <applitoolsApiKey/>
-            </com.applitools.jenkins.ApplitoolsBuildWrapper>
       - ansicolor
 
     publishers:
