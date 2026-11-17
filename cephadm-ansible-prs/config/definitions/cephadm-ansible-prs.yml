@@ -226,7 +226,3 @@
               credential-id: cephadm-ansible-quay-io
               username: QUAY_IO_USERNAME
               password: QUAY_IO_PASSWORD
-          - username-password-separated:
-              credential-id: cephadm-ansible-quay-ceph-io
-              username: QUAY_CEPH_IO_USERNAME
-              password: QUAY_CEPH_IO_PASSWORD
