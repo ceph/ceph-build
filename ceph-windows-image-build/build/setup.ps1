@@ -203,14 +203,18 @@ function Remove-WdkTestCertificates {
     # After sysprep that key is unusable, yet the WDK still picks the cert for
     # test signing in the CI jobs. Remove it; the public copies in
     # LocalMachine Root/TrustedPublisher stay for the installed driver.
-    foreach($store in @("PrivateCertStore", "My")) {
-        $path = "Cert:\CurrentUser\${store}"
+    # The CN holds a comma, so Subject is quoted: match on the name only.
+    foreach($path in @("Cert:\CurrentUser\PrivateCertStore", "Cert:\CurrentUser\My",
+                       "Cert:\LocalMachine\PrivateCertStore", "Cert:\LocalMachine\My")) {
         if(!(Test-Path $path)) {
             continue
         }
-        Get-ChildItem $path | Where-Object { $_.Subject -like "CN=WDKTestCert*" } | ForEach-Object {
-            Write-Output "Removing $($_.Subject) ($($_.Thumbprint)) from CurrentUser\${store}"
-            Remove-Item -Path $_.PSPath -DeleteKey -Force
+        Get-ChildItem $path | ForEach-Object {
+            Write-Output "${path}: $($_.Subject) ($($_.Thumbprint))"
+            if($_.Subject -match "WDKTestCert") {
+                Write-Output "Removing $($_.Thumbprint) from ${path}"
+                Remove-Item -Path $_.PSPath -DeleteKey -Force
+            }
         }
     }
 }
