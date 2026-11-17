@@ -7,7 +7,7 @@ if [ -z "$PULP_SERVER_URL" ] || [ -z "$PULP_USERNAME" ] || [ -z "$PULP_PASSWORD"
 fi
 
 export PATH="$HOME/.local/bin:$PATH"
-source "$WORKSPACE/scripts/setup_uv.sh"
+"$WORKSPACE/scripts/setup_uv.sh"
 
 echo "Installing Pulp client"
 uv tool install pulp-cli --with pulp-cli-deb
