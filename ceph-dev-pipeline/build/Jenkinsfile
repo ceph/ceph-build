@@ -850,7 +850,7 @@ pipeline {
             environment {
               SHAMAN_API_KEY = credentials('shaman-api-key')
               // Use quay-int.front cred if cve-pipeline, otherwise default to quay.ceph.io cred
-              CONTAINER_REPO_CREDS = credentials("${env.JOB_NAME == 'cve-pipeline' ? 'quay-int-login' : 'quay-ceph-io-ceph-ci'}")
+              CONTAINER_REPO_CREDS = credentials("${env.JOB_NAME == 'cve-pipeline' ? 'quay-int-ci-robot' : 'quay-ceph-io-ceph-ci'}")
               DOCKER_HUB_CREDS = credentials('dgalloway-docker-hub')
             }
             when {
@@ -960,7 +960,7 @@ pipeline {
               expression { env.CI_CONTAINER == 'true' && container_distros.contains(env.DIST) }
             }
             environment {
-              CONTAINER_REPO_CREDS = credentials("${env.JOB_NAME == 'cve-pipeline' ? 'quay-int-login' : 'quay-ceph-io-ceph-ci'}")
+              CONTAINER_REPO_CREDS = credentials("${env.JOB_NAME == 'cve-pipeline' ? 'quay-int-ci-robot' : 'quay-ceph-io-ceph-ci'}")
             }
             steps {
               script { doContainerStage() }
