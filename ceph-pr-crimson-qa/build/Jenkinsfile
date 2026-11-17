@@ -154,7 +154,7 @@ pipeline {
                     tp << string(name: 'CEPH_REPO',               value: env.HEAD_REPO_URL ?: 'https://github.com/ceph/ceph.git')
                     tp << string(name: 'CEPH_SHA1',               value: env.HEAD_SHA)
                     tp << string(name: 'SUITE_SHA',               value: env.HEAD_SHA)
-                    tp << string(name: 'SUITE_REPO',              value: params.SUITE_REPO.trim())
+                    tp << string(name: 'SUITE_REPO',              value: env.HEAD_REPO_URL ?: params.SUITE_REPO.trim())
                     tp << string(name: 'SUITE_MACHINE_TYPE',      value: params.SUITE_MACHINE_TYPE.trim())
                     tp << booleanParam(name: 'USE_WORKSPACE_TEUTHOLOGY', value: true)
                     tp << string(name: 'TEUTHOLOGY_REPO_URL',     value: params.TEUTHOLOGY_REPO_URL.trim())
