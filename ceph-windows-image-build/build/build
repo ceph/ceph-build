@@ -38,6 +38,14 @@ function restart_windows_vm() {
             sleep 10
             continue
         }
+        # Windows may reboot once more right after coming up (update
+        # servicing); only trust a VM that stays reachable for a minute.
+        sleep 60
+        ssh_exec hostname || {
+            echo "SSH dropped again, waiting for the VM to come back"
+            sleep 10
+            continue
+        }
         break
     done
     echo "Windows VM restarted"
@@ -164,11 +172,19 @@ while true; do
 done
 export SSH_ADDRESS=$VM_IP
 
+# Cumulative updates chain (each pass can need a reboot before the next
+# one is offered), so install, reboot and repeat until a pass installs nothing.
 scp_upload ${BUILD_DIR}/install-windows-updates.ps1 /install-windows-updates.ps1
-SSH_TIMEOUT=1h ssh_exec powershell.exe -File /install-windows-updates.ps1
+for UPDATE_PASS in 1 2 3 4 5; do
+    echo "Windows updates pass ${UPDATE_PASS}"
+    UPDATE_LOG="${WORKSPACE}/windows-updates-${UPDATE_PASS}.log"
+    SSH_TIMEOUT=1h ssh_exec powershell.exe -File /install-windows-updates.ps1 | tee "$UPDATE_LOG"
+    restart_windows_vm 1800
+    if grep -q "INSTALLED_UPDATES=0" "$UPDATE_LOG"; then
+        break
+    fi
+done
 ssh_exec powershell.exe Remove-Item -Force /install-windows-updates.ps1
-
-restart_windows_vm 1800
 
 scp_upload ${BUILD_DIR}/utils.ps1 /utils.ps1
 scp_upload ${BUILD_DIR}/setup.ps1 /setup.ps1
