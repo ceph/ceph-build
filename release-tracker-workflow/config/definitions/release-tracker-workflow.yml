@@ -1,6 +1,6 @@
 # Release tracker workflow: RC testing automation
 # SHA1 -> wait Shaman -> schedule suites -> aggregate -> report to Redmine (Shaman only, no build)
-# Requires: teuthology-agent label, redmine-api-key credential
+# Requires: teuthology-agent label, redmine-api-key-teuthologyjenkins credential
 - job:
     name: release-tracker-workflow
     description: |

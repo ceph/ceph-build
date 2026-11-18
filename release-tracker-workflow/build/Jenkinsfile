@@ -36,7 +36,7 @@ pipeline {
         string(name: 'SUITE_NAME', defaultValue: 'smoke', description: 'Single suite when SUITE_LIST_SOURCE is empty')
         string(name: 'SUITE_LIST_SOURCE', defaultValue: '', description: 'Path under workspace or HTTPS URL. URLs must be github.com or raw.githubusercontent.com under org ceph only. Empty = use SUITE_NAME.')
         string(name: 'EMAIL_RECIPIENTS', defaultValue: '', description: 'Comma-separated emails to notify when run finishes. Empty = no email.')
-        string(name: 'REDMINE_CREDENTIAL_ID', defaultValue: '', description: 'Jenkins credential ID for Redmine API key.')
+        string(name: 'REDMINE_CREDENTIAL_ID', defaultValue: 'redmine-api-key-teuthologyjenkins', description: 'Jenkins credential ID for the Redmine API key (tracker.ceph.com user teuthologyjenkins).')
         string(name: 'SUITE_REPO', defaultValue: 'https://github.com/ceph/ceph-ci.git', description: 'Suite repo URL for teuthology-suite (--suite-repo).')
         string(name: 'SUITE_SHA', defaultValue: '', description: 'Optional suite repo commit SHA for teuthology-suite. Empty = default branch behavior.')
         string(name: 'SUITE_MACHINE_TYPE', defaultValue: 'trial', description: 'Machine type for teuthology-suite.')
