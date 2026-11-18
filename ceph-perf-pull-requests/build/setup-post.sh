@@ -24,10 +24,10 @@ echo "please hold tight..." | github-check \
   --pkey-file "${GITHUB_CHECK_PKEY_PEM}" \
   --app-id "${CHECK_APP_ID}" \
   --install-id "${CHECK_INSTALL_ID}" \
-  --name "${CHECK_NAME}" \
+  --name "${STATUS_PREFIX:-}${CHECK_NAME}" \
   --sha "${ghprbActualCommit}" \
   --external-id "${BUILD_ID}" \
   --details-url "${BUILD_URL}" \
   --status in_progress \
-  --title "${CHECK_NAME}" \
+  --title "${STATUS_PREFIX:-}${CHECK_NAME}" \
   --summary running
