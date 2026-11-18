@@ -73,7 +73,10 @@
     jenkins_credentials_uuid: 'jenkins-build'
     nodename: '{{ nodename }}'
     label: "{{ jenkins_labels[inventory_hostname] }}"
-    grant_sudo: true
+    # Passwordless sudo for jenkins_user.  Play vars outrank inventory vars, so
+    # an inventory opts a host out through jenkins_builder_sudo (the teuthology
+    # agent soko04 is also lab infrastructure and gets none).
+    grant_sudo: "{{ jenkins_builder_sudo | default(true) }}"
     osc_user: 'username'
     osc_pass: 'password'
     container_mirror: 'docker-mirror.front.sepia.ceph.com:5000'
@@ -866,6 +869,14 @@
         line: '{{ jenkins_user }}   ALL=(ALL:ALL) NOPASSWD:ALL'
         validate: 'visudo -cf %s'
       when: grant_sudo|bool
+
+    - name: "Ensure {{ jenkins_user }} has no sudo"
+      lineinfile:
+        dest: /etc/sudoers
+        regexp: '^{{ jenkins_user }} '
+        state: absent
+        validate: 'visudo -cf %s'
+      when: not grant_sudo|bool
 
     - name: Set utf-8 for LC_ALL
       lineinfile:

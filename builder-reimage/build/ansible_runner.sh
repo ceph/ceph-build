@@ -87,12 +87,16 @@ else
     echo "[ansible_runner] WARNING: venv not found at ${WORK_DIR}/${VENV_DIR}. Continuing without venv."
 fi
 
-# Determine preferred SSH users based on OS
-# Try the default OS user first, then fall back to 'cm' if needed.
+# SSH user: the OS default account MAAS deploys with.  MAAS injects the keys
+# of its `jenkins` user (the maas-api-key user) into it, which is how the
+# jenkins-unprivileged key on this agent gets in.  There is deliberately no
+# `cm` fallback: that key is not in cm_user_ssh_keys any more, so every play
+# below is pinned to the same user (plays without an explicit user would
+# otherwise pick up the inventory's ansible_user=cm).
 if [[ "$OS_VALUE" =~ (rhel|centos|rocky|almai|9-stream|rhel10|centos70|8) ]]; then
-    SSH_CANDIDATES=("cloud-user" "cm")
+    SSH_CANDIDATES=("cloud-user")
 else
-    SSH_CANDIDATES=("ubuntu" "cm")
+    SSH_CANDIDATES=("ubuntu")
 fi
 
 SSH_USER="${SSH_CANDIDATES[0]}"
@@ -117,12 +121,13 @@ find_working_ssh_user() {
 
             SSH_USER="${candidate}"
             export SSH_USER
+            # ansible_ssh_user wins over the inventory's ansible_user; ansible_user
+            # is set too so builder.yml's /home/{{ ansible_user }}/.venv lands in
+            # the same account we connect as.
+            USER_ARGS="-e ansible_ssh_user='${SSH_USER}' -e ansible_user='${SSH_USER}'"
+            export USER_ARGS
 
             echo "[ansible_runner] Using SSH user '${SSH_USER}'"
-
-            if [[ "${SSH_USER}" == "cm" ]]; then
-                echo "[ansible_runner][WARN] Falling back to 'cm' because the preferred SSH user was unavailable"
-            fi
 
             return 0
         fi
@@ -238,7 +243,7 @@ if ! (
   CMD="ANSIBLE_HOST_KEY_CHECKING=False ANSIBLE_STDOUT_CALLBACK=json ansible-playbook ansible_managed.yml \
         -i '${INVENTORY_PATH}' \
         --limit='${TARGET_FQDN}' \
-        -e ansible_ssh_user='${SSH_USER}'"
+        ${USER_ARGS}"
 
   run_playbook "play1-ansible_managed" "${CMD}"
 ); then
@@ -258,6 +263,7 @@ if ! (
         -i '${INVENTORY_PATH}' \
         --limit='${TARGET_FQDN}' \
         --tags='user,pubkeys' \
+        ${USER_ARGS} \
         --extra-vars='${ADMIN_USERS_JSON}'"
 
   run_playbook "play2-users" "${CMD}"
@@ -275,7 +281,7 @@ if ! (
   CMD="ANSIBLE_HOST_KEY_CHECKING=False ANSIBLE_STDOUT_CALLBACK=json ansible-playbook common.yml \
         -i '${INVENTORY_PATH}' \
         --limit='${TARGET_FQDN}' \
-        -e ansible_ssh_user='${SSH_USER}'"
+        ${USER_ARGS}"
 
   run_playbook "play3-common" "${CMD}"
 ); then
@@ -292,7 +298,7 @@ if ! (
   CMD="ANSIBLE_HOST_KEY_CHECKING=False ANSIBLE_STDOUT_CALLBACK=json ansible-playbook container-host.yml \
         -i '${INVENTORY_PATH}' \
         --limit='${TARGET_FQDN}' \
-        -e ansible_ssh_user='${SSH_USER}'"
+        ${USER_ARGS}"
 
   run_playbook "play4-container-host" "${CMD}"
 ); then
@@ -308,6 +314,7 @@ if ! (
 
   CMD="ANSIBLE_HOST_KEY_CHECKING=False ANSIBLE_STDOUT_CALLBACK=json ansible-playbook -v tools/jenkins-builder-disk.yml \
         -i '${INVENTORY_PATH}' \
+        ${USER_ARGS} \
         --limit='${TARGET_FQDN}'"
 
   run_playbook "play5-tools-disk" "${CMD}"
@@ -336,6 +343,7 @@ if ! (
         examples/builder.yml \
         -e '{\"token\":\"${BUILDER_TOKEN}\", \"jenkins_credentials_uuid\":\"jenkins-build\", \"api_uri\":\"https://jenkins.ceph.com\"}' \
         -e permanent=true \
+        ${USER_ARGS} \
         ${EXTRA_VARS} \
         --limit='${TARGET_FQDN}'"
 
@@ -363,7 +371,7 @@ if ! (
         -i '${INVENTORY_PATH}' \
         ${VAULT_ARG} \
         --limit='${TARGET_FQDN}' \
-        -e ansible_ssh_user='${SSH_USER}'"
+        ${USER_ARGS}"
 
   run_playbook "play7-alloy" "${CMD}"
 ); then
