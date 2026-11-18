@@ -44,3 +44,9 @@ echo "===== Done pruning old builds ====="
 { set +x; } 2>/dev/null
 
 echo "Success!  This site is available at https://${OUTPUT_DIR}.ceph.io."
+
+# Tell the PR where the build is served, as the GHPRB success-comment did.
+curl -s -o /dev/null -u "${GITHUB_STATUS_USER}:${GITHUB_STATUS_TOKEN}" \
+  -X POST -H "Accept: application/vnd.github+json" \
+  "https://api.github.com/repos/${ghprbGhRepository}/issues/${ghprbPullId}/comments" \
+  -d "$(jq -n --arg body "Site built/updated successfully!  https://${OUTPUT_DIR}.ceph.io" '{body: $body}')"

@@ -19,6 +19,14 @@
     jobs:
       - 'cephadm-ansible-prs-functional'
 
+# Both templates are fired by a ceph/cephadm-ansible webhook delivering
+# pull_request and issue_comment events to
+# https://jenkins.ceph.com/generic-webhook-trigger/invoke with the token held
+# in the cephadm-ansible-pr-trigger-token credential.  A PR opened, reopened
+# or pushed runs every job; a comment runs the job whose phrase it contains
+# ("jenkins test all" runs them all).  Authorization (author or commenter
+# permission / ci-approved label) and the commit status are handled by
+# scripts/github_pr_webhook.sh.  Manual builds set ghprbPullId.
 - job-template:
     name: 'cephadm-ansible-prs-{scenario}'
     id: 'cephadm-ansible-prs-syntax'
@@ -41,133 +49,59 @@
 
     parameters:
       - string:
-          name: sha1
-          description: "A pull request ID, like 'origin/pr/72/head'"
-
-    triggers:
-      - github-pull-request:
-          cancel-builds-on-update: true
-          allow-whitelist-orgs-as-admins: true
-          org-list:
-            - ceph
-          skip-build-phrase: '^jenkins do not test.*|.*\[skip ci\].*'
-          trigger-phrase: '^jenkins test {scenario}|jenkins test all.*'
-          only-trigger-phrase: false
-          github-hooks: true
-          permit-all: false
-          auto-close-on-fail: false
-          status-context: "Testing: {scenario}"
-          started-status: "Running: {scenario}"
-          success-status: "OK - {scenario}"
-          failure-status: "FAIL - {scenario}"
-
-    scm:
-      - git:
-          url: https://github.com/ceph/cephadm-ansible.git
-          branches:
-            - ${{sha1}}
-          refspec: +refs/pull/*:refs/remotes/origin/pr/*
-          browser: auto
-          timeout: 20
-          skip-tag: true
-          wipe-workspace: false
-
-    builders:
-      - inject:
-          properties-content: |
-            SCENARIO={scenario}
-      - conditional-step:
-          condition-kind: shell
-          condition-command: |
-            #!/bin/bash
-            # Returns 1 if only .rst and README files were modified
-            echo "Checking if only rst and READMEs were modified"
-            git show HEAD | grep -qo ^Merge:
-            if [ $? -eq 0 ]; then
-              git diff --name-only $(git show HEAD | grep ^Merge: | cut -d ':' -f2) | grep -v '\.rst\|README'
-              if [ $? -eq 1 ]; then
-                echo "Only docs were modified.  Skipping the rest of the job."
-                exit 1
-              fi
-            fi
-          on-evaluation-failure: dont-run
-          steps:
-            - shell:
-                !include-raw-escape:
-                  - ../../../scripts/build_utils.sh
-                  - ../../build/build
-
-    publishers:
-      - postbuildscript:
-          builders:
-            - role: SLAVE
-              build-on:
-                  - FAILURE
-                  - ABORTED
-              build-steps:
-                - shell:
-                    !include-raw-escape:
-                      - ../../../scripts/build_utils.sh
-                      - ../../build/teardown
-
-      - archive:
-          artifacts: 'logs/**'
-          allow-empty: true
-          latest-only: false
-
-    wrappers:
-      - inject-passwords:
-          global: true
-          mask-password-params: true
-
-- job-template:
-    name: 'cephadm-ansible-prs-{distribution}-{scenario}'
-    id: 'cephadm-ansible-prs-functional'
-    node: '{worker_labels}'
-    concurrent: true
-    defaults: global
-    display-name: 'cephadm-ansible: Pull Requests [{distribution}-{scenario}]'
-    quiet-period: 5
-    block-downstream: false
-    block-upstream: false
-    retry-count: 3
-    properties:
-      - github:
-          url: https://github.com/ceph/cephadm-ansible
-      - build-discarder:
-          days-to-keep: 90
-          num-to-keep: -1
-          artifact-days-to-keep: -1
-          artifact-num-to-keep: -1
-
-    parameters:
+          name: ghprbPullId
+          description: "the GitHub pull id, like '72' in 'cephadm-ansible/pull/72'"
       - string:
-          name: sha1
-          description: "A pull request ID, like 'origin/pr/72/head'"
+          name: pr_number
+          default: ''
+          description: "set by the webhook for pull_request events; leave empty"
+      - string:
+          name: STATUS_PREFIX
+          default: ''
+          description: "Prefix for the GitHub status context (e.g. 'test/' while testing, so the real context isn't touched)"
 
     triggers:
-      - github-pull-request:
-          cancel-builds-on-update: true
-          allow-whitelist-orgs-as-admins: true
-          org-list:
-            - ceph
-          skip-build-phrase: '^jenkins do not test.*|.*\[skip ci\].*'
-          trigger-phrase: '^jenkins test {distribution}-{scenario}|jenkins test all.*'
-          only-trigger-phrase: false
-          github-hooks: true
-          permit-all: false
-          auto-close-on-fail: false
-          status-context: "Testing: {distribution}-{scenario}"
-          started-status: "Running: {distribution}-{scenario}"
-          success-status: "OK - {distribution}-{scenario}"
-          failure-status: "FAIL - {distribution}-{scenario}"
+      - generic-webhook-trigger:
+          token-credential-id: cephadm-ansible-pr-trigger-token
+          print-contrib-var: true
+          post-content-params:
+            - type: JSONPath
+              key: repo
+              value: $.repository.full_name
+            - type: JSONPath
+              key: action
+              value: $.action
+            - type: JSONPath
+              key: sender
+              value: $.sender.login
+            - type: JSONPath
+              key: pr_number
+              value: $.pull_request.number
+            - type: JSONPath
+              key: pr_author
+              value: $.pull_request.user.login
+            - type: JSONPath
+              key: ghprbPullId
+              value: $.issue.number
+            - type: JSONPath
+              key: issue_is_pr
+              value: $.issue.pull_request.url
+            - type: JSONPath
+              key: comment_body
+              value: $.comment.body
+            - type: JSONPath
+              key: comment_author
+              value: $.comment.user.login
+          regex-filter-text: $repo:$action:$issue_is_pr:$comment_body
+          regex-filter-expression: "(?is)^ceph/cephadm-ansible:((opened|reopened|synchronize):.*|created:https.*jenkins\\s+test\\s+({scenario}|all)\\b.*)$"
+          cause: "GitHub $action by $sender for PR $ghprbPullId$pr_number"
 
     scm:
       - git:
           url: https://github.com/ceph/cephadm-ansible.git
           branches:
-            - ${{sha1}}
-          refspec: +refs/pull/*:refs/remotes/origin/pr/*
+            - origin/pr/${{ghprbPullId}}${{pr_number}}/merge
+          refspec: +refs/pull/${{ghprbPullId}}${{pr_number}}/*:refs/remotes/origin/pr/${{ghprbPullId}}${{pr_number}}/*
           browser: auto
           timeout: 20
           skip-tag: true
@@ -176,28 +110,15 @@
     builders:
       - inject:
           properties-content: |
-            DISTRIBUTION={distribution}
             SCENARIO={scenario}
-      - conditional-step:
-          condition-kind: shell
-          condition-command: |
-            #!/bin/bash
-            # Returns 1 if only .rst and README files were modified
-            echo "Checking if only rst and READMEs were modified"
-            git show HEAD | grep -qo ^Merge:
-            if [ $? -eq 0 ]; then
-              git diff --name-only $(git show HEAD | grep ^Merge: | cut -d ':' -f2) | grep -v '\.rst\|README'
-              if [ $? -eq 1 ]; then
-                echo "Only docs were modified.  Skipping the rest of the job."
-                exit 1
-              fi
-            fi
-          on-evaluation-failure: dont-run
-          steps:
-            - shell:
-                !include-raw-escape:
-                  - ../../../scripts/build_utils.sh
-                  - ../../build/build
+            PR_REPO=ceph/cephadm-ansible
+            PR_STATUS_CONTEXT=Testing: {scenario}
+      - shell:
+          !include-raw-escape:
+            - ../../../scripts/build_utils.sh
+            - ../../../scripts/github_pr_webhook.sh
+            - ../../build/pre
+            - ../../build/build
 
     publishers:
       - postbuildscript:
@@ -222,6 +143,140 @@
           global: true
           mask-password-params: true
       - credentials-binding:
+          - username-password-separated:
+              credential-id: github-app-ceph-jenkins
+              username: GITHUB_USER
+              password: GITHUB_PASS
+          - username-password-separated:
+              credential-id: github-app-ceph-jenkins
+              username: GITHUB_STATUS_USER
+              password: GITHUB_STATUS_TOKEN
+
+- job-template:
+    name: 'cephadm-ansible-prs-{distribution}-{scenario}'
+    id: 'cephadm-ansible-prs-functional'
+    node: '{worker_labels}'
+    concurrent: true
+    defaults: global
+    display-name: 'cephadm-ansible: Pull Requests [{distribution}-{scenario}]'
+    quiet-period: 5
+    block-downstream: false
+    block-upstream: false
+    retry-count: 3
+    properties:
+      - github:
+          url: https://github.com/ceph/cephadm-ansible
+      - build-discarder:
+          days-to-keep: 90
+          num-to-keep: -1
+          artifact-days-to-keep: -1
+          artifact-num-to-keep: -1
+
+    parameters:
+      - string:
+          name: ghprbPullId
+          description: "the GitHub pull id, like '72' in 'cephadm-ansible/pull/72'"
+      - string:
+          name: pr_number
+          default: ''
+          description: "set by the webhook for pull_request events; leave empty"
+      - string:
+          name: STATUS_PREFIX
+          default: ''
+          description: "Prefix for the GitHub status context (e.g. 'test/' while testing, so the real context isn't touched)"
+
+    triggers:
+      - generic-webhook-trigger:
+          token-credential-id: cephadm-ansible-pr-trigger-token
+          print-contrib-var: true
+          post-content-params:
+            - type: JSONPath
+              key: repo
+              value: $.repository.full_name
+            - type: JSONPath
+              key: action
+              value: $.action
+            - type: JSONPath
+              key: sender
+              value: $.sender.login
+            - type: JSONPath
+              key: pr_number
+              value: $.pull_request.number
+            - type: JSONPath
+              key: pr_author
+              value: $.pull_request.user.login
+            - type: JSONPath
+              key: ghprbPullId
+              value: $.issue.number
+            - type: JSONPath
+              key: issue_is_pr
+              value: $.issue.pull_request.url
+            - type: JSONPath
+              key: comment_body
+              value: $.comment.body
+            - type: JSONPath
+              key: comment_author
+              value: $.comment.user.login
+          regex-filter-text: $repo:$action:$issue_is_pr:$comment_body
+          regex-filter-expression: "(?is)^ceph/cephadm-ansible:((opened|reopened|synchronize):.*|created:https.*jenkins\\s+test\\s+({distribution}-{scenario}|all)\\b.*)$"
+          cause: "GitHub $action by $sender for PR $ghprbPullId$pr_number"
+
+    scm:
+      - git:
+          url: https://github.com/ceph/cephadm-ansible.git
+          branches:
+            - origin/pr/${{ghprbPullId}}${{pr_number}}/merge
+          refspec: +refs/pull/${{ghprbPullId}}${{pr_number}}/*:refs/remotes/origin/pr/${{ghprbPullId}}${{pr_number}}/*
+          browser: auto
+          timeout: 20
+          skip-tag: true
+          wipe-workspace: false
+
+    builders:
+      - inject:
+          properties-content: |
+            DISTRIBUTION={distribution}
+            SCENARIO={scenario}
+            PR_REPO=ceph/cephadm-ansible
+            PR_STATUS_CONTEXT=Testing: {distribution}-{scenario}
+      - shell:
+          !include-raw-escape:
+            - ../../../scripts/build_utils.sh
+            - ../../../scripts/github_pr_webhook.sh
+            - ../../build/pre
+            - ../../build/build
+
+    publishers:
+      - postbuildscript:
+          builders:
+            - role: SLAVE
+              build-on:
+                  - FAILURE
+                  - ABORTED
+              build-steps:
+                - shell:
+                    !include-raw-escape:
+                      - ../../../scripts/build_utils.sh
+                      - ../../build/teardown
+
+      - archive:
+          artifacts: 'logs/**'
+          allow-empty: true
+          latest-only: false
+
+    wrappers:
+      - inject-passwords:
+          global: true
+          mask-password-params: true
+      - credentials-binding:
+          - username-password-separated:
+              credential-id: github-app-ceph-jenkins
+              username: GITHUB_USER
+              password: GITHUB_PASS
+          - username-password-separated:
+              credential-id: github-app-ceph-jenkins
+              username: GITHUB_STATUS_USER
+              password: GITHUB_STATUS_TOKEN
           - username-password-separated:
               credential-id: cephadm-ansible-quay-io
               username: QUAY_IO_USERNAME

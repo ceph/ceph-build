@@ -1286,9 +1286,10 @@ update_github_pr_status() {
   fi
 
   # Manually-triggered jobs don't have the ghprb* variables set by the plugin.
-  # Assume ceph/ceph and look up the PR's head commit from the GitHub API.
-  ghprbGhRepository="ceph/ceph"
-  ghprbActualCommit="$(curl -s -u ${GITHUB_USER}:${GITHUB_PASS} https://api.github.com/repos/${ghprbGhRepository}/pulls/${ghprbPullId} | jq -r '.head.sha')"
+  # Default to ceph/ceph and look up the PR's head commit from the GitHub API
+  # unless the job already resolved them (scripts/github_pr_webhook.sh).
+  ghprbGhRepository="${ghprbGhRepository:-ceph/ceph}"
+  ghprbActualCommit="${ghprbActualCommit:-$(curl -s -u ${GITHUB_USER}:${GITHUB_PASS} https://api.github.com/repos/${ghprbGhRepository}/pulls/${ghprbPullId} | jq -r '.head.sha')}"
 
   if [ -z "$ghprbActualCommit" ] || [ -z "$ghprbGhRepository" ]; then
     echo "Could not determine commit or repository; skipping GitHub status update"

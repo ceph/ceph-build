@@ -1,0 +1,5 @@
+#!/bin/bash
+set -ex
+
+export FOR_MAKE_CHECK=1
+timeout 2h ./src/script/run-make.sh --cmake-args '-DWITH_TESTS=OFF -DENABLE_GIT_VERSION=OFF'

@@ -1,0 +1,6 @@
+#!/bin/bash
+set -ex
+
+export CYPRESS_ARGS="--record --key $CYPRESS_RECORD_KEY --tag $ghprbTargetBranch" COMMIT_INFO_MESSAGE="$ghprbPullTitle"
+cd src/pybind/mgr/dashboard
+timeout 7200 ./run-frontend-e2e-tests.sh
