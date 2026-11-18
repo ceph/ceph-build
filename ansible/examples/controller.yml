@@ -23,7 +23,6 @@
       - 'ant'
       - 'antisamy-markup-formatter'
       - 'apache-httpcomponents-client-4-api'
-      - 'applitools-eyes'
       - 'authentication-tokens'
       - 'bouncycastle-api'
       - 'branch-api'
