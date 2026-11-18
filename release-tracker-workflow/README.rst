@@ -13,7 +13,7 @@ Requirements
 ------------
 
 - Jenkins agent with label **teuthology-agent** (or set **AGENT_LABEL**); teuthology installed, ``~/.teuthology.yaml``, Shaman/Paddles reachable.
-- Credential **redmine-api-key** (or set **REDMINE_CREDENTIAL_ID**) in Jenkins for posting to tracker.ceph.com when **SKIP_TRACKER_UPDATE** is false.
+- Credential **redmine-api-key-teuthologyjenkins** (or set **REDMINE_CREDENTIAL_ID**) in Jenkins for posting to tracker.ceph.com when **SKIP_TRACKER_UPDATE** is false.
 
 Parameters
 ----------
