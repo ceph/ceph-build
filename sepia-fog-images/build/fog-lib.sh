@@ -63,7 +63,8 @@ set -x
 #
 # Responses are scrubbed of per-host secrets before they can reach the
 # (public) console log: FOG host records carry the host's client auth token
-# and AD/product-key fields, and the PUT /host responses in the deploy,
+# and AD/product-key fields, task records embed the storage node with its
+# FTP password, and the PUT /host and POST /task responses in the deploy,
 # capture, and verify phases land on stdout unconsumed.  walk() is defined
 # inline for jq-1.5 compatibility; a non-JSON response passes through as-is.
 # No caller reads any of the deleted fields.
@@ -82,7 +83,7 @@ funFogApi () {
         elif type == "array" then map(walk(f)) | f
         else f end;
     walk(if type == "object"
-         then del(.token, .sec_tok, .ADPass, .ADPassLegacy, .productKey)
+         then del(.token, .sec_tok, .ADPass, .ADPassLegacy, .productKey, .pass)
          else . end)' 2>/dev/null || printf '%s\n' "$out"
   set -x
   return $rc
