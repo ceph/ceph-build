@@ -226,7 +226,8 @@ function Install-Python3 {
     Write-Output "Installing pip dependencies"
     Start-ExecuteWithRetry {
         # Needed to run the Ceph unit tests via https://github.com/ceph/ceph-win32-tests scripts
-        Invoke-CommandLine "pip3.exe" "install os-testr python-dateutil requests prettytable"
+        # Keep in sync with test_host/install_python_requirements.ps1 there.
+        Invoke-CommandLine "pip3.exe" "install os-testr six python-dateutil requests prettytable"
     }
     Write-Output "Successfully installed Python3"
 }
