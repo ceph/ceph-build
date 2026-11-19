@@ -38,6 +38,12 @@ COLLECT_EVENT_LOGS_SCRIPT_URL="https://raw.githubusercontent.com/ceph/ceph-build
 SSH_TIMEOUT=5m ssh_exec git.exe clone https://github.com/ceph/ceph-win32-tests.git /workspace/repos/ceph-win32-tests
 
 #
+# Install the test scripts' Python requirements (a no-op when the image
+# already has them)
+#
+SSH_TIMEOUT=5m ssh_exec powershell.exe /workspace/repos/ceph-win32-tests/test_host/install_python_requirements.ps1
+
+#
 # Set Windows user-space crash dumps directory
 #
 ssh_exec powershell.exe /workspace/repos/ceph-win32-tests/test_host/set_userspace_crashdump_location.ps1 -dumpDir $WIN_USERSPACE_CRASH_DUMPS
