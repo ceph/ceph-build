@@ -25,24 +25,22 @@ These steps should only have to be performed when a new teuthology host is being
 
 #. Copy ``/etc/teuthology.yaml`` to ``/home/jenkins-build/.teuthology.yml`` and remove the ``fog:`` yaml block.  This is so the job doesn't attempt to provision testnodes using FOG when locking machines.  (The job drives FOG deploys itself via the FOG API.)
 
-#. As the ``jenkins-build`` user on the teuthology host, generate a new RSA SSH key (``ssh-keygen -t rsa``).
+#. The ``jenkins-build`` user on the teuthology host needs the ``jenkins-unprivileged`` ssh key (1Password vault "Ceph - Upstream") as ``~/.ssh/id_ed25519``.  It is deliberately not a ``cm`` key: it reaches testnodes as ``ubuntu`` (the FOG server's ``inject_jenkins_key.sh`` postdownload hook from the ceph-cm-ansible_ ``fog-server`` role adds it to every deployed image; MAAS's ``jenkins`` user injects it into MAAS deploys) and the dnsmasq server as the limited-sudo ``jenkins-unprivileged`` user.
 
-#. Copy the public key to jenkins-build.pub_ in the keys repo. (This is so the jenkins-build user can ssh to testnodes and infrastructure hosts)
-
-#. Run the ceph-cm-ansible_ ``users`` playbook against the FOG server and the dnsmasq server (``soko01``).  (This lets the jenkins-build user install the FOG postinit hook and update PXE entries)
+#. Run the ceph-cm-ansible_ ``jenkins-unprivileged.yml`` playbook against the dnsmasq server (``soko01``, inventory group ``jenkins_unprivileged_hosts``).  It creates the ``jenkins-unprivileged`` user whose only sudo right is ``/usr/local/sbin/pxe-target``, which the job uses to update PXE entries.
 
 #. Define ``FOG_API_TOKEN`` and ``FOG_USER_TOKEN`` as **Global name/password pairs** in Jenkins.  These are only a fallback: when the agent's ``/etc/teuthology.yaml`` has a ``fog:`` block, the job reads the FOG endpoint and tokens from there (currently ``http://soko03.front.sepia.ceph.com/fog``).
 
 #. The ``maas-api-key`` **Secret text** credential must exist in Jenkins (shared with the builder-reimage job).  Needed for ``FSCKMETHOD=maas-rescue`` and for ``STARTWITHMAAS``.
 
-#. For ``STARTWITHMAAS``, the ``jenkins-build`` user's public SSH key must be added to the MAAS user the API key belongs to (MAAS injects that user's keys into the deployed OS's default account, which is how the job gets onto a freshly-seeded host).
+#. For ``STARTWITHMAAS``, the ``jenkins-unprivileged`` public key must be on the MAAS user the API key belongs to (``jenkins``; ``jenkins-secrets/ssh-key-rotate.py maas add``).  MAAS injects that user's keys into the deployed OS's default account, which is how the job gets onto a freshly-seeded host.
 
 **NOTE:** This job also relies on:
 
 - ceph-sepia-secrets_ -- If the job is being run on a teuthology host, ``/etc/ansible`` should already be symlinked to a ceph-sepia-secrets checkout.
 - ceph-cm-ansible/tools_ -- ``prep-fog-capture.yml`` preps a host for capturing.
 - The fsck postinit hook on the FOG server (``/images/dev/postinitscripts/fsck_before_capture.sh``, sourced by ``fog.postinit``).  The job refreshes it over ssh when it can, but installing it once by hand is enough for ``FSCKMETHOD=fog-postinit``.
-- ssh access as ``cm`` to the dnsmasq server (``soko01`` -- it has no ``ubuntu`` user) -- the job edits the host's ``dhcp-host=set:fog,...`` tag in ``/etc/dnsmasq.d/pok/front.conf`` and restarts dnsmasq.  Needed for ``FSCKMETHOD=maas-rescue`` and ``STARTWITHMAAS``.
+- ssh access as ``jenkins-unprivileged`` to the dnsmasq server (``soko01``) -- the job runs ``sudo pxe-target <host> <fog|maas>`` there, which flips the host's ``dhcp-host=set:fog,...`` tag in ``/etc/dnsmasq.d/pok/front.conf`` and restarts dnsmasq.  Needed for ``FSCKMETHOD=maas-rescue`` and ``STARTWITHMAAS``.
 - ``maas-cli`` on the teuthology host -- needed for ``FSCKMETHOD=maas-rescue`` and ``STARTWITHMAAS``.
 
 How it works
@@ -128,7 +126,6 @@ Usage
 See https://wiki.sepia.ceph.com/doku.php?id=services:fog
 
 .. _FOG: https://fogproject.org/
-.. _jenkins-build.pub: https://github.com/ceph/keys/blob/main/ssh/jenkins-build.pub
 .. _teuthology.yaml: http://docs.ceph.com/teuthology/docs/siteconfig.html
 .. _ceph-sepia-secrets: https://github.com/ceph/ceph-sepia-secrets/
 .. _tools: https://github.com/ceph/ceph-cm-ansible/tree/main/tools

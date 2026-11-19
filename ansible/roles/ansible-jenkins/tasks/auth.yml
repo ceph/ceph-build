@@ -22,6 +22,10 @@
     regexp: ".*hudson\\.security\\.SecurityRealm\\$None.*"
     state: absent
 
+# ceph-jenkins is the API-token account on every builder (jenkins.secret), so it
+# gets no CredentialsProvider permission at all.  It still needs Item.Create/
+# Configure/Delete (jenkins-job-builder deploys jobs with it) and Computer.*
+# (builder-reimage, agent JNLP) until those move to accounts of their own.
 # Jenkins will automatically update the plugin version,
 # remove the ansible blockinfile comments,
 # and encrypt github_oauth_secret when the service is restarted
@@ -36,7 +40,6 @@
           <permission>GROUP:com.cloudbees.plugins.credentials.CredentialsProvider.ManageDomains:ceph*jenkins-admins</permission>
           <permission>GROUP:com.cloudbees.plugins.credentials.CredentialsProvider.Update:ceph*jenkins-admins</permission>
           <permission>GROUP:com.cloudbees.plugins.credentials.CredentialsProvider.View:ceph*jenkins-admins</permission>
-          <permission>USER:com.cloudbees.plugins.credentials.CredentialsProvider.View:ceph-jenkins</permission>
           <permission>GROUP:com.sonyericsson.jenkins.plugins.bfa.PluginImpl.RemoveCause:ceph*jenkins-admins</permission>
           <permission>USER:com.sonyericsson.jenkins.plugins.bfa.PluginImpl.RemoveCause:ceph-jenkins</permission>
           <permission>GROUP:com.sonyericsson.jenkins.plugins.bfa.PluginImpl.UpdateCauses:ceph*jenkins-admins</permission>

@@ -19,7 +19,7 @@
 # Lab topology.  Adjust here if services move.
 fogserver="soko03.front.sepia.ceph.com"
 dnsmasqserver="soko01.front.sepia.ceph.com"
-dnsmasquser="cm"  # soko01 has no ubuntu user
+dnsmasquser="jenkins-unprivileged"  # limited-sudo user from ceph-cm-ansible jenkins-unprivileged.yml; may only run pxe-target
 dnsmasqconf="/etc/dnsmasq.d/pok/front.conf"
 maasurl="http://soko02.front.sepia.ceph.com:5240/MAAS/"
 maasprofile="jenkins"
@@ -110,10 +110,12 @@ funRetry () {
 
 # Repoint a testnode's PXE boot in dnsmasq.  Usage: funSetPxe <host> <maas|fog>
 # The first tag on the host's dhcp-host line selects the PXE boot target.
-# Fails loudly if the host has no dhcp-host entry at all (a silent sed no-op
-# here would leave the node PXE-booting from the wrong server).
+# pxe-target (installed on ${dnsmasqserver} by ceph-cm-ansible's jenkins-unprivileged
+# role, the one command ${dnsmasquser} may sudo) does the edit, checks the
+# line exists and restarts dnsmasq.  Fails loudly if the host has no dhcp-host
+# entry (a silent no-op would leave the node PXE-booting from the wrong server).
 funSetPxe () {
-  if ! ssh $sshopts ${dnsmasquser}@${dnsmasqserver} "sudo sed -i -E 's/^dhcp-host=set:(fog|maas),(.*[,=]${1}\.front\.sepia\.ceph\.com)\$/dhcp-host=set:${2},\2/' $dnsmasqconf && grep -Eq '^dhcp-host=set:${2},.*[,=]${1}\.front\.sepia\.ceph\.com\$' $dnsmasqconf && sudo systemctl restart dnsmasq"; then
+  if ! ssh $sshopts ${dnsmasquser}@${dnsmasqserver} "sudo /usr/local/sbin/pxe-target ${1} ${2}"; then
     echo "ERROR: could not point ${1}'s PXE entry at ${2} -- does $1 have a dhcp-host line in $dnsmasqconf on ${dnsmasqserver}?"
     return 1
   fi
