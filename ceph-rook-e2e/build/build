@@ -1,0 +1,5 @@
+#!/bin/bash
+set -ex
+
+export COMMIT_INFO_MESSAGE="$ghprbPullTitle"
+timeout 3600 ./src/pybind/mgr/rook/ci/run-rook-e2e-tests.sh

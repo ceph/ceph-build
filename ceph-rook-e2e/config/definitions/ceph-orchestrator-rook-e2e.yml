@@ -5,6 +5,12 @@
     concurrent: true
     node: huge && jammy && x86_64
     display-name: 'ceph: Rook Orchestrator E2E'
+    description: |
+      Rook orchestrator e2e tests for a ceph.git PR.  Fired by the generic
+      webhook trigger (the ceph/ceph webhook that feeds
+      ceph-pr-pipeline-trigger) when a PR labelled "orchestrator" or "rook"
+      is opened, reopened or pushed, when either label is added, or when
+      someone comments "jenkins test rook e2e" on a PR.  Can also be run manually by setting ghprbPullId.
     quiet-period: 5
     block-downstream: false
     block-upstream: false
@@ -22,37 +28,62 @@
       - inject:
           properties-content: |
             TERM=xterm
+            PR_STATUS_CONTEXT=ceph rook orchestrator e2e tests
     parameters:
       - string:
           name: ghprbPullId
           description: "the GitHub pull id, like '72' in 'ceph/pull/72'"
+      - string:
+          name: pr_number
+          default: ''
+          description: "set by the webhook for pull_request events; leave empty"
+      - string:
+          name: STATUS_PREFIX
+          default: ''
+          description: "Prefix for the GitHub status context (e.g. 'test/' while testing, so the real context isn't touched)"
 
+    # See ceph-dashboard-pull-requests for how the trigger works.
     triggers:
-      - github-pull-request:
-          cancel-builds-on-update: true
-          allow-whitelist-orgs-as-admins: true
-          org-list:
-            - ceph
-          white-list-labels:
-            - orchestrator
-            - rook
-          black-list-target-branches:
-            - luminous
-            - mimic
-            - nautilus
-            - pacific
-            - quincy
-            - octopus
-          trigger-phrase: 'jenkins test rook e2e'
-          skip-build-phrase: '^jenkins do not test.*'
-          only-trigger-phrase: false
-          github-hooks: true
-          permit-all: false
-          auto-close-on-fail: false
-          status-context: "ceph rook orchestrator e2e tests"
-          started-status: "running ceph rook orchestrator e2e tests"
-          success-status: "ceph rook orchestrator e2e tests succeeded"
-          failure-status: "ceph rook orchestrator e2e tests failed"
+      - generic-webhook-trigger:
+          token-credential-id: pr-check-trigger-token
+          print-contrib-var: true
+          post-content-params:
+            - type: JSONPath
+              key: repo
+              value: $.repository.full_name
+            - type: JSONPath
+              key: action
+              value: $.action
+            - type: JSONPath
+              key: sender
+              value: $.sender.login
+            - type: JSONPath
+              key: pr_number
+              value: $.pull_request.number
+            - type: JSONPath
+              key: pr_author
+              value: $.pull_request.user.login
+            - type: JSONPath
+              key: pr_labels
+              value: $.pull_request.labels[*].name
+            - type: JSONPath
+              key: label_name
+              value: $.label.name
+            - type: JSONPath
+              key: ghprbPullId
+              value: $.issue.number
+            - type: JSONPath
+              key: issue_is_pr
+              value: $.issue.pull_request.url
+            - type: JSONPath
+              key: comment_body
+              value: $.comment.body
+            - type: JSONPath
+              key: comment_author
+              value: $.comment.user.login
+          regex-filter-text: $repo:$action:$label_name:$issue_is_pr:$pr_labels:$comment_body
+          regex-filter-expression: "(?is)^ceph/ceph:((opened|reopened|synchronize):::[^:]*(?<![\\w-])(orchestrator|rook)(?![\\w-])[^:]*:.*|labeled:(orchestrator|rook)::.*|created::https.*jenkins\\s+test\\s+rook\\s+e2e\\b.*)$"
+          cause: "GitHub $action by $sender for PR $ghprbPullId$pr_number"
 
     scm:
       - git:
@@ -60,8 +91,8 @@
           browser: githubweb
           browser-url: https://github.com/ceph/ceph/
           branches:
-            - origin/pr/${{ghprbPullId}}/merge
-          refspec: +refs/pull/${{ghprbPullId}}/*:refs/remotes/origin/pr/${{ghprbPullId}}/*
+            - origin/pr/${{ghprbPullId}}${{pr_number}}/merge
+          refspec: +refs/pull/${{ghprbPullId}}${{pr_number}}/*:refs/remotes/origin/pr/${{ghprbPullId}}${{pr_number}}/*
           skip-tag: true
           shallow-clone: true
           honor-refspec: true
@@ -79,15 +110,24 @@
     builders:
       - shell:
           !include-raw-verbatim:
-             - ../../../scripts/setup_container_runtime.sh
-             - ../../../scripts/rook-orch/install-rook-e2e-deps.sh
-      - shell: |
-          export COMMIT_INFO_MESSAGE="$ghprbPullTitle"
-          timeout 3600 ./src/pybind/mgr/rook/ci/run-rook-e2e-tests.sh
+            - ../../../scripts/build_utils.sh
+            - ../../../scripts/github_pr_webhook.sh
+            - ../../../scripts/setup_container_runtime.sh
+            - ../../../scripts/rook-orch/install-rook-e2e-deps.sh
+            - ../../build/build
     wrappers:
       - inject-passwords:
           global: true
           mask-password-params: true
+      - credentials-binding:
+          - username-password-separated:
+              credential-id: github-app-ceph-jenkins
+              username: GITHUB_USER
+              password: GITHUB_PASS
+          - username-password-separated:
+              credential-id: github-app-ceph-jenkins
+              username: GITHUB_STATUS_USER
+              password: GITHUB_STATUS_TOKEN
       - ansicolor
 
     publishers:

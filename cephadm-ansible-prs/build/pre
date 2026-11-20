@@ -1,0 +1,9 @@
+#!/bin/bash
+# Skip the build when the PR only touches .rst and README files.
+if git show HEAD | grep -q '^Merge:'; then
+    changed=$(git diff --name-only $(git show HEAD | grep '^Merge:' | cut -d ':' -f2) | grep -v '\.rst\|README' || true)
+    if [ -z "$changed" ]; then
+        echo "Only docs were modified.  Skipping the rest of the job."
+        exit 0
+    fi
+fi

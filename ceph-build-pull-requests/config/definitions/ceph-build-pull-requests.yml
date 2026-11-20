@@ -5,6 +5,14 @@
     defaults: global
     concurrent: true
     display-name: 'ceph-build: Pull Requests'
+    description: |
+      Renders every job definition with jenkins-jobs, shellchecks the build
+      scripts and syntax-checks the playbooks for a ceph-build PR.  Fired by
+      a ceph/ceph-build webhook delivering pull_request and issue_comment
+      events to the generic webhook trigger (token in the
+      ceph-build-pr-trigger-token credential) when a PR is opened, reopened
+      or pushed, or when a comment contains "retest".  Can also be run
+      manually by setting ghprbPullId.
     quiet-period: 5
     block-downstream: false
     block-upstream: false
@@ -17,29 +25,68 @@
           artifact-num-to-keep: -1
       - github:
           url: https://github.com/ceph/ceph-build
+      - inject:
+          properties-content: |
+            PR_REPO=ceph/ceph-build
+            PR_STATUS_CONTEXT=ceph-build tests
 
     parameters:
       - string:
-          name: sha1
-          description: "commit id or a refname, like 'origin/pr/72/head'"
+          name: ghprbPullId
+          description: "the GitHub pull id, like '72' in 'ceph-build/pull/72'"
+      - string:
+          name: pr_number
+          default: ''
+          description: "set by the webhook for pull_request events; leave empty"
+      - string:
+          name: STATUS_PREFIX
+          default: ''
+          description: "Prefix for the GitHub status context (e.g. 'test/' while testing, so the real context isn't touched)"
 
+    # Authorization (author or commenter permission / ci-approved label) and
+    # the commit status are handled by scripts/github_pr_webhook.sh.
     triggers:
-      - github-pull-request:
-          org-list:
-            - ceph
-          trigger-phrase: '.*retest.*'
-          only-trigger-phrase: false
-          github-hooks: true
-          permit-all: false
-          allow-whitelist-orgs-as-admins: true
-          auto-close-on-fail: false
+      - generic-webhook-trigger:
+          token-credential-id: ceph-build-pr-trigger-token
+          print-contrib-var: true
+          post-content-params:
+            - type: JSONPath
+              key: repo
+              value: $.repository.full_name
+            - type: JSONPath
+              key: action
+              value: $.action
+            - type: JSONPath
+              key: sender
+              value: $.sender.login
+            - type: JSONPath
+              key: pr_number
+              value: $.pull_request.number
+            - type: JSONPath
+              key: pr_author
+              value: $.pull_request.user.login
+            - type: JSONPath
+              key: ghprbPullId
+              value: $.issue.number
+            - type: JSONPath
+              key: issue_is_pr
+              value: $.issue.pull_request.url
+            - type: JSONPath
+              key: comment_body
+              value: $.comment.body
+            - type: JSONPath
+              key: comment_author
+              value: $.comment.user.login
+          regex-filter-text: $repo:$action:$issue_is_pr:$comment_body
+          regex-filter-expression: "(?is)^ceph/ceph-build:((opened|reopened|synchronize):.*|created:https.*retest.*)$"
+          cause: "GitHub $action by $sender for PR $ghprbPullId$pr_number"
 
     scm:
       - git:
           url: https://github.com/ceph/ceph-build.git
           branches:
-            - ${{sha1}}
-          refspec: +refs/pull/${{ghprbPullId}}/*:refs/remotes/origin/pr/${{ghprbPullId}}/*
+            - origin/pr/${{ghprbPullId}}${{pr_number}}/merge
+          refspec: +refs/pull/${{ghprbPullId}}${{pr_number}}/*:refs/remotes/origin/pr/${{ghprbPullId}}${{pr_number}}/*
           browser: auto
           timeout: 20
           skip-tag: true
@@ -49,4 +96,16 @@
       - shell:
           !include-raw-verbatim:
             - ../../../scripts/build_utils.sh
+            - ../../../scripts/github_pr_webhook.sh
             - ../../build/build
+
+    wrappers:
+      - credentials-binding:
+          - username-password-separated:
+              credential-id: github-app-ceph-jenkins
+              username: GITHUB_USER
+              password: GITHUB_PASS
+          - username-password-separated:
+              credential-id: github-app-ceph-jenkins
+              username: GITHUB_STATUS_USER
+              password: GITHUB_STATUS_TOKEN

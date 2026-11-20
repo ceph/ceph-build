@@ -1,0 +1,12 @@
+#!/bin/bash
+set -ex
+
+export CYPRESS_ARGS="--record --key $CYPRESS_RECORD_KEY --tag $ghprbTargetBranch" COMMIT_INFO_MESSAGE="$ghprbPullTitle"
+export NVM_DIR="$HOME/.nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
+
+# use the node version from dashboard/frontend
+nvm use "$(cat src/pybind/mgr/dashboard/frontend/.nvmrc)"
+
+timeout 7200 ./src/pybind/mgr/dashboard/ci/cephadm/run-cephadm-e2e-tests.sh
