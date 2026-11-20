@@ -47,7 +47,7 @@ import groovy.transform.Field
 ]
 
 // Target-branch restrictions, same as the old freestyle jobs' whitelists.
-@Field List windows_branches = ["main", "vampire", "umbrella", "tentacle", "squid", "reef"]
+@Field List windows_branches = ["main", "vampire", "umbrella", "tentacle", "squid"]
 @Field List api_branches = ["main", "vampire", "umbrella", "tentacle", "squid", /feature-.*/]
 // The dashboard API suite is ~90 min of serial tests, so it runs as two
 // shards on two builders (~45 min each).  Shard B is the modules that
