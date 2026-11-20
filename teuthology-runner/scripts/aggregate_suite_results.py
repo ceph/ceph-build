@@ -79,6 +79,11 @@ def main():
     )
     ap.add_argument("--paddles-url", default=DEFAULT_PADDLES)
     ap.add_argument("--out", default=None)
+    ap.add_argument(
+        "--fail-on-fail",
+        action="store_true",
+        help="Exit 1 when any suite FAILs or no jobs are found.",
+    )
     args = ap.parse_args()
     table = merged_table(args.paddles_url, args.runs)
     if table is None:
@@ -87,6 +92,12 @@ def main():
     if args.out:
         with open(args.out, "w") as f:
             f.write(table)
+    if args.fail_on_fail:
+        if table == "No jobs found":
+            sys.exit(1)
+        for line in table.splitlines():
+            if line.strip().endswith("| FAIL"):
+                sys.exit(1)
     return 0
 
 
