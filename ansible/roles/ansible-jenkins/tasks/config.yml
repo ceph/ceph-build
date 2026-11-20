@@ -7,6 +7,18 @@
     backup: yes
   register: config_changed
 
+- name: Configure Jenkins systemd service overrides
+  template:
+    src: override.conf
+    dest: /etc/systemd/system/jenkins.service.d/override.conf
+    backup: yes
+  register: config_changed
+
+- name: Reload systemd services
+  systemd:
+    daemon_reload: true
+  when: config_changed|bool
+
 - name: Configure Jenkins E-mail
   when: email is defined
   template:
