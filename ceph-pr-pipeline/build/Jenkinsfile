@@ -85,6 +85,8 @@ import groovy.transform.Field
 // context key -> true once a terminal (non-pending) status was posted, so the
 // abort/failure sweep in post{} only finalizes contexts still left pending.
 @Field Map leg_finalized = [:]
+// Names of the leg stashes that exist, for archiveLegArtifacts.
+@Field List leg_stashes = []
 
 def wantCheck(String key) {
   return params.CHECKS.tokenize(" ").contains(key)
@@ -821,6 +823,7 @@ def apiShardCleanup(String shard) {
   stash(name: "api-logs-${shard}",
         includes: "ceph/build/out/*.log",
         allowEmpty: true)
+  leg_stashes.add("api-logs-${shard}".toString())
   sh """#!/bin/bash
     podman rm -f ceph_build 2>/dev/null || true
     podman unshare chown -R 0:0 "\$WORKSPACE"/ceph 2>/dev/null || true
@@ -895,16 +898,14 @@ def archiveLegArtifacts() {
   node("small") {
     dir("leg-artifacts") {
       deleteDir()
-      for (name in ["windows-artifacts", "api-logs-A", "api-logs-B"]) {
-        try {
-          if (name.startsWith("api-logs-")) {
-            // both shards stash the same ceph/build/out/*.log paths
-            dir(name) { unstash(name) }
-          } else {
-            unstash(name)
-          }
-        } catch (hudson.AbortException e) {
-          // that leg never ran, or died before stashing
+      // Only legs that stashed: unstash of a missing stash shows up as a
+      // failed step even when the error is caught.
+      for (name in leg_stashes) {
+        if (name.startsWith("api-logs-")) {
+          // both shards stash the same ceph/build/out/*.log paths
+          dir(name) { unstash(name) }
+        } else {
+          unstash(name)
         }
       }
       archiveArtifacts(artifacts: "artifacts/**, api-logs-*/ceph/build/out/*.log",
@@ -1002,6 +1003,7 @@ pipeline {
               // Archived by archiveLegArtifacts in the pipeline post{}.
               stash(name: "windows-artifacts", includes: "artifacts/**",
                     allowEmpty: true)
+              script { leg_stashes.add("windows-artifacts") }
               // Best-effort cleanup.  The if -> WARNING at the end is to avoid
               // sending "failed" back to the GitHub Check in case the actual
               // tests passed but cleanup fails.
