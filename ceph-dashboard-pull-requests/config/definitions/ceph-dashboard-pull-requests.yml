@@ -5,6 +5,12 @@
     concurrent: true
     node: huge && jammy && x86_64
     display-name: 'ceph: dashboard Pull Requests'
+    description: |
+      Dashboard frontend e2e tests for a ceph.git PR.  Fired by the generic
+      webhook trigger (the ceph/ceph webhook that feeds
+      ceph-pr-pipeline-trigger) when a PR labelled "dashboard" is opened,
+      reopened or pushed, when the label is added, or when someone comments
+      "jenkins test dashboard" on a PR.  Can also be run manually by setting ghprbPullId.
     quiet-period: 5
     block-downstream: false
     block-upstream: false
@@ -22,39 +28,79 @@
       - inject:
           properties-content: |
             TERM=xterm
+            PR_STATUS_CONTEXT=ceph dashboard tests
 
     parameters:
       - string:
-          name: sha1
-          description: "commit id or a refname, like 'origin/pr/72/head'"
+          name: ghprbPullId
+          description: "the GitHub pull id, like '72' in 'ceph/pull/72'"
+      - string:
+          name: pr_number
+          default: ''
+          description: "set by the webhook for pull_request events; leave empty"
+      - string:
+          name: STATUS_PREFIX
+          default: ''
+          description: "Prefix for the GitHub status context (e.g. 'test/' while testing, so the real context isn't touched)"
 
+    # Same shared ceph/ceph webhook as ceph-pr-pipeline-trigger, matched by
+    # the pr-check-trigger-token credential only (no plain-text token, so the
+    # job cannot be invoked without the secret).  Authorization (author or
+    # commenter permission / ci-approved label) is checked by
+    # scripts/github_pr_webhook.sh.  The PR number comes from the payload's
+    # pull_request.number or issue.number, whichever the event carries, which
+    # the SCM branch spec below picks up.
     triggers:
-      - github-pull-request:
-          cancel-builds-on-update: true
-          allow-whitelist-orgs-as-admins: true
-          org-list:
-            - ceph
-          white-list-labels:
-            - dashboard
-          black-list-target-branches:
-            - luminous
-          trigger-phrase: 'jenkins test dashboard'
-          skip-build-phrase: '^jenkins do not test.*'
-          only-trigger-phrase: false
-          github-hooks: true
-          permit-all: false
-          auto-close-on-fail: false
-          status-context: "ceph dashboard tests"
-          started-status: "running ceph dashboard tests"
-          success-status: "ceph dashboard tests succeeded"
-          failure-status: "ceph dashboard tests failed"
+      - generic-webhook-trigger:
+          token-credential-id: pr-check-trigger-token
+          print-contrib-var: true
+          post-content-params:
+            - type: JSONPath
+              key: repo
+              value: $.repository.full_name
+            - type: JSONPath
+              key: action
+              value: $.action
+            - type: JSONPath
+              key: sender
+              value: $.sender.login
+            - type: JSONPath
+              key: pr_number
+              value: $.pull_request.number
+            - type: JSONPath
+              key: pr_author
+              value: $.pull_request.user.login
+            - type: JSONPath
+              key: pr_labels
+              value: $.pull_request.labels[*].name
+            - type: JSONPath
+              key: label_name
+              value: $.label.name
+            - type: JSONPath
+              key: ghprbPullId
+              value: $.issue.number
+            - type: JSONPath
+              key: issue_is_pr
+              value: $.issue.pull_request.url
+            - type: JSONPath
+              key: comment_body
+              value: $.comment.body
+            - type: JSONPath
+              key: comment_author
+              value: $.comment.user.login
+          regex-filter-text: $repo:$action:$label_name:$issue_is_pr:$pr_labels:$comment_body
+          # A PR carrying the dashboard label opened/reopened/pushed, the
+          # dashboard label added to a PR, or a created issue_comment on a PR
+          # (issue_is_pr non-empty) containing the phrase.
+          regex-filter-expression: "(?is)^ceph/ceph:((opened|reopened|synchronize):::[^:]*(?<![\\w-])dashboard(?![\\w-])[^:]*:.*|labeled:dashboard::.*|created::https.*jenkins\\s+test\\s+dashboard\\b.*)$"
+          cause: "GitHub $action by $sender for PR $ghprbPullId$pr_number"
 
     scm:
       - git:
           url: https://github.com/ceph/ceph.git
           branches:
-            - origin/pr/${{ghprbPullId}}/merge
-          refspec: +refs/pull/${{ghprbPullId}}/*:refs/remotes/origin/pr/${{ghprbPullId}}/*
+            - origin/pr/${{ghprbPullId}}${{pr_number}}/merge
+          refspec: +refs/pull/${{ghprbPullId}}${{pr_number}}/*:refs/remotes/origin/pr/${{ghprbPullId}}${{pr_number}}/*
           browser: auto
           timeout: 20
           skip-tag: true
@@ -65,14 +111,11 @@
       - shell:
           !include-raw-verbatim:
             - ../../../scripts/build_utils.sh
+            - ../../../scripts/github_pr_webhook.sh
             - ../../build/check_docs_pr_only
-      - shell: "export FOR_MAKE_CHECK=1; timeout 2h ./src/script/run-make.sh --cmake-args '-DWITH_TESTS=OFF -DENABLE_GIT_VERSION=OFF'"
-      - shell:
-          !include-raw-verbatim:
+            - ../../build/build
             - ../../../scripts/dashboard/install-e2e-test-deps.sh
-      - shell: |
-          export CYPRESS_ARGS="--record --key $CYPRESS_RECORD_KEY --tag $ghprbTargetBranch" COMMIT_INFO_MESSAGE="$ghprbPullTitle"
-          cd src/pybind/mgr/dashboard; timeout 7200 ./run-frontend-e2e-tests.sh
+            - ../../build/e2e
 
     wrappers:
       - timeout:
@@ -91,6 +134,10 @@
               credential-id: github-app-ceph-jenkins
               username: GITHUB_USER
               password: GITHUB_PASS
+          - username-password-separated:
+              credential-id: github-app-ceph-jenkins
+              username: GITHUB_STATUS_USER
+              password: GITHUB_STATUS_TOKEN
           - text:
               credential-id: cd-cypress-record-key
               variable: CYPRESS_RECORD_KEY

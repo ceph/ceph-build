@@ -120,59 +120,30 @@ in seconds).
 
 Pull Request Jobs
 -----------------
-When configuring a new job that will build pull requests, you must also
-configure GitHub's repository to notify Jenkins of new pull requests.
+Pull request jobs are fired by the `Generic Webhook Trigger
+<https://plugins.jenkins.io/generic-webhook-trigger/>`_ (the GitHub Pull
+Request Builder plugin is disabled).  The repository's webhook delivers
+``pull_request`` and ``issue_comment`` events to
+``https://jenkins.ceph.com/generic-webhook-trigger/invoke`` with a token held
+in a Jenkins secret-text credential, one per repository: ``ceph/ceph`` uses
+``pr-check-trigger-token``, which also feeds ``ceph-pr-pipeline-trigger``.
+Every job for that repository names the credential in
+``token-credential-id`` and filters the events it wants with
+``regex-filter-expression``; see ``ceph-dashboard-pull-requests`` for a job
+that builds on PR open/push and on a trigger phrase, and
+``ceph-pull-requests-ppc64le`` for a phrase-only job.
 
-#. In GitHub's web interface, click the "Settings" button for your repository.
-
-#. Click the "Webhooks & Services" link in the "Options" menu on the left.
-
-#. Under the "Webhooks" section, set the "Payload URL" to
-   ``http://jenkins.ceph.com/ghprbhook/``.
-
-#. Click the "Content type" dropdown and select
-   ``application/x-www-form-urlencoded``.
-
-#. For the question "Which events would you like to trigger this webhook?",
-   select the ``Let me select individual events.`` radio, and check the ``Pull
-   Request`` and ``Issue comment`` boxes.
-
-#. Click the green "Update Webhook" button to save your changes.
-
-On the Jenkins side, you should set up the job's GitHub project URL like so::
-
-  - job:
-      name: jenkins-slave-chef-pull-requests
-
-      ...
-
-      properties:
-        - github:
-            url: https://github.com/ceph/jenkins-slave-chef
-
-This will tell the Jenkins GitHub Pull Requests plugin that it should
-associate the incoming webhooks with this particular job.
-
-You should also use the ``triggers`` setting for the job, like so::
-
-  - job:
-      name: jenkins-slave-chef-pull-requests
-
-      ...
-
-      triggers:
-        - github-pull-request:
-            cron: '* * * * *'
-            admin-list:
-              - alfredodeza
-              - ktdreyer
-            org-list:
-              - ceph
-            trigger-phrase: 'retest this please'
-            only-trigger-phrase: false
-            github-hooks: true
-            permit-all: false
-            auto-close-on-fail: false
+The plugin injects no ``ghprb*`` variables and posts no statuses, so each
+job concatenates ``scripts/build_utils.sh`` and
+``scripts/github_pr_webhook.sh`` in front of its build script.  That preamble
+resolves the PR number (``ghprbPullId`` for comments and manual builds,
+``pr_number`` for pull_request events), authorizes the trigger the way
+``ceph-pr-pipeline-trigger`` does (the commenter or PR author needs write
+access, or the PR carries the ``ci-approved`` label), exports
+``ghprbActualCommit``, ``ghprbTargetBranch`` and friends, and posts the
+commit status named by ``PR_STATUS_CONTEXT`` for the whole build.  Set
+``STATUS_PREFIX`` (e.g. ``test/``) when running a copy of the job against a
+real PR so the real status context is left alone.
 
 "Document" Jobs
 ---------------
@@ -224,7 +195,7 @@ rights to that copy only.
 
     [jenkins]
     user=ktdreyer
-    password=a8b767bb9cf0938dc7f40603f33987e5
+    password=<your Jenkins API token>
     url=https://jenkins.ceph.com/
 
 Where ``user`` is your Jenkins (ie GitHub) account username, and ``password``
