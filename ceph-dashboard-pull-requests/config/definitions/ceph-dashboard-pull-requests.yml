@@ -145,10 +145,13 @@
 
     publishers:
       - archive:
-          artifacts: 'build/out/*.log, build/run/1/out/*.log, build/run/2/out/*.log'
+          # no-artifacts/** never matches.  Listed first, it lets a build
+          # with nothing to archive end at once instead of Jenkins scanning
+          # the whole checkout for a pattern to suggest.
+          artifacts: 'no-artifacts/**, build/out/*.log, build/run/1/out/*.log, build/run/2/out/*.log'
           allow-empty: true
           latest-only: false
 
       - junit:
           results: 'src/pybind/mgr/dashboard/frontend/cypress/reports/results-*.xml'
-          allow-empty: true
+          allow-empty-results: true
