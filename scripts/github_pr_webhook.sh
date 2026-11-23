@@ -19,29 +19,49 @@ if [ -z "$ghprbPullId" ]; then
 fi
 export ghprbGhRepository ghprbPullId
 
+# GET a path under the repo's GitHub API.  Anything but a 200 is an error, so
+# an API failure is never read as an answer.  Runs in a subshell with tracing
+# off: the response bodies are large.
+github_api_get() (
+    set +x
+    local out status
+    out=$(curl -s -w '\n%{http_code}' -u "${GITHUB_USER}:${GITHUB_PASS}" \
+        -H "Accept: application/vnd.github+json" \
+        "https://api.github.com/repos/${ghprbGhRepository}/$1") || true
+    status="${out##*$'\n'}"
+    if [ "$status" != "200" ]; then
+        echo "ERROR: GitHub API ${ghprbGhRepository}/$1 returned ${status:-no response}" >&2
+        return 1
+    fi
+    echo "${out%$'\n'*}"
+)
+
 # The webhook has no authorization layer in front of this job: the commenter
 # (issue_comment) or PR author (pull_request) needs write/admin on the repo,
 # or the PR must carry the ci-approved label.  Manual builds skip the check.
 trigger_user="${comment_author:-${pr_author:-}}"
 if [ -n "$trigger_user" ]; then
-    permission=$(curl -s -u "${GITHUB_STATUS_USER}:${GITHUB_STATUS_TOKEN}" \
-        -H "Accept: application/vnd.github+json" \
-        "https://api.github.com/repos/${ghprbGhRepository}/collaborators/${trigger_user}/permission" | jq -r '.permission')
+    permission_json=$(github_api_get "collaborators/${trigger_user}/permission") || exit 1
+    permission=$(jq -r '.permission' <<< "$permission_json")
     if [ "$permission" != "admin" ] && [ "$permission" != "write" ]; then
-        labels=$(curl -s -u "${GITHUB_USER}:${GITHUB_PASS}" \
-            -H "Accept: application/vnd.github+json" \
-            "https://api.github.com/repos/${ghprbGhRepository}/issues/${ghprbPullId}/labels" | jq -r '.[].name')
-        if ! grep -qxF "ci-approved" <<< "$labels"; then
+        labels_json=$(github_api_get "issues/${ghprbPullId}/labels") || exit 1
+        if ! jq -e 'any(.[]; .name == "ci-approved")' <<< "$labels_json" > /dev/null; then
             echo "${trigger_user} lacks write access and PR ${ghprbPullId} has no ci-approved label; not building"
             exit 0
         fi
     fi
 fi
 
-pr_json=$(curl -s -u "${GITHUB_USER}:${GITHUB_PASS}" \
-    -H "Accept: application/vnd.github+json" \
-    "https://api.github.com/repos/${ghprbGhRepository}/pulls/${ghprbPullId}")
-ghprbActualCommit=$(jq -r '.head.sha // empty' <<< "$pr_json")
+pr_json=$(github_api_get "pulls/${ghprbPullId}") || exit 1
+# Report against the commit that was checked out, not the PR head as of now.
+# The workspace is on the PR's merge ref, whose second parent is that commit;
+# read the raw object because a shallow clone hides the parents.
+ghprbActualCommit=""
+checked_out=$(git rev-parse -q --verify HEAD || true)
+if [ -n "$checked_out" ] && [ "$checked_out" = "$(git rev-parse -q --verify "refs/remotes/origin/pr/${ghprbPullId}/merge" || true)" ]; then
+    ghprbActualCommit=$(git cat-file commit HEAD | sed -n '/^$/q; s/^parent //p' | sed -n 2p)
+fi
+ghprbActualCommit="${ghprbActualCommit:-$(jq -r '.head.sha // empty' <<< "$pr_json")}"
 if [ -z "$ghprbActualCommit" ]; then
     echo "ERROR: could not resolve ${ghprbGhRepository} PR ${ghprbPullId}"
     exit 1
