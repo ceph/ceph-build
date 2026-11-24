@@ -714,17 +714,27 @@ run_package_cleanup() {
 }
 
 run_orphan_cleanup() {
+    local output
+
     if [ "${DRY_RUN}" = "true" ]; then
         log "DRY RUN: skipping orphan cleanup"
         return 0
     fi
 
     log "Applying orphan content purge policy"
-    if ! pulp orphan cleanup \
-            --protection-time "${PROTECTION_TIME}"; then
-        log "ERROR: Failed to run orphan cleanup"
+    if ! output=$(
+        pulp orphan cleanup --protection-time "${PROTECTION_TIME}" 2>&1
+    ); then
+        # orphans/cleanup/ has no access policy in pulpcore, so only a
+        # superuser may call it; any other user gets "not authorized".
+        if grep -q "not authorized" <<< "${output}"; then
+            log "WARNING: Pulp user may not run orphan cleanup; skipping"
+            return 0
+        fi
+        log "ERROR: Failed to run orphan cleanup: ${output}"
         return 1
     fi
+    printf '%s\n' "${output}"
     log "Orphan cleanup completed"
 }
 
