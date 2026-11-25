@@ -59,7 +59,7 @@
     concurrent: false
     node: performance
     display-name: 'ceph: {osd-flavor} perf test'
-    description: 'CBT performance regression check ({osd-flavor} flavor): builds ceph-pr and ceph-main, runs flavor-specific radosbench workloads, and compares results via cbt/compare.py. Classic uses qa/suites/perf-basic write; crimson always uses SeaStore (spare NVMes when available, else workspace sparse images). Trigger with comment: jenkins test {osd-flavor} perf'
+    description: 'CBT performance regression check ({osd-flavor} flavor): builds ceph-pr and ceph-main, runs flavor-specific radosbench workloads, and compares results via cbt/compare.py. Classic uses qa/suites/perf-basic write; crimson always uses multi-shard replicated SeaStore (--crimson-smp 2, pool size 3; spare NVMes when available, else workspace sparse images). Trigger with comment: jenkins test {osd-flavor} perf'
     quiet-period: 5
     block-downstream: false
     block-upstream: false

@@ -36,12 +36,16 @@ The ``ceph-perf`` project generates two freestyle jobs:
   workload from ``qa/suites/perf-basic/workloads/radosbench_4K_write.yaml``
 - ``ceph-perf-crimson`` — ``crimson-osd`` via ``run-cbt.sh``, workloads from
   ``src/test/crimson/cbt/radosbench_4K_{read,write}.yaml``. **Always SeaStore**
-  (never CyanStore). Prefers the **3 largest** unmounted NVMes when present
-  (pilot node ``o02``, see https://tracker.ceph.com/issues/78071 — so three
-  7.3T drives, never OS ``sda`` / small mounted disks). If fewer than 3 spare
-  NVMes exist, creates three ~32GiB sparse images under
-  ``$WORKSPACE/seastore-imgs/`` and attaches them with ``losetup`` (vstart
-  requires writable **block** devices — plain ``.img`` files are rejected).
+  (never CyanStore), configured as a **multi-shard, 3x-replicated** cluster
+  (3 OSDs × ``--crimson-smp 2`` = 6 Seastar reactors total, explicit CBT pool
+  ``replication: 3`` → ``size=3, min_size=2``, ``seastore_cachepin_size_pershard=512M``
+  within ``--memory 4G`` per OSD). Prefers the **3 largest** unmounted NVMes
+  when present (pilot node ``o02``, see https://tracker.ceph.com/issues/78071 —
+  so three 7.3T drives, never OS ``sda`` / small mounted disks). If fewer than
+  3 spare NVMes exist, creates three 64GiB sparse images (~32GiB per reactor
+  shard) under ``$WORKSPACE/seastore-imgs/`` and attaches them with ``losetup``
+  (vstart requires writable **block** devices — plain ``.img`` files are
+  rejected).
 
 Both run on ``performance`` nodes, build ``ceph-main`` and the PR merge ref
 (``WITH_CRIMSON=ON``, ``vstart-base`` + ``crimson-osd``; compiler selection via
@@ -74,14 +78,19 @@ What the job does
 -----------------
 
 1. Prepares flavor-specific workload YAML(s) under ``$WORKSPACE/perf-workloads/``
-   (adds ``acceptable:`` with ~10% near-tolerance for compare.py). It also adds a
-   short-term **warm-up** ``prefill_time`` (>= the measured window, min 30s) so
-   the measurement does not run on a cold cluster: radosbench has no dedicated
+   (adds ``acceptable:`` with ~10% near-tolerance for compare.py and replaces
+   monitoring profiles with ``top`` for EL10 compatibility). For crimson, it
+   pins ``cluster.pool_profiles.*.replication: 3`` (CBT ignores string
+   ``'replicated'`` when setting pool ``size`` / ``min_size``) and lengthens
+   ``write_time`` from 3s to 30s so write gating is not a 3-second burst. It
+   also adds a short-term **warm-up** ``prefill_time`` (>= the measured window,
+   min 30s) across classic write, crimson read, and crimson write so the
+   measured phase does not run on a cold cluster: radosbench has no dedicated
    warm-up phase, and a cold/absent prefill adds variance (and can leave a read
-   phase with no output). This applies to the crimson **read** workload and the
-   classic **perf-basic write** workload (crimson write is left as the checked-in
-   file). The prefill pass lands in ``prefill/`` and is not compared. The durable
-   fix belongs in CBT / the checked-in Ceph CBT YAML.
+   phase with no output). Note that CBT's ``Benchmark.evaluate()`` evaluates
+   both ``prefill/`` and the measured phase (``rand/`` or ``write/``) when
+   ``prefill_time`` is set. The durable fix belongs in CBT / the checked-in Ceph
+   CBT YAML.
 2. For each of ``ceph-main`` and the PR merge ref: build once (reuse ``build/``
    for a second workload), run CBT, archive under
    ``{basedir}/{workload}/{store_tag}/<short-sha>/``.
@@ -101,8 +110,8 @@ the **measured** phase produced ``json_output.*`` (``write/``, ``rand/`` or
 was SIGKILLed mid-read, which otherwise makes ``compare.py`` fail with
 ``FileNotFoundError`` on a missing ``json_output``.
 
-``store_tag`` is ``classic`` or ``seastore`` so backends never reuse each
-other’s baselines.
+``store_tag`` is ``classic`` or ``seastore-smp2`` so backends and reactor shard
+counts never reuse incompatible baselines.
 
 Developer guide: reading the results
 ------------------------------------
@@ -154,12 +163,14 @@ What each workload runs
 
 **Crimson — 4K random read** (``radosbench_4K_read.yaml``):
 
-- Prefill write (~3s) then random 4K read (~30s), ``concurrent_ops: 16``, 128 PGs.
-- Two concurrent client processes.
+- 3 OSDs × ``--crimson-smp 2`` on SeaStore, explicit replica-3 pool (128 PGs).
+- Warm-up prefill write (30s, widened from upstream 3s) then random 4K read
+  (30s), ``concurrent_ops: 16``, two concurrent client processes.
 
 **Crimson — 4K write** (``radosbench_4K_write.yaml``):
 
-- Write-only 4K bench (~3s), same cluster shape.
+- Warm-up prefill write (30s) then measured 4K write (30s, widened from
+  upstream 3s), same multi-shard replica-3 SeaStore cluster shape.
 
 Pass / fail rules
 ~~~~~~~~~~~~~~~~~
