@@ -52,7 +52,17 @@ compare_workload() {
       -a "$archive_pr" \
       -b "$archive_main" \
       --output "$partial"; then
-        :
+        # cbt/compare.py exits 0 with "### all 0 tests passed" when baseline or
+        # PR result directories do not match (e.g. benchmark id-<hash> mismatch).
+        # Treat zero evaluated checks as a hard failure, never a green pass.
+        if test ! -s "$partial" || grep -qE '^### all 0 tests passed' "$partial"; then
+            result=failure
+            {
+                echo
+                echo "ERROR: cbt/compare.py evaluated 0 tests for ${label}" \
+                     "(archive/config mismatch between PR and baseline)."
+            } >> "$partial"
+        fi
     else
         result=failure
         if test ! -s "$partial"; then

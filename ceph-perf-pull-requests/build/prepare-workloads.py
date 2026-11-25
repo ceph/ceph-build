@@ -14,6 +14,15 @@ from pathlib import Path
 
 import yaml
 
+CRIMSON_SMP = 2
+CRIMSON_POOL_SIZE = 3
+CRIMSON_MIN_WRITE_TIME = 30
+# Default seastore_cachepin_size_pershard is 2 GiB per reactor (crimson.yaml.in),
+# which fills the entire 2 GiB per-reactor heap when `--memory 4G` is split
+# across `--crimson-smp 2` and risks Seastar std::bad_alloc OOM under sustained
+# writes. Cap per-shard cachepin at 512 MiB (1 GiB total cache per OSD).
+CRIMSON_CACHEPIN_PERSHARD_BYTES = 536870912
+
 
 def inject_acceptable(doc: dict, acceptable: dict) -> None:
     for task in doc.get("tasks") or []:
@@ -97,6 +106,58 @@ def warmup_write_prefill(doc: dict) -> str | None:
     raise SystemExit("no cbt/radosbench task found in workload YAML")
 
 
+def pin_pool_replication(doc: dict, size: int) -> str:
+    """Set explicit integer replication in CBT pool_profiles.
+
+    Upstream crimson CBT YAMLs set ``replication: 'replicated'``. CBT's
+    ``Ceph.mkpool`` only runs ``osd pool set <pool> size <N>`` and
+    ``min_size <N-1>`` when ``str(replication).isdigit()`` is true; otherwise
+    it leaves pool sizing to cluster defaults. Pinning integer ``size`` makes
+    3x replication explicit and verifiable in ``cbt_config.yaml``.
+    """
+    for task in doc.get("tasks") or []:
+        if not isinstance(task, dict) or "cbt" not in task:
+            continue
+        profiles = (
+            task["cbt"]
+            .setdefault("cluster", {})
+            .get("pool_profiles")
+        ) or {}
+        changes: list[str] = []
+        for prof_name, prof in profiles.items():
+            if not isinstance(prof, dict):
+                continue
+            prev = prof.get("replication")
+            if prev == "erasure" or "erasure_profile" in prof:
+                continue
+            prof["replication"] = size
+            changes.append(f"{prof_name}:{prev}->{size}")
+        if not changes:
+            raise SystemExit("no replicated pool_profile found in workload YAML")
+        return f"pool_replication={','.join(changes)}"
+    raise SystemExit("no cbt task found in workload YAML")
+
+
+def ensure_min_write_time(doc: dict, min_seconds: int) -> str | None:
+    """Ensure write-only CBT workloads measure for at least ``min_seconds``.
+
+    Upstream ``src/test/crimson/cbt/radosbench_4K_write.yaml`` sets
+    ``write_time: 3``, which is too short and noisy for PR regression gating.
+    """
+    for task in doc.get("tasks") or []:
+        if not isinstance(task, dict) or "cbt" not in task:
+            continue
+        bench = task["cbt"].setdefault("benchmarks", {}).setdefault("radosbench", {})
+        if not bench.get("write_only"):
+            return None
+        key = "write_time" if "write_time" in bench else "time"
+        current = int(bench.get(key, 300))
+        target = max(current, min_seconds)
+        bench[key] = target
+        return f"{key}={current}->{target}"
+    raise SystemExit("no cbt/radosbench task found in workload YAML")
+
+
 def device_has_mount(dev_path: str) -> bool:
     try:
         out = subprocess.check_output(
@@ -150,21 +211,33 @@ def main() -> int:
             src = main_src / "src/test/crimson/cbt" / name
             doc = yaml.safe_load(src.read_text())
             inject_acceptable(doc, acceptable)
+            meta.append(f"{name}_{pin_pool_replication(doc, CRIMSON_POOL_SIZE)}")
             note = warmup_read_prefill(doc)
             if note:
                 meta.append(f"{name}_{note}")
+            note = ensure_min_write_time(doc, CRIMSON_MIN_WRITE_TIME)
+            if note:
+                meta.append(f"{name}_{note}")
+                meta.append(f"{name}_{warmup_write_prefill(doc)}")
             note = use_top_monitoring(doc)
             if note:
                 meta.append(f"{name}_{note}")
             (out / name).write_text(yaml.safe_dump(doc, sort_keys=False))
             meta.append(f"{name}_source={src}")
         meta.append("workloads=read,write")
-        # Crimson always uses SeaStore (never CyanStore). Prefer 3 spare NVMes;
-        # otherwise create sparse images attached via losetup (vstart requires
-        # writable *block* devices — plain .img files are rejected, see
-        # ceph-perf-crimson #41: "All --seastore-devs must refer to writable
-        # block devices").
-        store_tag = "seastore"
+        meta.append(f"crimson_smp={CRIMSON_SMP}")
+        meta.append(f"crimson_pool_size={CRIMSON_POOL_SIZE}")
+        meta.append(
+            f"seastore_cachepin_size_pershard={CRIMSON_CACHEPIN_PERSHARD_BYTES}"
+        )
+        # Crimson always uses SeaStore (never CyanStore) with multi-shard
+        # reactors (--crimson-smp 2). Encode smp in store_tag so multi-shard
+        # runs never reuse single-shard baseline archives for the same main SHA.
+        # Prefer 3 spare NVMes; otherwise create sparse images attached via
+        # losetup (vstart requires writable *block* devices — plain .img files
+        # are rejected, see ceph-perf-crimson #41: "All --seastore-devs must
+        # refer to writable block devices").
+        store_tag = f"seastore-smp{CRIMSON_SMP}"
         nvmes: list[tuple[int, str]] = []
         for line in os.popen(
             "lsblk -dn -b -o NAME,TYPE,SIZE,MOUNTPOINT"
@@ -195,8 +268,9 @@ def main() -> int:
         else:
             img_dir = ws / "seastore-imgs"
             img_dir.mkdir(parents=True, exist_ok=True)
-            # ~32GiB sparse files (same order as upstream cyanstore memstore_device_bytes).
-            sparse_bytes = 34359738368
+            # ~32GiB per reactor shard: BlockSegmentManager::make_superblock
+            # divides the device evenly across seastar::this_smp_shard_count().
+            sparse_bytes = 34359738368 * CRIMSON_SMP
             chosen = []
             for i in range(3):
                 img = img_dir / f"osd-{i}.img"
@@ -249,7 +323,8 @@ def main() -> int:
         new = (
             "MDS=0 MGR=1 OSD=3 MON=1 $source_dir/src/vstart.sh -n -X \\\n"
             f"           --without-dashboard --seastore --seastore-devs {devs} \\\n"
-            "           --crimson --nodaemon --redirect-output \\\n"
+            f"           --crimson --crimson-smp {CRIMSON_SMP} --nodaemon --redirect-output \\\n"
+            f'           -o "seastore_cachepin_size_pershard={CRIMSON_CACHEPIN_PERSHARD_BYTES}" \\\n'
             '           --osd-args "--memory 4G"'
         )
         if old not in src_sh:
